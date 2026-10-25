@@ -56,6 +56,8 @@ from .version import __version__  # after the pandas flag, like every submodule
 # are only imported on first attribute access. Listed in ``__all__`` so the API
 # is discoverable via ``dir(hitlist)`` / autocomplete and stable across refactors.
 _PUBLIC_API: dict[str, str] = {
+    "write_dilution_observer_package": ".dilution_observer",
+    "verify_dilution_observer_package": ".dilution_observer",
     "EvidenceStore": ".evidence_store",
     "verify_recipe_package": ".evidence_recipe",
     "write_reference_evidence_package": ".reference_evidence",

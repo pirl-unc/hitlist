@@ -131,7 +131,13 @@ class EvidenceStore:
             include_adjudications=adjudication_manifest_path(manifest) is not None,
             package_features=package_features,
         )
-        if family == "native_peptidomics":
+        if family == "dilution_observer":
+            self.bindings = {
+                name: binding
+                for name, binding in self.bindings.items()
+                if name.startswith("dilution_")
+            }
+        elif family == "native_peptidomics":
             self.bindings = {
                 name: binding
                 for name, binding in self.bindings.items()
@@ -226,7 +232,11 @@ class EvidenceStore:
             family = package_family(envelope)
         except ValueError as exc:
             raise EvidenceQueryError(str(exc)) from exc
-        if family == "native_peptidomics":
+        if family == "dilution_observer":
+            from .dilution_observer import verify_dilution_observer_package
+
+            manifest = verify_dilution_observer_package(directory)
+        elif family == "native_peptidomics":
             from .native_peptidomics import verify_native_peptidomics_package
 
             manifest = verify_native_peptidomics_package(directory)
@@ -420,6 +430,7 @@ class EvidenceStore:
             "goldberg_mapp",
             "intact_degradomics",
             "native_peptidomics",
+            "dilution_observer",
         ):
             return self.manifest.get("source_registry", {})
         if family == "tmab_peptidomics":

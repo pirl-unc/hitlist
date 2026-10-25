@@ -146,3 +146,80 @@ The admitted population has22 observed peptides and224 peptide/site summaries.
 A load/site baseline outperformed the prespecified sequence-augmented ridge
 model in that selected cohort; neither result establishes biological
 concentration or cross-assay transfer.
+
+## PXD024809 aligned/scored nominal-dose source
+
+`write_dilution_observer_package` builds a separate verified source package from
+17 pinned original assets: project/article/inventory, reference pipeline code,
+ten scored DIA exports, the aligned quantity table and the master library. Its
+15 tables are discoverable through the existing catalog and `EvidenceStore`.
+The package conserves source evidence; it does not admit a calibration recipe.
+
+```python
+from hitlist import EvidenceStore, write_dilution_observer_package
+
+write_dilution_observer_package(
+    "/path/to/original-assets",
+    "/path/to/new-dilution-package",
+)
+store = EvidenceStore.open("/path/to/new-dilution-package")
+links = store.query(
+    "dilution_feature_links",
+    joins=["aligned", "scored"],
+    select=[
+        "feature_link_status", "n_candidates",
+        "aligned.native_feature_id", "aligned.quantitative_raw",
+        "aligned.quantitative_value", "aligned.value_status",
+        "scored.quantitative_value",
+    ],
+    limit=100,
+)
+```
+
+For originals stored in several directories, the writer's optional `assets`
+argument maps admitted basenames to local paths. It cannot change the pinned
+hashes, source roles, schemas or nominal panel. Snapshots use independent inodes
+and prefer copy-on-write storage. Existing destinations are never overwritten.
+Opening a package checks its inventory and immutable contract, then recompiles
+and compares every typed table against the originals, including source states
+and unresolved relationships. Rehashing a changed typed table cannot make it pass.
+
+- `dilution_source_records` preserves ordered literal headers and cells, including
+  the large transition-array fields in scored exports. `dilution_assets` links
+  them to original bytes, source URLs and the source rights assertions.
+- `dilution_scored_features` and `dilution_aligned_quantities` have distinct grains.
+  Raw and parsed values coexist; zero, NA, empty, invalid and nonfinite values
+  never become inferred detection failures or censor bounds. Feature/run IDs stay
+  text, including values larger than the exact integer range of float64.
+- `dilution_library_precursors` and `dilution_library_transitions` retain the
+  library namespace. Its group numbers differ from scored/aligned precursor
+  numbers. Full molecular form, charge and target/decoy state support membership;
+  ambiguous matches remain unselected. Literal group-label missingness is a
+  separate check from chemical identity.
+- `dilution_feature_links` retains exact-ID matches, missing/absent IDs, ambiguous
+  candidates and form/charge/precursor/target disagreements. `dilution_comparisons`
+  retains six raw/scored numeric comparisons with exact decimal differences and
+  a fixed tolerance label. A matched quantity is not an identification acceptance
+  policy. The deposited scored exports themselves may have applied q-value filters.
+- `dilution_nominal_standards`, `dilution_nominal_levels` and
+  `dilution_standard_memberships` distinguish the intended ten-standard panel
+  from observed library forms. An absent standard creates an absence-of-membership
+  claim, not per-run zero measurements. Nominal solution concentrations are not
+  certified injected amounts or intracellular concentrations.
+- `dilution_assertions` preserves full protocols, original article claims and
+  named source-supported parameters. It distinguishes DIA1/DIA2 window definitions,
+  mass-spectrometer accumulation time from LC injection volume, post-isolation
+  spikes, dilution of the standard-spiked matrix and library construction scope.
+  Reported workflow defaults remain separate from actual executable/run receipts.
+  The twofold versus 1:10 source conflict remains queryable. Still-unqualified
+  fields do not imply absence from all literature or supplements.
+- Shared material contexts distinguish the JY HLA-selected matrix from the
+  synthetic standards. Source species and HLA genotype describe the matrix,
+  not measured restriction of the standards. Acquisition-to-dose/method links are
+  filename-derived; DIA1 and DIA2 are not assumed interchangeable replicates.
+  No physical specimen, aliquot, recovery or APC machinery state is invented.
+
+Training requires a separate endpoint, selection/missingness likelihood,
+applicability contract and held-out evaluation. Neither nine observed standards
+nor an internally consistent source package establishes general sequence transfer,
+native non-MHC MS1 calibration or a model of peptide availability in APCs.

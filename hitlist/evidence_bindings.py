@@ -1751,6 +1751,96 @@ LINKS += (
 )
 
 
+for _dilution_table in (
+    "assertions",
+    "nominal_standards",
+    "nominal_levels",
+    "acquisitions",
+    "library_precursors",
+    "library_transitions",
+    "scored_features",
+    "aligned_quantities",
+    "feature_links",
+    "comparisons",
+    "standard_memberships",
+):
+    LINKS += (
+        Link(
+            "source_record",
+            "dilution_" + _dilution_table,
+            "dilution_source_records",
+            "source_record_id",
+            "source_record_id",
+            "one",
+            "original_source_record",
+        ),
+    )
+for _dilution_source, _dilution_target, _dilution_name, _dilution_key, _dilution_cardinality in (
+    ("source_records", "assets", "asset", "source_asset_id", "one"),
+    ("scored_features", "acquisitions", "acquisition", "acquisition_id", "one"),
+    ("aligned_quantities", "acquisitions", "acquisition", "acquisition_id", "one"),
+    (
+        "scored_features",
+        "library_precursors",
+        "library_precursor",
+        "library_precursor_id",
+        "optional_one",
+    ),
+    (
+        "aligned_quantities",
+        "library_precursors",
+        "library_precursor",
+        "library_precursor_id",
+        "optional_one",
+    ),
+    (
+        "library_transitions",
+        "library_precursors",
+        "library_precursor",
+        "library_precursor_id",
+        "one",
+    ),
+    ("feature_links", "aligned_quantities", "aligned", "measurement_id", "one"),
+    ("feature_links", "scored_features", "scored", "identification_id", "optional_one"),
+    ("comparisons", "aligned_quantities", "aligned", "measurement_id", "one"),
+    ("comparisons", "scored_features", "scored", "identification_id", "one"),
+    ("standard_memberships", "nominal_standards", "standard", "standard_id", "one"),
+    (
+        "standard_memberships",
+        "library_precursors",
+        "library_precursor",
+        "library_precursor_id",
+        "optional_one",
+    ),
+    ("acquisitions", "nominal_levels", "nominal_level", "nominal_level_id", "one"),
+    ("acquisitions", "material_contexts", "context", "context_id", "one"),
+    ("assertions", "material_contexts", "context", "context_id", "one"),
+):
+    LINKS += (
+        Link(
+            _dilution_name,
+            "dilution_" + _dilution_source,
+            "dilution_" + _dilution_target,
+            _dilution_key,
+            _dilution_key,
+            _dilution_cardinality,
+            "qualified_source_link_not_cross_namespace_ID_equality",
+        ),
+    )
+for _dilution_direction in ("source", "target"):
+    LINKS += (
+        Link(
+            _dilution_direction + "_context",
+            "dilution_material_links",
+            "dilution_material_contexts",
+            _dilution_direction + "_context_id",
+            "context_id",
+            "one",
+            "explicit_material_context_link",
+        ),
+    )
+
+
 def materialized_bindings(
     package_schema_version=None,
     *,

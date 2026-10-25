@@ -8926,3 +8926,43 @@ contributors. Support: train55components/158contrasts, validation8/38, test18/32
 82parent sequences across81components. No fitted predictor or held-out effect
 summary. SourcePR839 merged as e755be4 with the identical tree as bfbaa67 base;
 source release40167325306 remains live. Recipe PR/release and later fit pending.
+
+## PXD024809 observation source — #845
+
+- [x] Create isolated branch from current main and write source contract before code.
+- [x] Complete independent scored/aligned/library lineage audit before freezing compiler schema.
+- [x] Implement source package, catalog/bindings/store/provenance and meaningful corruption fixtures.
+- [ ] Independently reconcile the original source and complete required format/lint/test gates.
+- [ ] Publish patch-version PR, pass hosted checks, merge and verify tested PyPI deployment.
+
+Spec: tasks/dilution_observer_spec.md. No calibration training or biological concentration claim yet.
+
+Implementation review: candidate2.0.40 has15shared tables,17pinned originals,
+explicit cross-namespace links and15source-supported named protocol claims.
+18focused tests pass, including tamper rejection after manifest rehash, large
+IDs, ambiguous/decoy/missing states, source-exact protocol claims and public joins.
+format.sh/lint.sh pass. Two full-suite preflights refused at0.25/0.08GiB free plus
+speculative memory; no tests ran and no guard was weakened. psutil.available's
+13.9GiB includes inactive pages and did not establish admission. Original-source
+materialization/replay and full-suite/publication gates remain pending. Preserve
+both refusal logs; proceed with a reviewable draft while awaiting real headroom.
+
+Continuation: branch7c9fa84 is published as draftPR846. Hosted Tests40182792458
+and Docs40182792527 are live. The latest local admitting memory read is0.063GiB;
+no full-suite or source build was launched. Static review found six existing
+assertions of the global catalog36; update those to37 without changing the
+historical package envelopes, then run the six affected files and source tests.
+Keep original-source replay and required full gates pending.
+
+Catalog correction review: all48tests across the six existing catalog files and
+new dilution source tests pass in1.63s (one existing pandas warning). Format and
+lint pass. Production source modules and fixed data contract are unchanged.
+
+Hosted Tests40182919894/Python3.11 found one additional stale subprocess-output
+assertion (catalog string36 rather than37):3568passed,2skipped,1failed in142.55s.
+Fix that assertion as part of the same global catalog migration; historical
+package catalog constants remain unchanged. Re-run the catalog and source files
+before publishing a fresh head. Docs40182919914 and lint already pass.
+
+Final catalog correction:26catalog/source tests pass in1.68s; format/lint pass.
+CI failure log40182919894/Python3.11 is retained. New-head full checks required.
