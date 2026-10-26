@@ -1,0 +1,314 @@
+{
+  "source_dataset": "PXD024917",
+  "revision": "pxd024917_nominal_ms2_v1",
+  "workbooks": {
+    "panel": "pnas.2111173118.sd01.xlsx",
+    "responses": "pnas.2111173118.sd03.xlsx",
+    "isotopes": "pnas.2111173118.sd06.xlsx",
+    "filemap": "pnas.2111173118.sd07.xlsx",
+    "direct_export": "Iso18_DirectSpike_TransitionResults.xlsx",
+    "embedded_export": "Iso18_hipMHCspikein_TransitionResults.xlsx"
+  },
+  "assets": [
+    {
+      "filename": "pnas.2111173118.sd01.xlsx",
+      "role": "panel",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC8449407.1/pnas.2111173118.sd01.xlsx",
+      "sha256": "71f8bd65d178d78014faf8d4e01a227fbb20ee90eee9ee8e9fbe6c5d311d0d2c",
+      "size_bytes": 49365,
+      "license_status": "original_source_asset_rights_retained_no_independent_license_adjudication"
+    },
+    {
+      "filename": "pnas.2111173118.sd03.xlsx",
+      "role": "responses",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC8449407.1/pnas.2111173118.sd03.xlsx",
+      "sha256": "a51dce88e3fa91b6f38d6f5f86cf3347ee285bcf7e6ca0384a16de1a8d9d0803",
+      "size_bytes": 20234,
+      "license_status": "original_source_asset_rights_retained_no_independent_license_adjudication"
+    },
+    {
+      "filename": "pnas.2111173118.sd06.xlsx",
+      "role": "isotopes",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC8449407.1/pnas.2111173118.sd06.xlsx",
+      "sha256": "ed26e8b29dda9d48e5784e392b30271cfc1e5a7b7ada3fadfcbe344fe68131b5",
+      "size_bytes": 21980,
+      "license_status": "original_source_asset_rights_retained_no_independent_license_adjudication"
+    },
+    {
+      "filename": "pnas.2111173118.sd07.xlsx",
+      "role": "filemap",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC8449407.1/pnas.2111173118.sd07.xlsx",
+      "sha256": "ab93052b47887c19df62a2c5580a7b2245cf98e5aa91eee88d4d61c31607cfa9",
+      "size_bytes": 10401,
+      "license_status": "original_source_asset_rights_retained_no_independent_license_adjudication"
+    },
+    {
+      "filename": "Iso18_DirectSpike_TransitionResults.xlsx",
+      "role": "direct_export",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/09/PXD024917/Iso18_DirectSpike_TransitionResults.xlsx",
+      "sha256": "d359bf7b8afd0ade9df9539d941c0f7931b8c39657a444d3bf8025e54ff1d995",
+      "size_bytes": 151291,
+      "license_status": "original_source_asset_rights_retained_no_independent_license_adjudication"
+    },
+    {
+      "filename": "Iso18_hipMHCspikein_TransitionResults.xlsx",
+      "role": "embedded_export",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/09/PXD024917/Iso18_hipMHCspikein_TransitionResults.xlsx",
+      "sha256": "8426f43364ea1d84244403811956f501664abf8001e7043ec8fc1ae546175308",
+      "size_bytes": 69651,
+      "license_status": "original_source_asset_rights_retained_no_independent_license_adjudication"
+    },
+    {
+      "filename": "PMC8449407.1.xml",
+      "role": "article",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC8449407.1/PMC8449407.1.xml",
+      "sha256": "3711c276803de4ee25b43ebb94509a06febb1a20e24424aab9398bef22420a42",
+      "size_bytes": 39888,
+      "license_status": "original_source_asset_rights_retained_no_independent_license_adjudication"
+    },
+    {
+      "filename": "pnas.2111173118.sapp.pdf",
+      "role": "methods",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC8449407.1/pnas.2111173118.sapp.pdf",
+      "sha256": "5f8b2868251304250a0a1e18d0c27ffa49a4df886bfcaf57b44329084d991265",
+      "size_bytes": 147582,
+      "license_status": "original_source_asset_rights_retained_no_independent_license_adjudication"
+    },
+    {
+      "filename": "project.json",
+      "role": "project",
+      "source_url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD024917",
+      "sha256": "59871c5c423eb4b77aae23ad355f593e2cf7f463b3e008e6afd57534cccb82fa",
+      "size_bytes": 4380,
+      "license_status": "original_source_asset_rights_retained_no_independent_license_adjudication"
+    },
+    {
+      "filename": "files-page0.json",
+      "role": "inventory",
+      "source_url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD024917/files?pageSize=100&page=0",
+      "sha256": "4c9d293a5eb88b74ddfc807e5c779ad4360cbeb877784c733aa0c2a1bf601da6",
+      "size_bytes": 76323,
+      "license_status": "original_source_asset_rights_retained_no_independent_license_adjudication"
+    }
+  ],
+  "context_locators": {
+    "project": "project.json#/accession",
+    "direct": "pnas.2111173118.sd03.xlsx#DatasetS3A!A1",
+    "embedded": "pnas.2111173118.sd03.xlsx#DatasetS3B!A1"
+  },
+  "protocol_assertions": [
+    {
+      "context": "direct",
+      "predicate": "spike_stage",
+      "value_raw": "free_peptide_after_HLA_peptide_purification",
+      "source_file": "pnas.2111173118.sd03.xlsx",
+      "source_locator": "pnas.2111173118.sd03.xlsx#DatasetS3A!A1",
+      "scope": "direct_standard_design",
+      "unit": null,
+      "status": "source_reported"
+    },
+    {
+      "context": "embedded",
+      "predicate": "spike_stage",
+      "value_raw": "hipMHC_before_immunoprecipitation",
+      "source_file": "pnas.2111173118.sapp.pdf",
+      "source_locator": "pnas.2111173118.sapp.pdf#page=3/Peptide_MHC_isolation",
+      "scope": "embedded_standard_design",
+      "unit": null,
+      "status": "reviewed_source_interpretation"
+    },
+    {
+      "context": "direct",
+      "predicate": "standard_amount_assignment",
+      "value_raw": "amino_acid_analysis",
+      "source_file": "pnas.2111173118.sapp.pdf",
+      "source_locator": "pnas.2111173118.sapp.pdf#page=2/Peptide_synthesis",
+      "scope": "standard_preparation",
+      "unit": null,
+      "status": "reviewed_source_interpretation"
+    },
+    {
+      "context": "project",
+      "predicate": "standard_purity",
+      "value_raw": ">97",
+      "source_file": "pnas.2111173118.sapp.pdf",
+      "source_locator": "pnas.2111173118.sapp.pdf#page=2/Peptide_synthesis",
+      "scope": "standard_preparation",
+      "unit": "percent_HPLC",
+      "status": "reviewed_source_interpretation"
+    },
+    {
+      "context": "project",
+      "predicate": "isotopologue_balancing",
+      "value_raw": "LC_MS",
+      "source_file": "pnas.2111173118.sapp.pdf",
+      "source_locator": "pnas.2111173118.sapp.pdf#page=2/Peptide_synthesis",
+      "scope": "standard_preparation",
+      "unit": null,
+      "status": "reviewed_source_interpretation"
+    },
+    {
+      "context": "project",
+      "predicate": "standard_preparation",
+      "value_raw": "synthetic_peptide_not_protein_digest",
+      "source_file": "pnas.2111173118.sapp.pdf",
+      "source_locator": "pnas.2111173118.sapp.pdf#page=2/Peptide_synthesis",
+      "scope": "standard_preparation",
+      "unit": null,
+      "status": "reviewed_source_interpretation"
+    },
+    {
+      "context": "embedded",
+      "predicate": "standard_amount_assignment",
+      "value_raw": "stable_complex_ELISA_after_exchange",
+      "source_file": "pnas.2111173118.sapp.pdf",
+      "source_locator": "pnas.2111173118.sapp.pdf#page=2/UV_mediated_peptide_exchange",
+      "scope": "standard_preparation",
+      "unit": null,
+      "status": "reviewed_source_interpretation"
+    },
+    {
+      "context": "embedded",
+      "predicate": "standard_MHC_reagent",
+      "value_raw": "HLA-A*02:01",
+      "source_file": "pnas.2111173118.sapp.pdf",
+      "source_locator": "pnas.2111173118.sapp.pdf#page=2/UV_mediated_peptide_exchange",
+      "scope": "recombinant_standard_not_sample_restriction",
+      "unit": null,
+      "status": "reviewed_source_interpretation"
+    },
+    {
+      "context": "project",
+      "predicate": "capture_reagent",
+      "value_raw": "W6/32_pan_HLA_class_I",
+      "source_file": "pnas.2111173118.sapp.pdf",
+      "source_locator": "pnas.2111173118.sapp.pdf#page=3/Peptide_MHC_isolation",
+      "scope": "reference_protocol_not_per_acquisition_receipt",
+      "unit": null,
+      "status": "reviewed_source_interpretation"
+    },
+    {
+      "context": "project",
+      "predicate": "instrument",
+      "value_raw": "Orbitrap_Exploris_480",
+      "source_file": "pnas.2111173118.sapp.pdf",
+      "source_locator": "pnas.2111173118.sapp.pdf#page=3/Mass_spectrometry_data_acquisition",
+      "scope": "reference_protocol_not_per_acquisition_receipt",
+      "unit": null,
+      "status": "reviewed_source_interpretation"
+    },
+    {
+      "context": "project",
+      "predicate": "MS_response_type",
+      "value_raw": "targeted_selected_product_ion_response",
+      "source_file": "pnas.2111173118.sd03.xlsx",
+      "source_locator": "pnas.2111173118.sd03.xlsx#DatasetS3A!C3",
+      "scope": "source_reported_signal_with_incomplete_aggregate_reconstruction",
+      "unit": null,
+      "status": "reviewed_source_interpretation"
+    },
+    {
+      "context": "project",
+      "predicate": "quantification_software",
+      "value_raw": "Skyline_20.2.1.28",
+      "source_file": "pnas.2111173118.sapp.pdf",
+      "source_locator": "pnas.2111173118.sapp.pdf#page=5/SureQuant_IsoMHC",
+      "scope": "reference_protocol_not_per_acquisition_receipt",
+      "unit": null,
+      "status": "reviewed_source_interpretation"
+    },
+    {
+      "context": "project",
+      "predicate": "quantification_transition_rule",
+      "value_raw": "sum_selected_ions_quantifiable_across_light_and_1H_to_3H",
+      "source_file": "pnas.2111173118.sapp.pdf",
+      "source_locator": "pnas.2111173118.sapp.pdf#page=5/SureQuant_IsoMHC",
+      "scope": "reference_method_not_proven_exact_S3_sum",
+      "unit": null,
+      "status": "reviewed_source_interpretation"
+    },
+    {
+      "context": "project",
+      "predicate": "4H_trigger_amount_default",
+      "value_raw": "250",
+      "source_file": "pnas.2111173118.sapp.pdf",
+      "source_locator": "pnas.2111173118.sapp.pdf#page=3/SureQuant_IsoMHC",
+      "scope": "reference_protocol_with_named_exceptions",
+      "unit": "fmol",
+      "status": "reviewed_source_interpretation"
+    },
+    {
+      "context": "project",
+      "predicate": "4H_trigger_amount_exceptions",
+      "value_raw": "{\"AMLGTHTMEV\": 2500, \"GLFDQHFRL\": 2500}",
+      "source_file": "pnas.2111173118.sapp.pdf",
+      "source_locator": "pnas.2111173118.sapp.pdf#page=3/SureQuant_IsoMHC",
+      "scope": "reference_protocol_not_per_acquisition_receipt",
+      "unit": "fmol",
+      "status": "reviewed_source_interpretation"
+    },
+    {
+      "context": "project",
+      "predicate": "trigger_product_ion_minimum",
+      "value_raw": "5",
+      "source_file": "pnas.2111173118.sapp.pdf",
+      "source_locator": "pnas.2111173118.sapp.pdf#page=4/SureQuant_acquisition",
+      "scope": "reference_protocol_not_per_acquisition_receipt",
+      "unit": "product_ion_count",
+      "status": "reviewed_source_interpretation"
+    },
+    {
+      "context": "project",
+      "predicate": "acquisition_to_source_column_link",
+      "value_raw": "unresolved",
+      "source_file": "pnas.2111173118.sd03.xlsx",
+      "source_locator": "pnas.2111173118.sd03.xlsx#DatasetS3A!C3:E3;DatasetS3B!C3:E3",
+      "scope": "curation_lineage",
+      "unit": null,
+      "status": "source_qualification_unknown"
+    },
+    {
+      "context": "project",
+      "predicate": "concentration_target_applicability",
+      "value_raw": "nominal_standard_response_not_native_APC_amount",
+      "source_file": "pnas.2111173118.sd03.xlsx",
+      "source_locator": "pnas.2111173118.sd03.xlsx#DatasetS3A;DatasetS3B",
+      "scope": "curation_endpoint",
+      "unit": null,
+      "status": "curation_policy"
+    }
+  ],
+  "source_registry": {
+    "PXD024917": {
+      "doi": "10.1073/pnas.2111173118",
+      "pmid": "34497125",
+      "project_url": "https://www.ebi.ac.uk/pride/archive/projects/PXD024917",
+      "source_role": "selected_tumor_antigen_nominal_standard_MS2_response",
+      "training_admission": "requires_separate_explicit_recipe",
+      "limitations": [
+        "unresolved_isotope_atom_assertions",
+        "unresolved_acquisition_column_links",
+        "incomplete_published_aggregate_reconstruction",
+        "selected_panel_and_protocol_not_APC_concentration"
+      ]
+    }
+  },
+  "expected_reconciliation": {
+    "n_standards_rows": 18,
+    "n_reported_forms_rows": 72,
+    "n_source_sheets_rows": 10,
+    "n_source_cells_rows": 61852,
+    "n_nominal_amounts_rows": 116,
+    "n_measurements_rows": 348,
+    "n_source_slots_rows": 6,
+    "n_transition_counts_rows": 108,
+    "n_export_forms_rows": 54,
+    "n_transition_groups_rows": 684,
+    "n_transitions_rows": 3684,
+    "n_aggregate_signals_rows": 1368,
+    "n_measurement_candidates_rows": 1017,
+    "n_material_contexts_rows": 3,
+    "n_material_links_rows": 2
+  },
+  "audited_source_revision": "Presto155f719b85130367bff37f7d514c60dcb3a66502/family1857"
+}

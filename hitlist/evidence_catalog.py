@@ -18,8 +18,11 @@ from .intact_degradomics_schema import SCHEMAS as INTACT_SCHEMAS
 from .native_peptidomics_schema import FIELD_MEANINGS as NATIVE_FIELD_MEANINGS
 from .native_peptidomics_schema import RELATIONS as NATIVE_RELATIONS
 from .native_peptidomics_schema import SCHEMAS as NATIVE_SCHEMAS
+from .nontryptic_calibration_schema import FIELD_MEANINGS as NONTRYPTIC_FIELD_MEANINGS
+from .nontryptic_calibration_schema import RELATIONS as NONTRYPTIC_RELATIONS
+from .nontryptic_calibration_schema import SCHEMAS as NONTRYPTIC_SCHEMAS
 
-SCHEMA_VERSION = 37
+SCHEMA_VERSION = 38
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -1553,6 +1556,25 @@ for _name, _definition in sorted(_dilution_fields.items()):
     if _name.endswith("_id"):
         _role, _kind = "identity", "identifier"
     FIELDS += (_field(_name, _role, _kind, DILUTION_FIELD_MEANINGS[_name]),)
+
+_existing_fields = {field.name for field in FIELDS}
+_nontryptic_fields = {
+    field.name: field for schema in NONTRYPTIC_SCHEMAS.values() for field in schema
+}
+for _name, _definition in sorted(_nontryptic_fields.items()):
+    if _name in _existing_fields:
+        continue
+    _kind = (
+        "boolean"
+        if str(_definition.type) == "bool"
+        else "number"
+        if str(_definition.type) in {"int64", "double"}
+        else "text"
+    )
+    _role = "provenance"
+    if _name.endswith("_id"):
+        _role, _kind = "identity", "identifier"
+    FIELDS += (_field(_name, _role, _kind, NONTRYPTIC_FIELD_MEANINGS[_name]),)
 
 _FIELD_BY_NAME = {field.name: field for field in FIELDS}
 
@@ -5456,6 +5478,24 @@ EVIDENCE += tuple(
         min_package_schema_version=28,
     )
     for name, (grain, kind, primary_key) in DILUTION_RELATIONS.items()
+)
+
+EVIDENCE += tuple(
+    Evidence(
+        "nontryptic_" + name,
+        kind,
+        "nominal_standard_MS2_response",
+        grain,
+        f"nontryptic_calibration/typed/{name}.parquet",
+        "pxd024917_nominal_MS2_with_qualified_source_lineage",
+        (),
+        tuple(NONTRYPTIC_SCHEMAS[name].names),
+        (primary_key,),
+        status="v2_materialized",
+        materialized_artifact=f"nontryptic_calibration/typed/{name}.parquet",
+        min_package_schema_version=29,
+    )
+    for name, (grain, kind, primary_key) in NONTRYPTIC_RELATIONS.items()
 )
 
 _EVIDENCE_BY_NAME = {item.name: item for item in EVIDENCE}

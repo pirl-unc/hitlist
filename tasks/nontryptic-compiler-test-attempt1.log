@@ -1,0 +1,23 @@
+[test.sh] platform=macos cpus=10 (pytest-xdist not installed; running serial)
+[test.sh] cpus=10 cpu_cap=8 ram_free=9.36GB mem_cap=3 per_worker=2.5GB workers=1
+[test.sh] → exec python -m pytest  -m not integration  --cov=hitlist/ --cov-report=term-missing tests tests/test_nontryptic_calibration.py tests/test_nontryptic_workbooks.py
+[test.sh] Resource profile for 'not integration' (peak RSS is a process peak, not summed worker RAM)
+/private/tmp/hitlist849-bin/python: No module named pytest
+        0.01 real         0.01 user         0.00 sys
+            17940480  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                1427  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                   7  involuntary context switches
+           111438963  instructions retired
+            43214113  cycles elapsed
+             6930936  peak memory footprint
