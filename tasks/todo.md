@@ -8990,3 +8990,42 @@ Spec: tasks/intact-method-policy-spec.md. Same unmerged PR848/version2.0.41.
 Method-policy review: format/lint,30focused tests (including both strict parity checks)
 and3,594default-suite tests pass. Evidence: tasks/verification/organ-method/.
 Real new-cohort admission/replay and new-head CI/release remain pending.
+
+
+## PXD024917 nominal MS2 calibration — issue849
+
+- [x] Register source/implementation scope in tasks/nontryptic_calibration_spec.md.
+- [x] Implement source-literal workbook reader without biological interpretation.
+- [x] Reject ambiguous XML roots/containers and duplicate cell payloads.
+- [ ] Verify synthetic reader fixtures; local attempt1 refused before pytest at2.02GiB.
+- [ ] Publish a versioned reader draft PR and inspect exact-head hosted software checks.
+- [ ] Qualify original transition exports through Presto1857 before package/recipe implementation.
+- [ ] Integrate/replay shared evidence tables, run required checks and open versioned PR.
+
+Publication remains pending explicit user authorization for public PyPI uploads.
+
+Review: Presto PR131 CI40223280643 passed all jobs at717ed59. The source reader
+is unverified and the numeric source exports have not been downloaded. No training
+or biological held-out access occurs in this software verification step.
+# PXD024917 typed source ingestion — 2026-10-26
+
+Specification: tasks/nontryptic_calibration_spec.md. Previous goal turn completed
+and published the original transition mapping audit; source schemas are qualified.
+
+- [x] Implement typed source/compiler with pinned input and metadata contracts.
+- [x] Verify source-grain behavior with synthetic workbook regression fixtures.
+- [x] Add immutable package, catalog, public queries and original-source replay.
+- [x] Run format, lint and guarded tests; publish evidence and remaining limits.
+
+### Panel annotation conflict recovery
+
+- [x] Preserve reported and calculated lengths with explicit consistency status.
+- [x] Verify synthetic conflict/formula/missing fixtures and rerun required checks.
+- [x] Freeze amended source; independently replay original package without changing biological gates.
+
+Review: full default suite3649passed/392warnings in329.69s,909,312,000bytes peak
+RSS; focused63passed,format/lint and whitespace checks pass. Original public
+package replay in Presto0236 passes all61,852cells/348slots/3,684transition rows,
+54form links and1,368sums; one length conflict retained. No training or old
+biological held-outs. Exact-head hosted integration verification still pending.
+PR publication is the next action; recipe/biological validation remain open.

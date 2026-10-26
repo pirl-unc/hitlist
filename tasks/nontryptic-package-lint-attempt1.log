@@ -1,0 +1,35 @@
+Running ruff check...
+I001 [*] Import block is un-sorted or un-formatted
+  --> hitlist/nontryptic_calibration.py:3:1
+   |
+ 1 |   """Verified nominal-dose source packages through the shared evidence store."""
+ 2 |
+ 3 | / from __future__ import annotations
+ 4 | |
+ 5 | | import json
+ 6 | | import shutil
+ 7 | | import tempfile
+ 8 | | from pathlib import Path
+ 9 | |
+10 | | import pyarrow.parquet as pq
+11 | |
+12 | | from .nontryptic_calibration_compiler import write_nontryptic_tables
+13 | | from .nontryptic_calibration_schema import SCHEMAS
+14 | | from .evidence_snapshot import snapshot_file
+15 | | from .provenance import file_digest
+   | |___________________________________^
+16 |
+17 |   PACKAGE_SCHEMA_VERSION = 29
+   |
+help: Organize imports
+   |
+11 |
+12 + from .evidence_snapshot import snapshot_file
+13 | from .nontryptic_calibration_compiler import write_nontryptic_tables
+14 | from .nontryptic_calibration_schema import SCHEMAS
+   - from .evidence_snapshot import snapshot_file
+15 | from .provenance import file_digest
+   |
+
+Found 1 error.
+[*] 1 fixable with the `--fix` option.

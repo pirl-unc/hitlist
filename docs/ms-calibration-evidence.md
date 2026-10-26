@@ -223,3 +223,56 @@ Training requires a separate endpoint, selection/missingness likelihood,
 applicability contract and held-out evaluation. Neither nine observed standards
 nor an internally consistent source package establishes general sequence transfer,
 native non-MHC MS1 calibration or a model of peptide availability in APCs.
+
+## Nontryptic targeted MS2 standards: PXD024917
+
+The separate `nontryptic_calibration` package contains the selected Iso18 panel
+from [Stopfer et al.](https://doi.org/10.1073/pnas.2111173118). Supply the ten
+original, checksum-pinned article/PRIDE assets listed in
+`hitlist/data/evidence_revisions/nontryptic_calibration.json`. A basename-to-path
+`assets` mapping can locate files in different directories; it cannot change the
+pinned bytes. The writer snapshots source files and refuses to replace a package.
+
+```python
+from hitlist import EvidenceStore, write_nontryptic_calibration_package
+
+write_nontryptic_calibration_package("/path/to/originals", "/path/to/new-package")
+store = EvidenceStore.open("/path/to/new-package")
+measurements = store.query(
+    "nontryptic_measurements",
+    select=[
+        "measurement_id", "quantitative_raw", "quantitative_value",
+        "measurement_unit", "value_status", "source_locator",
+        "standard.peptide_sequence", "standard.length_consistency_status",
+        "amount.nominal_amount_fmol", "amount.nominal_status",
+        "slot.source_column", "slot.acquisition_id",
+    ],
+    joins=["standard", "amount", "slot"],
+    limit=None,
+)
+```
+
+Package schema29 and catalog38 expose nineteen relations: original assets,
+sheets/cells, standards, isotope assertions/forms, protocol assertions, source
+slots, nominal amounts, measurements, transition counts, export forms and
+correspondences, transition groups/rows, derived sums, candidate measurement
+links, and material contexts/links. `EvidenceStore.open` verifies hashes and
+rebuilds every typed table from the original assets. Protocol claims retain
+source locators, scope and assertion status; source signals and reconstructed
+sums remain different quantities.
+
+S3A has213 positive free-peptide response slots after purification. S3B has135
+embedded-complex slots before immunoprecipitation, including9blanks. The latter
+includes capture/recovery and cannot simply be pooled with free-spike response.
+Missing cells remain missing; an omitted dose row is not manufactured. Source
+slots C/D/E are not established acquisition identities. Form/dose candidate
+links preserve ambiguity instead of choosing the numerically closest signal.
+
+S1 predicted affinities are annotations, not measured binding. S1 E19 reports
+length9 for a ten-residue sequence: calculated length and the reported value
+are both retained, with explicit conflict status. The S6A/S6B isotope conflicts
+also remain unresolved rather than being repaired into molecular identities.
+No native MS1 detectability, APC concentration or biological processing target
+is supplied by this package. A separate explicit recipe is required for a
+protocol-specific response fit; all doses and slots of a peptide must share a
+split group, with stronger precursor grouping when supported.
