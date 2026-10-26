@@ -37,7 +37,7 @@ def test_binding_context_availability_is_a_registered_successor_relation():
         "revision": "binding_assay_context_availability_v1",
     }
     assert package_family(envelope) == "binding_context_availability"
-    assert SCHEMA_VERSION == 38
+    assert SCHEMA_VERSION == 39
     fields = {
         field["name"] for field in describe_evidence("binding_context_availability")["fields"]
     }

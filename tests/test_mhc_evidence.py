@@ -9,6 +9,7 @@ import pytest
 
 from hitlist.evidence_catalog import FIELDS
 from hitlist.mhc_evidence import (
+    MHC_POSITIVE_MS_CORE_CONTRACT,
     NATIVE_FIELDS,
     _native_disposition,
     verify_mhc_evidence_package,
@@ -174,6 +175,7 @@ def test_mhc_package_preserves_every_result_source_and_endpoint(tmp_path):
     assert manifest["reconciliation"]["n_contributor_links"] == 6
     assert len(manifest["native_field_disposition"]) == len(NATIVE_FIELDS) == 71
     assert manifest["source_license_status"] == "unverified"
+    assert manifest["positive_ms_core_contract"] == MHC_POSITIVE_MS_CORE_CONTRACT
     assert set(manifest["source_registry"]) == {"iedb", "cedar", "supplement:paper.csv"}
     for name in manifest["files"]:
         if name.startswith("native/"):
@@ -260,6 +262,26 @@ def test_mhc_package_manifest_remains_verifiable_inside_later_generation(tmp_pat
     shutil.copy2(target / "manifest.json", target / "manifests" / "mhc.json")
     (target / "manifest.json").unlink()
     manifest = verify_mhc_evidence_package(target, manifest_path="manifests/mhc.json")
-    assert manifest["catalog_schema_version"] == 2
+    assert manifest["catalog_schema_version"] == 3
     with pytest.raises(ValueError, match="Invalid MHC package manifest path"):
         verify_mhc_evidence_package(target, manifest_path="../outside.json")
+
+
+@pytest.mark.parametrize(
+    "updates, message",
+    [
+        ({"assay_modality_source": ""}, "core observation field: assay_modality_basis"),
+    ],
+)
+def test_positive_ms_core_contract_rejects_invalid_conditional_fields(tmp_path, updates, message):
+    source = _source(tmp_path)
+    table = pq.read_table(source / "observations.parquet").to_pylist()
+    table[0].update(updates)
+    pq.write_table(pa.Table.from_pylist(table), source / "observations.parquet")
+    files = json.loads((source / "observations_meta.json").read_text())["files"]
+    files["observations.parquet"] = file_digest(source / "observations.parquet")
+    metadata = json.loads((source / "observations_meta.json").read_text())
+    metadata["files"] = files
+    (source / "observations_meta.json").write_text(json.dumps(metadata))
+    with pytest.raises(ValueError, match=message):
+        write_mhc_evidence_package(source, tmp_path / "package")

@@ -115,6 +115,33 @@ functional and 8,423 multimer examples. The 2,269,288 bulk and 42,909
 expression source rows include linked numeric representations without becoming
 MHC or T-cell labels.
 
+## MHC-ligand MS core contract
+
+Every `mhc_positive_ms` observation is one established positive MHC-ligand MS
+assay row and has the same required core: `observation_id`, `source_dataset`,
+`source_assay_id`, `peptide_sequence`, `assay_modality` (`ms`),
+`assay_modality_basis`, positive `outcome_status`, `native_partition` and its
+row locator. Its exactly-one `mhc_reported_measurement` relation supplies a
+non-null `measurement_id`, `observation_id`, `endpoint`, `endpoint_basis`, and
+the three status axes `qualitative_status`, `quantitative_status`,
+`unit_status`, and `inequality_status`.
+
+The value fields are deliberately conditional rather than imputed:
+
+| When | Must be non-null | Must not be inferred |
+| --- | --- | --- |
+| `qualitative_status=reported` | `qualitative_result` | a qualitative result when the source did not report one |
+| `quantitative_status=reported` | `quantitative_raw`, `quantitative_value` | a numeric value from an outcome label |
+| `quantitative_status=unresolved` | `quantitative_raw` | a parsed value |
+| `unit_status=reported` | `measurement_unit` | a unit for a unitless/unreported source value |
+| `inequality_status=reported` | `measurement_inequality` | censoring/comparison semantics |
+
+With no quantitative value, unit and inequality statuses are
+`not_applicable`; with a reported or unresolved quantity they are separately
+`reported` or `unreported`. Donor, specimen, aliquot, instrument, acquisition
+mode and fractionation are not part of this core: request a source-specific
+relation when one exists, and otherwise treat them as unavailable.
+
 ## Binding protocol review
 
 `binding_assay_context` has one row for each of the 814,268 v4 binding assay

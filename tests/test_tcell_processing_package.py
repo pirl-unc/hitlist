@@ -40,7 +40,7 @@ def test_family_ledger_keeps_unavailable_families_explicit():
 
 
 def test_package_family_and_query_alias_contract_are_versioned():
-    assert SCHEMA_VERSION == 38
+    assert SCHEMA_VERSION == 39
     assert (
         package_family(
             {

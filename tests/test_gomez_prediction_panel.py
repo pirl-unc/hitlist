@@ -28,7 +28,7 @@ def test_prediction_panel_family_and_catalog_contract():
     }
     assert package_family(envelope) == "gomez_prediction_panel"
     assert adjudication_manifest_path(envelope) == "manifests/adjudication.json"
-    assert SCHEMA_VERSION == 38
+    assert SCHEMA_VERSION == 39
     assert "prediction_id" in {
         field["name"] for field in describe_evidence("gomez_prediction_row")["fields"]
     }

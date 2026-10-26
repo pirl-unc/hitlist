@@ -1,3 +1,38 @@
+# Define and enforce the MHC-ligand MS core contract (planned 2.0.43)
+
+## Specification
+
+Make every `mhc_positive_ms` result conform to one explicit, machine-readable
+core contract. The contract must distinguish fields that every positive
+ligand-MS observation/measurement has from fields that are conditionally
+required only when a source reports a qualitative result, a quantitative value,
+a unit, or a censoring inequality. It must retain every original assay row and
+every native field; an invalid source projection must fail rather than filling a
+missing fact with an inferred value.
+
+Document the two-table grain (`mhc_positive_ms` observation and its exactly-one
+`mhc_reported_measurement`) and the conditional null rules next to the common
+EvidenceStore API. Material/specimen identity, instrument and acquisition
+metadata remain unavailable unless a dedicated source relation actually
+provides them.
+
+### Plan
+
+- [x] Audit the v4 MHC typed projection and catalog to define the minimal
+      positive-MS observation and reported-measurement core.
+- [x] Add source-independent contract validation and reconciliation counts;
+      reject invalid core or conditional field combinations without dropping a
+      source assay.
+- [x] Expose the contract in the MHC package manifest/catalog and document
+      required, conditionally required and unavailable fields.
+- [ ] Add fixtures for every conditional rule, run format/lint/tests, then
+      review, merge and deploy from clean main.
+
+## Review
+
+In progress on `codex/mhc-ligand-ms-core-contract-20261025`, based on released
+2.0.39 / `4f4e398`.
+
 # Release the merged Wolf-Levy material graph after the 2.0.38 collision (planned 2.0.39)
 
 ## Specification

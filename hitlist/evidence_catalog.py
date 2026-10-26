@@ -22,7 +22,7 @@ from .nontryptic_calibration_schema import FIELD_MEANINGS as NONTRYPTIC_FIELD_ME
 from .nontryptic_calibration_schema import RELATIONS as NONTRYPTIC_RELATIONS
 from .nontryptic_calibration_schema import SCHEMAS as NONTRYPTIC_SCHEMAS
 
-SCHEMA_VERSION = 38
+SCHEMA_VERSION = 39
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -1596,6 +1596,7 @@ _MHC = (
 )
 _MHC_MATERIALIZED = (
     "measurement_id",
+    "source_assay_id",
     "source_reference_iri",
     "source_file",
     "source_pmid",
@@ -1825,7 +1826,17 @@ EVIDENCE = (
             *_MATERIAL,
             *_MS_PROTOCOL,
         ),
-        ("observation_id", "source_dataset", "peptide_sequence", "endpoint"),
+        (
+            "observation_id",
+            "source_dataset",
+            "source_assay_id",
+            "peptide_sequence",
+            "assay_modality",
+            "assay_modality_basis",
+            "outcome_status",
+            "native_partition",
+            "endpoint",
+        ),
         status="v2_materialized",
         materialized_artifact="typed/mhc_observations.parquet",
     ),
