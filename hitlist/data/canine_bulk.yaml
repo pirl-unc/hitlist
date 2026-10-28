@@ -6,6 +6,10 @@ sources:
       dataset_id: pfizer-atlas-dog-protein
       version: '2026-10-12.1'
       registry_sha256: 1893d200c40fcecc3d605ef80a104100a75e3f27f133c06a623cd790de461db2
+    orfdata_peptides:
+      dataset_id: pfizer-atlas-dog-peptide-evidence
+      version: '2026-10-27.1'
+      registry_sha256: 9bbde60b17cf09a352ed8ae27e3a9fc834bb7312340547d1c43cce793473fe8b
     source_taxon: 9615
     version: '2026-03-23'
     study: '10.1038/s41597-026-07512-9'

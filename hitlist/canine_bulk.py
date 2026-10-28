@@ -416,7 +416,12 @@ def curate_canine_bulk(
     orfdata_cache_root=None,
 ):
     """Import source assets or explicitly select a pinned orfdata release, offline by default."""
-    bounds = {**_LIMITS, **(limits or {})}
+    defaults = _LIMITS
+    if provider == "orfdata_peptides":
+        from .canine_peptide_evidence import DEFAULT_LIMITS
+
+        defaults = {**_LIMITS, **DEFAULT_LIMITS}
+    bounds = {**defaults, **(limits or {})}
     if set(bounds) != set(_LIMITS):
         raise ValueError("Unknown bulk input/output limit")
     for name, value in bounds.items():
@@ -425,6 +430,12 @@ def curate_canine_bulk(
     if target.exists():
         raise FileExistsError(target)
     source = _source(source_id)
+    if provider == "orfdata_peptides":
+        from .canine_peptide_evidence import curate_orfdata_peptides
+
+        if local_assets is not None:
+            raise ValueError("orfdata_peptides uses its verified registry cache, not local_assets")
+        return curate_orfdata_peptides(source, target, bounds, allow_download, orfdata_cache_root)
     if provider == "orfdata":
         from .canine_orfdata import curate_orfdata
 
@@ -582,6 +593,10 @@ def verify_bulk_evidence(directory):
     """Check frozen bytes and source graph without network or live catalogs."""
     root = Path(directory)
     manifest = json.loads((root / "manifest.json").read_text())
+    if manifest.get("schema_version") == 2 and manifest.get("kind") == "canine_bulk":
+        from .canine_peptide_evidence import verify_peptide_evidence
+
+        return verify_peptide_evidence(root)
     if manifest.get("schema_version") != 1 or manifest.get("kind") != "canine_bulk":
         raise ValueError("Unsupported bulk evidence schema")
     if set(manifest["artifacts"]) != {"bulk.sqlite", "reference.fasta"}:
@@ -632,6 +647,12 @@ def load_bulk_evidence(directory, *, table="peptides", tissue=None, peptide=None
     # Explicit verification is separate from every small query over a large
     # artifact; the writer verifies before publication. Reads remain read-only.
     manifest = json.loads((Path(directory) / "manifest.json").read_text())
+    if manifest.get("schema_version") == 2 and manifest.get("kind") == "canine_bulk":
+        from .canine_peptide_evidence import load_peptide_evidence
+
+        return load_peptide_evidence(
+            directory, table=table, tissue=tissue, peptide=peptide, max_rows=max_rows
+        )
     if manifest.get("kind") != "canine_bulk" or manifest.get("schema_version") != 1:
         raise ValueError("Unsupported bulk evidence schema")
     if table not in manifest["n_records_by_table"]:

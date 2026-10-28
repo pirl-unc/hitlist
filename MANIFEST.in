@@ -4,7 +4,9 @@ include scripts/verify_digestion_roundtrip.py
 include scripts/verify_digestion_arithmetic.py
 include scripts/verify_digestion_timecourses.py
 include scripts/verify_binding_assay_context.py
+include scripts/verify_canine_peptide_evidence.py
 recursive-include tests/data/canine_orfdata *.md *.json *.tsv *.fasta
+recursive-include tests/data/canine_peptide_evidence *.md *.json *.gz
 
 # Large paper-derived data files (#303) are fetched on demand via datacache,
 # not shipped in the sdist (they blew the PyPI project size quota).  Kept in

@@ -1,0 +1,18 @@
+{
+  "artifact": {
+    "sha256": "863e3306e8ded127d7f2d1e0fe93ab03845dc63b93e9ff3498b16d2f3d3defd8",
+    "size_bytes": 5685248
+  },
+  "counts": {
+    "assay": 1100,
+    "assay_pair": 0,
+    "mapping": 15,
+    "measurement": 429,
+    "reference_mapping": 0,
+    "sample": 44,
+    "target": 6,
+    "target_relation": 3
+  },
+  "measurements_sha256": "13cc47636dd26e3d411c128d645df574f8370c963a4bb214f2e8d6e84093fc29",
+  "upstream_commit": "ff59b2cf34f4327788bec6670d96bc47688d1737"
+}

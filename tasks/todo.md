@@ -1,3 +1,33 @@
+# #668 — released canine peptide evidence (planned 2.0.44)
+
+Specification: [orfdata-canine-peptide-spec.md](orfdata-canine-peptide-spec.md).
+
+- [x] Inspect the released upstream APIs, provenance and complete installed artifact.
+- [x] Identify Python 3.11 requirement and preserve existing Python-3.10 providers.
+- [x] Add the explicit pinned provider, frozen bundle verification and bounded reads.
+- [x] Add offline consumer fixtures and regressions for source fidelity and failure modes.
+- [x] Reconcile real released artifact bytes, counts, source context and query records.
+- [ ] Format, lint, test, verify final-head CI; review and merge a separate PR.
+- [ ] Deploy from clean main, verify public hashes and update #668.
+
+## Review
+
+Implementation starts after #851 merged with green CI; its 2.0.43 release
+workflow was the first publication checkpoint. The existing upstream cache
+verified with ORFdata 0.41.0: 24,710,258,688 installed bytes; 953,980 targets,
+200,660,383 logical measurements, 6,605,908 mappings, 15,726 group relations,
+44 samples and 1,100 assays. The data generation is 2026-10-27.1, introduced
+in ORFdata 0.40.0. Native facts remain bulk evidence; no DLA labels are created.
+
+All 60 focused consumer/provider tests pass against both ORFdata 0.40.0 and
+0.41.0 (pandas 3, as required by both upstream versions). Format, lint,
+editable-install metadata, pip check and the checked lockfile pass. The local
+test.sh preflight refused at 0.98 GiB available versus its unchanged 2.5 GiB
+unit requirement; final-head hosted unit and full-corpus release gates remain
+required. The offline acceptance receipt verifies all artifact bytes, public
+counts, all 15,726 group relations and all fields in the selected peptide query.
+See [canine-peptide-results](canine-peptide-results/README.md).
+
 # PR #851 completion and issue #668 handoff — 2026-10-28
 
 ## Specification
@@ -14,9 +44,9 @@ historical MHC parents. Correct the documentation's status-axis count.
 
 - [x] Reproduce the historical verification regression and missing conditional cases.
 - [x] Preserve version-specific verification and cover the conditional source states.
-- [ ] Run format.sh, lint.sh, test.sh and fresh final-head CI; review the final diff.
-- [ ] Merge #851, run the clean-main release gate and verify public PyPI artifacts.
-- [ ] Specify #668 against released ORFdata 0.40.0 and its pinned peptide dataset.
+- [x] Run format.sh, lint.sh, test.sh and fresh final-head CI; review the final diff.
+- [x] Merge #851, run the clean-main release gate and verify public PyPI artifacts.
+- [x] Specify #668 against released ORFdata 0.40.0 and its pinned peptide dataset.
 
 ## Review
 
@@ -29,9 +59,11 @@ retained, with full hosted CI and clean-main release validation required.
 A bounded streaming integration check now validates all 4,486,991 positive-MS
 source rows from the pinned v4 corpus without copying the full package.
 
-The original PR has green Python 3.10–3.14 unit, corpus integration, lint and
-documentation CI. Review follow-up is required before merge because the new
-schema equality check breaks previously published parent package replay.
+The reviewed head 961aa53a770d2c768ddf8adee1b423101838b8ec passed Python
+3.10–3.14 unit, corpus integration (97 tests), lint and documentation CI.
+Merged as bf7750f8926a2a4facdf7669afb140b36fc08c28; clean-main release run
+40732760850 passed 3,674 unit tests and 97 integration tests. Published 2.0.43;
+both public PyPI downloads match the tested distribution hashes and sizes.
 The original workspace's uncommitted lessons remain untouched. Work occurs
 in an isolated branch/worktree; shared-environment packages are unchanged.
 
