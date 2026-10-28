@@ -26,6 +26,8 @@ writer; the original PR rejects it and the revised verifier accepts it.
 editable-install/pip checks pass. Local test.sh refused before execution at
 0.35 GiB free versus its 2.5 GiB unit guard; the unchanged memory guard is
 retained, with full hosted CI and clean-main release validation required.
+A bounded streaming integration check now validates all 4,486,991 positive-MS
+source rows from the pinned v4 corpus without copying the full package.
 
 The original PR has green Python 3.10–3.14 unit, corpus integration, lint and
 documentation CI. Review follow-up is required before merge because the new

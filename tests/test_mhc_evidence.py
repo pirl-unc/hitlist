@@ -10,9 +10,13 @@ import pytest
 
 from hitlist.evidence_catalog import FIELDS
 from hitlist.mhc_evidence import (
+    _READ_FIELDS,
     MHC_POSITIVE_MS_CORE_CONTRACT,
     NATIVE_FIELDS,
+    PINNED_V4_COUNTS,
+    PINNED_V4_MANIFEST_SHA256,
     _native_disposition,
+    _result_rows,
     verify_mhc_evidence_package,
     write_mhc_evidence_package,
 )
@@ -385,3 +389,23 @@ def test_new_mhc_package_requires_versioned_core_contract(tmp_path, updates, mes
     path.write_text(json.dumps(manifest))
     with pytest.raises(ValueError, match=message):
         verify_mhc_evidence_package(target)
+
+
+@pytest.mark.integration
+def test_positive_ms_core_accepts_every_pinned_source_row():
+    from hitlist.downloads import data_dir
+
+    source = data_dir()
+    manifest = source / "observations_meta.json"
+    if not manifest.is_file() or file_digest(manifest)["sha256"] != PINNED_V4_MANIFEST_SHA256:
+        pytest.skip("Requires the complete pinned v4 corpus installed by integration CI")
+    parquet = pq.ParquetFile(source / "observations.parquet")
+    assert tuple(parquet.schema_arrow.names) == NATIVE_FIELDS
+    n_rows = 0
+    for batch in parquet.iter_batches(batch_size=4096, columns=list(_READ_FIELDS)):
+        observations, measurements = _result_rows(
+            batch, "mhc_positive_ms", "observations.parquet", n_rows
+        )
+        assert len(observations) == len(measurements) == batch.num_rows
+        n_rows += batch.num_rows
+    assert n_rows == PINNED_V4_COUNTS["mhc_positive_ms"]
