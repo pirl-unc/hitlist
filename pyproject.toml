@@ -182,6 +182,7 @@ include = [
     "scripts/verify_digestion_arithmetic.py",
     "scripts/verify_digestion_timecourses.py",
     "scripts/verify_binding_assay_context.py",
+    "scripts/verify_canine_peptide_evidence.py",
     "scripts/verify_gomez_source_lineage.py",
 ]
 

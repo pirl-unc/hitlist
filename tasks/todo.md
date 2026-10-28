@@ -13,7 +13,7 @@ Specification: [orfdata-canine-peptide-spec.md](orfdata-canine-peptide-spec.md).
 ## Review
 
 Implementation starts after #851 merged with green CI; its 2.0.43 release
-workflow remains the first publication checkpoint. The existing upstream cache
+workflow was the first publication checkpoint. The existing upstream cache
 verified with ORFdata 0.41.0: 24,710,258,688 installed bytes; 953,980 targets,
 200,660,383 logical measurements, 6,605,908 mappings, 15,726 group relations,
 44 samples and 1,100 assays. The data generation is 2026-10-27.1, introduced
@@ -45,7 +45,7 @@ historical MHC parents. Correct the documentation's status-axis count.
 - [x] Reproduce the historical verification regression and missing conditional cases.
 - [x] Preserve version-specific verification and cover the conditional source states.
 - [x] Run format.sh, lint.sh, test.sh and fresh final-head CI; review the final diff.
-- [ ] Merge #851, run the clean-main release gate and verify public PyPI artifacts.
+- [x] Merge #851, run the clean-main release gate and verify public PyPI artifacts.
 - [x] Specify #668 against released ORFdata 0.40.0 and its pinned peptide dataset.
 
 ## Review
@@ -62,7 +62,8 @@ source rows from the pinned v4 corpus without copying the full package.
 The reviewed head 961aa53a770d2c768ddf8adee1b423101838b8ec passed Python
 3.10–3.14 unit, corpus integration (97 tests), lint and documentation CI.
 Merged as bf7750f8926a2a4facdf7669afb140b36fc08c28; clean-main release run
-40732760850 is the remaining publication gate for 2.0.43.
+40732760850 passed 3,674 unit tests and 97 integration tests. Published 2.0.43;
+both public PyPI downloads match the tested distribution hashes and sizes.
 The original workspace's uncommitted lessons remain untouched. Work occurs
 in an isolated branch/worktree; shared-environment packages are unchanged.
 

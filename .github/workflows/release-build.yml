@@ -39,6 +39,7 @@ on:
       - tests/test_canine_peptide_evidence.py
       - tests/test_canine_peptide_runtime.py
       - tests/data/canine_peptide_evidence/**
+      - scripts/verify_canine_peptide_evidence.py
       - hitlist/observations.py
       - hitlist/mappings.py
       - tests/test_assays.py

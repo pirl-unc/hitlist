@@ -3,14 +3,15 @@
     "n_relations": 15726,
     "sha256": "b53cd6e60360433dbef1b27e284aa57e0ab7b6201683ce5aa585b9614c935298"
   },
+  "all_sample_contexts_match": true,
   "artifact": {
     "sha256": "9014c5201e21d76d50d286bdc56abc6d2eaafdd7b936d927255bda72c7e28a57",
     "size_bytes": 24710258688
   },
-  "artifact_verification": "complete released artifact hash verified on acquisition and on the independent snapshot; every retained byte is unchanged",
+  "artifact_verification": "complete released artifact hash verified in the installed cache and on the independent snapshot; every retained byte is unchanged",
   "dataset_id": "pfizer-atlas-dog-peptide-evidence",
   "dataset_version": "2026-10-27.1",
-  "elapsed_seconds": 42.36016474998905,
+  "elapsed_seconds": 52.56468383400352,
   "logical_counts": {
     "assay": 1100,
     "assay_pair": 0,
@@ -84,11 +85,11 @@
     }
   },
   "selected_query": {
-    "every_selected_value_provenance_and_mapping_field_matches": true,
+    "every_measurement_and_mapping_field_matches": true,
     "n_mappings": 13,
     "n_measurements": 374,
     "peptide": "TLGPQDMLWMLDPQEDGGK"
   },
-  "source_validation_scope": "Consumes upstream validated source output; no new vendor extraction or independent full vendor audit was performed. Full installed artifact integrity, all common count metadata, every group relation and the stated selected query were checked.",
+  "source_validation_scope": "Consumes upstream validated source output; no new vendor extraction or independent full vendor audit was performed. Full installed artifact integrity, all common count metadata and sample contexts, every group relation and the stated selected query were checked.",
   "state": "passed"
 }
