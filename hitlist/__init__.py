@@ -96,6 +96,7 @@ _PUBLIC_API: dict[str, str] = {
     "fetch_canine_bulk_asset": ".canine_bulk",
     "load_bulk_evidence": ".canine_bulk",
     "verify_bulk_evidence": ".canine_bulk",
+    "open_canine_peptide_evidence": ".canine_peptide_evidence",
     "curate_canine_ligands": ".canine_ligands",
     "fetch_uniprot_reference": ".uniprot",
     "uniprot_path": ".uniprot",

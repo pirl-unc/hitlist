@@ -1,0 +1,118 @@
+{
+  "assay_kinds": [
+    "digest_ms"
+  ],
+  "citations": [
+    "https://doi.org/10.1038/s41597-026-07512-9",
+    "https://massive.ucsd.edu/ProteoSAFe/dataset.jsp?task=062b109e9adf461ba619369dd0d85aa9",
+    "https://www.uniprot.org/help/license"
+  ],
+  "coverage": {
+    "native_counts": {
+      "AcquisitionFixture": 3,
+      "DataDistributionBoxes": 236,
+      "DataDistributionMaps": 8,
+      "DataTypes": 3,
+      "DataTypesColumns": 11,
+      "DecoyPsms": 1,
+      "EnumDataTypeValues": 8,
+      "EnumDataTypes": 1,
+      "TargetPeptideGroups": 3,
+      "TargetPeptideGroupsTargetProteins": 3,
+      "TargetProteinGroups": 3,
+      "TargetProteinGroupsTargetProteins": 3,
+      "TargetProteins": 3,
+      "TargetPsms": 3,
+      "TargetPsmsTargetProteins": 2,
+      "WorkflowInputFiles": 97
+    },
+    "scope": "regression fixture",
+    "search_sequences": 10
+  },
+  "dataset_id": "canine-evidence-regression",
+  "processing": {
+    "importer": "pfizer-canine-evidence-v1",
+    "limits": {
+      "output_bytes": 33554432,
+      "scratch_bytes": 134217728
+    },
+    "protein_summary": {
+      "dataset_id": "explicit-summary-regression",
+      "source_counts": {
+        "IBAQ:missing": 13,
+        "IBAQ:positive": 12,
+        "IBAQ:zero": 13,
+        "absent_matrix_cells": 0,
+        "assays": 38,
+        "groups": 1,
+        "rIBAQ:missing": 13,
+        "rIBAQ:positive": 12,
+        "rIBAQ:zero": 13,
+        "rows": 38
+      },
+      "source_sha256": "4b436e64885d7cf964112a4cf622094a1d3d7a3c9a44e5d9461c1f45e5163b88",
+      "version": "test"
+    },
+    "selection_sha256": "10fbea94b16b985fe3d0f34c34768901f2aea596729ea1dc851b3f5e6ce4c522"
+  },
+  "references": [
+    {
+      "annotation_name": "uniprot",
+      "annotation_version": null,
+      "assembly_accession": null,
+      "genome_build": null,
+      "sequence_sha256": "aef117cff4f07f660748731c1b8eb996a284d52857cd4d7e1225d70b081e3b4f",
+      "source_sha256": null,
+      "species": "dog",
+      "strain": null,
+      "strain_taxon_id": null,
+      "taxon_id": 9615,
+      "taxonomy_version": "ncbi-2026-10-12"
+    }
+  ],
+  "schema": "orfdata.measurements.v1",
+  "sources": [
+    {
+      "access_terms": "Explicit regression slice; see tests/data/pfizer/vendor/NOTICE.md",
+      "asset_id": "evidence.sqlite",
+      "license_url": null,
+      "metadata": {},
+      "redistributable": false,
+      "sha256": "00f139f1a7ceefef3c6dd181b6f3e23c303e27a91727245c19ec33f5f8289558",
+      "size": 172032,
+      "url": "file:///private/var/folders/qm/qf74v01n2s12j3w0h1yrx4l00000gn/T/hitlist-668-fixture-qj7vvu4l/normalized/evidence.sqlite"
+    },
+    {
+      "access_terms": "Explicit regression slice; see tests/data/pfizer/vendor/NOTICE.md",
+      "asset_id": "lineage.json",
+      "license_url": null,
+      "metadata": {},
+      "redistributable": false,
+      "sha256": "40ab3078eead39debe22dfee0dbc6166079957f0f99fc7d5fb9c33d5eb40169b",
+      "size": 172424,
+      "url": "file:///private/var/folders/qm/qf74v01n2s12j3w0h1yrx4l00000gn/T/hitlist-668-fixture-qj7vvu4l/lineage.json"
+    },
+    {
+      "access_terms": "Explicit regression slice; see tests/data/pfizer/vendor/NOTICE.md",
+      "asset_id": "search.fasta",
+      "license_url": null,
+      "metadata": {},
+      "redistributable": false,
+      "sha256": "aef117cff4f07f660748731c1b8eb996a284d52857cd4d7e1225d70b081e3b4f",
+      "size": 8491,
+      "url": "file:///private/tmp/orfdata-followups-20261026/canine/tests/data/pfizer/vendor/membership-search-slice.fasta"
+    },
+    {
+      "access_terms": "Explicit regression slice; see tests/data/pfizer/vendor/NOTICE.md",
+      "asset_id": "protein.tsv",
+      "license_url": null,
+      "metadata": {},
+      "redistributable": false,
+      "sha256": "4b436e64885d7cf964112a4cf622094a1d3d7a3c9a44e5d9461c1f45e5163b88",
+      "size": 3518,
+      "url": "file:///private/var/folders/qm/qf74v01n2s12j3w0h1yrx4l00000gn/T/hitlist-668-fixture-qj7vvu4l/protein.tsv"
+    }
+  ],
+  "title": "Explicit fixture selection; not a complete canine source extraction",
+  "version": "test"
+}

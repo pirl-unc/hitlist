@@ -52,7 +52,8 @@ package version, dataset manifest, artifact digest, access terms and searched
 reference specification. Readers and verification use that frozen bundle offline;
 they do not require the current upstream catalog or reinterpret old generations.
 Imports through the two providers describe the same study and must not be counted
-as independent evidence. Peptide/group enrichment remains a later source release.
+as independent evidence. The peptide provider below adds a separately selected
+generation from that same study.
 
 The pinned quantitative download is 84.4 MB and expands to 1.40 GB; its matching
 FASTA is 14.7 MB. The adapter uses disk staging for source-row ordering and needs
@@ -62,9 +63,93 @@ download and original assets, and `max_output_bytes` bounds each staging databas
 and the final bundle. These are artifact bounds, not a total cache/disk quota;
 orfdata's existing cache entries are retained. No vendor database is acquired.
 
+## Released peptide, PSM and protein-group evidence
+
+On Python **3.11+**, select `provider="orfdata_peptides"` to consume ORFdata
+**0.40+** and its pinned `pfizer-atlas-dog-peptide-evidence` generation
+`2026-10-27.1`. Existing providers remain available on Python 3.10.
+
+```python
+from hitlist import open_canine_peptide_evidence
+
+curate_canine_bulk(
+    "pfizer_2026_03", "dog-pfizer-peptides",
+    provider="orfdata_peptides", allow_download=True,
+)
+# Without allow_download, the pinned dataset must already be installed.
+reader = open_canine_peptide_evidence("dog-pfizer-peptides")
+value = next(reader.dataset.measurements(status="measured"))
+
+# Common ORFdata APIs stream observations and preserve complete alternatives.
+measurements = reader.dataset.measurements(target=value.target)
+assignments = reader.dataset.mappings(source_identifier=value.target.identifier)
+groups = reader.dataset.relations()
+
+# A bounded dataframe retains native quantities, units, IDs and provenance.
+peptide_rows = load_bulk_evidence(
+    "dog-pfizer-peptides", peptide=value.target.identifier,
+)
+# Explicit native access includes confidence definitions, modifications and controls.
+decoys = reader.native.records("DecoyPsms")
+modifications = reader.native.records("FoundModifications")
+```
+
+The [upstream release](https://github.com/openvax/orfdata/releases/tag/data-pfizer-dog-peptide-evidence-2026-10-27.1)
+downloads **6.90 GB** in four checksummed parts and installs **24.71 GB**.
+Hitlist snapshots that complete artifact into a schema-2 bundle containing
+`dataset.sqlite` and `manifest.json`. A separate searched FASTA or vendor
+analysis database is not acquired. The snapshot uses an independent inode,
+with a filesystem copy-on-write clone where available and a full-copy fallback.
+Allow space for both acquisition and the snapshot on filesystems without clones.
+The selected provider defaults to 8 GiB compressed input, 32 GiB installed input,
+32 GiB output and 100 million selected native records. User-supplied `limits`
+can tighten these bounds; undersized bounds fail before acquisition.
+
+The artifact retains **70,280,798 native rows in 42 tables**, the complete
+20,649-sequence searched reference, 38 tissue pools, four bridge channels,
+two empty channels and 96 runs. The common quantitative view expands stored
+vectors to 200,660,383 logical measurement cells; these are not independent
+peptide detections or dogs. Use peptide/sample selectors or streaming queries.
+`load_bulk_evidence` retains its 250,000-row bound and raises instead of truncating.
+
+| Table | Returned records |
+| --- | --- |
+| `peptides` | Native measurement cells, with full provenance, sample context, modifications, value/status and unit/scale |
+| `mappings` | Complete reported assignment sets and separate sequence-compatible candidates; nested `targets` retain every alternative |
+| `groups` | Reported protein-group membership relations and the pinned same-study summary context |
+| `samples`, `assays` | Source sample/channel and acquisition/aggregate identities |
+| `raw_<native table>` | Exact native fields, including control/decoy tables and opaque numeric-vector bytes |
+
+A peptide selector filters measurements and mappings without narrowing their
+protein candidate sets. Tissue selectors apply to measurements, samples and
+assays; mapping/group relations keep their native scopes. Use the reader's
+`dataset` and documented `native` APIs for typed targets, native keys, missing
+acquisition records and explicit relationship queries. `raw_` reads add no
+Hitlist interpretation columns.
+
+There is no confidence threshold or normalization in this adapter. Zero remains
+zero; missing/nonfinite quantities retain their native state in provenance, and
+native vectors remain byte-exact. A high native confidence label does not turn a
+decoy into a detection. The normal measurement projection includes source target
+rows; decoy records and definitions remain available through native tables.
+Shared or unresolved assignments remain explicit. The same-study protein summary
+is context, not another independent detection or abundance assigned to an
+individual group member. Normalized rows have `evidence_kind="bulk"`, false
+`is_ms_observation` and an empty MHC restriction. Pools do not identify individual
+positive dogs and supply no DLA presentation-blacklist donor counts.
+
+The frozen manifest retains source, artifact, reference and registry identities,
+all native reconciliation metadata, and both instrument reports. Native run
+metadata supports the deposit's Lumos report; the publication's Eclipse report
+remains present. Old frozen metadata is not rewritten. `verify_bulk_evidence`
+and `open_canine_peptide_evidence` verify the full artifact offline without a live
+registry. After accepting an immutable bundle, the reader's explicit
+`verify=False` avoids repeated hashing; bounded dataframe reads likewise do not
+rehash the full artifact.
+
 | Source ID | Available records | Scope and limitations |
 |---|---|---|
-| `pfizer_2026_03` | Protein-abundance table and deposited no-isoform search FASTA | Tissue pools; `BioReplicate` is not a dog. The reported protein representative does not resolve underlying protein-group alternatives. This table contains no peptide detections. |
+| `pfizer_2026_03` | Original protein summary, plus explicitly selected peptide/PSM/group generation | Tissue pools; `BioReplicate` is not a dog. The original summary has no peptide detections and its reported representative does not resolve group alternatives. The companion generation retains native assignments and all compatible alternatives. |
 | `labrador_2024_01` | Peptide/modified-peptide experiment detections, protein mappings/inference groups, metadata and full deposited reference | Tissue experiments aggregate a stillborn female and a six-month-old male with hip dysplasia. Adult plasma/urine have separate scopes. Archive experiment IDs do not resolve individual positive dogs. |
 
 Original studies: [Pfizer atlas](https://www.nature.com/articles/s41597-026-07512-9)
@@ -80,10 +165,9 @@ It does not convert them to TPM, pool them across quantifiers, or claim an
 individually measured isoform. Nonfinite source values (including `-Inf`) produce
 a missing numeric value with `reported_nonfinite` status; the original cell
 remains in `raw_proteins`. Missing values are not zeros. Peptide-level Pfizer
-information requires separate extraction from its deposited vendor databases;
-they are not downloaded implicitly or inferred from protein abundance.
-The outstanding extraction and protein-group reconciliation are tracked in
-[#668](https://github.com/pirl-unc/hitlist/issues/668).
+information is available through the released shared peptide provider below.
+The original summary provider retains its historical representative-only scope;
+peptides are not inferred from protein abundance.
 
 Since 1.71.1, the Pfizer instrument is explicitly unresolved: the
 [publication](https://www.nature.com/articles/s41597-026-07512-9) reports Fusion
@@ -91,7 +175,8 @@ Eclipse acquisition (and mentions Lumos in its real-time-search description),
 while the [deposit record](https://proteomecentral.proteomexchange.org/cgi/GetDataset?ID=PXD070290)
 lists Fusion Lumos. The manifest preserves both cited `instrument_reports` and
 `instrument_status: conflicting_reports`; normalized rows carry the unresolved
-value. Raw/run metadata is needed to settle the conflict. Existing frozen
+value. The peptide generation additionally retains native Lumos run reports without
+erasing the conflicting publication claim. Existing frozen
 bundles keep their original metadata snapshot; curate a new bundle to adopt
 the corrected provenance.
 
@@ -102,7 +187,7 @@ not infer age or health. These reviewed values are frozen into each new bundle's
 manifest and sample rows. All 56 existing sample/pool annotations are preserved;
 older bundles continue to replay their own frozen metadata.
 
-Every directory contains `bulk.sqlite`, the byte-exact `reference.fasta`, and a
+Schema-1 directories contain `bulk.sqlite`, the byte-exact `reference.fasta`, and a
 manifest with original asset hashes, source/version/protocol, limitations, table
 counts, resource bounds and artifact hashes. Original table columns and logical
 `_source_row` values survive; source `\N` null markers decode to SQL NULL. Tables
@@ -120,7 +205,7 @@ The query defaults to at most 250,000 rows and raises if exceeded. Filter by
 An empty result describes this source's acquisition/search coverage, not absence
 from a dog, a tissue generally, or every isoform in a complete mapping reference.
 
-Default import limits are 256 MiB per input, 512 MiB expanded ZIP data, five
+For the original providers, default import limits are 256 MiB per input, 512 MiB expanded ZIP data, five
 million rows per input table/reference, one million residues per protein and
 2 GiB published output. SQLite uses an 8 MiB page cache and disk-backed joins;
 these limits are not a hard process-RSS or filesystem quota. The managed download

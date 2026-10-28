@@ -30,11 +30,15 @@ on:
       - hitlist/assays.py
       - hitlist/canine_bulk.py
       - hitlist/canine_orfdata.py
+      - hitlist/canine_peptide_evidence.py
       - hitlist/managed_assets.py
       - hitlist/data/canine_bulk.yaml
       - tests/test_canine_bulk.py
       - tests/test_canine_orfdata.py
       - tests/data/canine_orfdata/**
+      - tests/test_canine_peptide_evidence.py
+      - tests/test_canine_peptide_runtime.py
+      - tests/data/canine_peptide_evidence/**
       - hitlist/observations.py
       - hitlist/mappings.py
       - tests/test_assays.py
