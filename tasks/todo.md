@@ -1,3 +1,38 @@
+# PR #851 completion and issue #668 handoff — 2026-10-28
+
+## Specification
+
+Finish #851 as Hitlist 2.0.43 before starting the separate #668 adapter.
+Keep the positive-MS contract strict for newly written schema-2 packages,
+while verifying published schema-1/catalog-2 packages under their original
+contract. Never apply a new constraint retroactively to a frozen parent;
+retain all existing hash, inventory, schema and row-count checks. Reject
+unknown schema/catalog pairs and new manifests with missing/altered contract.
+Exercise the actual source-to-package path for every conditional measurement
+state and malformed source row. Confirm successor packages can still replay
+historical MHC parents. Correct the documentation's status-axis count.
+
+- [x] Reproduce the historical verification regression and missing conditional cases.
+- [x] Preserve version-specific verification and cover the conditional source states.
+- [ ] Run format.sh, lint.sh, test.sh and fresh final-head CI; review the final diff.
+- [ ] Merge #851, run the clean-main release gate and verify public PyPI artifacts.
+- [ ] Specify #668 against released ORFdata 0.40.0 and its pinned peptide dataset.
+
+## Review
+
+Review defect: #861. The fixed historical fixture is emitted by the 2.0.42
+writer; the original PR rejects it and the revised verifier accepts it.
+53 focused MHC, context and catalog tests pass. Format/lint and isolated
+editable-install/pip checks pass. Local test.sh refused before execution at
+0.35 GiB free versus its 2.5 GiB unit guard; the unchanged memory guard is
+retained, with full hosted CI and clean-main release validation required.
+
+The original PR has green Python 3.10–3.14 unit, corpus integration, lint and
+documentation CI. Review follow-up is required before merge because the new
+schema equality check breaks previously published parent package replay.
+The original workspace's uncommitted lessons remain untouched. Work occurs
+in an isolated branch/worktree; shared-environment packages are unchanged.
+
 # Define and enforce the MHC-ligand MS core contract (planned 2.0.43)
 
 ## Specification

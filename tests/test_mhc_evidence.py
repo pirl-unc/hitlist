@@ -2,6 +2,7 @@
 
 import json
 import shutil
+from pathlib import Path
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -271,6 +272,14 @@ def test_mhc_package_manifest_remains_verifiable_inside_later_generation(tmp_pat
     "updates, message",
     [
         ({"assay_modality_source": ""}, "core observation field: assay_modality_basis"),
+        ({"source": ""}, "core observation field: source_dataset"),
+        ({"assay_iri": ""}, "Missing MHC result identity"),
+        ({"response_measured": ""}, "core measurement field: endpoint"),
+        ({"assay_modality": "binding"}, "MHC family mismatch"),
+        ({"ms_outcome_status": "negative"}, "MHC family mismatch"),
+        ({"quantitative_value": 5.0}, "reported quantity lacks raw or parsed value"),
+        ({"measurement_units": "nM"}, "unit_status without a quantity"),
+        ({"measurement_inequality": ">"}, "inequality_status without a quantity"),
     ],
 )
 def test_positive_ms_core_contract_rejects_invalid_conditional_fields(tmp_path, updates, message):
@@ -285,3 +294,94 @@ def test_positive_ms_core_contract_rejects_invalid_conditional_fields(tmp_path, 
     (source / "observations_meta.json").write_text(json.dumps(metadata))
     with pytest.raises(ValueError, match=message):
         write_mhc_evidence_package(source, tmp_path / "package")
+    assert not (tmp_path / "package").exists()
+    assert not list(tmp_path.glob(".package-*"))
+
+
+@pytest.mark.parametrize(
+    "raw,value,unit,inequality,status,unit_status,inequality_status",
+    [
+        ("", None, "", "", "unreported", "not_applicable", "not_applicable"),
+        ("0", 0.0, "", "", "reported", "unreported", "unreported"),
+        ("5", 5.0, "nM", ">", "reported", "reported", "reported"),
+        ("not quantified", None, "", "", "unresolved", "unreported", "unreported"),
+        ("below detection", None, "nM", "<", "unresolved", "reported", "reported"),
+    ],
+)
+@pytest.mark.parametrize("qualitative", ["", "Positive"])
+def test_positive_ms_core_preserves_conditional_measurements(
+    tmp_path, raw, value, unit, inequality, status, unit_status, inequality_status, qualitative
+):
+    source = _source(tmp_path)
+    rows = pq.read_table(source / "observations.parquet").to_pylist()
+    rows[0].update(
+        quantitative_measurement=raw,
+        quantitative_value=value,
+        measurement_units=unit,
+        measurement_inequality=inequality,
+        qualitative_measurement=qualitative,
+    )
+    pq.write_table(pa.Table.from_pylist(rows), source / "observations.parquet")
+    metadata_path = source / "observations_meta.json"
+    metadata = json.loads(metadata_path.read_text())
+    metadata["files"]["observations.parquet"] = file_digest(source / "observations.parquet")
+    metadata_path.write_text(json.dumps(metadata))
+    target = tmp_path / "package"
+    write_mhc_evidence_package(source, target)
+    manifest = verify_mhc_evidence_package(target)
+    assert manifest["reconciliation"]["n_observations"] == 5
+    measurements = pq.read_table(target / "typed/mhc_measurements.parquet").to_pylist()
+    result = next(row for row in measurements if row["observation_id"] == "ms-1")
+    assert result["quantitative_raw"] == (raw or None)
+    assert result["quantitative_value"] == value
+    assert result["quantitative_status"] == status
+    assert result["measurement_unit"] == (unit or None)
+    assert result["unit_status"] == unit_status
+    assert result["measurement_inequality"] == (inequality or None)
+    assert result["inequality_status"] == inequality_status
+    assert result["qualitative_result"] == (qualitative or None)
+    assert result["qualitative_status"] == ("reported" if qualitative else "unreported")
+    assert (
+        file_digest(target / "native/observations.parquet")
+        == metadata["files"]["observations.parquet"]
+    )
+
+
+@pytest.mark.parametrize("embedded", [False, True])
+def test_historical_mhc_package_remains_verifiable(tmp_path, embedded):
+    target = tmp_path / "package"
+    shutil.copytree(Path(__file__).parent / "data/mhc_schema1", target)
+    manifest_path = "manifest.json"
+    if embedded:
+        (target / "manifests").mkdir()
+        (target / "manifest.json").rename(target / "manifests/mhc.json")
+        manifest_path = "manifests/mhc.json"
+    manifest = verify_mhc_evidence_package(target, manifest_path=manifest_path)
+    assert manifest["schema_version"] == 1
+    assert manifest["catalog_schema_version"] == 2
+    assert "positive_ms_core_contract" not in manifest
+    with (target / "typed/mhc_measurements.parquet").open("ab") as stream:
+        stream.write(b"corrupt")
+    with pytest.raises(ValueError, match="artifact mismatch"):
+        verify_mhc_evidence_package(target, manifest_path=manifest_path)
+
+
+@pytest.mark.parametrize(
+    "updates,message",
+    [
+        ({"schema_version": 99}, "Unsupported MHC evidence package schema"),
+        ({"catalog_schema_version": 2}, "catalog schema mismatch"),
+        ({"positive_ms_core_contract": None}, "core contract mismatch"),
+        ({"positive_ms_core_contract": {}}, "core contract mismatch"),
+    ],
+)
+def test_new_mhc_package_requires_versioned_core_contract(tmp_path, updates, message):
+    source = _source(tmp_path)
+    target = tmp_path / "package"
+    write_mhc_evidence_package(source, target)
+    path = target / "manifest.json"
+    manifest = json.loads(path.read_text())
+    manifest.update(updates)
+    path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match=message):
+        verify_mhc_evidence_package(target)

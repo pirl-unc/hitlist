@@ -123,7 +123,7 @@ assay row and has the same required core: `observation_id`, `source_dataset`,
 `assay_modality_basis`, positive `outcome_status`, `native_partition` and its
 row locator. Its exactly-one `mhc_reported_measurement` relation supplies a
 non-null `measurement_id`, `observation_id`, `endpoint`, `endpoint_basis`, and
-the three status axes `qualitative_status`, `quantitative_status`,
+the four status axes `qualitative_status`, `quantitative_status`,
 `unit_status`, and `inequality_status`.
 
 The value fields are deliberately conditional rather than imputed:
@@ -141,6 +141,11 @@ With no quantitative value, unit and inequality statuses are
 `reported` or `unreported`. Donor, specimen, aliquot, instrument, acquisition
 mode and fractionation are not part of this core: request a source-specific
 relation when one exists, and otherwise treat them as unavailable.
+
+New MHC packages record this contract as package schema 2 / catalog schema 3.
+Previously frozen schema-1 / catalog-2 MHC packages, including parents embedded
+in later packages, retain their original verification contract. They do not
+retroactively acquire the new core guarantee.
 
 ## Binding protocol review
 

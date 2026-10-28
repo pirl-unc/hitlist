@@ -169,8 +169,18 @@ def _cohort_fixture(
     return mhc_package, cohort, old_yaml, current_yaml, lineage
 
 
-def test_context_package_keeps_native_sources_and_separate_claim_roles(tmp_path):
+@pytest.mark.parametrize("historical_mhc", [False, True])
+def test_context_package_keeps_native_sources_and_separate_claim_roles(tmp_path, historical_mhc):
     mhc, cohort, old, current, lineage = _cohort_fixture(tmp_path)
+    if historical_mhc:
+        # This source fixture has identical typed bytes in both MHC versions.
+        # Exercise successor creation and recursive verification with the old
+        # parent envelope as well as the current required-core envelope.
+        path = mhc / "manifest.json"
+        parent = json.loads(path.read_text())
+        parent.update(schema_version=1, catalog_schema_version=2, hitlist_version="2.0.42")
+        del parent["positive_ms_core_contract"]
+        path.write_text(json.dumps(parent))
     target = tmp_path / "context"
     write_context_evidence_package(
         mhc,

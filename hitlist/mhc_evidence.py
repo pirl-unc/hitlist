@@ -22,8 +22,8 @@ from .evidence_snapshot import snapshot_file
 from .provenance import CONTRIBUTOR_COLUMNS, file_digest
 
 PACKAGE_SCHEMA_VERSION = 2
-# The MHC package's field map is the catalog-v2 contract. A later catalog
-# adds other relations without changing this immutable package's semantics.
+# Freeze each MHC package's catalog contract independently of the live catalog.
+# Schema 1 / catalog 2 predates required positive-MS core validation.
 MHC_CATALOG_SCHEMA_VERSION = 3
 MHC_PARTITIONS = {
     "observations.parquet": "mhc_positive_ms",
@@ -661,13 +661,17 @@ def verify_mhc_evidence_package(directory, *, manifest_path="manifest.json"):
     if Path(manifest_path).is_absolute() or ".." in Path(manifest_path).parts:
         raise ValueError("Invalid MHC package manifest path")
     manifest = json.loads((directory / manifest_path).read_text())
-    if manifest.get("schema_version") != PACKAGE_SCHEMA_VERSION:
+    schema_version = manifest.get("schema_version")
+    if schema_version not in (1, PACKAGE_SCHEMA_VERSION):
         raise ValueError("Unsupported MHC evidence package schema")
-    if manifest.get("catalog_schema_version") != MHC_CATALOG_SCHEMA_VERSION:
+    expected_catalog = 2 if schema_version == 1 else MHC_CATALOG_SCHEMA_VERSION
+    if manifest.get("catalog_schema_version") != expected_catalog:
         raise ValueError("MHC evidence package catalog schema mismatch")
     if manifest.get("native_field_disposition") != _native_disposition():
         raise ValueError("MHC native field disposition mismatch")
-    if manifest.get("positive_ms_core_contract") != MHC_POSITIVE_MS_CORE_CONTRACT:
+    if schema_version == 2 and (
+        manifest.get("positive_ms_core_contract") != MHC_POSITIVE_MS_CORE_CONTRACT
+    ):
         raise ValueError("MHC positive-MS core contract mismatch")
     native_manifest_path = directory / "native" / "observations_meta.json"
     if file_digest(native_manifest_path) != manifest["source_manifest"]:
