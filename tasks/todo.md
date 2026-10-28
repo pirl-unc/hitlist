@@ -1,3 +1,75 @@
+# PR #851 completion and issue #668 handoff — 2026-10-28
+
+## Specification
+
+Finish #851 as Hitlist 2.0.43 before starting the separate #668 adapter.
+Keep the positive-MS contract strict for newly written schema-2 packages,
+while verifying published schema-1/catalog-2 packages under their original
+contract. Never apply a new constraint retroactively to a frozen parent;
+retain all existing hash, inventory, schema and row-count checks. Reject
+unknown schema/catalog pairs and new manifests with missing/altered contract.
+Exercise the actual source-to-package path for every conditional measurement
+state and malformed source row. Confirm successor packages can still replay
+historical MHC parents. Correct the documentation's status-axis count.
+
+- [x] Reproduce the historical verification regression and missing conditional cases.
+- [x] Preserve version-specific verification and cover the conditional source states.
+- [ ] Run format.sh, lint.sh, test.sh and fresh final-head CI; review the final diff.
+- [ ] Merge #851, run the clean-main release gate and verify public PyPI artifacts.
+- [ ] Specify #668 against released ORFdata 0.40.0 and its pinned peptide dataset.
+
+## Review
+
+Review defect: #861. The fixed historical fixture is emitted by the 2.0.42
+writer; the original PR rejects it and the revised verifier accepts it.
+53 focused MHC, context and catalog tests pass. Format/lint and isolated
+editable-install/pip checks pass. Local test.sh refused before execution at
+0.35 GiB free versus its 2.5 GiB unit guard; the unchanged memory guard is
+retained, with full hosted CI and clean-main release validation required.
+A bounded streaming integration check now validates all 4,486,991 positive-MS
+source rows from the pinned v4 corpus without copying the full package.
+
+The original PR has green Python 3.10–3.14 unit, corpus integration, lint and
+documentation CI. Review follow-up is required before merge because the new
+schema equality check breaks previously published parent package replay.
+The original workspace's uncommitted lessons remain untouched. Work occurs
+in an isolated branch/worktree; shared-environment packages are unchanged.
+
+# Define and enforce the MHC-ligand MS core contract (planned 2.0.43)
+
+## Specification
+
+Make every `mhc_positive_ms` result conform to one explicit, machine-readable
+core contract. The contract must distinguish fields that every positive
+ligand-MS observation/measurement has from fields that are conditionally
+required only when a source reports a qualitative result, a quantitative value,
+a unit, or a censoring inequality. It must retain every original assay row and
+every native field; an invalid source projection must fail rather than filling a
+missing fact with an inferred value.
+
+Document the two-table grain (`mhc_positive_ms` observation and its exactly-one
+`mhc_reported_measurement`) and the conditional null rules next to the common
+EvidenceStore API. Material/specimen identity, instrument and acquisition
+metadata remain unavailable unless a dedicated source relation actually
+provides them.
+
+### Plan
+
+- [x] Audit the v4 MHC typed projection and catalog to define the minimal
+      positive-MS observation and reported-measurement core.
+- [x] Add source-independent contract validation and reconciliation counts;
+      reject invalid core or conditional field combinations without dropping a
+      source assay.
+- [x] Expose the contract in the MHC package manifest/catalog and document
+      required, conditionally required and unavailable fields.
+- [ ] Add fixtures for every conditional rule, run format/lint/tests, then
+      review, merge and deploy from clean main.
+
+## Review
+
+In progress on `codex/mhc-ligand-ms-core-contract-20261025`, based on released
+2.0.39 / `4f4e398`.
+
 # Release the merged Wolf-Levy material graph after the 2.0.38 collision (planned 2.0.39)
 
 ## Specification

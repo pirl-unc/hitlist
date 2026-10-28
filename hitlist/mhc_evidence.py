@@ -21,10 +21,10 @@ import pyarrow.parquet as pq
 from .evidence_snapshot import snapshot_file
 from .provenance import CONTRIBUTOR_COLUMNS, file_digest
 
-PACKAGE_SCHEMA_VERSION = 1
-# The MHC package's field map is the catalog-v2 contract. A later catalog
-# adds other relations without changing this immutable package's semantics.
-MHC_CATALOG_SCHEMA_VERSION = 2
+PACKAGE_SCHEMA_VERSION = 2
+# Freeze each MHC package's catalog contract independently of the live catalog.
+# Schema 1 / catalog 2 predates required positive-MS core validation.
+MHC_CATALOG_SCHEMA_VERSION = 3
 MHC_PARTITIONS = {
     "observations.parquet": "mhc_positive_ms",
     "binding.parquet": "mhc_binding",
@@ -284,6 +284,50 @@ _MEASUREMENT_SCHEMA = pa.schema(
     ]
 )
 
+# A positive ligand-MS result has a uniform two-relation contract.  It is
+# intentionally small: neither a donor/specimen nor instrument/protocol fact
+# is fabricated when a source did not report one.  Status/value pairs make
+# every optional measurement axis explicit.
+MHC_POSITIVE_MS_CORE_CONTRACT = {
+    "observation_required": [
+        "observation_id",
+        "evidence_type",
+        "source_population",
+        "source_dataset",
+        "source_assay_id",
+        "peptide_sequence",
+        "assay_modality",
+        "assay_modality_basis",
+        "outcome_status",
+        "native_partition",
+        "native_row_index",
+    ],
+    "measurement_required": [
+        "measurement_id",
+        "observation_id",
+        "endpoint",
+        "endpoint_basis",
+        "qualitative_status",
+        "quantitative_status",
+        "unit_status",
+        "inequality_status",
+    ],
+    "conditional_fields": {
+        "qualitative_status=reported": ["qualitative_result"],
+        "quantitative_status=reported": ["quantitative_raw", "quantitative_value"],
+        "quantitative_status=unresolved": ["quantitative_raw"],
+        "unit_status=reported": ["measurement_unit"],
+        "inequality_status=reported": ["measurement_inequality"],
+    },
+    "unavailable_without_source_relation": [
+        "specimen_id",
+        "aliquot_id",
+        "instrument",
+        "acquisition_mode",
+        "fractionation",
+    ],
+}
+
 
 def _reported(value):
     return value if value is not None and value != "" else None
@@ -293,6 +337,48 @@ def _measurement_status(raw, parsed):
     if parsed is not None:
         return "reported"
     return "unresolved" if raw is not None else "unreported"
+
+
+def _validate_positive_ms_core(observation, measurement):
+    """Reject an incomplete or self-contradictory positive-MS projection."""
+    for field in MHC_POSITIVE_MS_CORE_CONTRACT["observation_required"]:
+        if observation[field] is None or observation[field] == "":
+            raise ValueError(f"Positive MHC ligand MS lacks core observation field: {field}")
+    if observation["evidence_type"] != "mhc_positive_ms":
+        raise ValueError("Positive MHC ligand MS has wrong evidence type")
+    if observation["assay_modality"] != "ms":
+        raise ValueError("Positive MHC ligand MS has non-MS modality")
+    if observation["outcome_status"] not in ("positive_result", "curated_ligand_table"):
+        raise ValueError("Positive MHC ligand MS has non-positive outcome")
+    if observation["native_partition"] != "observations.parquet":
+        raise ValueError("Positive MHC ligand MS has wrong native partition")
+    for field in MHC_POSITIVE_MS_CORE_CONTRACT["measurement_required"]:
+        if measurement[field] is None or measurement[field] == "":
+            raise ValueError(f"Positive MHC ligand MS lacks core measurement field: {field}")
+    if measurement["observation_id"] != observation["observation_id"]:
+        raise ValueError("Positive MHC ligand MS measurement points to another observation")
+    for status, value, reported in (
+        ("qualitative_status", "qualitative_result", "reported"),
+        ("unit_status", "measurement_unit", "reported"),
+        ("inequality_status", "measurement_inequality", "reported"),
+    ):
+        if (measurement[status] == reported) != (measurement[value] is not None):
+            raise ValueError(f"Positive MHC ligand MS has inconsistent {status}")
+    quantitative = measurement["quantitative_status"]
+    raw, value = measurement["quantitative_raw"], measurement["quantitative_value"]
+    if quantitative == "reported" and (raw is None or value is None):
+        raise ValueError("Positive MHC ligand MS reported quantity lacks raw or parsed value")
+    if quantitative == "unresolved" and (raw is None or value is not None):
+        raise ValueError("Positive MHC ligand MS unresolved quantity is inconsistent")
+    if quantitative == "unreported" and (raw is not None or value is not None):
+        raise ValueError("Positive MHC ligand MS unreported quantity is inconsistent")
+    if quantitative not in ("reported", "unresolved", "unreported"):
+        raise ValueError("Positive MHC ligand MS has unknown quantitative status")
+    for status in ("unit_status", "inequality_status"):
+        if quantitative == "unreported" and measurement[status] != "not_applicable":
+            raise ValueError(f"Positive MHC ligand MS has {status} without a quantity")
+        if quantitative != "unreported" and measurement[status] == "not_applicable":
+            raise ValueError(f"Positive MHC ligand MS omits applicable {status}")
 
 
 def _result_rows(batch, evidence_type, partition, offset):
@@ -324,37 +410,35 @@ def _result_rows(batch, evidence_type, partition, offset):
             if evidence_type == "mhc_binding" and row["restriction_evidence"] == "experimental"
             else None
         )
-        observations.append(
-            {
-                "observation_id": observation_id,
-                "evidence_type": evidence_type,
-                "source_population": "mhc_v4",
-                "source_dataset": row["source"],
-                "source_file": _reported(row["supplementary_file"]),
-                "source_assay_id": source_assay_id,
-                "source_reference_iri": _reported(row["reference_iri"]),
-                "source_pmid": (str(row["pmid"]) if _reported(row["pmid"]) is not None else None),
-                "peptide_sequence": peptide,
-                "peptide_modifications_raw": _reported(row["peptide_modifications"]),
-                "has_ptm": row["has_ptm"],
-                "peptide_extended": _reported(row["peptide_extended"]),
-                "is_non_peptide_ligand": row["is_non_peptide_ligand"],
-                "is_potential_contaminant": row["is_potential_contaminant"],
-                "reported_mhc": reported_mhc,
-                "tested_mhc": tested_mhc,
-                "candidate_mhc_set_raw": _reported(row["mhc_allele_set"]),
-                "peptide_mhc_restriction": None,
-                "peptide_restriction_status": "unreported",
-                "restriction_evidence": row["restriction_evidence"],
-                "assay_method": _reported(row["assay_method"]),
-                "assay_readout": _reported(row["response_measured"]),
-                "assay_modality": modality,
-                "assay_modality_basis": row["assay_modality_source"],
-                "outcome_status": outcome,
-                "native_partition": partition,
-                "native_row_index": offset + index,
-            }
-        )
+        observation = {
+            "observation_id": observation_id,
+            "evidence_type": evidence_type,
+            "source_population": "mhc_v4",
+            "source_dataset": row["source"],
+            "source_file": _reported(row["supplementary_file"]),
+            "source_assay_id": source_assay_id,
+            "source_reference_iri": _reported(row["reference_iri"]),
+            "source_pmid": (str(row["pmid"]) if _reported(row["pmid"]) is not None else None),
+            "peptide_sequence": peptide,
+            "peptide_modifications_raw": _reported(row["peptide_modifications"]),
+            "has_ptm": row["has_ptm"],
+            "peptide_extended": _reported(row["peptide_extended"]),
+            "is_non_peptide_ligand": row["is_non_peptide_ligand"],
+            "is_potential_contaminant": row["is_potential_contaminant"],
+            "reported_mhc": reported_mhc,
+            "tested_mhc": tested_mhc,
+            "candidate_mhc_set_raw": _reported(row["mhc_allele_set"]),
+            "peptide_mhc_restriction": None,
+            "peptide_restriction_status": "unreported",
+            "restriction_evidence": row["restriction_evidence"],
+            "assay_method": _reported(row["assay_method"]),
+            "assay_readout": _reported(row["response_measured"]),
+            "assay_modality": modality,
+            "assay_modality_basis": row["assay_modality_source"],
+            "outcome_status": outcome,
+            "native_partition": partition,
+            "native_row_index": offset + index,
+        }
         endpoint_reported = _reported(row["response_measured"])
         derived_endpoint = endpoint_reported is None and outcome == "curated_ligand_table"
         endpoint = "positive_mhc_ligand_ms" if derived_endpoint else endpoint_reported
@@ -364,42 +448,44 @@ def _result_rows(batch, evidence_type, partition, offset):
         inequality = _reported(row["measurement_inequality"])
         has_quantitative = raw is not None or parsed is not None
         qualitative = _reported(row["qualitative_measurement"])
-        measurements.append(
-            {
-                "measurement_id": f"{observation_id}:reported",
-                "observation_id": observation_id,
-                "endpoint": endpoint,
-                "endpoint_reported": endpoint_reported,
-                "endpoint_basis": (
-                    "curated_ligand_table"
-                    if derived_endpoint
-                    else "reported"
-                    if endpoint_reported is not None
-                    else "unreported"
-                ),
-                "qualitative_result": qualitative,
-                "qualitative_status": "reported" if qualitative is not None else "unreported",
-                "quantitative_raw": raw,
-                "quantitative_value": parsed,
-                "quantitative_status": _measurement_status(raw, parsed),
-                "measurement_unit": unit,
-                "unit_status": (
-                    "reported"
-                    if unit is not None
-                    else "unreported"
-                    if has_quantitative
-                    else "not_applicable"
-                ),
-                "measurement_inequality": inequality,
-                "inequality_status": (
-                    "reported"
-                    if inequality is not None
-                    else "unreported"
-                    if has_quantitative
-                    else "not_applicable"
-                ),
-            }
-        )
+        measurement = {
+            "measurement_id": f"{observation_id}:reported",
+            "observation_id": observation_id,
+            "endpoint": endpoint,
+            "endpoint_reported": endpoint_reported,
+            "endpoint_basis": (
+                "curated_ligand_table"
+                if derived_endpoint
+                else "reported"
+                if endpoint_reported is not None
+                else "unreported"
+            ),
+            "qualitative_result": qualitative,
+            "qualitative_status": "reported" if qualitative is not None else "unreported",
+            "quantitative_raw": raw,
+            "quantitative_value": parsed,
+            "quantitative_status": _measurement_status(raw, parsed),
+            "measurement_unit": unit,
+            "unit_status": (
+                "reported"
+                if unit is not None
+                else "unreported"
+                if has_quantitative
+                else "not_applicable"
+            ),
+            "measurement_inequality": inequality,
+            "inequality_status": (
+                "reported"
+                if inequality is not None
+                else "unreported"
+                if has_quantitative
+                else "not_applicable"
+            ),
+        }
+        if evidence_type == "mhc_positive_ms":
+            _validate_positive_ms_core(observation, measurement)
+        observations.append(observation)
+        measurements.append(measurement)
     return observations, measurements
 
 
@@ -575,12 +661,18 @@ def verify_mhc_evidence_package(directory, *, manifest_path="manifest.json"):
     if Path(manifest_path).is_absolute() or ".." in Path(manifest_path).parts:
         raise ValueError("Invalid MHC package manifest path")
     manifest = json.loads((directory / manifest_path).read_text())
-    if manifest.get("schema_version") != PACKAGE_SCHEMA_VERSION:
+    schema_version = manifest.get("schema_version")
+    if schema_version not in (1, PACKAGE_SCHEMA_VERSION):
         raise ValueError("Unsupported MHC evidence package schema")
-    if manifest.get("catalog_schema_version") != MHC_CATALOG_SCHEMA_VERSION:
+    expected_catalog = 2 if schema_version == 1 else MHC_CATALOG_SCHEMA_VERSION
+    if manifest.get("catalog_schema_version") != expected_catalog:
         raise ValueError("MHC evidence package catalog schema mismatch")
     if manifest.get("native_field_disposition") != _native_disposition():
         raise ValueError("MHC native field disposition mismatch")
+    if schema_version == 2 and (
+        manifest.get("positive_ms_core_contract") != MHC_POSITIVE_MS_CORE_CONTRACT
+    ):
+        raise ValueError("MHC positive-MS core contract mismatch")
     native_manifest_path = directory / "native" / "observations_meta.json"
     if file_digest(native_manifest_path) != manifest["source_manifest"]:
         raise ValueError("MHC source manifest mismatch")
@@ -684,6 +776,7 @@ def write_mhc_evidence_package(source_dir, destination):
             "source_license_status": "unverified",
             "source_registry": _source_registry(source_manifest),
             "native_field_disposition": _native_disposition(),
+            "positive_ms_core_contract": MHC_POSITIVE_MS_CORE_CONTRACT,
             "relation_keys": {
                 "native_observation_id": "provenance_id",
                 "typed_observation_id": "observation_id",

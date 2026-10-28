@@ -1,0 +1,481 @@
+{
+  "catalog_schema_version": 2,
+  "files": {
+    "native/binding.parquet": {
+      "sha256": "849475eee7d8ae22b1d949b88e95dc502dc566c9d500076ec14570c20832ae5e",
+      "size_bytes": 18531
+    },
+    "native/observation_contributors.parquet": {
+      "sha256": "c657e98c2e08724e451dc9da1befe70d91b88f59f87fbe33fbd7585c5f3fbc92",
+      "size_bytes": 3449
+    },
+    "native/observations.parquet": {
+      "sha256": "dedb6ac181e01d295861c63f03a1f8d304902933702f80c18b3809d2d8041ccc",
+      "size_bytes": 18272
+    },
+    "native/observations_meta.json": {
+      "sha256": "ec51b8942d50c4a03c08754364a818c3bd6a5d9770d9be4a765ea0de71d7d3fd",
+      "size_bytes": 833
+    },
+    "native/other_assays.parquet": {
+      "sha256": "3cc366076ab561b0d8b6ebf460b6b49f036dc28d38e6c8e09896e0bc7b082a78",
+      "size_bytes": 18440
+    },
+    "typed/mhc_measurements.parquet": {
+      "sha256": "09b6f8d0620235f9e61e3cd4e414645bc080f529a9721615b44b7f94ea538e25",
+      "size_bytes": 10523
+    },
+    "typed/mhc_observations.parquet": {
+      "sha256": "aa8c8c0869c9c8f1420f0fc55907bc01c18b76bbf162bdab30ea7fb6f2483212",
+      "size_bytes": 18865
+    }
+  },
+  "hitlist_version": "2.0.42",
+  "native_field_disposition": {
+    "allele_resolution": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "antigen_processing_comments": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "assay_comments": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "assay_iri": {
+      "logical_fields": [
+        "source_assay_id"
+      ],
+      "status": "typed"
+    },
+    "assay_method": {
+      "logical_fields": [
+        "assay_method"
+      ],
+      "status": "typed"
+    },
+    "assay_modality": {
+      "logical_fields": [
+        "assay_modality"
+      ],
+      "status": "typed"
+    },
+    "assay_modality_source": {
+      "logical_fields": [
+        "assay_modality_basis"
+      ],
+      "status": "typed"
+    },
+    "attributed_sample_label": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "cell_line_name": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "cell_name": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "cell_type": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "culture_condition": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "disease": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "disease_stage": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "has_ptm": {
+      "logical_fields": [
+        "has_ptm"
+      ],
+      "status": "typed"
+    },
+    "host": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "host_age": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "host_mhc_types": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "is_binding_assay": {
+      "retained_in": "native",
+      "status": "source_only"
+    },
+    "is_monoallelic": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "is_ms_observation": {
+      "retained_in": "native",
+      "status": "source_only"
+    },
+    "is_non_peptide_ligand": {
+      "logical_fields": [
+        "is_non_peptide_ligand"
+      ],
+      "status": "typed"
+    },
+    "is_potential_contaminant": {
+      "logical_fields": [
+        "is_potential_contaminant"
+      ],
+      "status": "typed"
+    },
+    "measurement_inequality": {
+      "logical_fields": [
+        "measurement_inequality",
+        "inequality_status"
+      ],
+      "status": "typed"
+    },
+    "measurement_units": {
+      "logical_fields": [
+        "measurement_unit",
+        "unit_status"
+      ],
+      "status": "typed"
+    },
+    "mhc_allele_provenance": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "mhc_allele_set": {
+      "logical_fields": [
+        "candidate_mhc_set_raw"
+      ],
+      "status": "typed"
+    },
+    "mhc_allele_set_size": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "mhc_class": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "mhc_class_corrected": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "mhc_class_reported": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "mhc_class_source": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "mhc_restriction": {
+      "logical_fields": [
+        "reported_mhc",
+        "tested_mhc"
+      ],
+      "status": "typed"
+    },
+    "mhc_species": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "mhc_species_context_disagrees": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "mhc_species_source": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "monoallelic_host": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "ms_outcome_status": {
+      "logical_fields": [
+        "outcome_status",
+        "endpoint_basis"
+      ],
+      "status": "typed"
+    },
+    "peptide": {
+      "logical_fields": [
+        "peptide_sequence"
+      ],
+      "status": "typed"
+    },
+    "peptide_extended": {
+      "logical_fields": [
+        "peptide_extended"
+      ],
+      "status": "typed"
+    },
+    "peptide_modifications": {
+      "logical_fields": [
+        "peptide_modifications_raw"
+      ],
+      "status": "typed"
+    },
+    "pmid": {
+      "logical_fields": [
+        "source_pmid"
+      ],
+      "status": "typed"
+    },
+    "process_type": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "provenance_id": {
+      "logical_fields": [
+        "observation_id"
+      ],
+      "status": "typed"
+    },
+    "qualitative_measurement": {
+      "logical_fields": [
+        "qualitative_result",
+        "qualitative_status"
+      ],
+      "status": "typed"
+    },
+    "quantitative_measurement": {
+      "logical_fields": [
+        "quantitative_raw",
+        "quantitative_status"
+      ],
+      "status": "typed"
+    },
+    "quantitative_value": {
+      "logical_fields": [
+        "quantitative_value",
+        "quantitative_status"
+      ],
+      "status": "typed"
+    },
+    "reference_iri": {
+      "logical_fields": [
+        "source_reference_iri"
+      ],
+      "status": "typed"
+    },
+    "reference_title": {
+      "retained_in": "native",
+      "status": "source_only"
+    },
+    "response_measured": {
+      "logical_fields": [
+        "assay_readout",
+        "endpoint_reported",
+        "endpoint"
+      ],
+      "status": "typed"
+    },
+    "restriction_evidence": {
+      "logical_fields": [
+        "restriction_evidence"
+      ],
+      "status": "typed"
+    },
+    "serotype": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "serotype_source": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "serotypes": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "source": {
+      "logical_fields": [
+        "source_dataset"
+      ],
+      "status": "typed"
+    },
+    "source_organism": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "source_tissue": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "species": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "src_activated_apc": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "src_adjacent_to_tumor": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "src_cancer": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "src_cell_line": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "src_ebv_lcl": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "src_ex_vivo": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "src_healthy_reproductive": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "src_healthy_reproductive_female": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "src_healthy_reproductive_male": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "src_healthy_thymus": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "src_healthy_tissue": {
+      "retained_in": "native",
+      "status": "deferred_to_context_protocol"
+    },
+    "submission_id": {
+      "retained_in": "native",
+      "status": "source_only"
+    },
+    "supplementary_file": {
+      "logical_fields": [
+        "source_file"
+      ],
+      "status": "typed"
+    }
+  },
+  "reconciliation": {
+    "by_evidence_type": {
+      "mhc_binding": 1,
+      "mhc_other": 2,
+      "mhc_positive_ms": 2
+    },
+    "by_modality_and_outcome": [
+      {
+        "evidence_type": "mhc_binding",
+        "modality": "binding",
+        "n_rows": 1,
+        "outcome": "negative"
+      },
+      {
+        "evidence_type": "mhc_other",
+        "modality": "ms",
+        "n_rows": 1,
+        "outcome": "negative"
+      },
+      {
+        "evidence_type": "mhc_other",
+        "modality": "structural",
+        "n_rows": 1,
+        "outcome": "positive_result"
+      },
+      {
+        "evidence_type": "mhc_positive_ms",
+        "modality": "ms",
+        "n_rows": 1,
+        "outcome": "curated_ligand_table"
+      },
+      {
+        "evidence_type": "mhc_positive_ms",
+        "modality": "ms",
+        "n_rows": 1,
+        "outcome": "positive_result"
+      }
+    ],
+    "by_source": {
+      "mhc_binding": {
+        "iedb": 1
+      },
+      "mhc_other": {
+        "iedb": 2
+      },
+      "mhc_positive_ms": {
+        "iedb": 1,
+        "supplement": 1
+      }
+    },
+    "n_contributor_links": 6,
+    "n_measurements": 5,
+    "n_observations": 5,
+    "n_orphan_link_ids": 0,
+    "n_results_without_links": 0
+  },
+  "relation_keys": {
+    "native_contributor_observation_id": "provenance_id",
+    "native_observation_id": "provenance_id",
+    "native_source_record_id": "source_record_id",
+    "typed_observation_id": "observation_id"
+  },
+  "schema_version": 1,
+  "source_access": "provided_snapshot",
+  "source_artifact_version": 10,
+  "source_license_status": "unverified",
+  "source_manifest": {
+    "sha256": "ec51b8942d50c4a03c08754364a818c3bd6a5d9770d9be4a765ea0de71d7d3fd",
+    "size_bytes": 833
+  },
+  "source_registry": {
+    "cedar": {
+      "access": "source_row_payload_in_package",
+      "license_status": "unverified",
+      "row_payload": "native/observation_contributors.parquet",
+      "snapshot": {
+        "locator_basis": "logical_row",
+        "sha256": "source-snapshot"
+      },
+      "upstream_file_access": "not_established"
+    },
+    "iedb": {
+      "access": "source_row_payload_in_package",
+      "license_status": "unverified",
+      "row_payload": "native/observation_contributors.parquet",
+      "snapshot": {
+        "locator_basis": "logical_row",
+        "sha256": "source-snapshot"
+      },
+      "upstream_file_access": "not_established"
+    },
+    "supplement:paper.csv": {
+      "access": "source_row_payload_in_package",
+      "license_status": "unverified",
+      "row_payload": "native/observation_contributors.parquet",
+      "snapshot": {
+        "locator_basis": "logical_row",
+        "sha256": "source-snapshot"
+      },
+      "upstream_file_access": "not_established"
+    }
+  }
+}

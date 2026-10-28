@@ -101,7 +101,7 @@ def test_pinned_precursor_material_graph_keeps_only_project_membership():
 
 
 def test_precursor_package_family_and_catalog_are_versioned():
-    assert SCHEMA_VERSION == 38
+    assert SCHEMA_VERSION == 39
     assert (
         package_family(
             {
