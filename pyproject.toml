@@ -158,6 +158,8 @@ include = [
     "scripts/reliability_benchmark.py",
     "scripts/reliability_modal.py",
     "scripts/profile_csv_serialization.py",
+    "scripts/paired_build_benchmark.py",
+    "scripts/benchmark_site/sitecustomize.py",
     "scripts/check_dev_install.py",
     "scripts/build_uniprot_reference.py",
     "scripts/benchmark_provenance.py",

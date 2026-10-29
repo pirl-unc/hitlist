@@ -36,7 +36,23 @@ if modal.is_local():
             "python -m pip install --no-deps --no-build-isolation -e /opt/producer",
             "python -m pip check",
         )
-        .add_local_file(
+    )
+    baseline_archive = os.environ.get("HITLIST_BENCHMARK_BASELINE_ARCHIVE")
+    if baseline_archive:
+        image = image.add_local_file(
+            str(Path(baseline_archive).resolve()), "/opt/benchmark/baseline.tar.gz", copy=True
+        ).run_commands(
+            "mkdir -p /opt/baseline && tar -xzf /opt/benchmark/baseline.tar.gz -C /opt/baseline",
+            "python -m pip uninstall -y hitlist",
+            "python -m venv --system-site-packages /opt/baseline-env",
+            "python -m venv --system-site-packages /opt/candidate-env",
+            "/opt/baseline-env/bin/python -m pip install --no-deps --no-build-isolation -e /opt/baseline",
+            "/opt/candidate-env/bin/python -m pip install --no-deps --no-build-isolation -e /opt/producer",
+            "/opt/baseline-env/bin/python -m pip check",
+            "/opt/candidate-env/bin/python -m pip check",
+        )
+    image = (
+        image.add_local_file(
             str(ROOT / "tasks/reliability-benchmark-requirements.txt"),
             "/opt/benchmark/requirements.txt",
         )
@@ -64,6 +80,14 @@ if modal.is_local():
         .add_local_file(
             str(ROOT / "scripts/compare_reliability_outputs.py"),
             "/opt/benchmark/compare_reliability_outputs.py",
+        )
+        .add_local_file(
+            str(ROOT / "scripts/paired_build_benchmark.py"),
+            "/opt/benchmark/paired_build_benchmark.py",
+        )
+        .add_local_file(
+            str(ROOT / "scripts/benchmark_site/sitecustomize.py"),
+            "/opt/benchmark/network_guard/sitecustomize.py",
         )
     )
 
@@ -99,11 +123,15 @@ def main(
     scan_sample: bool = False,
     codec_sample: bool = False,
     serialization_sample: bool = False,
+    paired: bool = False,
+    scan_pair: bool = False,
     test_suite: bool = False,
     compare_before: str = "",
     compare_after: str = "",
 ):
-    if compare_before or compare_after:
+    if paired or scan_pair:
+        execute_pair.remote(label, scan_pair)
+    elif compare_before or compare_after:
         compare_outputs.remote(label, compare_before, compare_after)
     elif test_suite:
         measure_tests.remote(label)
@@ -111,6 +139,31 @@ def main(
         diagnose_scan.remote(label, codec_sample, serialization_sample)
     else:
         execute.remote(label, profile)
+
+
+@app.function(
+    image=image,
+    volumes={"/data": volume},
+    cpu=(8, 8),
+    memory=(65536, 65536),
+    ephemeral_disk=524288,
+    timeout=14400,
+    max_containers=1,
+    retries=0,
+    nonpreemptible=True,
+)
+def execute_pair(label: str, scan_only: bool):
+    """Alternate variants in fresh processes on one allocation, with a finite deadline."""
+    import subprocess
+    import sys
+
+    command = [sys.executable, "/opt/benchmark/paired_build_benchmark.py", label]
+    if scan_only:
+        command.append("--scan-pair")
+    try:
+        subprocess.run(command, check=True, timeout=14100)
+    finally:
+        volume.commit()
 
 
 @app.function(

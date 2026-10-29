@@ -118,3 +118,29 @@ to the baseline (SHA-256 46d897c45c234a13188f1f2da846f9c3e8e9b4272949e60d41d7d2b
 different allocation. Do not infer a regression or gain from those profiled,
 separately hosted runs; the unprofiled same-allocation experiment decides which
 changes remain.
+
+The first alternating 500,000-row diagnostic (`issue63-paired-scan-1`) is excluded:
+its baseline scanned and wrote contributors, then the new harness failed to
+serialize the raw mixed PMID column. The builder already normalizes that column
+to numeric nullable Int64 before Arrow conversion. The harness now uses that
+same projection, retains every original source cell in contributors, and tests
+integer, missing and nonnumeric PMID inputs. This is a harness defect, not a
+production regression or an accepted timing result.
+
+The local test.sh preflight initially could not read the macOS capacity probe
+inside the sandbox. The same command outside it admitted two workers at 7.72 GiB
+available with the unchanged 2.5 GiB per-worker budget. No memory guard was lowered.
+
+The admitted local run passed 3,761 tests (one skip, ten expected runtime/user
+warnings) in 367.41 pytest seconds / 372.07 script seconds. The subsequently
+added harness PMID regression also passes in the seven-test harness subset;
+final-head complete checks remain required.
+
+The second paired diagnostic was cancelled by the remote runner after its first
+baseline and while its candidate process was finishing. The trigger is unknown;
+there is no OOM or timeout attribution. The candidate's own report completed
+(four annotation workers, 57.69 parent CPU seconds and 26.80 waited-child CPU
+seconds), but the alternating experiment did not complete and cannot establish
+a repeatable speed ratio. Retain its partial receipt and logs. Parent work
+remains the main CPU cost, so annotation-only concurrency is not yet an accepted
+optimization; assess serialization/capture placement before a full-corpus claim.

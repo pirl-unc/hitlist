@@ -1,0 +1,26 @@
+Traceback (most recent call last):
+  File "/opt/benchmark/paired_build_benchmark.py", line 225, in <module>
+    scan_child(args.scan_child, args.destination)
+  File "/opt/benchmark/paired_build_benchmark.py", line 74, in scan_child
+    frame.to_parquet(destination / "observations.parquet", index=False)
+  File "/usr/local/lib/python3.12/site-packages/pandas/core/frame.py", line 3002, in to_parquet
+    return to_parquet(
+           ^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/pandas/io/parquet.py", line 555, in to_parquet
+    impl.write(
+  File "/usr/local/lib/python3.12/site-packages/pandas/io/parquet.py", line 237, in write
+    table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "pyarrow/table.pxi", line 4769, in pyarrow.lib.Table.from_pandas
+  File "/usr/local/lib/python3.12/site-packages/pyarrow/pandas_compat.py", line 656, in dataframe_to_arrays
+    arrays = [convert_column(c, f)
+              ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/pyarrow/pandas_compat.py", line 644, in convert_column
+    raise e
+  File "/usr/local/lib/python3.12/site-packages/pyarrow/pandas_compat.py", line 638, in convert_column
+    result = pa.array(col, type=type_, from_pandas=True, safe=safe)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "pyarrow/array.pxi", line 408, in pyarrow.lib.array
+  File "pyarrow/array.pxi", line 91, in pyarrow.lib._ndarray_to_array
+  File "pyarrow/error.pxi", line 92, in pyarrow.lib.check_status
+pyarrow.lib.ArrowInvalid: ("Could not convert '' with type str: tried to convert to int64", 'Conversion failed for column pmid with type object')
