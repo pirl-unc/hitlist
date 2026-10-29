@@ -50,6 +50,8 @@ def test_parallel_scan_preserves_order_filters_donors_and_contributors(
         _row("filtered-first"),
         _row("short")[:6],
     ]
+    # Preserve every raw cell, including ones outside the recognized projection.
+    rows[0].extend(['é 😀\t"\\', "unmapped\nmultiline"])
     _write_tiny_iedb_csv(iedb, rows)
     _write_tiny_iedb_csv(cedar, [_row("second", "cross-source duplicate"), _row("cedar")])
     target = tmp_path / "explicit-parent-data"
@@ -116,13 +118,17 @@ def test_failed_worker_closes_source_and_removes_owned_scratch(tmp_path, monkeyp
 def test_scan_batch_limits_keep_order_and_isolate_oversized_input(monkeypatch):
     monkeypatch.setattr(scanner, "_SCAN_BATCH_ROWS", 3)
     monkeypatch.setattr(scanner, "_SCAN_BATCH_BYTES", 1500)
+    columns = {"payload": 0}
     inputs = [
-        ({"payload": "x" * size}, str(index)) for index, size in enumerate([1, 1, 1, 1, 5000, 1])
+        ("iedb", columns, (index, ["x" * size], str(index), False))
+        for index, size in enumerate([1, 1, 1, 1, 5000, 1])
     ]
+    inputs.append(("cedar", {"payload": 0}, (1, ["last"], "cedar:1", False)))
     batches = list(scanner._scan_batches(iter(inputs)))
-    assert [item for batch in batches for item in batch] == inputs
-    assert all(len(batch) <= 3 for batch in batches)
-    assert [inputs[4]] in batches
+    assert [(source, layout, item) for source, layout, batch in batches for item in batch] == inputs
+    assert all(len(batch) <= 3 for _, _, batch in batches)
+    assert ("iedb", columns, [inputs[4][2]]) in batches
+    assert batches[-1] == ("cedar", {"payload": 0}, [inputs[-1][2]])
 
 
 @pytest.mark.parametrize(

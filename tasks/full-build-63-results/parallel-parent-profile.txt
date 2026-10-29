@@ -1,0 +1,326 @@
+
+  _     ._   __/__   _ _  _  _ _/_   Recorded: 14:47:38  Samples:  8984
+ /_//_/// /_\ / //_// / //_'/ //     Duration: 104.127   CPU time: 98.570
+/   _/                      v5.1.3
+
+Profile at /opt/benchmark/profile_scan.py:155
+
+104.13 main  profile_scan.py:110
+|- 90.88 scan  ../producer/hitlist/scanner.py:734
+|  |- 83.84 _parallel_scan  ../producer/hitlist/scanner.py:699
+|  |  |- 73.73 _scan_batches  ../producer/hitlist/scanner.py:660
+|  |  |  |- 62.99 source_rows  ../producer/hitlist/scanner.py:823
+|  |  |  |  |- 35.03 record_row  ../producer/hitlist/provenance.py:300
+|  |  |  |  |  |- 10.25 encode_basestring_ascii  <built-in>
+|  |  |  |  |  |- 10.19 [self]  ../producer/hitlist/provenance.py
+|  |  |  |  |  |- 8.74 ContributorCollector._record_payload  ../producer/hitlist/provenance.py:315
+|  |  |  |  |  |  |- 5.61 ContributorCollector._execute  ../producer/hitlist/provenance.py:177
+|  |  |  |  |  |  |  |- 4.83 Connection.execute  <built-in>
+|  |  |  |  |  |  |  |- 0.45 [self]  ../producer/hitlist/provenance.py
+|  |  |  |  |  |  |  `- 0.33 ContributorCollector._check_space  ../producer/hitlist/provenance.py:156
+|  |  |  |  |  |  |     |- 0.21 [self]  ../producer/hitlist/provenance.py
+|  |  |  |  |  |  |     `- 0.12 monotonic  <built-in>
+|  |  |  |  |  |  |- 1.30 ContributorCollector._flush_payloads  ../producer/hitlist/provenance.py:343
+|  |  |  |  |  |  |  |- 0.74 [self]  ../producer/hitlist/provenance.py
+|  |  |  |  |  |  |  |- 0.35 ContributorCollector._execute  ../producer/hitlist/provenance.py:177
+|  |  |  |  |  |  |  |  `- 0.35 Connection.execute  <built-in>
+|  |  |  |  |  |  |  |- 0.11 bytes.join  <built-in>
+|  |  |  |  |  |  |  `- 0.10 list.clear  <built-in>
+|  |  |  |  |  |  |- 1.28 [self]  ../producer/hitlist/provenance.py
+|  |  |  |  |  |  |- 0.38 len  <built-in>
+|  |  |  |  |  |  `- 0.17 list.append  <built-in>
+|  |  |  |  |  |- 3.63 <genexpr>  ../producer/hitlist/provenance.py:303
+|  |  |  |  |  |- 1.89 str.join  <built-in>
+|  |  |  |  |  |- 0.32 str.encode  <built-in>
+|  |  |  |  |  `- 0.01 len  <built-in>
+|  |  |  |  |- 13.18 _progress  ../producer/hitlist/scanner.py:267
+|  |  |  |  |  |- 8.17 [self]  ../producer/hitlist/scanner.py
+|  |  |  |  |  |- 4.84 _ByteCountingFile.__next__  ../producer/hitlist/scanner.py:247
+|  |  |  |  |  |  |- 2.53 TextIOWrapper.readline  <built-in>
+|  |  |  |  |  |  |- 1.95 [self]  ../producer/hitlist/scanner.py
+|  |  |  |  |  |  |- 0.25 IncrementalDecoder.decode  <frozen codecs>:319
+|  |  |  |  |  |  |  |- 0.19 utf_8_decode  <built-in>
+|  |  |  |  |  |  |  `- 0.06 [self]  <frozen codecs>
+|  |  |  |  |  |  |- 0.08 len  <built-in>
+|  |  |  |  |  |  `- 0.03 IncrementalDecoder.getstate  <frozen codecs>:331
+|  |  |  |  |  |- 0.16 tqdm_asyncio.update  tqdm/std.py:1204
+|  |  |  |  |  |  |- 0.14 tqdm_asyncio.refresh  tqdm/std.py:1333
+|  |  |  |  |  |  |  `- 0.14 tqdm_asyncio.display  tqdm/std.py:1472
+|  |  |  |  |  |  |     |- 0.08 tqdm_asyncio.__str__  tqdm/std.py:1156
+|  |  |  |  |  |  |     |  |- 0.07 format_meter  tqdm/std.py:462
+|  |  |  |  |  |  |     |  |  |- 0.03 [self]  tqdm/std.py
+|  |  |  |  |  |  |     |  |  |- 0.02 format_interval  tqdm/std.py:397
+|  |  |  |  |  |  |     |  |  |- 0.01 format_sizeof  tqdm/std.py:367
+|  |  |  |  |  |  |     |  |  `- 0.01 _is_ascii  tqdm/utils.py:256
+|  |  |  |  |  |  |     |  |     `- 0.01 isinstance  <built-in>
+|  |  |  |  |  |  |     |  `- 0.01 [self]  tqdm/std.py
+|  |  |  |  |  |  |     `- 0.06 print_status  tqdm/std.py:455
+|  |  |  |  |  |  |        |- 0.05 disp_len  tqdm/utils.py:307
+|  |  |  |  |  |  |        |  `- 0.05 _text_width  tqdm/utils.py:303
+|  |  |  |  |  |  |        |     |- 0.03 <genexpr>  tqdm/utils.py:304
+|  |  |  |  |  |  |        |     `- 0.02 [self]  tqdm/utils.py
+|  |  |  |  |  |  |        `- 0.01 fp_write  tqdm/std.py:449
+|  |  |  |  |  |  |           `- 0.01 inner  tqdm/utils.py:177
+|  |  |  |  |  |  |              `- 0.01 TextIOWrapper.write  <built-in>
+|  |  |  |  |  |  |- 0.01 time  <built-in>
+|  |  |  |  |  |  `- 0.01 EMA.__call__  tqdm/std.py:228
+|  |  |  |  |  `- 0.01 tqdm_asyncio.__new__  tqdm/std.py:664
+|  |  |  |  |     `- 0.01 TMonitor.__init__  tqdm/_monitor.py:31
+|  |  |  |  |        `- 0.01 TMonitor.start  threading.py:973
+|  |  |  |  |           `- 0.01 start_new_thread  <built-in>
+|  |  |  |  |- 10.39 ContributorCollector.duplicate_assay  ../producer/hitlist/provenance.py:387
+|  |  |  |  |  |- 10.07 ContributorCollector._execute  ../producer/hitlist/provenance.py:177
+|  |  |  |  |  |  |- 9.55 Connection.execute  <built-in>
+|  |  |  |  |  |  |- 0.32 [self]  ../producer/hitlist/provenance.py
+|  |  |  |  |  |  `- 0.20 ContributorCollector._check_space  ../producer/hitlist/provenance.py:156
+|  |  |  |  |  |     |- 0.13 [self]  ../producer/hitlist/provenance.py
+|  |  |  |  |  |     `- 0.07 monotonic  <built-in>
+|  |  |  |  |  `- 0.32 [self]  ../producer/hitlist/provenance.py
+|  |  |  |  |- 3.78 [self]  ../producer/hitlist/scanner.py
+|  |  |  |  |- 0.49 ContributorCollector.register_source  ../producer/hitlist/provenance.py:264
+|  |  |  |  |  `- 0.49 file_digest  ../producer/hitlist/provenance.py:51
+|  |  |  |  |     |- 0.46 HASH.update  <built-in>
+|  |  |  |  |     `- 0.03 <lambda>  ../producer/hitlist/provenance.py:57
+|  |  |  |  |        `- 0.03 BufferedReader.read  <built-in>
+|  |  |  |  `- 0.12 len  <built-in>
+|  |  |  |- 6.92 <genexpr>  ../producer/hitlist/scanner.py:665
+|  |  |  |  |- 3.48 getsizeof  <built-in>
+|  |  |  |  `- 3.44 [self]  ../producer/hitlist/scanner.py
+|  |  |  |- 2.83 [self]  ../producer/hitlist/scanner.py
+|  |  |  |- 0.48 getsizeof  <built-in>
+|  |  |  |- 0.17 list.append  <built-in>
+|  |  |  |- 0.13 sum  <built-in>
+|  |  |  |- 0.12 dict.values  <built-in>
+|  |  |  `- 0.09 len  <built-in>
+|  |  |- 8.80 collect  ../producer/hitlist/scanner.py:709
+|  |  |  |- 5.51 ContributorCollector.observe  ../producer/hitlist/provenance.py:378
+|  |  |  |  |- 5.06 ContributorCollector._execute  ../producer/hitlist/provenance.py:177
+|  |  |  |  |  |- 4.62 Connection.execute  <built-in>
+|  |  |  |  |  |- 0.26 [self]  ../producer/hitlist/provenance.py
+|  |  |  |  |  `- 0.18 ContributorCollector._check_space  ../producer/hitlist/provenance.py:156
+|  |  |  |  |     |- 0.12 [self]  ../producer/hitlist/provenance.py
+|  |  |  |  |     `- 0.06 monotonic  <built-in>
+|  |  |  |  |- 0.38 [self]  ../producer/hitlist/provenance.py
+|  |  |  |  `- 0.07 _observation_id  ../producer/hitlist/provenance.py:78
+|  |  |  |- 3.03 Future.result  concurrent/futures/_base.py:428
+|  |  |  |  `- 3.03 Condition.wait  threading.py:323
+|  |  |  |     `- 3.03 lock.acquire  <built-in>
+|  |  |  |- 0.24 [self]  ../producer/hitlist/scanner.py
+|  |  |  `- 0.02 list.extend  <built-in>
+|  |  |- 0.75 [self]  ../producer/hitlist/scanner.py
+|  |  |- 0.45 ProcessPoolExecutor.shutdown  concurrent/futures/process.py:869
+|  |  |  `- 0.45 _ExecutorManagerThread.join  threading.py:1115
+|  |  |     `- 0.45 _ExecutorManagerThread._wait_for_tstate_lock  threading.py:1153
+|  |  |        `- 0.45 lock.acquire  <built-in>
+|  |  |- 0.06 ProcessPoolExecutor.submit  concurrent/futures/process.py:815
+|  |  |  |- 0.02 ProcessPoolExecutor._adjust_process_count  concurrent/futures/process.py:781
+|  |  |  |  `- 0.02 ProcessPoolExecutor._spawn_process  concurrent/futures/process.py:804
+|  |  |  |     `- 0.02 SpawnProcess.start  multiprocessing/process.py:110
+|  |  |  |        `- 0.02 _Popen  multiprocessing/context.py:286
+|  |  |  |           `- 0.02 Popen.__init__  multiprocessing/popen_spawn_posix.py:30
+|  |  |  |              `- 0.02 Popen.__init__  multiprocessing/popen_fork.py:15
+|  |  |  |                 `- 0.02 Popen._launch  multiprocessing/popen_spawn_posix.py:38
+|  |  |  |                    `- 0.02 spawnv_passfds  multiprocessing/util.py:447
+|  |  |  |                       `- 0.02 fork_exec  <built-in>
+|  |  |  |- 0.01 [self]  concurrent/futures/process.py
+|  |  |  |- 0.01 Future.__init__  concurrent/futures/_base.py:328
+|  |  |  |- 0.01 _ThreadWakeup.wakeup  concurrent/futures/process.py:84
+|  |  |  |  `- 0.01 Connection.send_bytes  multiprocessing/connection.py:182
+|  |  |  |     `- 0.01 Connection._send_bytes  multiprocessing/connection.py:406
+|  |  |  |        `- 0.01 Connection._send  multiprocessing/connection.py:381
+|  |  |  `- 0.01 Queue.put  queue.py:122
+|  |  |     `- 0.01 Condition.notify  threading.py:394
+|  |  |        `- 0.01 Condition._is_owned  threading.py:314
+|  |  |           `- 0.01 lock.acquire  <built-in>
+|  |  |- 0.02 ProcessPoolExecutor.__init__  concurrent/futures/process.py:661
+|  |  |  |- 0.01 _SafeQueue.__init__  concurrent/futures/process.py:170
+|  |  |  |  `- 0.01 _SafeQueue.__init__  multiprocessing/queues.py:37
+|  |  |  |     `- 0.01 SpawnContext.Lock  multiprocessing/context.py:65
+|  |  |  |        `- 0.01 Lock.__init__  multiprocessing/synchronize.py:168
+|  |  |  |           `- 0.01 Lock.__init__  multiprocessing/synchronize.py:50
+|  |  |  |              `- 0.01 ResourceTracker.register  multiprocessing/resource_tracker.py:172
+|  |  |  |                 `- 0.01 ResourceTracker._send  multiprocessing/resource_tracker.py:180
+|  |  |  |                    `- 0.01 ResourceTracker.ensure_running  multiprocessing/resource_tracker.py:94
+|  |  |  |                       `- 0.01 spawnv_passfds  multiprocessing/util.py:447
+|  |  |  |                          `- 0.01 fork_exec  <built-in>
+|  |  |  `- 0.01 _check_system_limits  concurrent/futures/process.py:609
+|  |  |     `- 0.01 _find_and_load  <frozen importlib._bootstrap>:1349
+|  |  |        `- 0.01 _find_and_load_unlocked  <frozen importlib._bootstrap>:1304
+|  |  |           `- 0.01 _load_unlocked  <frozen importlib._bootstrap>:911
+|  |  |              `- 0.01 SourceFileLoader.exec_module  <frozen importlib._bootstrap_external>:988
+|  |  |                 `- 0.01 SourceFileLoader.get_code  <frozen importlib._bootstrap_external>:1061
+|  |  |                    `- 0.01 SourceFileLoader.source_to_code  <frozen importlib._bootstrap_external>:1053
+|  |  |                       `- 0.01 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |  |                          `- 0.01 compile  <built-in>
+|  |  |- 0.02 _handle_fromlist  <frozen importlib._bootstrap>:1390
+|  |  |  `- 0.02 __getattr__  concurrent/futures/__init__.py:40
+|  |  |     `- 0.02 _find_and_load  <frozen importlib._bootstrap>:1349
+|  |  |        `- 0.02 _find_and_load_unlocked  <frozen importlib._bootstrap>:1304
+|  |  |           `- 0.02 _load_unlocked  <frozen importlib._bootstrap>:911
+|  |  |              `- 0.02 SourceFileLoader.exec_module  <frozen importlib._bootstrap_external>:988
+|  |  |                 |- 0.01 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |  |                 |  `- 0.01 <module>  concurrent/futures/process.py:1
+|  |  |                 |     `- 0.01 _find_and_load  <frozen importlib._bootstrap>:1349
+|  |  |                 |        `- 0.01 _find_and_load_unlocked  <frozen importlib._bootstrap>:1304
+|  |  |                 |           `- 0.01 _load_unlocked  <frozen importlib._bootstrap>:911
+|  |  |                 |              `- 0.01 SourceFileLoader.exec_module  <frozen importlib._bootstrap_external>:988
+|  |  |                 |                 `- 0.01 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |  |                 |                    `- 0.01 <module>  multiprocessing/connection.py:1
+|  |  |                 |                       `- 0.01 _find_and_load  <frozen importlib._bootstrap>:1349
+|  |  |                 |                          `- 0.01 _find_and_load_unlocked  <frozen importlib._bootstrap>:1304
+|  |  |                 |                             `- 0.01 _load_unlocked  <frozen importlib._bootstrap>:911
+|  |  |                 |                                `- 0.01 module_from_spec  <frozen importlib._bootstrap>:806
+|  |  |                 |                                   `- 0.01 ExtensionFileLoader.create_module  <frozen importlib._bootstrap_external>:1286
+|  |  |                 |                                      `- 0.01 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |  |                 |                                         `- 0.01 create_dynamic  <built-in>
+|  |  |                 `- 0.01 SourceFileLoader.get_code  <frozen importlib._bootstrap_external>:1061
+|  |  |                    `- 0.01 SourceFileLoader.source_to_code  <frozen importlib._bootstrap_external>:1053
+|  |  |                       `- 0.01 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |  `- 0.01 _find_and_load  <frozen importlib._bootstrap>:1349
+|  |     `- 0.01 _find_and_load_unlocked  <frozen importlib._bootstrap>:1304
+|  |        `- 0.01 _load_unlocked  <frozen importlib._bootstrap>:911
+|  |           `- 0.01 SourceFileLoader.exec_module  <frozen importlib._bootstrap_external>:988
+|  |              `- 0.01 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |                 `- 0.01 <module>  multiprocessing/__init__.py:1
+|  |                    `- 0.01 _handle_fromlist  <frozen importlib._bootstrap>:1390
+|  |                       `- 0.01 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |                          `- 0.01 _find_and_load  <frozen importlib._bootstrap>:1349
+|  |                             `- 0.01 _find_and_load_unlocked  <frozen importlib._bootstrap>:1304
+|  |                                `- 0.01 _load_unlocked  <frozen importlib._bootstrap>:911
+|  |                                   `- 0.01 SourceFileLoader.exec_module  <frozen importlib._bootstrap_external>:988
+|  |                                      `- 0.01 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |                                         `- 0.01 <module>  multiprocessing/context.py:1
+|  |                                            `- 0.01 _handle_fromlist  <frozen importlib._bootstrap>:1390
+|  |                                               `- 0.01 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |                                                  `- 0.01 _find_and_load  <frozen importlib._bootstrap>:1349
+|  |                                                     `- 0.01 _find_and_load_unlocked  <frozen importlib._bootstrap>:1304
+|  |                                                        `- 0.01 _load_unlocked  <frozen importlib._bootstrap>:911
+|  |                                                           `- 0.01 SourceFileLoader.exec_module  <frozen importlib._bootstrap_external>:988
+|  |                                                              `- 0.01 SourceFileLoader.get_code  <frozen importlib._bootstrap_external>:1061
+|  |                                                                 `- 0.01 SourceFileLoader.get_data  <frozen importlib._bootstrap_external>:1182
+|  |                                                                    `- 0.01 BufferedReader.read  <built-in>
+|  |- 6.88 DataFrame.__init__  pandas/core/frame.py:466
+|  |  |- 6.87 nested_data_to_arrays  pandas/core/internals/construction.py:466
+|  |  |  `- 6.87 to_arrays  pandas/core/internals/construction.py:765
+|  |  |     |- 3.90 _list_of_dict_to_arrays  pandas/core/internals/construction.py:913
+|  |  |     |  |- 2.63 [self]  pandas/core/internals/construction.py
+|  |  |     |  |- 1.24 <genexpr>  pandas/core/internals/construction.py:941
+|  |  |     |  |  |- 1.12 [self]  pandas/core/internals/construction.py
+|  |  |     |  |  `- 0.12 dict.keys  <built-in>
+|  |  |     |  `- 0.03 ensure_index  pandas/core/indexes/base.py:8354
+|  |  |     |     `- 0.03 Index.__new__  pandas/core/indexes/base.py:484
+|  |  |     |        `- 0.03 sanitize_array  pandas/core/construction.py:580
+|  |  |     |           `- 0.03 ArrowStringArray._from_sequence  pandas/core/arrays/string_arrow.py:233
+|  |  |     |              `- 0.03 _find_and_load  <frozen importlib._bootstrap>:1349
+|  |  |     |                 `- 0.03 _find_and_load_unlocked  <frozen importlib._bootstrap>:1304
+|  |  |     |                    `- 0.03 _load_unlocked  <frozen importlib._bootstrap>:911
+|  |  |     |                       `- 0.03 SourceFileLoader.exec_module  <frozen importlib._bootstrap_external>:988
+|  |  |     |                          `- 0.03 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |  |     |                             `- 0.03 <module>  pyarrow/vendored/version.py:1
+|  |  |     |                                |- 0.02 Version  pyarrow/vendored/version.py:301
+|  |  |     |                                |  `- 0.02 compile  re/__init__.py:226
+|  |  |     |                                |     `- 0.02 _compile  re/__init__.py:280
+|  |  |     |                                |        `- 0.02 compile  re/_compiler.py:740
+|  |  |     |                                |           `- 0.02 parse  re/_parser.py:969
+|  |  |     |                                |              `- 0.02 _parse_sub  re/_parser.py:452
+|  |  |     |                                |                 `- 0.02 _parse  re/_parser.py:512
+|  |  |     |                                |                    `- 0.02 _parse_sub  re/_parser.py:452
+|  |  |     |                                |                       `- 0.02 _parse  re/_parser.py:512
+|  |  |     |                                |                          `- 0.02 _parse_sub  re/_parser.py:452
+|  |  |     |                                |                             `- 0.02 _parse  re/_parser.py:512
+|  |  |     |                                |                                `- 0.02 _parse_sub  re/_parser.py:452
+|  |  |     |                                |                                   `- 0.02 _parse  re/_parser.py:512
+|  |  |     |                                |                                      `- 0.02 _parse_sub  re/_parser.py:452
+|  |  |     |                                |                                         `- 0.02 _parse  re/_parser.py:512
+|  |  |     |                                |                                            `- 0.02 Tokenizer.get  re/_parser.py:261
+|  |  |     |                                |                                               `- 0.02 Tokenizer.__next  re/_parser.py:240
+|  |  |     |                                `- 0.01 compile  re/__init__.py:226
+|  |  |     |                                   `- 0.01 _compile  re/__init__.py:280
+|  |  |     |                                      `- 0.01 compile  re/_compiler.py:740
+|  |  |     |                                         `- 0.01 parse  re/_parser.py:969
+|  |  |     |                                            `- 0.01 _parse_sub  re/_parser.py:452
+|  |  |     |                                               `- 0.01 Tokenizer.match  re/_parser.py:256
+|  |  |     `- 2.97 _finalize_columns_and_data  pandas/core/internals/construction.py:955
+|  |  |        `- 2.97 convert_object_array  pandas/core/internals/construction.py:1010
+|  |  |           `- 2.97 convert  pandas/core/internals/construction.py:1032
+|  |  |              |- 2.35 ArrowStringArray._from_sequence  pandas/core/arrays/string_arrow.py:233
+|  |  |              |- 0.61 [self]  pandas/core/internals/construction.py
+|  |  |              `- 0.01 full  numpy/_core/numeric.py:323
+|  |  `- 0.01 arrays_to_mgr  pandas/core/internals/construction.py:99
+|  |     `- 0.01 create_block_manager_from_column_arrays  pandas/core/internals/managers.py:2366
+|  |        `- 0.01 _form_blocks  pandas/core/internals/managers.py:2422
+|  |           `- 0.01 _stack_arrays  pandas/core/internals/managers.py:2488
+|  `- 0.16 [self]  ../producer/hitlist/scanner.py
+|- 12.60 ContributorCollector.write  ../producer/hitlist/provenance.py:467
+|  |- 3.84 ContributorCollector._iter_links  ../producer/hitlist/provenance.py:420
+|  |  |- 2.06 [self]  ../producer/hitlist/provenance.py
+|  |  |- 1.44 ContributorCollector._execute  ../producer/hitlist/provenance.py:177
+|  |  |  |- 1.36 Connection.execute  <built-in>
+|  |  |  |- 0.07 [self]  ../producer/hitlist/provenance.py
+|  |  |  `- 0.01 ContributorCollector._check_space  ../producer/hitlist/provenance.py:156
+|  |  |     `- 0.01 monotonic  <built-in>
+|  |  |- 0.23 Cursor.fetchall  <built-in>
+|  |  `- 0.10 <genexpr>  ../producer/hitlist/provenance.py:434
+|  |- 2.62 [self]  ../producer/hitlist/provenance.py
+|  |- 2.50 ParquetWriter.write_table  pyarrow/parquet/core.py:1191
+|  |- 1.20 ContributorCollector._payload  ../producer/hitlist/provenance.py:356
+|  |  |- 0.78 [self]  ../producer/hitlist/provenance.py
+|  |  |- 0.18 OrderedDict.pop  <built-in>
+|  |  |- 0.12 ContributorCollector._execute  ../producer/hitlist/provenance.py:177
+|  |  |  `- 0.12 Connection.execute  <built-in>
+|  |  |- 0.10 len  <built-in>
+|  |  `- 0.02 Cursor.fetchone  <built-in>
+|  |- 0.69 <genexpr>  ../producer/hitlist/provenance.py:486
+|  |  |- 0.59 ArrowStringArray.__iter__  pandas/core/arrays/arrow/array.py:1148
+|  |  `- 0.10 [self]  ../producer/hitlist/provenance.py
+|  |- 0.55 file_digest  ../producer/hitlist/provenance.py:51
+|  |  |- 0.54 HASH.update  <built-in>
+|  |  `- 0.01 <lambda>  ../producer/hitlist/provenance.py:57
+|  |     `- 0.01 BufferedReader.read  <built-in>
+|  |- 0.38 str.split  <built-in>
+|  |- 0.35 len  <built-in>
+|  |- 0.26 bytes.decode  <built-in>
+|  |- 0.10 list.clear  <built-in>
+|  |- 0.05 list.append  <built-in>
+|  |- 0.02 _find_and_load  <frozen importlib._bootstrap>:1349
+|  |  `- 0.02 _find_and_load_unlocked  <frozen importlib._bootstrap>:1304
+|  |     `- 0.02 _load_unlocked  <frozen importlib._bootstrap>:911
+|  |        `- 0.02 SourceFileLoader.exec_module  <frozen importlib._bootstrap_external>:988
+|  |           `- 0.02 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |              `- 0.02 <module>  pyarrow/parquet/__init__.py:1
+|  |                 `- 0.02 _find_and_load  <frozen importlib._bootstrap>:1349
+|  |                    `- 0.02 _find_and_load_unlocked  <frozen importlib._bootstrap>:1304
+|  |                       `- 0.02 _load_unlocked  <frozen importlib._bootstrap>:911
+|  |                          `- 0.02 SourceFileLoader.exec_module  <frozen importlib._bootstrap_external>:988
+|  |                             `- 0.02 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |                                `- 0.02 <module>  pyarrow/parquet/core.py:1
+|  |                                   `- 0.02 _find_and_load  <frozen importlib._bootstrap>:1349
+|  |                                      `- 0.02 _find_and_load_unlocked  <frozen importlib._bootstrap>:1304
+|  |                                         `- 0.02 _load_unlocked  <frozen importlib._bootstrap>:911
+|  |                                            `- 0.02 SourceFileLoader.exec_module  <frozen importlib._bootstrap_external>:988
+|  |                                               |- 0.01 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |                                               |  `- 0.01 <module>  pyarrow/fs.py:1
+|  |                                               |     `- 0.01 _find_and_load  <frozen importlib._bootstrap>:1349
+|  |                                               |        `- 0.01 _find_and_load_unlocked  <frozen importlib._bootstrap>:1304
+|  |                                               |           `- 0.01 _load_unlocked  <frozen importlib._bootstrap>:911
+|  |                                               |              `- 0.01 module_from_spec  <frozen importlib._bootstrap>:806
+|  |                                               |                 `- 0.01 ExtensionFileLoader.create_module  <frozen importlib._bootstrap_external>:1286
+|  |                                               |                    `- 0.01 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |                                               `- 0.01 SourceFileLoader.get_code  <frozen importlib._bootstrap_external>:1061
+|  |                                                  `- 0.01 SourceFileLoader.get_data  <frozen importlib._bootstrap_external>:1182
+|  |                                                     `- 0.01 open_code  <built-in>
+|  |- 0.02 _Environ.get  <frozen _collections_abc>:804
+|  |  |- 0.01 [self]  <frozen _collections_abc>
+|  |  `- 0.01 _Environ.__getitem__  <frozen os>:680
+|  |- 0.02 Connection.commit  <built-in>
+|  `- 0.01 ParquetWriter.__exit__  pyarrow/parquet/core.py:1151
+|     `- 0.01 ParquetWriter.close  pyarrow/parquet/core.py:1218
+|- 0.61 [self]  profile_scan.py
+`- 0.03 ContributorCollector.__exit__  ../producer/hitlist/provenance.py:261
+   `- 0.03 ContributorCollector._close  ../producer/hitlist/provenance.py:187
+      `- 0.03 TemporaryDirectory.cleanup  tempfile.py:948
+         `- 0.03 TemporaryDirectory._rmtree  tempfile.py:890
+            `- 0.03 rmtree  shutil.py:712
+               `- 0.03 _rmtree_safe_fd  shutil.py:643
+                  `- 0.03 unlink  <built-in>
+

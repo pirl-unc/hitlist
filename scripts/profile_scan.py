@@ -107,8 +107,9 @@ def measure_codecs(sample):
     return results
 
 
-def main(label, codecs_only=False):
+def main(label, codecs_only=False, *, n_rows=100000, workers=1):
     import csv
+    import inspect
     import itertools
     import json
     import os
@@ -133,9 +134,12 @@ def main(label, codecs_only=False):
             sample.open("w", newline="") as target,
         ):
             writer = csv.writer(target)
-            writer.writerows(itertools.islice(csv.reader(source), 10002 if codecs_only else 100002))
+            writer.writerows(
+                itertools.islice(csv.reader(source), 10002 if codecs_only else n_rows + 2)
+            )
         receipt = {
-            "scope": f"first {10000 if codecs_only else 100000} logical IEDB data rows; diagnostic only",
+            "scope": f"first {10000 if codecs_only else n_rows} logical IEDB data rows; diagnostic only",
+            "requested_scan_workers": workers,
             "source": pin,
             "sample": file_digest(sample),
             "producer_archive": file_digest(Path("/opt/benchmark/producer.tar.gz")),
@@ -151,12 +155,18 @@ def main(label, codecs_only=False):
         profiler.start()
         try:
             with ContributorCollector() as collector:
+                worker_options = (
+                    {"n_workers": workers}
+                    if "n_workers" in inspect.signature(scan).parameters
+                    else {}
+                )
                 frame = scan(
                     iedb_path=sample,
                     cedar_path=None,
                     mhc_species=None,
                     classify_source=True,
                     provenance=collector,
+                    **worker_options,
                 )
                 receipt["n_rows"] = len(frame)
                 receipt["provenance"] = collector.write(
@@ -177,5 +187,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("label")
     parser.add_argument("--codecs-only", action="store_true")
+    parser.add_argument("--rows", type=int, default=100000)
+    parser.add_argument("--workers", type=int, default=1)
     args = parser.parse_args()
-    main(args.label, args.codecs_only)
+    main(args.label, args.codecs_only, n_rows=args.rows, workers=args.workers)

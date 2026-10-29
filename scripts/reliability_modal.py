@@ -121,6 +121,8 @@ def main(
     label: str,
     profile: bool = False,
     scan_sample: bool = False,
+    scan_workers: int = 1,
+    scan_rows: int = 100000,
     codec_sample: bool = False,
     serialization_sample: bool = False,
     paired: bool = False,
@@ -136,7 +138,7 @@ def main(
     elif test_suite:
         measure_tests.remote(label)
     elif scan_sample or codec_sample or serialization_sample:
-        diagnose_scan.remote(label, codec_sample, serialization_sample)
+        diagnose_scan.remote(label, codec_sample, serialization_sample, scan_workers, scan_rows)
     else:
         execute.remote(label, profile)
 
@@ -170,13 +172,19 @@ def execute_pair(label: str, scan_only: bool):
     image=image,
     volumes={"/data": volume},
     cpu=(8, 8),
-    memory=(16384, 16384),
+    memory=(65536, 65536),
     ephemeral_disk=524288,
     timeout=1800,
     max_containers=1,
     retries=0,
 )
-def diagnose_scan(label: str, codecs_only: bool = False, serialization_only: bool = False):
+def diagnose_scan(
+    label: str,
+    codecs_only: bool = False,
+    serialization_only: bool = False,
+    workers: int = 1,
+    n_rows: int = 100000,
+):
     """Locate row-level hotspots; this sample is not a full-build speed result."""
     import subprocess
     import sys
@@ -185,6 +193,8 @@ def diagnose_scan(label: str, codecs_only: bool = False, serialization_only: boo
     command = [sys.executable, f"/opt/benchmark/{script}", label]
     if codecs_only:
         command.append("--codecs-only")
+    if not serialization_only:
+        command.extend(["--rows", str(n_rows), "--workers", str(workers)])
     try:
         subprocess.run(
             command,

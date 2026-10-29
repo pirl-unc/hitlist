@@ -144,3 +144,42 @@ seconds), but the alternating experiment did not complete and cannot establish
 a repeatable speed ratio. Retain its partial receipt and logs. Parent work
 remains the main CPU cost, so annotation-only concurrency is not yet an accepted
 optimization; assess serialization/capture placement before a full-corpus claim.
+
+The third alternating 500,000-row diagnostic completed successfully. Baseline
+wall times were 68.751 and 68.879 s; candidate times were 62.724 and 61.817 s
+(1.105× ratio of means, 9.5% less elapsed time). All non-Hitlist package versions
+match and both output files have identical bytes across all four runs. The
+inherited Python socket audit recorded no network attempts. Candidate CPU rose
+from about 66.1 s to 85.1 s including waited children, and sampled tree RSS rose
+from about 2.7 GiB to 4.1 GiB. This narrow diagnostic does not establish a full-
+build gain or justify shipping the annotation-only concurrency yet. Profile the
+parent on the same 500,000-row scope before choosing a revised boundary.
+
+## Revised worker boundary
+
+The 500,000-row parent sampling diagnostic attributes 35.03 of 104.13 s to
+record encoding/capture, 13.18 s to CSV iteration, 10.39 s to assay deduplication,
+6.92 s to the per-value input-size generator, and 5.51 s to observation inserts.
+These profiled numbers explain placement, not a speed ratio. Move exact CSV JSON
+encoding and bounded scratch-block compression to the existing annotation
+workers. The parent keeps CSV parsing, peptide filtering, per-scan assay
+deduplication, source snapshots, graph ownership and ordered output assembly.
+
+Worker batches carry one source layout and raw rows plus original row numbers,
+record IDs and the parent's duplicate decision. Duplicate rows are still captured
+but do not enter annotation. Workers return bounded compressed payload blocks,
+record locators, annotations and observation edges. Parent imports blocks and
+records, then edges, in submission order; SQLite remains parent-only. Scratch
+block boundaries may change, but every public JSON and Parquet byte must match.
+Use guarded executemany for record and edge insertion. Direct record/CSV APIs
+retain immediate duplicate rejection; worker-path duplicate record rejection is
+at ordered batch ingestion, before scan returns or anything is published.
+
+Preserve the 128-row/1 MiB scratch-block caps and the 1,024-row/4 MiB worker-input
+caps, at most two batches per worker. The raw-row byte estimate includes tuple,
+list, string and locator storage; a single oversized row remains isolated. Keep
+serial fallback and all worker admission limits. Extend regressions to cover
+non-ASCII/control/unmapped cells, pending serial payloads before/after imported
+blocks, duplicate records, capacity exhaustion during import, filtered duplicate
+IRIs, cross-source boundaries and worker failure. Re-run the same unprofiled
+alternating diagnostic before committing to full measurements.

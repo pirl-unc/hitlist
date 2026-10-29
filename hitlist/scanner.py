@@ -660,19 +660,27 @@ def _scan_workers(requested):
 def _scan_batches(source_rows):
     """Bound queued inputs by rows and owned Python bytes; isolate an oversized row."""
     batch, batch_bytes = [], 0
-    for fields, record_id in source_rows:
-        size = sys.getsizeof(fields) + sys.getsizeof(record_id)
-        size += sum(sys.getsizeof(value) for value in fields.values())
-        if batch and (len(batch) >= _SCAN_BATCH_ROWS or batch_bytes + size > _SCAN_BATCH_BYTES):
-            yield batch
+    dataset = columns = None
+    for source, layout, item in source_rows:
+        row_number, values, record_id, duplicate = item
+        size = sum(map(sys.getsizeof, values))
+        size += sum(map(sys.getsizeof, (item, row_number, values, record_id, duplicate)))
+        if batch and (
+            len(batch) >= _SCAN_BATCH_ROWS
+            or batch_bytes + size > _SCAN_BATCH_BYTES
+            or source != dataset
+            or layout is not columns
+        ):
+            yield dataset, columns, batch
             batch, batch_bytes = [], 0
-        batch.append((fields, record_id))
+        dataset, columns = source, layout
+        batch.append(item)
         batch_bytes += size
         if batch_bytes >= _SCAN_BATCH_BYTES:
-            yield batch
+            yield dataset, columns, batch
             batch, batch_bytes = [], 0
     if batch:
-        yield batch
+        yield dataset, columns, batch
 
 
 def _initialize_scan_worker(data_directory):
@@ -684,16 +692,32 @@ def _initialize_scan_worker(data_directory):
 
 
 def _annotate_batch(batch, options, capture):
-    from .provenance import _observation_id
+    from .provenance import _encode_csv_blocks, _observation_id
 
+    dataset, columns, inputs = batch
     observations = []
 
     def observe(record_id, label=""):
         observations.append((record_id, label))
         return _observation_id(record_id, label)
 
-    rows = _annotate_rows(batch, **options, observe=observe if capture else None)
-    return rows, observations
+    field_names = tuple(columns)
+    project = itemgetter(*columns.values())
+    max_column = max(columns.values())
+
+    def source_rows():
+        for _row_number, values, record_id, duplicate in inputs:
+            if not duplicate:
+                fields = (
+                    dict(zip(field_names, project(values)))
+                    if len(values) > max_column
+                    else {name: _safe_col(values, index) for name, index in columns.items()}
+                )
+                yield fields, record_id
+
+    blocks = _encode_csv_blocks(columns, inputs) if capture else []
+    rows = _annotate_rows(source_rows(), **options, observe=observe if capture else None)
+    return dataset, blocks, rows, observations
 
 
 def _parallel_scan(source_rows, options, provenance, n_workers):
@@ -707,10 +731,10 @@ def _parallel_scan(source_rows, options, provenance, n_workers):
     rows = []
 
     def collect(future):
-        records, observations = future.result()
+        dataset, blocks, records, observations = future.result()
         if provenance is not None:
-            for record_id, label in observations:
-                provenance.observe(record_id, label)
+            provenance._import_csv_blocks(dataset, blocks)
+            provenance._observe_batch(observations)
         rows.extend(records)
 
     executor = ProcessPoolExecutor(
@@ -781,7 +805,7 @@ def scan(
             ``mhc_species=None``.  If both are passed, ``mhc_species`` wins.
             Slated for removal in hitlist 2.0.
     n_workers
-        Annotation workers. Default 1 keeps direct calls serial. None selects
+        Source-row workers. Default 1 keeps direct calls serial. None selects
         HITLIST_SCAN_WORKERS, then HITLIST_BUILD_WORKERS, then 4. Extra workers
         require available memory beyond a 32 GiB parent reserve, plus 2.5 GiB
         per worker; unknown capacity selects the serial path. Inputs, results
@@ -821,6 +845,8 @@ def scan(
     effective_workers = _scan_workers(n_workers)
 
     def source_rows():
+        from .provenance import _record_prefix
+
         seen: set[str] = set()
         scan_id = provenance.begin_scan() if provenance is not None else None
 
@@ -837,8 +863,11 @@ def scan(
             project = itemgetter(*c.values())
             max_column = max(c.values())
             record_csv = (
-                provenance.csv_record_writer(dataset, c) if provenance is not None else None
+                provenance.csv_record_writer(dataset, c)
+                if provenance is not None and effective_workers == 1
+                else None
             )
+            record_prefix = _record_prefix(dataset)
             try:
                 for row_number, row in enumerate(
                     _progress(reader, p, f"Scanning {p.name}", fh=fh), 1
@@ -856,25 +885,33 @@ def scan(
                     # Dedup only on a *present* Assay IRI. A blank IRI is not an
                     # identity — deduping on "" would collapse every blank-IRI row
                     # (distinct observations) into one. _safe_col guards short rows.
-                    fields = (
-                        dict(zip(field_names, project(row)))
-                        if len(row) > max_column
-                        else {name: _safe_col(row, index) for name, index in c.items()}
-                    )
-                    iri = fields["assay_iri"]
+                    iri = _safe_col(row, c["assay_iri"])
                     record_id = ""
+                    duplicate = False
                     if provenance is not None:
-                        record_id = record_csv(row_number, row)
+                        record_id = (
+                            record_csv(row_number, row)
+                            if record_csv is not None
+                            else f"{record_prefix}{row_number}"
+                        )
                     if iri:
                         if provenance is not None:
-                            if provenance.duplicate_assay(scan_id, iri, record_id):
-                                continue
+                            duplicate = provenance.duplicate_assay(scan_id, iri, record_id)
                         else:
-                            if iri in seen:
-                                continue
+                            duplicate = iri in seen
                             seen.add(iri)
-
-                    yield fields, record_id
+                    if effective_workers > 1:
+                        # Every original record is captured, including duplicate
+                        # assays; only the first present IRI reaches annotation.
+                        if provenance is not None or not duplicate:
+                            yield dataset, c, (row_number, row, record_id, duplicate)
+                    elif not duplicate:
+                        fields = (
+                            dict(zip(field_names, project(row)))
+                            if len(row) > max_column
+                            else {name: _safe_col(row, index) for name, index in c.items()}
+                        )
+                        yield fields, record_id
             finally:
                 fh.close()
 
@@ -892,7 +929,7 @@ def scan(
             )
         else:
             print(
-                f"Annotating source rows with {effective_workers} workers (bounded, ordered batches)"
+                f"Processing source rows with {effective_workers} workers (bounded, ordered batches)"
             )
             rows = _parallel_scan(inputs, options, provenance, effective_workers)
     return pd.DataFrame(rows)

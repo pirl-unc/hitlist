@@ -82,6 +82,56 @@ def _observation_id(record_id, sample_label=""):
     return node
 
 
+def _csv_payload_encoder(columns):
+    """Bind the exact two JSON views of a string-only CSV row."""
+    prefixes = tuple((json.dumps(name) + ": ", index) for name, index in sorted(columns.items()))
+    pmid_index = columns.get("pmid")
+    escape = json.encoder.encode_basestring_ascii
+
+    def encode(row_values):
+        encoded = list(map(escape, row_values))
+        n_columns = len(encoded)
+        fields = ", ".join(
+            prefix + (encoded[index] if index < n_columns else '""') for prefix, index in prefixes
+        )
+        payload = ("{" + fields + "}\n[" + ", ".join(encoded) + "]").encode()
+        pmid = row_values[pmid_index] if pmid_index is not None and pmid_index < n_columns else ""
+        return payload, pmid
+
+    return encode
+
+
+def _encode_csv_blocks(columns, rows):
+    """Compress one bounded worker batch, without a database or graph ownership."""
+    encode = _csv_payload_encoder(columns)
+    codec = pa.Codec("zstd", compression_level=1)
+    payloads, records, blocks = [], [], []
+    size = 0
+
+    def flush():
+        blocks.append((codec.compress(b"".join(payloads), asbytes=True), size, records[:]))
+        payloads.clear()
+        records.clear()
+
+    for row_number, row_values, record_id, _duplicate in rows:
+        payload, pmid = encode(row_values)
+        if payloads and size + len(payload) > ContributorCollector._CAPTURE_BATCH_BYTES:
+            flush()
+            size = 0
+        records.append((record_id, row_number, size, len(payload), pmid))
+        payloads.append(payload)
+        size += len(payload)
+        if (
+            len(payloads) >= ContributorCollector._CAPTURE_BATCH_ROWS
+            or size >= ContributorCollector._CAPTURE_BATCH_BYTES
+        ):
+            flush()
+            size = 0
+    if payloads:
+        flush()
+    return blocks
+
+
 class ProvenanceStorageError(RuntimeError):
     """The disposable contributor graph or output filesystem ran out of capacity."""
 
@@ -178,6 +228,16 @@ class ContributorCollector:
         self._check_space()
         try:
             return self.db.execute(sql, parameters)
+        except sqlite3.Error as error:
+            translated = self._translate_error(error)
+            if translated is not None:
+                raise translated from error
+            raise
+
+    def _executemany(self, sql, parameters):
+        self._check_space()
+        try:
+            return self.db.executemany(sql, parameters)
         except sqlite3.Error as error:
             translated = self._translate_error(error)
             if translated is not None:
@@ -291,26 +351,39 @@ class ContributorCollector:
         preserves its exact escaping, spaces, key order and unmapped cells.
         No source values are cached across rows.
         """
-        prefixes = tuple(
-            (json.dumps(name) + ": ", index) for name, index in sorted(columns.items())
-        )
-        pmid_index = columns.get("pmid")
-        escape = json.encoder.encode_basestring_ascii
+        encode = _csv_payload_encoder(columns)
 
         def record_row(row_number, row_values):
-            encoded = [escape(value) for value in row_values]
-            n_columns = len(encoded)
-            fields = ", ".join(
-                prefix + (encoded[index] if index < n_columns else '""')
-                for prefix, index in prefixes
-            )
-            payload = ("{" + fields + "}\n[" + ", ".join(encoded) + "]").encode()
-            pmid = (
-                row_values[pmid_index] if pmid_index is not None and pmid_index < n_columns else ""
-            )
+            payload, pmid = encode(row_values)
             return self._record_payload(dataset, row_number, payload, pmid)
 
         return record_row
+
+    def _import_csv_blocks(self, dataset, blocks):
+        """Ingest worker payloads in source order into the parent's capped scratch."""
+        self._flush_payloads()
+        for payload, raw_size, records in blocks:
+            block_id = self._block_id
+            self._execute(
+                "INSERT INTO payload_blocks VALUES (?, ?, ?)", (block_id, payload, raw_size)
+            )
+            self._executemany(
+                "INSERT INTO records VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    (record_id, dataset, int(row_number), block_id, offset, length, pmid)
+                    for record_id, row_number, offset, length, pmid in records
+                ),
+            )
+            self._block_id += 1
+
+    def _observe_batch(self, observations):
+        self._executemany(
+            "INSERT INTO edges VALUES (?, ?, 0, ?)",
+            (
+                (record_id, _observation_id(record_id, label), label)
+                for record_id, label in observations
+            ),
+        )
 
     def _record_payload(self, dataset, row_number, payload, pmid):
         record_id = f"{_record_prefix(dataset)}{row_number}"
