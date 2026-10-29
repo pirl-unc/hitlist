@@ -14,6 +14,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 import traceback
 from pathlib import Path
@@ -59,14 +60,31 @@ def prepare(scratch):
     # locked pyensembl version on POSIX scratch, outside the measured build.
     genome.index(show_progress=True)
     genome.db.connection.close()
+    with tarfile.open(CONFIG / "producer.tar.gz") as archive:
+        source_commit = archive.pax_headers.get("comment")
     return {
+        "source_commit": source_commit,
         "sources": sources,
         "reference": reference,
         "assets": {name: digest(path) for name, path in assets.items()},
         "code_archive": digest(CONFIG / "producer.tar.gz"),
         "requirements": digest(CONFIG / "requirements.txt"),
+        "recipes": {path.name: digest(path) for path in sorted(CONFIG.glob("*.py"))},
+        "cpu_model": next(
+            (
+                line.split(":", 1)[1].strip()
+                for line in Path("/proc/cpuinfo").read_text().splitlines()
+                if line.startswith("model name")
+            ),
+            "unavailable",
+        ),
         "reference_scope": "human Ensembl 112; missing other references not downloaded",
-        "resources": {"cpu_limit": 8, "memory_limit_mib": 65536, "mapping_workers": 2},
+        "resources": {
+            "cpu_limit": 8,
+            "memory_limit_mib": 65536,
+            "mapping_workers": 2,
+            "nonpreemptible": True,
+        },
         "preparation_excluded": "source acquisition/copy/verification and pyensembl reference indexing",
         "build_cache_state": "fresh outputs; warm raw sources and pyensembl reference; cold Hitlist mapping index",
     }

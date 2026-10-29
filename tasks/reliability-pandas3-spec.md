@@ -94,3 +94,30 @@ relationships, schema version, scratch cap and atomic publication unchanged.
 Reuse the canonical JSON encoder and bounded escaped dataset-prefix cache.
 Full before/after builds and complete output reconciliation remain required;
 these microbenchmark results do not establish a whole-build speedup.
+
+## Interrupted baseline and measurement revision
+
+The first full baseline was preempted by its Modal host after completing the
+IEDB scan (1136.66 s wall, 1113.69 s process CPU) and 69% of CEDAR. It is an
+incomplete attempt, excluded from full-build ratios. Its output directory is
+retained; a restarted attempt cannot overwrite it or count it as complete.
+Subsequent full runs use Modal's non-preemptible CPU setting with the same
+8-CPU/64-GiB/90-minute bounds. New runs also record input/code/recipe pins and
+CPU model, sample parent/tree RSS per stage, and collect separate mapping-worker
+sampling sessions for diagnostic runs. Tree RSS is a sum that can double-count
+shared pages; it is not a physical-memory claim. The first candidate already
+started under the original preemptible configuration and remains an explicitly
+identified exploratory run.
+
+The first isolated test-suite timing is invalid: the benchmark image omitted the
+`git` executable required by release-artifact fixtures (3,666 passed, 26 setup
+errors). Add git to the benchmark image and repeat both variants with fresh
+caches. No product test or admission guard is bypassed. A spawned-worker smoke
+check confirms the diagnostic wrapper returns the original cache-miss result
+and retains its sampling session on worker shutdown.
+
+The fresh Git install exposed 404s from the legacy image builder's Debian 11
+security repository (Debian 11 LTS ended August 2026). Both test measurements
+use `HITLIST_BENCHMARK_TEST_IMAGE=1`, a Python 3.12/Bookworm image with Git and
+GNU time; the full-build pair retains its original identical image. This does
+not change workspace-wide Modal settings. Source: https://www.debian.org/releases/bullseye/

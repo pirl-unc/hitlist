@@ -1,0 +1,22 @@
+{
+  "scope": "first 10000 logical IEDB data rows; diagnostic only",
+  "source": {
+    "export_date_status": "unverified; local mtime is not an export-date claim",
+    "filename": "iedb_mhc_ligand_full.csv",
+    "remote_path": "hitlist-qualification/raw-sources/957337189072a918fe38a216cfa4893cb08a74c35027ce0489252dd446eb6ad8/iedb_mhc_ligand_full.csv",
+    "sha256": "957337189072a918fe38a216cfa4893cb08a74c35027ce0489252dd446eb6ad8",
+    "size_bytes": 7773476136
+  },
+  "sample": {
+    "sha256": "83c7ba4ba82b94dfde4171c86a8a668b068cc2cdd26d071e815f44deaf68fe9d",
+    "size_bytes": 10506918
+  },
+  "producer_archive": {
+    "sha256": "533f2672b8ad45d8a271dc11501291d171eb045fa427b397de444ac646e74bbf",
+    "size_bytes": 50020009
+  },
+  "recipe": {
+    "sha256": "7ec314c919584b6ce24c3e1cfacf6668b31236310a8cfc52ae08b61d2b83ba56",
+    "size_bytes": 7308
+  }
+}

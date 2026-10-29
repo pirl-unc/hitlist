@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Measure a forced build; optionally collect a separate cProfile diagnostic.
+"""Measure a forced build; optionally collect a separate sampling diagnostic.
 
 Use unprofiled repetitions for speed comparisons. Stage timings are inclusive;
 CPU includes this process and children that have exited and been waited for.
-RSS is the process high-water mark, not summed concurrent worker memory.
+RSS includes per-process high-water marks and explicitly labeled sampled tree sums.
 """
 
 from __future__ import annotations
@@ -15,10 +15,12 @@ import functools
 import importlib
 import importlib.metadata
 import json
+import os
 import platform
 import pstats
 import resource
 import sys
+import threading
 import time
 from pathlib import Path
 from unittest.mock import patch
@@ -32,6 +34,75 @@ STAGES = (
     ("hitlist.provenance", "ContributorCollector.write"),
     ("hitlist.builder", "atomic_write_parquet"),
 )
+
+
+class MemorySampler:
+    """Sample Linux parent/tree RSS; sums can double-count shared pages."""
+
+    interval = 0.2
+
+    def __init__(self):
+        self.active = []
+        self.total = {}
+        self.lock = threading.Lock()
+        self.stopped = threading.Event()
+        self.thread = None
+
+    def sample(self):
+        if not Path("/proc/self/statm").exists():
+            return
+        pending, seen, own, total = [os.getpid()], set(), 0, 0
+        while pending:
+            pid = pending.pop()
+            if pid in seen:
+                continue
+            seen.add(pid)
+            try:
+                rss = int(Path(f"/proc/{pid}/statm").read_text().split()[1]) * os.sysconf(
+                    "SC_PAGE_SIZE"
+                )
+                children = Path(f"/proc/{pid}/task/{pid}/children").read_text().split()
+            except (OSError, ValueError, IndexError):
+                continue  # Children may exit between snapshots.
+            total += rss
+            if pid == os.getpid():
+                own = rss
+            pending.extend(map(int, children))
+        with self.lock:
+            for event in (self.total, *self.active):
+                for key, value in (
+                    ("sampled_parent_peak_rss_bytes", own),
+                    ("sampled_tree_peak_rss_bytes", total),
+                ):
+                    event[key] = max(event.get(key, 0), value)
+
+    def run(self):
+        while not self.stopped.wait(self.interval):
+            self.sample()
+
+    def __enter__(self):
+        if Path("/proc/self/statm").exists():
+            self.thread = threading.Thread(target=self.run, daemon=True)
+            self.thread.start()
+        return self
+
+    def __exit__(self, *_):
+        self.stopped.set()
+        if self.thread:
+            self.thread.join()
+        self.sample()
+
+    @contextlib.contextmanager
+    def stage(self, event):
+        with self.lock:
+            self.active.append(event)
+        self.sample()
+        try:
+            yield
+        finally:
+            self.sample()
+            with self.lock:
+                self.active.remove(event)
 
 
 def usage():
@@ -56,15 +127,20 @@ def elapsed(before):
 
 
 @contextlib.contextmanager
-def measured_stages(events):
+def measured_stages(events, memory):
     def instrument(function, name):
         @functools.wraps(function)
         def measured(*args, **kwargs):
             before = usage()
-            event = {"stage": name, "status": "failed"}
+            event = {"stage": name, "call_id": len(events) + 1, "status": "failed"}
+            if name == "hitlist.scanner.scan":
+                event["sources"] = [
+                    source for source in ("iedb", "cedar") if kwargs.get(f"{source}_path")
+                ]
             events.append(event)
             try:
-                result = function(*args, **kwargs)
+                with memory.stage(event):
+                    result = function(*args, **kwargs)
                 event["status"] = "success"
                 return result
             finally:
@@ -91,6 +167,8 @@ def measure_build(report_path, *, options, profile_path=None, sampling_path=None
 
     report_path = Path(report_path)
     report_path.parent.mkdir(parents=True, exist_ok=True)
+    if profile_path and sampling_path:
+        raise ValueError("Choose one diagnostic profiler per run")
     profiler = cProfile.Profile() if profile_path else None
     sampler = None
     if sampling_path:
@@ -105,7 +183,9 @@ def measure_build(report_path, *, options, profile_path=None, sampling_path=None
         "stage_timings": "inclusive; sequential calls are separate entries",
         "rss_scope": "per-process lifetime high-water mark; not process-tree sum",
         "cpu_scope": "parent plus exited/waited children reported separately",
-        "cprofile_scope": "parent process only; worker costs remain in stage wall time",
+        "cprofile_scope": "parent only; threaded cumulative timings require independent validation",
+        "sampling_scope": "parent plus separate per-worker sessions",
+        "rss_sampling": "Linux, 0.2-second samples; tree sum can double-count shared pages",
         "platform": platform.platform(),
         "python": sys.version,
         "versions": {
@@ -116,8 +196,21 @@ def measure_build(report_path, *, options, profile_path=None, sampling_path=None
         "stages": [],
     }
     before = usage()
+    memory = MemorySampler()
     try:
-        with measured_stages(report["stages"]):
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(memory)
+            stack.enter_context(measured_stages(report["stages"], memory))
+            if sampler:
+                from profile_mapping_workers import profile_worker
+
+                worker_directory = str(Path(sampling_path).parent / "workers")
+                stack.enter_context(
+                    patch.dict(os.environ, HITLIST_WORKER_PROFILE_DIR=worker_directory)
+                )
+                stack.enter_context(
+                    patch("hitlist.mappings._per_canonical_mapping_worker", profile_worker)
+                )
             if profiler:
                 profiler.enable()
             if sampler:
@@ -129,7 +222,8 @@ def measure_build(report_path, *, options, profile_path=None, sampling_path=None
         report["error"] = {"type": type(error).__name__, "message": str(error)}
         raise
     finally:
-        if sampler:
+        report["total"] = {**elapsed(before), **memory.total}
+        if sampler and sampler.is_running:
             sampler.stop()
             sampling_path = Path(sampling_path)
             sampling_path.parent.mkdir(parents=True, exist_ok=True)
@@ -144,7 +238,6 @@ def measure_build(report_path, *, options, profile_path=None, sampling_path=None
                 stats = pstats.Stats(profiler, stream=stream)
                 stats.sort_stats("cumulative").print_stats(50)
                 stats.sort_stats("tottime").print_stats(50)
-        report["total"] = elapsed(before)
         report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
         print("BUILD_TOTAL " + json.dumps(report["total"], sort_keys=True), flush=True)
 

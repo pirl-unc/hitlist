@@ -4,8 +4,8 @@ Specification: [reliability-pandas3-spec.md](reliability-pandas3-spec.md).
 
 - [x] Read all five issues and prior mitigations; preserve the original checkout.
 - [x] Adopt pandas 3+/Python 3.11+ and verify import/string behavior.
-- [ ] Audit historical release #844 and enforce publication integrity.
-- [ ] Complete the bounded #754 incident investigation and durable diagnostics.
+- [x] Audit historical release #844 and enforce publication integrity.
+- [x] Complete the bounded #754 incident investigation and durable diagnostics.
 - [ ] Profile full real-source observation/mapping/build stages on bounded remote compute.
 - [ ] Implement measured optimizations and reconcile full before/after outputs.
 - [ ] Run formatting, lint, tests, compatibility checks and final-head CI.
@@ -35,6 +35,14 @@ publication receipt. #754's original log explicitly reports runner shutdown;
 the same-commit retry passed all 96 integration tests. The initiating actor and
 underlying trigger are not established. New durable diagnostics preserve this
 distinction. The planned new release is 2.1.0 because its runtime baseline changes.
+
+PR863's first runtime matrix passes Python 3.11–3.14, including pandas 3.0.0,
+and the full integration suite (Tests40813062396). The block-storage change
+passes 190 focused tests; eight profiler/comparison checks pass, including
+rejection of altered curation flags, counts, inventory and untrusted bytes.
+Format/lint and isolated pip check pass. Full output receipts, matched build
+measurements, final-head CI and deployment remain pending.
+
 
 # #668 — released canine peptide evidence (planned 2.0.44)
 

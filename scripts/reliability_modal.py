@@ -15,10 +15,16 @@ volume = modal.Volume.from_name("presto-data", create_if_missing=False)
 image = None
 if modal.is_local():
     archive = Path(os.environ["HITLIST_BENCHMARK_ARCHIVE"]).resolve()
+    # Preserve the original full-build image across paired measurements. The
+    # test image needs Git and uses a supported Debian base for fresh apt installs.
+    testing = os.environ.get("HITLIST_BENCHMARK_TEST_IMAGE") == "1"
+    base = (
+        modal.Image.from_registry("python:3.12-slim-bookworm").apt_install("time", "git")
+        if testing
+        else modal.Image.debian_slim(python_version="3.12").apt_install("time")
+    )
     image = (
-        modal.Image.debian_slim(python_version="3.12")
-        .apt_install("time")
-        .pip_install("setuptools==84.2.1")
+        base.pip_install("setuptools==84.2.1")
         .pip_install("pyinstrument==5.1.3")
         .pip_install_from_requirements(
             str(ROOT / "tasks/reliability-benchmark-requirements.txt"),
@@ -46,7 +52,15 @@ if modal.is_local():
             "/opt/benchmark/reliability_benchmark.py",
         )
         .add_local_file(str(ROOT / "scripts/profile_build.py"), "/opt/benchmark/profile_build.py")
+        .add_local_file(
+            str(ROOT / "scripts/profile_mapping_workers.py"),
+            "/opt/benchmark/profile_mapping_workers.py",
+        )
         .add_local_file(str(ROOT / "scripts/profile_scan.py"), "/opt/benchmark/profile_scan.py")
+        .add_local_file(
+            str(ROOT / "scripts/compare_reliability_outputs.py"),
+            "/opt/benchmark/compare_reliability_outputs.py",
+        )
     )
 
 
@@ -59,6 +73,7 @@ if modal.is_local():
     timeout=5400,
     max_containers=1,
     retries=0,
+    nonpreemptible=True,
 )
 def execute(label: str, profile: bool):
     import subprocess
@@ -74,8 +89,20 @@ def execute(label: str, profile: bool):
 
 
 @app.local_entrypoint()
-def main(label: str, profile: bool = False, scan_sample: bool = False, codec_sample: bool = False):
-    if scan_sample or codec_sample:
+def main(
+    label: str,
+    profile: bool = False,
+    scan_sample: bool = False,
+    codec_sample: bool = False,
+    test_suite: bool = False,
+    compare_before: str = "",
+    compare_after: str = "",
+):
+    if compare_before or compare_after:
+        compare_outputs.remote(label, compare_before, compare_after)
+    elif test_suite:
+        measure_tests.remote(label)
+    elif scan_sample or codec_sample:
         diagnose_scan.remote(label, codec_sample)
     else:
         execute.remote(label, profile)
@@ -102,6 +129,118 @@ def diagnose_scan(label: str, codecs_only: bool = False):
     try:
         subprocess.run(
             command,
+            check=True,
+            timeout=1650,
+        )
+    finally:
+        volume.commit()
+
+
+@app.function(
+    image=image,
+    volumes={"/data": volume},
+    cpu=(8, 8),
+    memory=(65536, 65536),
+    ephemeral_disk=524288,
+    timeout=1800,
+    max_containers=1,
+    retries=0,
+    nonpreemptible=True,
+)
+def measure_tests(label: str):
+    """Measure the unchanged test.sh admission/gates in fresh isolated caches."""
+    import hashlib
+    import importlib.metadata
+    import json
+    import platform
+    import shutil
+    import subprocess
+    import tempfile
+    import time
+
+    if not label or any(c not in "abcdefghijklmnopqrstuvwxyz0123456789-_" for c in label):
+        raise ValueError("Invalid label")
+    destination = Path("/data/hitlist-reliability-20261028") / label
+    destination.mkdir(parents=True, exist_ok=False)
+    if shutil.which("git") is None:
+        raise RuntimeError("Run test measurements with HITLIST_BENCHMARK_TEST_IMAGE=1")
+    receipt = {
+        "status": "failed",
+        "test_workers": 2,
+        "command": "./test.sh",
+        "platform": platform.platform(),
+        "python": platform.python_version(),
+        "os_release": Path("/etc/os-release").read_text(),
+    }
+    try:
+        with tempfile.TemporaryDirectory(prefix="hitlist-test-benchmark-") as temporary:
+            env = {
+                **os.environ,
+                "HITLIST_DATA_DIR": temporary + "/data",
+                "XDG_CACHE_HOME": temporary + "/cache",
+                "TEST_SH_MAX": "2",
+                "PYTHONUNBUFFERED": "1",
+            }
+            with Path("/opt/benchmark/producer.tar.gz").open("rb") as source:
+                receipt["producer_archive_sha256"] = hashlib.file_digest(
+                    source, "sha256"
+                ).hexdigest()
+            receipt["versions"] = {
+                dist.metadata["Name"]: dist.version for dist in importlib.metadata.distributions()
+            }
+            started = time.monotonic()
+            with (destination / "tests.log").open("w") as log:
+                process = subprocess.Popen(
+                    ["/usr/bin/time", "-v", "-o", str(destination / "resource.txt"), "./test.sh"],
+                    cwd="/opt/producer",
+                    env=env,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                )
+                for line in process.stdout:
+                    print(line, end="", flush=True)
+                    log.write(line)
+                    log.flush()
+                code = process.wait()
+            receipt.update(returncode=code, wall_seconds=time.monotonic() - started)
+            if code:
+                raise subprocess.CalledProcessError(code, "./test.sh")
+            receipt["status"] = "success"
+    finally:
+        (destination / "report.json").write_text(json.dumps(receipt, indent=2) + "\n")
+        volume.commit()
+
+
+@app.function(
+    image=image,
+    volumes={"/data": volume},
+    cpu=(2, 2),
+    memory=(8192, 8192),
+    timeout=1800,
+    max_containers=1,
+    retries=0,
+    nonpreemptible=True,
+)
+def compare_outputs(label: str, before: str, after: str):
+    import subprocess
+    import sys
+
+    for value in (label, before, after):
+        if not value or any(c not in "abcdefghijklmnopqrstuvwxyz0123456789-_" for c in value):
+            raise ValueError("Invalid comparison label")
+    root = Path("/data/hitlist-reliability-20261028")
+    destination = root / label
+    destination.mkdir(parents=True, exist_ok=False)
+    try:
+        subprocess.run(
+            [
+                sys.executable,
+                "/opt/benchmark/compare_reliability_outputs.py",
+                str(root / before),
+                str(root / after),
+                str(destination / "comparison.json"),
+            ],
             check=True,
             timeout=1650,
         )
