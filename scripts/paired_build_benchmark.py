@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import csv
 import inspect
 import itertools
@@ -245,11 +246,13 @@ def run(label, scan_pair, test_pair=False, include_serial=False):
                         code = process.wait(timeout=3000 if scan_pair or test_pair else 5100)
                     finally:
                         if process.poll() is None:
-                            os.killpg(process.pid, signal.SIGTERM)
+                            with contextlib.suppress(ProcessLookupError):
+                                os.killpg(process.pid, signal.SIGTERM)
                             try:
                                 process.wait(timeout=15)
                             except subprocess.TimeoutExpired:
-                                os.killpg(process.pid, signal.SIGKILL)
+                                with contextlib.suppress(ProcessLookupError):
+                                    os.killpg(process.pid, signal.SIGKILL)
                                 process.wait()
                 if scan_pair:
                     check_network_audit(output / "network", process.pid)

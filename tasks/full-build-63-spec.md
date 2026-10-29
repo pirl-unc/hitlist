@@ -226,3 +226,15 @@ Measure the reduced final producer against released 2.1.0 on a single allocation
 with the same four-run full-build design. The 2× target remains unproved and #63
 must stay open unless the final evidence establishes it. Removing rejected
 concurrency is part of the result, not a reason to discard its receipts.
+
+The reduced producer is commit 2b850a39a4c0cfa814eb12b852cc742576d5d287,
+archive SHA-256 768dac42458709ffd1e302c8aa6fbb7a927be58e67b2c5e3351f43c1894254e2.
+Its local test.sh passed 3,745 tests, one skip and ten expected warnings; the
+unchanged guard admitted one worker at 3.14 GiB available (ceiling two). Pytest
+took 392.77 s and the script 396.08 s. This verifies the code; it is not a
+paired suite measurement. Format/lint, strict MkDocs, editable metadata and
+pip check also pass. Draft PR #870 has all five hosted unit jobs, 97 integration
+tests and the separate release-build gate passing on this producer. Final-head
+checks and complete repeated full measurements remain required. Signal cleanup
+now tolerates the child exiting between poll and signal, always commits receipts,
+and the regression publishes its PID atomically before the test signals it.

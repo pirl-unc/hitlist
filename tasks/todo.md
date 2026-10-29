@@ -5,7 +5,7 @@ Specification: [full-build-63-spec.md](full-build-63-spec.md).
 - [x] Read #63, prior receipts and relevant lessons; isolate work from main.
 - [x] Specify baseline, controlled comparison, output invariants and release gates.
 - [x] Profile the released scanner/publication paths and choose measured changes.
-- [ ] Implement bounded optimizations and regressions for affected invariants.
+- [x] Implement bounded optimizations and regressions for affected invariants.
 - [ ] Run repeated paired full builds and strict retained-output comparisons.
 - [ ] Measure test.sh separately; document time, CPU, memory and remaining limits.
 - [ ] Format, lint, test, validate docs/dependencies and pass final-head CI.
@@ -16,6 +16,21 @@ Specification: [full-build-63-spec.md](full-build-63-spec.md).
 Baseline is released 2.1.0, main 5f988fc. Original checkout and shared environment
 remain untouched. New timing ratios require paired runs on the same allocation;
 the earlier separately hosted runs cannot establish the issue's 2× target.
+
+Draft PR #870 is open. The six-run controlled prefix experiment selected the
+serial path (59.95 s mean versus released 69.02 s); parallel capture was slower
+and cost more CPU, so its implementation was removed. Final serial producer
+2b850a3 passes 80 focused tests, format/lint, strict documentation, editable
+metadata and pip check. Local test.sh passes 3,745 tests (one skip); all five
+hosted unit jobs, 97 integration tests and the separate release-build gate pass.
+The first full baseline/candidate runs took 1,638.90/1,485.89 seconds and their
+seven recorded Parquet hashes match. The four-run experiment is still active;
+repeatability and final independent retained-file comparisons remain pending.
+The 2× whole-build target is not achieved by this candidate. #869 tracks
+cancellation diagnostics; durable background submission completed the six-run
+comparison after earlier synchronous calls were interrupted. The signal cleanup
+regression now publishes its child PID atomically; cleanup tolerates a child
+exiting between the liveness check and signal, and always commits the receipt.
 
 # Reliability/performance and pandas 3+ — 2026-10-28
 

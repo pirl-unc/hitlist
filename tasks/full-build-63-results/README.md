@@ -20,8 +20,16 @@ build.
 - `failed-pair1.log`: harness PMID-to-Arrow failure; excluded from timing evidence.
 - `interrupted-pair2*`, `interrupted-pair4*`: incomplete experiments, excluded from
   repeatability claims. #869 tracks the cancellation evidence and diagnostics.
+- `scan-variants*`: completed six-run baseline/serial/parallel/parallel/serial/
+  baseline comparison of the capture-worker experiment (`8f1f9f7`). The serial
+  candidate is faster and cheaper; final production removes the worker code.
 - `local-memory-refusal.txt`: test.sh refused before tests started; its ordinary
   admission threshold was preserved.
+- `local-serial-tests.json`: final serial producer's full local test.sh pass;
+  verification only, not a paired test-suite speed claim.
+- `producer-ci.json`: passing hosted matrix, integration and release-build gates
+  for the measured production revision. Final-head and clean-main gates remain
+  separate requirements.
 
 Public Parquet equality includes every raw source cell, contributor relation,
 curation flag, identity, schema and row order. Network checks cover Python socket

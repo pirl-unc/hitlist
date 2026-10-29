@@ -86,7 +86,8 @@ def test_interrupted_experiment_records_failure_and_reaps_child(tmp_path, benchm
     marker = tmp_path / "child.pid"
     (config / "reliability_benchmark.py").write_text(
         "import os,time\nfrom pathlib import Path\n"
-        f"Path({str(marker)!r}).write_text(str(os.getpid()))\ntime.sleep(120)\n"
+        f"marker=Path({str(marker)!r})\ntemporary=marker.with_suffix('.tmp')\n"
+        "temporary.write_text(str(os.getpid()))\ntemporary.replace(marker)\ntime.sleep(120)\n"
     )
     code = (
         f"import sys,signal\nsys.path.insert(0,{str(Path(benchmark.__file__).parent)!r})\n"

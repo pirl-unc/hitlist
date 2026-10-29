@@ -165,6 +165,7 @@ def execute_pair(
     label: str, scan_only: bool, tests_only: bool = False, include_serial: bool = False
 ):
     """Alternate variants in fresh processes on one allocation, with a finite deadline."""
+    import contextlib
     import signal
     import subprocess
     import sys
@@ -182,14 +183,18 @@ def execute_pair(
         if code:
             raise subprocess.CalledProcessError(code, command)
     finally:
-        if process.poll() is None:
-            os.killpg(process.pid, signal.SIGTERM)
-            try:
-                process.wait(timeout=20)
-            except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
-                process.wait()
-        volume.commit()
+        try:
+            if process.poll() is None:
+                with contextlib.suppress(ProcessLookupError):
+                    os.killpg(process.pid, signal.SIGTERM)
+                try:
+                    process.wait(timeout=20)
+                except subprocess.TimeoutExpired:
+                    with contextlib.suppress(ProcessLookupError):
+                        os.killpg(process.pid, signal.SIGKILL)
+                    process.wait()
+        finally:
+            volume.commit()
 
 
 @app.function(

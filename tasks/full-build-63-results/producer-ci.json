@@ -1,0 +1,28 @@
+{
+  "producer_commit": "2b850a39a4c0cfa814eb12b852cc742576d5d287",
+  "pull_request": 870,
+  "tests_run": "https://github.com/pirl-unc/hitlist/actions/runs/40904906723",
+  "release_run": "https://github.com/pirl-unc/hitlist/actions/runs/40904906961",
+  "status": "success",
+  "unit_matrix": [
+    "Python 3.11 / pandas >=3",
+    "Python 3.11 / pandas ==3.0.0",
+    "Python 3.12 / pandas >=3",
+    "Python 3.13 / pandas >=3",
+    "Python 3.14 / pandas >=3"
+  ],
+  "integration": {
+    "n_tests_passed": 97,
+    "pytest_wall_seconds": 1127.62
+  },
+  "release_gate": {
+    "n_unit_tests_passed": 3745,
+    "n_unit_tests_skipped": 1,
+    "n_integration_tests_passed": 97,
+    "unit_pytest_wall_seconds": 413.11,
+    "integration_pytest_wall_seconds": 944.36,
+    "built_wheel_and_sdist": true,
+    "uploaded_to_pypi": false
+  },
+  "scope": "Production revision verification; final evidence/harness head and clean-main release still require their own checks"
+}
