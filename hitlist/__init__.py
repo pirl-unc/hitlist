@@ -12,27 +12,11 @@
 
 """hitlist: curated and harmonized MHC ligand mass spectrometry data for pMHC target selection and model training.
 
-Side effects at import time
----------------------------
-Importing ``hitlist`` (or any submodule) does one thing:
-
-- Sets ``pandas.options.future.infer_string = True``.  This is the pandas 3.0
-   default, available as a future flag in 2.1+.  Cuts string-column memory
-   ~5x at every layer of the build / load pipeline by switching pandas from
-   ``object`` dtype (Python ``str`` references, ~50-100 bytes/cell) to
-   pyarrow-backed ``StringDtype`` (~10 bytes/cell, identical layout to parquet).
-
-   Downstream consumers that import hitlist inherit the behavior — this is
-   forward-compatible (pandas 3.x will do this by default).  Code that depends
-   on the legacy ``object`` representation can opt back out::
-
-       import hitlist
-       import pandas as pd
-       pd.options.future.infer_string = False
-
-   The flag is wrapped in :func:`contextlib.suppress(AttributeError)` so a
-   future pandas release that removes the option (after promoting it to the
-   permanent default) won't break import.
+Import behavior
+---------------
+Hitlist requires pandas 3 or newer and uses its default string dtype, backed
+by the required PyArrow dependency. Importing the package does not import pandas
+or change its process-wide options. Public implementations are loaded lazily.
 
 It never touches the filesystem: no data directory is created or cleaned.
 Releases before the #579 fix ``rmtree``-d ``<data_dir>/index`` (a cache
@@ -40,14 +24,7 @@ retired in 1.30.41) on every import, following ``HITLIST_DATA_DIR``.
 A leftover legacy ``index/`` directory is inert and safe to delete by hand.
 """
 
-import contextlib as _contextlib
-
-import pandas as _pd
-
-with _contextlib.suppress(AttributeError):
-    _pd.options.future.infer_string = True
-
-from .version import __version__  # after the pandas flag, like every submodule
+from .version import __version__
 
 # ── Curated public API ───────────────────────────────────────────────────────
 #

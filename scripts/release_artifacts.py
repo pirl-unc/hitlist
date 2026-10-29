@@ -6,8 +6,12 @@ import importlib.metadata
 import json
 import os
 import runpy
+import shutil
 import subprocess
 import tempfile
+import urllib.error
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -202,11 +206,106 @@ def verify_manifest(directory, root=ROOT):
         if trusted_manifest["files"] != distribution_files(download_dir, source["version"]):
             raise ValueError("Verified GitHub artifact distributions disagree with its manifest")
     print(f"Both distributions match clean main {source['commit']} ({source['version']}).")
+    return manifest
+
+
+def public_files(version):
+    """Only a genuine PyPI 404 means the release has not been published."""
+    url = f"https://pypi.org/pypi/hitlist/{urllib.parse.quote(version, safe='')}/json"
+    try:
+        with urllib.request.urlopen(url, timeout=30) as response:
+            metadata = json.load(response)
+    except urllib.error.HTTPError as error:
+        if error.code == 404:
+            return {}
+        raise
+    files = metadata["urls"]
+    if len({item["filename"] for item in files}) != len(files):
+        raise ValueError("PyPI returned duplicate distribution names")
+    return {item["filename"]: item for item in files}
+
+
+def verify_public_files(manifest, *, require_complete=True):
+    """Check the public inventory, metadata and actual downloaded bytes.
+
+    A matching partial upload may be resumed, but never counts as a release.
+    Conflicting or unexpected files fail before any additional upload.
+    """
+    expected = manifest["files"]
+    public = public_files(manifest["version"])
+    if set(public) - set(expected) or (require_complete and set(public) != set(expected)):
+        raise ValueError("Public PyPI distribution inventory differs from the tested pair")
+    for name, item in public.items():
+        pin = expected[name]
+        if (
+            item.get("yanked")
+            or {"sha256": item["digests"]["sha256"], "size_bytes": item["size"]} != pin
+        ):
+            raise ValueError(f"PyPI already contains conflicting or yanked bytes: {name}")
+        parsed = urllib.parse.urlparse(item["url"])
+        if parsed.scheme != "https" or parsed.netloc != "files.pythonhosted.org":
+            raise ValueError("Unexpected public distribution download host")
+        digest = hashlib.sha256()
+        size = 0
+        with urllib.request.urlopen(item["url"], timeout=30) as response:
+            for block in iter(lambda: response.read(1024 * 1024), b""):
+                size += len(block)
+                if size > pin["size_bytes"]:
+                    raise ValueError(f"Public download exceeds the tested file size: {name}")
+                digest.update(block)
+        if {"sha256": digest.hexdigest(), "size_bytes": size} != pin:
+            raise ValueError(f"Public downloaded bytes differ from the tested file: {name}")
+    return public
+
+
+def publish_distributions(directory, manifest):
+    """Upload an immutable copy of a tested pair, then verify public downloads."""
+    # Snapshot exactly the bytes whose digests were validated. Never use a glob
+    # or --skip-existing: either can hide a wrong version or a PyPI collision.
+    with tempfile.TemporaryDirectory(prefix="hitlist-publish-") as temporary:
+        snapshot = Path(temporary)
+        for name in manifest["files"]:
+            if Path(name).name != name:
+                raise ValueError("Distribution name must be a basename")
+            shutil.copyfile(directory / name, snapshot / name)
+        if distribution_files(snapshot, manifest["version"]) != manifest["files"]:
+            raise ValueError("Distribution changed after release verification")
+        present = verify_public_files(manifest, require_complete=False)
+        pending = [
+            str(snapshot / name) for name in sorted(manifest["files"]) if name not in present
+        ]
+        if pending:
+            subprocess.run(["twine", "check", *pending], check=True)
+            subprocess.run(["twine", "upload", "--non-interactive", *pending], check=True)
+        verify_public_files(manifest)
+    receipt = {
+        "version": manifest["version"],
+        "source_commit": manifest["source_commit"],
+        "workflow_run_id": manifest.get("workflow_run_id"),
+        "public_files": manifest["files"],
+    }
+    path = directory.parent / f"pypi-{manifest['version']}-verified.json"
+    path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
+    print(f"Verified both public PyPI downloads: {path}")
+
+
+def local_manifest(directory, root=ROOT):
+    """Bind deploy.sh's freshly tested local build to its clean-main source."""
+    source = source_state(root)
+    if source["branch"] != "main":
+        raise ValueError("Publication requires a clean main checkout")
+    return {
+        "source_commit": source["commit"],
+        "version": source["version"],
+        "files": distribution_files(directory, source["version"]),
+    }
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("write", "verify"))
+    parser.add_argument(
+        "mode", choices=("write", "verify", "publish", "publish-local", "verify-public")
+    )
     parser.add_argument("directory", type=Path)
     parser.add_argument("--corpus-dir", type=Path)
     args = parser.parse_args()
@@ -214,5 +313,11 @@ if __name__ == "__main__":
         if args.corpus_dir is None:
             parser.error("write requires --corpus-dir")
         write_manifest(args.directory, args.corpus_dir)
-    else:
+    elif args.mode == "verify":
         verify_manifest(args.directory)
+    elif args.mode == "publish":
+        publish_distributions(args.directory, verify_manifest(args.directory))
+    elif args.mode == "publish-local":
+        publish_distributions(args.directory, local_manifest(args.directory))
+    else:
+        verify_public_files(verify_manifest(args.directory))

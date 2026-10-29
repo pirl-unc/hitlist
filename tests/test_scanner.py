@@ -1077,22 +1077,9 @@ def test_scanner_output_uses_stringdtype(tmp_path):
     """End-to-end check that the scanner's output frame carries pandas
     ``StringDtype`` for string columns, not legacy ``object`` dtype.
 
-    Hitlist sets ``pd.options.future.infer_string = True`` at package
-    import (matching the pandas 3.0 default).  Without this, the scanner
-    builds DataFrames from ``list[dict]`` that default to ``object``
-    dtype — Python ``str`` references with ~50-100 bytes / cell of
-    overhead.  The build pipeline holds the full obs + binding frames
-    through gene annotation + mappings, so the per-cell cost compounds
-    into the ~40 GB peak this PR was written to fix.
-
-    A future pandas API change (or an accidental revert in
-    ``hitlist/__init__.py``) could quietly drop us back to ``object``
-    dtype.  The lock-in test
-    ``test_hitlist_import_enables_pandas_infer_string`` catches the
-    option flip; this test catches the case where the option is set but
-    something downstream silently coerces back to ``object`` (e.g. an
-    intermediate ``.astype(str)`` that returns object on some pandas
-    versions).
+    Pandas 3 infers Arrow-backed strings by default. This exercises the real
+    scanner path to catch accidental coercion back to Python-object columns,
+    whose per-cell overhead compounds on the full corpus.
     """
     src = tmp_path / "iedb.csv"
     rows = []
@@ -1114,14 +1101,13 @@ def test_scanner_output_uses_stringdtype(tmp_path):
         if col in df.columns:
             assert pd.api.types.is_string_dtype(df[col]), (
                 f"{col!r} dtype is {df[col].dtype}; expected string-like "
-                "(check that pd.options.future.infer_string is still True)"
+                "(pandas 3 must retain its inferred string dtype)"
             )
             # Specifically not legacy object dtype — that's the regression
             # we're guarding against.
             assert df[col].dtype.name != "object", (
                 f"{col!r} fell back to legacy object dtype; the ~5x base-cost "
-                "memory inflation is back.  Verify hitlist/__init__.py still "
-                "sets pd.options.future.infer_string = True."
+                "memory inflation is back. Preserve pandas 3 string columns."
             )
 
 

@@ -367,3 +367,122 @@ def test_pypi_version_without_git_revision_cannot_authorize_release(
     with pytest.raises(ValueError, match=r"lack installed Git revisions.*mhcgnomes"):
         write_manifest(dist, corpus, root)
     assert not (dist / "release.json").exists()
+
+
+@pytest.fixture
+def publication(tmp_path, monkeypatch):
+    import hashlib
+    import io
+
+    directory = tmp_path / "dist"
+    directory.mkdir()
+    payload = b"precisely the tested release bytes"
+    files = {}
+    for name in ("hitlist-1.2.3-py3-none-any.whl", "hitlist-1.2.3.tar.gz"):
+        (directory / name).write_bytes(payload)
+        files[name] = {"sha256": hashlib.sha256(payload).hexdigest(), "size_bytes": len(payload)}
+    manifest = {
+        "version": "1.2.3",
+        "source_commit": "abc123",
+        "workflow_run_id": "123",
+        "files": files,
+    }
+    public = {}
+    calls = []
+
+    def item(name):
+        return {
+            "filename": name,
+            "digests": {"sha256": files[name]["sha256"]},
+            "size": len(payload),
+            "url": f"https://files.pythonhosted.org/{name}",
+            "yanked": False,
+        }
+
+    def run(command, **kwargs):
+        calls.append(command)
+        if command[:2] == ["twine", "upload"]:
+            for path in command[3:]:
+                assert Path(path).read_bytes() == payload
+                public[Path(path).name] = item(Path(path).name)
+
+    monkeypatch.setattr(release_artifacts, "public_files", lambda version: public.copy())
+    monkeypatch.setattr(
+        release_artifacts.urllib.request, "urlopen", lambda *a, **k: io.BytesIO(payload)
+    )
+    monkeypatch.setattr(release_artifacts.subprocess, "run", run)
+    return directory, manifest, public, calls, item
+
+
+def test_publication_uploads_only_tested_pair_and_verifies_downloads(publication):
+    directory, manifest, public, calls, _ = publication
+    release_artifacts.publish_distributions(directory, manifest)
+    assert set(public) == set(manifest["files"])
+    assert [command[:2] for command in calls] == [["twine", "check"], ["twine", "upload"]]
+    receipt = json.loads((directory.parent / "pypi-1.2.3-verified.json").read_text())
+    assert receipt["public_files"] == manifest["files"]
+    # Repeating a successful publication does not upload anything again.
+    calls.clear()
+    release_artifacts.publish_distributions(directory, manifest)
+    assert calls == []
+
+
+def test_matching_partial_publication_can_resume_but_is_never_complete(publication):
+    directory, manifest, public, calls, item = publication
+    name = next(iter(manifest["files"]))
+    public[name] = item(name)
+    with pytest.raises(ValueError, match="inventory"):
+        release_artifacts.verify_public_files(manifest)
+    release_artifacts.publish_distributions(directory, manifest)
+    assert len(calls[-1][3:]) == 1
+    assert Path(calls[-1][-1]).name != name
+
+
+@pytest.mark.parametrize("damage", ["hash", "size", "yanked", "unexpected", "download", "host"])
+def test_publication_conflicts_fail_before_upload(publication, monkeypatch, damage):
+    import io
+
+    directory, manifest, public, calls, item = publication
+    name = next(iter(manifest["files"]))
+    public[name] = item(name)
+    if damage == "hash":
+        public[name]["digests"]["sha256"] = "0" * 64
+    elif damage == "size":
+        public[name]["size"] += 1
+    elif damage == "yanked":
+        public[name]["yanked"] = True
+    elif damage == "unexpected":
+        public["unexpected.whl"] = item(name)
+    elif damage == "host":
+        public[name]["url"] = "https://example.org/distribution"
+    else:
+        monkeypatch.setattr(
+            release_artifacts.urllib.request, "urlopen", lambda *a, **k: io.BytesIO(b"wrong")
+        )
+    with pytest.raises(ValueError):
+        release_artifacts.publish_distributions(directory, manifest)
+    assert calls == []
+    assert not (directory.parent / "pypi-1.2.3-verified.json").exists()
+
+
+def test_changed_local_distribution_cannot_be_uploaded(publication):
+    directory, manifest, _, calls, _ = publication
+    (directory / next(iter(manifest["files"]))).write_bytes(b"changed after verification")
+    with pytest.raises(ValueError, match="changed after"):
+        release_artifacts.publish_distributions(directory, manifest)
+    assert calls == []
+
+
+@pytest.mark.parametrize("status", [404, 403, 429, 500])
+def test_only_pypi_not_found_means_unpublished(monkeypatch, status):
+    import urllib.error
+
+    def unavailable(*args, **kwargs):
+        raise urllib.error.HTTPError("https://pypi.org", status, "failure", {}, None)
+
+    monkeypatch.setattr(release_artifacts.urllib.request, "urlopen", unavailable)
+    if status == 404:
+        assert release_artifacts.public_files("1.2.3") == {}
+    else:
+        with pytest.raises(urllib.error.HTTPError):
+            release_artifacts.public_files("1.2.3")

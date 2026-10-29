@@ -1,3 +1,41 @@
+# Reliability/performance and pandas 3+ — 2026-10-28
+
+Specification: [reliability-pandas3-spec.md](reliability-pandas3-spec.md).
+
+- [x] Read all five issues and prior mitigations; preserve the original checkout.
+- [x] Adopt pandas 3+/Python 3.11+ and verify import/string behavior.
+- [ ] Audit historical release #844 and enforce publication integrity.
+- [ ] Complete the bounded #754 incident investigation and durable diagnostics.
+- [ ] Profile full real-source observation/mapping/build stages on bounded remote compute.
+- [ ] Implement measured optimizations and reconcile full before/after outputs.
+- [ ] Run formatting, lint, tests, compatibility checks and final-head CI.
+- [ ] Merge, deploy from clean main, verify public files and reconcile all five issues.
+
+## Review
+
+Baseline is main dfe15bcb1a5c75a2e1ef225c424e9de89df37d0b (2.0.44).
+The workstation has about 0.35 GiB free+speculative memory and 9.8 GiB free
+storage at planning time; full source profiling belongs on the existing remote
+corpus infrastructure. Existing release swap/progress diagnostics are already
+shipped. Historical SIGTERM sender attribution and 2.0.39 publication still
+require direct evidence. No performance claim has yet been measured.
+
+The 112 focused runtime tests pass on pandas 3.0.0 and 3.1.0, including a
+warnings-as-errors lazy import. The isolated environment is restored to 3.1.0.
+Publication/signal regressions pass (53 tests); formatting and lint pass.
+Local test.sh refuses at 0.25 GiB versus its unchanged 2.5 GiB admission floor.
+The full baseline is running on bounded remote CPU resources with pinned raw
+IEDB/CEDAR inputs and a rebuilt human Ensembl 112 reference. Other missing
+references remain explicit limits, not invented mapping coverage.
+
+2.0.39 was built successfully but absent from PyPI. Its retained hosted pair
+was independently verified against the exact historical clean main, published,
+and both public downloads matched. See docs/release-integrity.md and the checked
+publication receipt. #754's original log explicitly reports runner shutdown;
+the same-commit retry passed all 96 integration tests. The initiating actor and
+underlying trigger are not established. New durable diagnostics preserve this
+distinction. The planned new release is 2.1.0 because its runtime baseline changes.
+
 # #668 — released canine peptide evidence (planned 2.0.44)
 
 Specification: [orfdata-canine-peptide-spec.md](orfdata-canine-peptide-spec.md).

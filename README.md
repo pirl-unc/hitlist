@@ -10,6 +10,10 @@ Assay results, numeric measurements and contextual claims keep their own grains.
 
 A curated, source-preserving evidence system for model training.
 
+Requires Python 3.11+ and pandas 3+. Hitlist uses pandas' default string dtype
+without changing global pandas options. CI checks both pandas 3.0.0 and current
+compatible releases.
+
 ```python
 from hitlist import EvidenceStore
 
