@@ -1,0 +1,184 @@
+{
+  "scope": "10,000-row serialization diagnostic, not full-build timing",
+  "source": {
+    "export_date_status": "unverified; local mtime is not an export-date claim",
+    "filename": "iedb_mhc_ligand_full.csv",
+    "remote_path": "hitlist-qualification/raw-sources/957337189072a918fe38a216cfa4893cb08a74c35027ce0489252dd446eb6ad8/iedb_mhc_ligand_full.csv",
+    "sha256": "957337189072a918fe38a216cfa4893cb08a74c35027ce0489252dd446eb6ad8",
+    "size_bytes": 7773476136
+  },
+  "sample": {
+    "sha256": "83c7ba4ba82b94dfde4171c86a8a668b068cc2cdd26d071e815f44deaf68fe9d",
+    "size_bytes": 10506918
+  },
+  "producer_archive": {
+    "sha256": "c56de402e4ab6263405859f14b6e0c722db1d59224a59c1001a9912605a9c087",
+    "size_bytes": 50097153
+  },
+  "recipe": {
+    "sha256": "f450771782fce136ccff621440d89d2fc2c9d39a732264ef80b7efd5f3e65b4b",
+    "size_bytes": 4414
+  },
+  "measurements": [
+    {
+      "variant": "baseline",
+      "repeat": 1,
+      "n_rows": 10000,
+      "identical_bytes": true,
+      "wall_seconds": 0.42214465200000006,
+      "cpu_seconds": 0.40999999999999925
+    },
+    {
+      "variant": "projected",
+      "repeat": 1,
+      "n_rows": 10000,
+      "identical_bytes": true,
+      "wall_seconds": 0.4427363410000007,
+      "cpu_seconds": 0.4299999999999997
+    },
+    {
+      "variant": "tokens",
+      "repeat": 1,
+      "n_rows": 10000,
+      "identical_bytes": true,
+      "wall_seconds": 0.1903136449999998,
+      "cpu_seconds": 0.17999999999999972
+    },
+    {
+      "variant": "cached_tokens",
+      "repeat": 1,
+      "n_rows": 10000,
+      "identical_bytes": true,
+      "wall_seconds": 0.2936724339999994,
+      "cpu_seconds": 0.27999999999999936
+    },
+    {
+      "variant": "cached_tokens",
+      "repeat": 2,
+      "n_rows": 10000,
+      "identical_bytes": true,
+      "wall_seconds": 0.28239594399999923,
+      "cpu_seconds": 0.2699999999999996
+    },
+    {
+      "variant": "tokens",
+      "repeat": 2,
+      "n_rows": 10000,
+      "identical_bytes": true,
+      "wall_seconds": 0.19427795600000053,
+      "cpu_seconds": 0.1900000000000004
+    },
+    {
+      "variant": "projected",
+      "repeat": 2,
+      "n_rows": 10000,
+      "identical_bytes": true,
+      "wall_seconds": 0.3147111630000001,
+      "cpu_seconds": 0.3099999999999996
+    },
+    {
+      "variant": "baseline",
+      "repeat": 2,
+      "n_rows": 10000,
+      "identical_bytes": true,
+      "wall_seconds": 0.32412342299999963,
+      "cpu_seconds": 0.3200000000000003
+    },
+    {
+      "variant": "baseline",
+      "repeat": 3,
+      "n_rows": 10000,
+      "identical_bytes": true,
+      "wall_seconds": 0.3238065120000009,
+      "cpu_seconds": 0.3200000000000003
+    },
+    {
+      "variant": "projected",
+      "repeat": 3,
+      "n_rows": 10000,
+      "identical_bytes": true,
+      "wall_seconds": 0.3155876459999991,
+      "cpu_seconds": 0.3099999999999996
+    },
+    {
+      "variant": "tokens",
+      "repeat": 3,
+      "n_rows": 10000,
+      "identical_bytes": true,
+      "wall_seconds": 0.19351789100000083,
+      "cpu_seconds": 0.1900000000000004
+    },
+    {
+      "variant": "cached_tokens",
+      "repeat": 3,
+      "n_rows": 10000,
+      "identical_bytes": true,
+      "wall_seconds": 0.2824131370000007,
+      "cpu_seconds": 0.27999999999999936
+    },
+    {
+      "variant": "cached_tokens",
+      "repeat": 4,
+      "n_rows": 10000,
+      "identical_bytes": true,
+      "wall_seconds": 0.28239294699999995,
+      "cpu_seconds": 0.28000000000000114
+    },
+    {
+      "variant": "tokens",
+      "repeat": 4,
+      "n_rows": 10000,
+      "identical_bytes": true,
+      "wall_seconds": 0.19337693399999978,
+      "cpu_seconds": 0.1899999999999995
+    },
+    {
+      "variant": "projected",
+      "repeat": 4,
+      "n_rows": 10000,
+      "identical_bytes": true,
+      "wall_seconds": 0.3153160209999992,
+      "cpu_seconds": 0.3100000000000005
+    },
+    {
+      "variant": "baseline",
+      "repeat": 4,
+      "n_rows": 10000,
+      "identical_bytes": true,
+      "wall_seconds": 0.32682409000000057,
+      "cpu_seconds": 0.3200000000000003
+    },
+    {
+      "variant": "baseline",
+      "repeat": 5,
+      "n_rows": 10000,
+      "identical_bytes": true,
+      "wall_seconds": 0.32457783099999915,
+      "cpu_seconds": 0.3199999999999985
+    },
+    {
+      "variant": "projected",
+      "repeat": 5,
+      "n_rows": 10000,
+      "identical_bytes": true,
+      "wall_seconds": 0.31675315199999865,
+      "cpu_seconds": 0.3100000000000005
+    },
+    {
+      "variant": "tokens",
+      "repeat": 5,
+      "n_rows": 10000,
+      "identical_bytes": true,
+      "wall_seconds": 0.19311070499999872,
+      "cpu_seconds": 0.1899999999999995
+    },
+    {
+      "variant": "cached_tokens",
+      "repeat": 5,
+      "n_rows": 10000,
+      "identical_bytes": true,
+      "wall_seconds": 0.28472540300000126,
+      "cpu_seconds": 0.28000000000000114
+    }
+  ]
+}

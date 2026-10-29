@@ -34,6 +34,51 @@ def _row(assay, sample="original sample"):
     return row
 
 
+def test_csv_capture_matches_general_json_bytes_including_short_rows(tmp_path):
+    columns = {"z_field": 0, "pmid": 2, 'quoted"key': 1, "a_field": 5}
+    rows = [
+        [],
+        [""],
+        ['quote" slash\\ control\x00\n\r\t', "café 😀 \ud800", "000123", "unmapped"],
+        ["a", "b", "paper-id", "", "", "tail", "extra trailing cell"],
+        ["x" * 20000, "", "42"],
+    ] * 60
+    for variant in ("general", "csv"):
+        with ContributorCollector(scratch_dir=tmp_path) as collector:
+            collector._OUTPUT_BATCH_BYTES = 12000
+            capture_csv = collector.csv_record_writer("test / é", columns)
+            roots = []
+            for row_number, row in enumerate(rows, 1):
+                if variant == "csv":
+                    record = capture_csv(row_number, row)
+                else:
+                    fields = {
+                        name: row[index] if index < len(row) else ""
+                        for name, index in columns.items()
+                    }
+                    record = collector.record("test / é", row_number, fields, row)
+                roots.append(collector.observe(record, "donor" if row_number % 2 else ""))
+            collector.write(
+                [pd.DataFrame({"provenance_id": roots})], tmp_path / f"{variant}.parquet"
+            )
+    assert (tmp_path / "csv.parquet").read_bytes() == (tmp_path / "general.parquet").read_bytes()
+    actual = pd.read_parquet(tmp_path / "csv.parquet").sort_values("source_row")
+    for record, row in zip(actual.itertuples(), rows):
+        expected_fields = {
+            name: row[index] if index < len(row) else "" for name, index in columns.items()
+        }
+        assert record.original_fields == json.dumps(expected_fields, sort_keys=True)
+        assert record.source_row_values == json.dumps(row)
+
+
+def test_csv_capture_rejects_duplicate_record_immediately(tmp_path):
+    with ContributorCollector(scratch_dir=tmp_path) as collector:
+        capture = collector.csv_record_writer("iedb", {"pmid": 0})
+        capture(1, ["1"])
+        with pytest.raises(sqlite3.IntegrityError):
+            capture(1, ["2"])
+
+
 def test_chained_dedup_retains_sources_without_reweighting(tmp_path, monkeypatch):
     iedb, cedar = tmp_path / "iedb.csv", tmp_path / "cedar.csv"
     _write_tiny_iedb_csv(

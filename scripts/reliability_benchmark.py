@@ -61,16 +61,24 @@ def prepare(scratch):
     # locked pyensembl version on POSIX scratch, outside the measured build.
     genome.index(show_progress=True)
     genome.db.connection.close()
-    with tarfile.open(CONFIG / "producer.tar.gz") as archive:
+    producer_archive = Path(
+        os.environ.get("HITLIST_BENCHMARK_PRODUCER_ARCHIVE", CONFIG / "producer.tar.gz")
+    )
+    with tarfile.open(producer_archive) as archive:
         source_commit = archive.pax_headers.get("comment")
     return {
         "source_commit": source_commit,
         "sources": sources,
         "reference": reference,
         "assets": {name: digest(path) for name, path in assets.items()},
-        "code_archive": digest(CONFIG / "producer.tar.gz"),
+        "code_archive": digest(producer_archive),
         "requirements": digest(CONFIG / "requirements.txt"),
         "recipes": {path.name: digest(path) for path in sorted(CONFIG.glob("*.py"))},
+        "network_audit": {
+            "enabled": os.environ.get("HITLIST_BENCHMARK_AUDIT_NETWORK") == "1",
+            "recipe": digest(CONFIG / "network_guard/sitecustomize.py"),
+            "scope": "Python Internet-socket and name-resolution attempts, including spawned interpreters",
+        },
         "cpu_model": next(
             (
                 line.split(":", 1)[1].strip()
@@ -84,6 +92,7 @@ def prepare(scratch):
             "cpu_limit": 8,
             "memory_limit_mib": 65536,
             "mapping_workers": 2,
+            "requested_scan_workers": int(os.environ.get("HITLIST_SCAN_WORKERS", "2")),
             "nonpreemptible": True,
         },
         "preparation_excluded": "source acquisition/copy/verification and pyensembl reference indexing",
@@ -125,11 +134,20 @@ def run(label, profiled):
             ]
             if profiled:
                 command += ["--sampling-out", str(destination / "build.pyisession")]
+            environment = dict(os.environ)
+            if os.environ.get("HITLIST_BENCHMARK_AUDIT_NETWORK") == "1":
+                from paired_build_benchmark import audited_environment, check_network_audit
+
+                environment = audited_environment(destination / "network")
             # Capture output on disk and stream it. A subprocess has a fresh
             # process peak; preparation cannot contaminate its timing/RSS.
             with (destination / "build.log").open("w") as log:
                 process = subprocess.Popen(
-                    command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+                    command,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    env=environment,
                 )
                 for line in process.stdout:
                     print(line, end="", flush=True)
@@ -139,6 +157,9 @@ def run(label, profiled):
             if code:
                 raise subprocess.CalledProcessError(code, command)
             report = json.loads((destination / "report.json").read_text())
+            if os.environ.get("HITLIST_BENCHMARK_AUDIT_NETWORK") == "1":
+                # GNU time is the wrapper PID; the audit runs in its Python child.
+                check_network_audit(destination / "network", report["process_id"])
             if report["status"] != "success":
                 raise ValueError("Build did not produce a successful receipt")
             output = Path(report["output"]).parent

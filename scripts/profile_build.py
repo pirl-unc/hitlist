@@ -177,6 +177,7 @@ def measure_build(report_path, *, options, profile_path=None, sampling_path=None
         sampler = Profiler(interval=0.01, async_mode="disabled")
     report = {
         "schema_version": 1,
+        "process_id": os.getpid(),
         "status": "failed",
         "profiled": profiler is not None or sampler is not None,
         "sampling_interval_seconds": 0.01 if sampler else None,

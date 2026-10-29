@@ -1,0 +1,21 @@
+{
+  "volume": "presto-data",
+  "root": "hitlist-reliability-20261028",
+  "full_build": {
+    "label": "issue63-full-pair-1",
+    "app_id": "ap-wHHFeaCWWypj4VGllKpSao",
+    "function_call_id": "fc-01M645CGBKEVWFWACF6XWBE2J8",
+    "status": "success",
+    "producer_commit": "2b850a39a4c0cfa814eb12b852cc742576d5d287"
+  },
+  "test_suite": {
+    "label": "issue63-test-pair-1",
+    "app_id": "ap-7CEIgm8LSnB4NnhjnYCfpQ",
+    "function_call_id": "fc-01M64C7RATS4XX8V450BDBVRSC",
+    "status": "success",
+    "producer_commit": "ff604fd2f2f5bb4d8054ce98b24ccb3eac7525fa",
+    "producer_archive_sha256": "dd273421854dafd64010b3c6ca4546452f5c07d0f56878cebf5be66d7cb63d0c",
+    "production_code_unchanged_from_full_build": true
+  },
+  "submission": "Explicit background spawn; caller exit is not a completion signal"
+}

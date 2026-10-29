@@ -25,6 +25,7 @@ from __future__ import annotations
 import csv
 import os
 import warnings
+from operator import itemgetter
 from pathlib import Path
 
 import pandas as pd
@@ -389,6 +390,10 @@ def scan(
         if provenance is not None:
             provenance.register_source(dataset, source_path)
         reader, c, p, fh = _open_csv(source_path)
+        field_names = tuple(c)
+        project = itemgetter(*c.values())
+        max_column = max(c.values())
+        record_csv = provenance.csv_record_writer(dataset, c) if provenance is not None else None
         for row_number, row in enumerate(_progress(reader, p, f"Scanning {p.name}", fh=fh), 1):
             if peptides is not None:
                 pep_raw = _safe_col(row, c["epitope_name"])
@@ -403,12 +408,15 @@ def scan(
             # Dedup only on a *present* Assay IRI. A blank IRI is not an
             # identity — deduping on "" would collapse every blank-IRI row
             # (distinct observations) into one. _safe_col guards short rows.
-            iri = _safe_col(row, c["assay_iri"])
+            fields = (
+                dict(zip(field_names, project(row)))
+                if len(row) > max_column
+                else {name: _safe_col(row, index) for name, index in c.items()}
+            )
+            iri = fields["assay_iri"]
             record_id = ""
             if provenance is not None:
-                record_id = provenance.record(
-                    dataset, row_number, {name: _safe_col(row, col) for name, col in c.items()}, row
-                )
+                record_id = record_csv(row_number, row)
             if iri:
                 if provenance is not None:
                     if provenance.duplicate_assay(scan_id, iri, record_id):
@@ -418,10 +426,10 @@ def scan(
                         continue
                     seen.add(iri)
 
-            src_org = _safe_col(row, c["source_organism"])
-            species = _safe_col(row, c["species"])
-            host = _safe_col(row, c["host"])
-            raw_pmid = _safe_col(row, c["pmid"]).strip()
+            src_org = fields["source_organism"]
+            species = fields["species"]
+            host = fields["host"]
+            raw_pmid = fields["pmid"].strip()
             pmid: str | int = ""
             if raw_pmid:
                 try:
@@ -429,8 +437,8 @@ def scan(
                 except ValueError:
                     pmid = raw_pmid
 
-            mhc_res_raw = _safe_col(row, c["mhc_restriction"])
-            reported_mhc_class = _safe_col(row, c["mhc_class"])
+            mhc_res_raw = fields["mhc_restriction"]
+            reported_mhc_class = fields["mhc_class"]
             mhc_species_context = pmid_mhc_species_context(pmid)
             mhc_annotation = resolve_mhc_annotation(
                 mhc_res_raw,
@@ -477,11 +485,11 @@ def scan(
                     if not species or species.strip().lower() == "unidentified":
                         species = curated_spc
 
-            process_type = _safe_col(row, c["process_type"])
-            disease = _safe_col(row, c["disease"])
-            culture_condition = _safe_col(row, c["culture_condition"])
-            source_tissue = _safe_col(row, c["source_tissue"])
-            cell_name = _safe_col(row, c["cell_name"])
+            process_type = fields["process_type"]
+            disease = fields["disease"]
+            culture_condition = fields["culture_condition"]
+            source_tissue = fields["source_tissue"]
+            cell_name = fields["cell_name"]
 
             # Per-PMID provenance curation (#314): fill blank source_tissue /
             # cell_name / disease / culture_condition for epitope-ID papers IEDB
@@ -518,7 +526,7 @@ def scan(
                 peptide_modifications_str,
                 has_ptm,
                 peptide_extended,
-            ) = parse_peptide_modifications(_safe_col(row, c["epitope_name"]))
+            ) = parse_peptide_modifications(fields["epitope_name"])
 
             record: dict = {
                 "peptide": bare_peptide,
@@ -527,24 +535,24 @@ def scan(
                 "peptide_extended": peptide_extended,
                 **mhc_annotation.as_record_fields(),
                 "assay_iri": iri,
-                "reference_iri": _safe_col(row, c["ref_iri"]),
+                "reference_iri": fields["ref_iri"],
                 "pmid": pmid,
-                "submission_id": _safe_col(row, c["submission_id"]),
-                "reference_title": _safe_col(row, c["ref_title"]),
+                "submission_id": fields["submission_id"],
+                "reference_title": fields["ref_title"],
                 "source_organism": src_org,
                 "species": species,
-                "host": _safe_col(row, c["host"]),
-                "host_age": _safe_col(row, c["host_age"]),
-                "host_mhc_types": _safe_col(row, c["host_mhc_types"]),
+                "host": fields["host"],
+                "host_age": fields["host_age"],
+                "host_mhc_types": fields["host_mhc_types"],
                 "process_type": process_type,
                 "disease": disease,
-                "disease_stage": _safe_col(row, c["disease_stage"]),
+                "disease_stage": fields["disease_stage"],
                 "source_tissue": source_tissue,
                 "cell_name": cell_name,
                 "culture_condition": culture_condition,
-                "antigen_processing_comments": _safe_col(row, c["antigen_processing_comments"]),
-                "assay_comments": _safe_col(row, c["assay_comments"]),
-                "qualitative_measurement": _safe_col(row, c["qualitative_measurement"]),
+                "antigen_processing_comments": fields["antigen_processing_comments"],
+                "assay_comments": fields["assay_comments"],
+                "qualitative_measurement": fields["qualitative_measurement"],
                 # Structured quantitative binding-assay fields from IEDB /
                 # CEDAR (issue #148, issue #135).  The raw string is preserved
                 # so consumers can audit parsing; ``quantitative_value`` is the
@@ -557,17 +565,17 @@ def scan(
                 # KD") is the readout type — combined with ``assay_method``
                 # and ``measurement_units`` it tells consumers whether a
                 # numeric value is IC50 vs Kd vs t_half vs Tm.
-                "assay_method": _safe_col(row, c["assay_method"]),
-                "response_measured": _safe_col(row, c["response_measured"]),
-                "measurement_units": _safe_col(row, c["measurement_units"]),
-                "measurement_inequality": _safe_col(row, c["measurement_inequality"]),
-                "quantitative_measurement": _safe_col(row, c["quantitative_measurement"]),
-                "quantitative_value": _parse_float(_safe_col(row, c["quantitative_measurement"])),
+                "assay_method": fields["assay_method"],
+                "response_measured": fields["response_measured"],
+                "measurement_units": fields["measurement_units"],
+                "measurement_inequality": fields["measurement_inequality"],
+                "quantitative_measurement": fields["quantitative_measurement"],
+                "quantitative_value": _parse_float(fields["quantitative_measurement"]),
                 **assay_annotations(
-                    _safe_col(row, c["qualitative_measurement"]),
-                    _safe_col(row, c["assay_comments"]),
-                    _safe_col(row, c["assay_method"]),
-                    _safe_col(row, c["response_measured"]),
+                    fields["qualitative_measurement"],
+                    fields["assay_comments"],
+                    fields["assay_method"],
+                    fields["response_measured"],
                 ),
                 # Flags rows whose MHC molecule presents lipids / metabolites
                 # rather than peptides (CD1, MR1, MIC, ULBP, etc. — see #228).
