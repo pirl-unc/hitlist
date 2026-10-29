@@ -40,6 +40,7 @@ from .curation import (
     restriction_evidence_for_row,
 )
 from .curation_yaml import load_curation_yaml
+from .supplement_peptidoforms import supplementary_peptidoforms
 
 _DATA_DIR = Path(__file__).parent / "data"
 _MANIFEST_PATH = _DATA_DIR / "supplementary.yaml"
@@ -196,6 +197,8 @@ def scan_supplementary(
         if df.empty:
             continue
 
+        peptidoforms = supplementary_peptidoforms(df, entry)
+
         if "mhc_restriction" in df.columns:
             df["mhc_restriction"] = df["mhc_restriction"].str.strip()
         else:
@@ -261,9 +264,15 @@ def scan_supplementary(
             + ":"
             + df["mhc_restriction"]
         ).to_numpy()
+        synth_iri = synth_iri + peptidoforms["_peptidoform_suffix"].to_numpy()
         record = pd.DataFrame(
             {
                 "peptide": df["peptide"].to_numpy(),
+                **{
+                    column: peptidoforms[column].to_numpy()
+                    for column in peptidoforms.columns
+                    if column != "_peptidoform_suffix"
+                },
                 **{column: identity[column].to_numpy() for column in identity.columns},
                 # Supplementary rows don't carry an IEDB assay IRI, but the
                 # synthesized string is already row-unique within a PMID + file,
@@ -465,6 +474,7 @@ def scan_supplementary(
         return pd.DataFrame()
 
     result = pd.concat(per_entry_frames, ignore_index=True)
+    result["has_ptm"] = result["has_ptm"].astype("boolean")
 
     # Deduplicate within supplementary data.  Before #147 the key was
     # ``(peptide, mhc_restriction, pmid)`` which collapsed the same
@@ -473,7 +483,15 @@ def scan_supplementary(
     # onto one arbitrary sample context.  Including ``supplementary_file``
     # preserves per-sample evidence while still de-duplicating within one
     # CSV — file-level duplicates still collapse correctly.
-    dedupe_cols = ["peptide", "mhc_restriction", "pmid"]
+    dedupe_cols = [
+        "peptide",
+        "mhc_restriction",
+        "pmid",
+        "has_ptm",
+        "peptide_modifications",
+        "peptide_extended",
+        "peptidoform_review_status",
+    ]
     if "supplementary_file" in result.columns:
         dedupe_cols.append("supplementary_file")
     if "attributed_sample_label" in result.columns:
