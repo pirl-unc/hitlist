@@ -1713,6 +1713,10 @@ def _fill_gene_names_via_ensembl(
             return df
         try:
             data = EnsemblRelease(release)
+            # gene_ids() enters PyEnsembl's lazy DB initializer, which otherwise
+            # downloads missing GTF/FASTA files even for this optional backfill.
+            if not data.required_local_files_exist():
+                continue
             present = set(data.gene_ids())  # raises if this release's DB isn't built
         except Exception:  # this release's data not installed/indexed — try the next
             continue

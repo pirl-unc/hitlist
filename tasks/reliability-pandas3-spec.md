@@ -121,3 +121,42 @@ security repository (Debian 11 LTS ended August 2026). Both test measurements
 use `HITLIST_BENCHMARK_TEST_IMAGE=1`, a Python 3.12/Bookworm image with Git and
 GNU time; the full-build pair retains its original identical image. This does
 not change workspace-wide Modal settings. Source: https://www.debian.org/releases/bullseye/
+
+Dependency review: request pandas' `pyarrow` extra so the chosen pandas release
+also constrains its compatible Arrow floor (pandas 3.0 requires Arrow 13; 3.1's
+extra requires Arrow 16). An unconstrained separate Arrow requirement would
+allow an existing older installation to survive an upgrade and fail at runtime.
+The benchmark pins already use Arrow 26; their installed versions are unchanged.
+
+The candidate's separate 100,000-row diagnostic retains the same 100,000 source
+links and byte-identical contributor Parquet (SHA-256
+46d897c45c234a13188f1f2da846f9c3e8e9b4272949e60d41d7d2b88114d7dc).
+Its sampled duration is 19.674 s versus 30.851 s for the baseline diagnostic;
+record capture accounts for 3.79 s versus 10.01 s. These diagnostic runs locate
+changed costs, but do not establish the full-build speedup or its noise floor.
+
+## Full worker profile: mapping aggregation and unintended downloads
+
+The complete baseline sampling run isolates 431.74 s in `map_peptides`, including
+242.24 s creating pandas groups and 63.37 s selecting DataFrame columns. Compute
+source counts and flank agreement while each peptide's hits are already grouped
+in the lookup loop. Preserve row order, occurrence multiplicity, distinct-protein
+counts, terminal empty flanks, metadata, column order and pandas dtypes. Keep
+aggregate columns in parallel lists to avoid enlarging every mapping-row dict.
+Verify against the original pandas aggregation on shared/repeated/terminal hits.
+
+The other worker's profile proves `fetch_missing=False` does not reach the
+Ensembl branch: lazy `Genome.db` attempts HTTP downloads. The optional symbol
+backfill has the same lazy path. Add an explicit keyword policy to
+`from_ensembl` (default preserves direct callers), forward the worker policy,
+and reject unavailable required local files before lazy feature access. Use
+PyEnsembl's public offline availability inspection, retaining cache hits where
+available. Backfill skips uninstalled releases using the same inspection. Test
+actual missing-cache instances with a network recorder and successful installed
+fixtures. Correct the earlier benchmark's offline claim; no unavailable
+reference may silently count as a successful zero-hit search.
+
+Run focused checks and another pinned full candidate build, then reconcile all
+outputs and report timing variance. The two completed baseline builds took
+2307.36 and 3320.58 s, so a single before/after ratio is not a reliable speedup
+estimate. The full sampling run is diagnostic and excluded from timing ratios.

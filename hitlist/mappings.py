@@ -1341,6 +1341,7 @@ def _build_species_index(
                 lengths=lengths,
                 verbose=verbose,
                 gene_biotypes=gene_biotypes,
+                fetch_missing=fetch_missing,
             )
         except Exception as e:
             if verbose:

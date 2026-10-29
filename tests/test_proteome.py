@@ -93,6 +93,31 @@ def test_map_peptides_empty():
     assert "peptide" in df.columns
 
 
+@pytest.mark.parametrize("flank", [0, 1, 4])
+def test_mapping_aggregates_match_pandas_with_repeated_and_terminal_hits(flank):
+    idx = ProteomeIndex._build(
+        {"P1": "ACDACD", "P2": "ACD", "P3": "XACDX", "P4": "XACDX"},
+        {},
+        lengths=(3,),
+        verbose=False,
+    )
+    actual = idx.map_peptides(["ACD", "XAC", "CDX", "ZZZ", "ACD"], flank=flank, verbose=False)
+    base = actual.drop(columns=["n_sources", "unique_n_flank", "unique_c_flank"])
+    counts = base.groupby("peptide")["protein_id"].nunique().rename("n_sources")
+    expected = base.merge(counts, on="peptide", how="left")
+    for side in ("n_flank", "c_flank"):
+        values = {}
+        for peptide, group in base.groupby("peptide"):
+            flanks = set(group[side])
+            values[peptide] = next(iter(flanks)) if len(flanks) == 1 else ""
+        expected[f"unique_{side}"] = expected["peptide"].map(values)
+    pd.testing.assert_frame_equal(actual, expected)
+    repeated = actual[actual["peptide"] == "ACD"]
+    assert len(repeated) == 5
+    assert repeated["n_sources"].tolist() == [4] * 5
+    assert repeated[repeated["protein_id"] == "P1"]["position"].tolist() == [0, 3]
+
+
 def test_merge():
     proteins_a = {"PROT_A": "ACDEFGHIKLMN"}
     meta_a = {"PROT_A": {"gene_name": "GENE_A", "gene_id": "A1"}}

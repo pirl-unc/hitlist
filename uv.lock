@@ -737,7 +737,7 @@ dependencies = [
     { name = "oncoref" },
     { name = "orfdata" },
     { name = "packaging" },
-    { name = "pandas" },
+    { name = "pandas", extra = ["pyarrow"] },
     { name = "pyarrow" },
     { name = "pyensembl" },
     { name = "pyyaml" },
@@ -767,7 +767,7 @@ requires-dist = [
     { name = "openpyxl", marker = "extra == 'dev'", specifier = ">=3.1.5" },
     { name = "orfdata", specifier = ">=0.40.0" },
     { name = "packaging", specifier = ">=21" },
-    { name = "pandas", specifier = ">=3" },
+    { name = "pandas", extras = ["pyarrow"], specifier = ">=3" },
     { name = "pyarrow" },
     { name = "pyensembl" },
     { name = "pytest", marker = "extra == 'dev'" },
@@ -1449,6 +1449,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/92/f5/9d753d85c4ea85b6d1c3735496ae5b416d7ef6905f1845c70e9521d124d9/pandas-3.1.0-cp315-cp315t-musllinux_1_2_x86_64.whl", hash = "sha256:dde9a55ecd3c4f9100ac50ab15e852e4c54fcf372d800e4495e0b2159a0122ab", size = 12916085, upload-time = "2026-10-22T11:56:56.084Z" },
     { url = "https://files.pythonhosted.org/packages/e6/f9/4a6965677477dbbb19f8881befb01b67eb6009809db73f7f1b7a0132faf1/pandas-3.1.0-cp315-cp315t-win_amd64.whl", hash = "sha256:3fe234bfb9999552dc54c45851752e56e163218d7663897dca950b4a7c32af39", size = 11267097, upload-time = "2026-10-22T11:56:58.479Z" },
     { url = "https://files.pythonhosted.org/packages/99/35/e60fd8228db4eb848802988dbc6e3a0f1a81c57f06ad95ebe4cd534fa655/pandas-3.1.0-cp315-cp315t-win_arm64.whl", hash = "sha256:f1a93c24175129bfc9922ef748ddae1d8137c743ed835e2615be329f606fed4d", size = 10597861, upload-time = "2026-10-22T11:57:00.776Z" },
+]
+
+[package.optional-dependencies]
+pyarrow = [
+    { name = "pyarrow" },
 ]
 
 [[package]]

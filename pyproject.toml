@@ -26,7 +26,7 @@ classifiers = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "pandas>=3",
+    "pandas[pyarrow]>=3",
     "pyarrow",
     # Imported directly by builder, export, predict and proteome — until #602
     # only transitively present via pandas' own pin, which is a dependency we
