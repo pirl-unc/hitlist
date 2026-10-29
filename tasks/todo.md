@@ -4,7 +4,7 @@ Specification: [full-build-63-spec.md](full-build-63-spec.md).
 
 - [x] Read #63, prior receipts and relevant lessons; isolate work from main.
 - [x] Specify baseline, controlled comparison, output invariants and release gates.
-- [ ] Profile the released scanner/publication paths and choose measured changes.
+- [x] Profile the released scanner/publication paths and choose measured changes.
 - [ ] Implement bounded optimizations and regressions for affected invariants.
 - [ ] Run repeated paired full builds and strict retained-output comparisons.
 - [ ] Measure test.sh separately; document time, CPU, memory and remaining limits.

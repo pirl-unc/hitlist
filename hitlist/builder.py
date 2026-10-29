@@ -919,6 +919,7 @@ def _build_observations(
             mhc_species=None,  # builder indexes all species; downstream filters per-call
             classify_source=True,
             provenance=provenance,
+            n_workers=None,
         )
         df["source"] = name
 

@@ -91,3 +91,30 @@ and writes bounded contributor batches from tuples. Nested/typed supplementary
 JSON retains the general encoder. All 70 scanner/provenance tests and format/lint
 pass, including exact JSON/Parquet equality for Unicode, controls, unmapped and
 short rows, donor labels and capture/output batch boundaries.
+
+The next candidate separates pure row annotation from ordered CSV capture.
+The parent retains source registration, original row numbers, immediate record
+insertion and per-scan assay deduplication. Spawned workers annotate bounded
+batches; the parent consumes results in submission order and inserts the emitted
+observation edges. At most two batches per worker may be in flight, with row and
+byte limits per batch. Workers receive the parent's resolved data directory.
+Full scans must keep the serial path, explicit worker controls, conservative
+memory admission and whole-build failure propagation. Regression comparisons
+cover cross-batch duplicate IRIs, filtered first occurrences, donor expansion,
+unmapped/short rows, ordered frames and exact contributor Parquet bytes.
+
+The annotation refactor passes all 88 focused scanner/provenance/worker tests,
+including actual spawned workers from a threaded parent, explicit cache context,
+whole-operation failure, input handle closure and scratch cleanup. Direct scans
+default to serial; the builder selects at most four workers, reserving 32 GiB
+for the measured parent peak and 2.5 GiB per additional worker. Low/unknown
+capacity keeps the serial path. Batches cap at 1,024 rows or 4 MiB of input values;
+an oversized row stands alone. These admission estimates still need validation
+against the full-run memory receipts.
+
+The first serialization candidate's 100,000-row contributor Parquet is identical
+to the baseline (SHA-256 46d897c45c234a13188f1f2da846f9c3e8e9b4272949e60d41d7d2b88114d7dc,
+7,588,242 bytes). Its sampled scan took 20.49 s versus the earlier 18.62 s on a
+different allocation. Do not infer a regression or gain from those profiled,
+separately hosted runs; the unprofiled same-allocation experiment decides which
+changes remain.

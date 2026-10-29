@@ -75,6 +75,13 @@ def _relationship_json(flags):
     return json.dumps([name for name, value in RELATIONS.items() if flags & value] or ["retained"])
 
 
+def _observation_id(record_id, sample_label=""):
+    node = f"observation:{record_id}"
+    if sample_label:
+        node += f"|sample:{quote(sample_label, safe='')}"
+    return node
+
+
 class ProvenanceStorageError(RuntimeError):
     """The disposable contributor graph or output filesystem ran out of capacity."""
 
@@ -369,9 +376,7 @@ class ContributorCollector:
         return block[offset : offset + length]
 
     def observe(self, record_id: str, sample_label="") -> str:
-        node = f"observation:{record_id}"
-        if sample_label:
-            node += f"|sample:{quote(sample_label, safe='')}"
+        node = _observation_id(record_id, sample_label)
         self._execute("INSERT INTO edges VALUES (?, ?, 0, ?)", (record_id, node, sample_label))
         return node
 
