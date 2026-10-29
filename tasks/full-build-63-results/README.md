@@ -30,6 +30,20 @@ build.
 - `producer-ci.json`: passing hosted matrix, integration and release-build gates
   for the measured production revision. Final-head and clean-main gates remain
   separate requirements.
+- `full-experiment.json`, `full-[1-4]-*`: four completed same-allocation full builds
+  with producer/input/software pins, stage/resource receipts, output inventories
+  and three strict retained-file comparisons. Final serial producer `2b850a3`.
+- `full-network-audit.json`: independently collected audit-marker inventory,
+  including the reported build process ID and zero attempted-access logs per run.
+- `full-summary.json`: reconciled arithmetic from the four receipts: 9.1% less
+  mean wall time, 8.9% less CPU, 0.28 GiB more mean parent peak RSS. The 2× target
+  is not met. Seven Parquet files are byte-identical across all four runs.
+- `test-experiment.json`, `test-[1-4]-*`, `test-summary.json`: four completed
+  same-allocation test.sh runs with matching dependencies, fresh caches and two
+  admitted workers. Baseline/candidate means are 256.41/258.87 s; 3,734/3,744
+  tests pass (two skips each). No suite speedup is claimed.
+- `execution-identifiers.json`: durable remote app/function-call identifiers and
+  exact producer revisions for the completed full-build and suite experiments.
 
 Public Parquet equality includes every raw source cell, contributor relation,
 curation flag, identity, schema and row order. Network checks cover Python socket

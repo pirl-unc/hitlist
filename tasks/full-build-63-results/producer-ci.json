@@ -24,5 +24,12 @@
     "built_wheel_and_sdist": true,
     "uploaded_to_pypi": false
   },
-  "scope": "Production revision verification; final evidence/harness head and clean-main release still require their own checks"
+  "scope": "Production revision verification; final evidence/harness head and clean-main release still require their own checks",
+  "subsequent_harness_revision": {
+    "commit": "ff604fd2f2f5bb4d8054ce98b24ccb3eac7525fa",
+    "production_code_unchanged": true,
+    "tests_run": "https://github.com/pirl-unc/hitlist/actions/runs/40915849166",
+    "release_run": "https://github.com/pirl-unc/hitlist/actions/runs/40915849019",
+    "status": "success"
+  }
 }

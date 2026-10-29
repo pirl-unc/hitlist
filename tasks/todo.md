@@ -6,8 +6,8 @@ Specification: [full-build-63-spec.md](full-build-63-spec.md).
 - [x] Specify baseline, controlled comparison, output invariants and release gates.
 - [x] Profile the released scanner/publication paths and choose measured changes.
 - [x] Implement bounded optimizations and regressions for affected invariants.
-- [ ] Run repeated paired full builds and strict retained-output comparisons.
-- [ ] Measure test.sh separately; document time, CPU, memory and remaining limits.
+- [x] Run repeated paired full builds and strict retained-output comparisons.
+- [x] Measure test.sh separately; document time, CPU, memory and remaining limits.
 - [ ] Format, lint, test, validate docs/dependencies and pass final-head CI.
 - [ ] Merge, deploy from clean main, verify public downloads and reconcile #63.
 
@@ -23,9 +23,14 @@ and cost more CPU, so its implementation was removed. Final serial producer
 2b850a3 passes 80 focused tests, format/lint, strict documentation, editable
 metadata and pip check. Local test.sh passes 3,745 tests (one skip); all five
 hosted unit jobs, 97 integration tests and the separate release-build gate pass.
-The first full baseline/candidate runs took 1,638.90/1,485.89 seconds and their
-seven recorded Parquet hashes match. The four-run experiment is still active;
-repeatability and final independent retained-file comparisons remain pending.
+The four-run full experiment and strict retained-file comparisons pass. Baseline
+times are 1,638.90/1,656.08 s; candidate times are 1,485.89/1,510.48 s. Mean wall
+time falls 9.1%, CPU falls 8.9%, and mean parent peak RSS rises 0.28 GiB. All seven
+Parquet artifacts are byte-identical, input/dependency pins match, and the Python
+network audits show no attempts. The separate four-run test.sh experiment also
+passes: baseline/candidate means 256.41/258.87 s, 3,734/3,744 passed tests, two
+skips each, two admitted workers and matching dependencies. No suite speedup is
+claimed. Final documentation, evidence-head checks, merge and deployment remain.
 The 2× whole-build target is not achieved by this candidate. #869 tracks
 cancellation diagnostics; durable background submission completed the six-run
 comparison after earlier synchronous calls were interrupted. The signal cleanup

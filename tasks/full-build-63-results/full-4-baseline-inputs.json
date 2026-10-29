@@ -1,0 +1,204 @@
+{
+  "source_commit": "5f988fc01d7c0470fb369cc7f73f154a76f63ceb",
+  "sources": {
+    "cedar": {
+      "export_date_status": "unverified; local mtime is not an export-date claim",
+      "filename": "cedar_mhc_ligand_full.csv",
+      "remote_path": "hitlist-qualification/raw-sources/3b137c99686c0df9f930a4e287995e818e289f7df47c6eeb56dbcb1c7f39d8e6/cedar_mhc_ligand_full.csv",
+      "sha256": "3b137c99686c0df9f930a4e287995e818e289f7df47c6eeb56dbcb1c7f39d8e6",
+      "size_bytes": 6945931753
+    },
+    "iedb": {
+      "export_date_status": "unverified; local mtime is not an export-date claim",
+      "filename": "iedb_mhc_ligand_full.csv",
+      "remote_path": "hitlist-qualification/raw-sources/957337189072a918fe38a216cfa4893cb08a74c35027ce0489252dd446eb6ad8/iedb_mhc_ligand_full.csv",
+      "sha256": "957337189072a918fe38a216cfa4893cb08a74c35027ce0489252dd446eb6ad8",
+      "size_bytes": 7773476136
+    }
+  },
+  "reference": {
+    "Homo_sapiens.GRCh38.112.chr_patch_hapl_scaff.gtf.gz": {
+      "path": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/reference-bundle/bundles/2026-10-16T01-48-37Z/Homo_sapiens.GRCh38.112.chr_patch_hapl_scaff.gtf.gz",
+      "sha256": "9068bd52a9def32ac22b248393461b9f52931f29404a94b397ecc7ddbc2fce38",
+      "size_bytes": 60149702
+    },
+    "Homo_sapiens.GRCh38.cdna.all.fa.gz": {
+      "path": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/reference-bundle/bundles/2026-10-16T01-48-37Z/Homo_sapiens.GRCh38.cdna.all.fa.gz",
+      "sha256": "0bb3012f45e2474b8ce79911c47de0fc216bd574c60f1ddc8a8d911cd8a32b4d",
+      "size_bytes": 79435386
+    },
+    "Homo_sapiens.GRCh38.ncrna.fa.gz": {
+      "path": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/reference-bundle/bundles/2026-10-16T01-48-37Z/Homo_sapiens.GRCh38.ncrna.fa.gz",
+      "sha256": "16b9e32d047653e42a5d3b8843b30eefea1a08f7984568746d8db15ada26540b",
+      "size_bytes": 19887296
+    },
+    "Homo_sapiens.GRCh38.pep.all.fa.gz": {
+      "path": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/reference-bundle/bundles/2026-10-16T01-48-37Z/Homo_sapiens.GRCh38.pep.all.fa.gz",
+      "sha256": "2868236131342d14afbfa8dbd8a5e3fb56ba85210fdca196b65db3e17c7ece83",
+      "size_bytes": 14904881
+    }
+  },
+  "assets": {
+    "abelin_2019_dr_tissue.csv": {
+      "sha256": "f95bb24097fc26a3272b3fb9942ae7dc8e4800b5a6cea2d9a6d92530d33b073c",
+      "size_bytes": 210368
+    },
+    "abelin_2019_maptac_class1.csv": {
+      "sha256": "74ec46e105ae406d89971fe2c87d3e03b36c8f650f8d78695425dd467bca9c42",
+      "size_bytes": 246822
+    },
+    "abelin_2019_maptac_class2.csv": {
+      "sha256": "a9b6454f05c24c11113bde92d35f3222d60eb0746ef8e6ac34ed2b0b6daa1c47",
+      "size_bytes": 1638237
+    },
+    "bekker_jensen_2017_peptides.csv.gz": {
+      "sha256": "3ec65dd05e8ec58c3293e0fb5720570197a8b152cd14778130bae4224106e3d3",
+      "size_bytes": 35074080
+    },
+    "bekker_jensen_2017_protein_abundance.csv.gz": {
+      "sha256": "17628f1a9c3ed5e3ee1ad7aab4480008000a6beb2c042928f3fbdf699366bc45",
+      "size_bytes": 4410669
+    },
+    "ccle_nusinow_2020.csv.gz": {
+      "sha256": "1cd9bdd7b40e1a22593c0045f5ba1d785004b64943c4845d4311bc44e7f97d82",
+      "size_bytes": 1671535
+    },
+    "gm12878_encode_rnaseq_tpm.csv.gz": {
+      "sha256": "b3d605f3426d283ecf166bd6a38006dc40d4d3aa9c4050c40f7f2101ff60d8ab",
+      "size_bytes": 271557
+    },
+    "gomez_zepeda_2024_hela.csv": {
+      "sha256": "56ea133ccd210f4267b366756d2693279349b962b95087e787f2c00cdc8f6709",
+      "size_bytes": 261764
+    },
+    "gomez_zepeda_2024_jy.csv": {
+      "sha256": "9eecfa2a8deeb75dc504caecfe659fb8cbbb58625180046ab2a68782d7cfa8b2",
+      "size_bytes": 577082
+    },
+    "gomez_zepeda_2024_plasma.csv": {
+      "sha256": "133fa549b65cd962a10648e72c4185dd5be1e2706b1f6388067d7ffbc6048718",
+      "size_bytes": 33847
+    },
+    "gomez_zepeda_2024_raji.csv": {
+      "sha256": "6e9b2d322aec33ff69a20050c842ce97111521576d0b012c206ec5507110c672",
+      "size_bytes": 668528
+    },
+    "gomez_zepeda_2024_skmel37.csv": {
+      "sha256": "c2d04f556f1bc39cee8856fc753a03739b5baf344e478cd973c7339496a1d207",
+      "size_bytes": 286030
+    },
+    "sarkizova_2020_patient_cohort.csv": {
+      "sha256": "f37af217074c08f23a9521c791bba5230a4cf849bf2871bfc20bed1aaaef0729",
+      "size_bytes": 1073141
+    },
+    "shapiro_2025_hap1_b2m_ko.csv": {
+      "sha256": "5d32d27ba14100925f3647644e6cb8c9ee2024e2dd4512b5e03b685c451c4364",
+      "size_bytes": 7650
+    },
+    "shapiro_2025_hap1_calr_ko.csv": {
+      "sha256": "6246a14486388806dc20f0bc7150be19653498f1fedffb6e7e45a51e4a4a0a69",
+      "size_bytes": 232191
+    },
+    "shapiro_2025_hap1_canx_ko.csv": {
+      "sha256": "8672e8c0d7bc0fd637a22a5b9d19f5b3020ff5d9c5d4f8fa1eecfbe36186d96b",
+      "size_bytes": 217182
+    },
+    "shapiro_2025_hap1_erap1_ko.csv": {
+      "sha256": "596a10f1eadeee71d2c24f4fa1b512862775672b2bc4999b5a726624d1d8a170",
+      "size_bytes": 125926
+    },
+    "shapiro_2025_hap1_ganab_ko.csv": {
+      "sha256": "5b6cec7cafafe17e823ca9789d5859ac2877f9120fdbe18c7621a330605bf2d2",
+      "size_bytes": 151604
+    },
+    "shapiro_2025_hap1_irf2_ko.csv": {
+      "sha256": "91836f74a6868cac49b5638add348792d1920521b2e701be66ced1d5adfbdab5",
+      "size_bytes": 70407
+    },
+    "shapiro_2025_hap1_pdia3_ko.csv": {
+      "sha256": "a24382e88da5dc06c877a5e1027db6ab26a765911840ffc173613fc2560ab608",
+      "size_bytes": 95826
+    },
+    "shapiro_2025_hap1_sppl3_ko.csv": {
+      "sha256": "38d66d6ca3dd12f1e13e0e448cf06cac6b9c229ccf2682f440fe8a8fb74da4a8",
+      "size_bytes": 199225
+    },
+    "shapiro_2025_hap1_tap1_ko.csv": {
+      "sha256": "babd57cb0fad48365369bbcb64f6c4fcb8a372f7bce6fd1e08e9d987c0e5bb38",
+      "size_bytes": 120243
+    },
+    "shapiro_2025_hap1_tap2_ko.csv": {
+      "sha256": "d0163b980196dd24fbb6f8a24d026d410f049a2cd9bf7e572c97d1896ed33867",
+      "size_bytes": 42720
+    },
+    "shapiro_2025_hap1_tapbp_ko.csv": {
+      "sha256": "86773579291c8fa0d51e8b5b0dbc57a2bf07646695f2eb21449f27bdcc154766",
+      "size_bytes": 59337
+    },
+    "shapiro_2025_hap1_wildtype.csv": {
+      "sha256": "ee2fe18ad0b10382d400670e3d2215c71714aad9234ac95b89bb9410055bdafb",
+      "size_bytes": 250548
+    },
+    "strazar_2023_hla2.csv": {
+      "sha256": "3dc547ae7cd4cfd735794e30c52430bb33f52d3960644d24bf07e44d6496e085",
+      "size_bytes": 13932615
+    }
+  },
+  "code_archive": {
+    "sha256": "c56de402e4ab6263405859f14b6e0c722db1d59224a59c1001a9912605a9c087",
+    "size_bytes": 50097153
+  },
+  "requirements": {
+    "sha256": "1e33caa51e3f8be804a849dbae502e68c8ba7abad2eaed8d3397420baf35de5c",
+    "size_bytes": 123030
+  },
+  "recipes": {
+    "compare_reliability_outputs.py": {
+      "sha256": "0dd42e8cb507b9cd59eaadaad2e50aa1a1c8e2bc314c206a6315e63f47568f5e",
+      "size_bytes": 9970
+    },
+    "paired_build_benchmark.py": {
+      "sha256": "20b9298c47cd5efc7257d069e6bafbec891de2700702fa6923b4040f75328824",
+      "size_bytes": 14344
+    },
+    "profile_build.py": {
+      "sha256": "5db0d355906d5e24f240266f6e598c8048cb1394906d6775291ea74c543464b3",
+      "size_bytes": 10066
+    },
+    "profile_csv_serialization.py": {
+      "sha256": "f450771782fce136ccff621440d89d2fc2c9d39a732264ef80b7efd5f3e65b4b",
+      "size_bytes": 4414
+    },
+    "profile_mapping_workers.py": {
+      "sha256": "d0c8ad961a63c4f39887eb4ef84929c0dd0e137963c275f695bbfd490a389860",
+      "size_bytes": 1758
+    },
+    "profile_scan.py": {
+      "sha256": "d1136947cf185193d3be92d95bf31296acf477aba7c54b0d531127465641acb5",
+      "size_bytes": 7830
+    },
+    "reliability_benchmark.py": {
+      "sha256": "463ca3a99871170576aeef137494f5113b7ebcb7bb28f81724d676d968d3fcb1",
+      "size_bytes": 7937
+    }
+  },
+  "network_audit": {
+    "enabled": true,
+    "recipe": {
+      "sha256": "1cc31e0216449ccc65fa49b54599ad52dca1f366314623818932e52d1553fa6a",
+      "size_bytes": 1217
+    },
+    "scope": "Python Internet-socket and name-resolution attempts, including spawned interpreters"
+  },
+  "cpu_model": "unknown",
+  "reference_scope": "prepared human Ensembl 112; cache-only build requested (see #865 for older producers)",
+  "resources": {
+    "cpu_limit": 8,
+    "memory_limit_mib": 65536,
+    "mapping_workers": 2,
+    "requested_scan_workers": 4,
+    "nonpreemptible": true
+  },
+  "preparation_excluded": "source acquisition/copy/verification and pyensembl reference indexing",
+  "build_cache_state": "fresh outputs; warm raw sources and pyensembl reference; cold Hitlist mapping index"
+}

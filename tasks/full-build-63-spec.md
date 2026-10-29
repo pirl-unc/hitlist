@@ -238,3 +238,21 @@ tests and the separate release-build gate passing on this producer. Final-head
 checks and complete repeated full measurements remain required. Signal cleanup
 now tolerates the child exiting between poll and signal, always commits receipts,
 and the regression publishes its PID atomically before the test signals it.
+
+## Full experiment result
+
+`issue63-full-pair-1` completed all four runs and three independent retained-file
+comparisons. Baseline times are 1,638.90/1,656.08 s; candidate times are
+1,485.89/1,510.48 s. Means are 1,647.49/1,498.19 s: 9.1% less wall time (1.10×),
+8.9% less parent-plus-waited-child CPU, and 0.28 GiB more mean parent peak RSS.
+All seven Parquet artifacts are byte-identical, all source/reference/asset and
+non-Hitlist dependency pins match, and the Python network audit has four process
+markers and zero attempted-access logs per run. This is a measured incremental
+improvement; the 2× target remains open. The separate four-run test.sh experiment
+uses the same production code with the verified harness cleanup changes.
+
+The four-run test.sh experiment also completes with matching dependencies and
+two admitted workers in every run. Baseline 260.70/252.11 s, candidate
+264.04/253.70 s; means 256.41/258.87 s. Baseline passes 3,734 tests and candidate
+3,744, with two skips/ten warnings each. CPU means are 494.46/499.36 s. The
+candidate includes ten regressions; no test-suite speedup is established.
