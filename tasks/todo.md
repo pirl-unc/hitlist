@@ -1,3 +1,22 @@
+# Controlled full-build performance — #63, 2026-10-29
+
+Specification: [full-build-63-spec.md](full-build-63-spec.md).
+
+- [x] Read #63, prior receipts and relevant lessons; isolate work from main.
+- [x] Specify baseline, controlled comparison, output invariants and release gates.
+- [ ] Profile the released scanner/publication paths and choose measured changes.
+- [ ] Implement bounded optimizations and regressions for affected invariants.
+- [ ] Run repeated paired full builds and strict retained-output comparisons.
+- [ ] Measure test.sh separately; document time, CPU, memory and remaining limits.
+- [ ] Format, lint, test, validate docs/dependencies and pass final-head CI.
+- [ ] Merge, deploy from clean main, verify public downloads and reconcile #63.
+
+## Review
+
+Baseline is released 2.1.0, main 5f988fc. Original checkout and shared environment
+remain untouched. New timing ratios require paired runs on the same allocation;
+the earlier separately hosted runs cannot establish the issue's 2× target.
+
 # Reliability/performance and pandas 3+ — 2026-10-28
 
 Specification: [reliability-pandas3-spec.md](reliability-pandas3-spec.md).

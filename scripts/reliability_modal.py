@@ -58,6 +58,10 @@ if modal.is_local():
         )
         .add_local_file(str(ROOT / "scripts/profile_scan.py"), "/opt/benchmark/profile_scan.py")
         .add_local_file(
+            str(ROOT / "scripts/profile_csv_serialization.py"),
+            "/opt/benchmark/profile_csv_serialization.py",
+        )
+        .add_local_file(
             str(ROOT / "scripts/compare_reliability_outputs.py"),
             "/opt/benchmark/compare_reliability_outputs.py",
         )
@@ -94,6 +98,7 @@ def main(
     profile: bool = False,
     scan_sample: bool = False,
     codec_sample: bool = False,
+    serialization_sample: bool = False,
     test_suite: bool = False,
     compare_before: str = "",
     compare_after: str = "",
@@ -102,8 +107,8 @@ def main(
         compare_outputs.remote(label, compare_before, compare_after)
     elif test_suite:
         measure_tests.remote(label)
-    elif scan_sample or codec_sample:
-        diagnose_scan.remote(label, codec_sample)
+    elif scan_sample or codec_sample or serialization_sample:
+        diagnose_scan.remote(label, codec_sample, serialization_sample)
     else:
         execute.remote(label, profile)
 
@@ -118,12 +123,13 @@ def main(
     max_containers=1,
     retries=0,
 )
-def diagnose_scan(label: str, codecs_only: bool = False):
+def diagnose_scan(label: str, codecs_only: bool = False, serialization_only: bool = False):
     """Locate row-level hotspots; this sample is not a full-build speed result."""
     import subprocess
     import sys
 
-    command = [sys.executable, "/opt/benchmark/profile_scan.py", label]
+    script = "profile_csv_serialization.py" if serialization_only else "profile_scan.py"
+    command = [sys.executable, f"/opt/benchmark/{script}", label]
     if codecs_only:
         command.append("--codecs-only")
     try:

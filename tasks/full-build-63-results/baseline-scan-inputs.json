@@ -1,0 +1,46 @@
+{
+  "scope": "first 100000 logical IEDB data rows; diagnostic only",
+  "source": {
+    "export_date_status": "unverified; local mtime is not an export-date claim",
+    "filename": "iedb_mhc_ligand_full.csv",
+    "remote_path": "hitlist-qualification/raw-sources/957337189072a918fe38a216cfa4893cb08a74c35027ce0489252dd446eb6ad8/iedb_mhc_ligand_full.csv",
+    "sha256": "957337189072a918fe38a216cfa4893cb08a74c35027ce0489252dd446eb6ad8",
+    "size_bytes": 7773476136
+  },
+  "sample": {
+    "sha256": "c485914a50dc53b9ff84a2aad02629be9d84ced84c46a5c347d76eb16eadb786",
+    "size_bytes": 100115496
+  },
+  "producer_archive": {
+    "sha256": "c56de402e4ab6263405859f14b6e0c722db1d59224a59c1001a9912605a9c087",
+    "size_bytes": 50097153
+  },
+  "recipe": {
+    "sha256": "7ec314c919584b6ce24c3e1cfacf6668b31236310a8cfc52ae08b61d2b83ba56",
+    "size_bytes": 7308
+  },
+  "n_rows": 100000,
+  "provenance": {
+    "schema_version": 1,
+    "sources": {
+      "iedb": {
+        "path": "/tmp/hitlist-scan-profile-6my39y2p/iedb-prefix.csv",
+        "sha256": "c485914a50dc53b9ff84a2aad02629be9d84ced84c46a5c347d76eb16eadb786",
+        "size_bytes": 100115496,
+        "upstream_description": "",
+        "locator_basis": "ingested_csv_logical_data_row_1_based",
+        "upstream_record_locator_status": "assay_iri_when_reported"
+      }
+    },
+    "contributors": {
+      "file": "contributors.parquet",
+      "sha256": "46d897c45c234a13188f1f2da846f9c3e8e9b4272949e60d41d7d2b88114d7dc",
+      "size_bytes": 7588242
+    },
+    "n_contributor_links": 100000
+  },
+  "profiler": {
+    "tool": "pyinstrument",
+    "interval_seconds": 0.01
+  }
+}
