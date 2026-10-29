@@ -24,10 +24,7 @@ from __future__ import annotations
 
 import csv
 import os
-import sys
 import warnings
-from collections import deque
-from contextlib import closing
 from operator import itemgetter
 from pathlib import Path
 
@@ -291,470 +288,6 @@ def _progress(reader, path: Path, desc: str, fh: _ByteCountingFile | None = None
 # ── Public API ──────────────────────────────────────────────────────────────
 
 
-def _annotate_rows(
-    source_rows,
-    *,
-    mhc_species,
-    species_fallback,
-    mhc_class,
-    classify_source,
-    min_res_rank,
-    observe=None,
-):
-    """Annotate ordered raw fields; source capture/deduplication belongs to the caller."""
-    from .assays import assay_annotations
-    from .curation import (
-        allele_resolution_rank,
-        attribute_peptide_to_per_sample_typings,
-        classify_allele_resolution,
-        is_non_peptide_ligand,
-        normalize_species,
-        peptide_attribution_applies_to_row,
-        pmid_mhc_species_context,
-        resolve_mhc_annotation,
-    )
-
-    rows: list[dict] = []
-    for fields, record_id in source_rows:
-        iri = fields["assay_iri"]
-        src_org = fields["source_organism"]
-        species = fields["species"]
-        host = fields["host"]
-        raw_pmid = fields["pmid"].strip()
-        pmid: str | int = ""
-        if raw_pmid:
-            try:
-                pmid = int(raw_pmid)
-            except ValueError:
-                pmid = raw_pmid
-
-        mhc_res_raw = fields["mhc_restriction"]
-        reported_mhc_class = fields["mhc_class"]
-        mhc_species_context = pmid_mhc_species_context(pmid)
-        mhc_annotation = resolve_mhc_annotation(
-            mhc_res_raw,
-            reported_mhc_class,
-            mhc_species_context,
-        )
-        mhc_res = mhc_annotation.restriction
-
-        # Species filtering: use MHC allele name (via mhcgnomes) as the
-        # authoritative species source; when species_fallback=True and
-        # mhcgnomes can't parse, fall back to host/species text columns.
-        mhc_sp = mhc_annotation.mhc_species
-
-        if mhc_species is not None:
-            if mhc_sp:
-                if mhc_sp != mhc_species:
-                    continue
-            elif species_fallback:
-                if mhc_species not in (
-                    normalize_species(host),
-                    normalize_species(species),
-                ):
-                    continue
-            else:
-                # Strict mode: unparseable MHC restriction → drop.
-                continue
-        if mhc_class is not None and mhc_annotation.mhc_class != mhc_class:
-            continue
-        if min_res_rank is not None:
-            res = classify_allele_resolution(mhc_res)
-            if allele_resolution_rank(res) > min_res_rank:
-                continue
-
-        # Per-PMID source-organism curation (#307): fill the source proteome
-        # for self-peptidome datasets IEDB left blank / "unidentified".  Only
-        # fills genuinely-unresolved rows, and only for PMIDs explicitly
-        # curated in pmid_overrides.yaml (NOT a blanket source=host rule).
-        if not src_org or src_org.strip().lower() == "unidentified":
-            from .curation import pmid_source_organism
-
-            curated_src, curated_spc = pmid_source_organism(pmid)
-            if curated_src:
-                src_org = curated_src
-                if not species or species.strip().lower() == "unidentified":
-                    species = curated_spc
-
-        process_type = fields["process_type"]
-        disease = fields["disease"]
-        culture_condition = fields["culture_condition"]
-        source_tissue = fields["source_tissue"]
-        cell_name = fields["cell_name"]
-
-        # Per-PMID provenance curation (#314): fill blank source_tissue /
-        # cell_name / disease / culture_condition for epitope-ID papers IEDB
-        # left unlabeled, from the PMID's pmid_overrides entry.  Fills before
-        # classification so a curated cell line classifies correctly.  Only
-        # fills unresolved values.  IEDB's "Other"/"unidentified" sentinels
-        # (for source_tissue or cell_name) count as unresolved, so curating
-        # the real value replaces them (#36 / "Other"-tissue papers).
-        from .cell_name_parser import _UNINFORMATIVE_CELL_NAMES
-
-        _cell_unresolved = cell_name.strip().lower() in _UNINFORMATIVE_CELL_NAMES
-        _tissue_unresolved = source_tissue.strip().lower() in _UNRESOLVED_TISSUE
-        if not (not _tissue_unresolved and not _cell_unresolved and disease and culture_condition):
-            from .curation import pmid_provenance
-
-            _prov = pmid_provenance(pmid)
-            if _prov:
-                if _tissue_unresolved and _prov.get("source_tissue"):
-                    source_tissue = _prov["source_tissue"]
-                if _cell_unresolved and _prov.get("cell_name"):
-                    cell_name = _prov["cell_name"]
-                disease = disease or _prov.get("disease", "")
-                culture_condition = culture_condition or _prov.get("culture_condition", "")
-
-        # IEDB embeds PTMs inline in the Epitope|Name column
-        # (e.g. "LQPFPQPQLPY + DEAM(Q8)"). Pull them into structured
-        # columns so length filters, AA validation, and model
-        # training inputs see clean sequences while PTM information
-        # is preserved alongside (#194).
-        (
-            bare_peptide,
-            peptide_modifications_str,
-            has_ptm,
-            peptide_extended,
-        ) = parse_peptide_modifications(fields["epitope_name"])
-
-        record: dict = {
-            "peptide": bare_peptide,
-            "peptide_modifications": peptide_modifications_str,
-            "has_ptm": has_ptm,
-            "peptide_extended": peptide_extended,
-            **mhc_annotation.as_record_fields(),
-            "assay_iri": iri,
-            "reference_iri": fields["ref_iri"],
-            "pmid": pmid,
-            "submission_id": fields["submission_id"],
-            "reference_title": fields["ref_title"],
-            "source_organism": src_org,
-            "species": species,
-            "host": fields["host"],
-            "host_age": fields["host_age"],
-            "host_mhc_types": fields["host_mhc_types"],
-            "process_type": process_type,
-            "disease": disease,
-            "disease_stage": fields["disease_stage"],
-            "source_tissue": source_tissue,
-            "cell_name": cell_name,
-            "culture_condition": culture_condition,
-            "antigen_processing_comments": fields["antigen_processing_comments"],
-            "assay_comments": fields["assay_comments"],
-            "qualitative_measurement": fields["qualitative_measurement"],
-            # Structured quantitative binding-assay fields from IEDB /
-            # CEDAR (issue #148, issue #135).  The raw string is preserved
-            # so consumers can audit parsing; ``quantitative_value`` is the
-            # float cast (NaN when the cell is empty / non-numeric) for
-            # downstream filtering.  ``measurement_inequality`` ("", "<",
-            # ">", "=", "<=", ">=") paired with ``quantitative_value``
-            # distinguishes exact IC50 measurements from bounded ones.
-            # ``response_measured`` (e.g. "qualitative binding",
-            # "half life", "ligand presentation", "dissociation constant
-            # KD") is the readout type — combined with ``assay_method``
-            # and ``measurement_units`` it tells consumers whether a
-            # numeric value is IC50 vs Kd vs t_half vs Tm.
-            "assay_method": fields["assay_method"],
-            "response_measured": fields["response_measured"],
-            "measurement_units": fields["measurement_units"],
-            "measurement_inequality": fields["measurement_inequality"],
-            "quantitative_measurement": fields["quantitative_measurement"],
-            "quantitative_value": _parse_float(fields["quantitative_measurement"]),
-            **assay_annotations(
-                fields["qualitative_measurement"],
-                fields["assay_comments"],
-                fields["assay_method"],
-                fields["response_measured"],
-            ),
-            # Flags rows whose MHC molecule presents lipids / metabolites
-            # rather than peptides (CD1, MR1, MIC, ULBP, etc. — see #228).
-            # IEDB curates these alongside peptide-MHC and stores chemical
-            # names or compound IDs in the peptide column; downstream
-            # peptide consumers should filter these out.
-            "is_non_peptide_ligand": is_non_peptide_ligand(mhc_res),
-        }
-
-        if classify_source:
-            record.update(
-                classify_ms_row(
-                    process_type,
-                    disease,
-                    culture_condition,
-                    source_tissue,
-                    cell_name,
-                    pmid,
-                    mhc_restriction=mhc_res,
-                    mhc_species_context=mhc_species_context,
-                    submission_id=record.get("submission_id", ""),
-                    assay_comments=record.get("assay_comments", ""),
-                )
-            )
-        record["restriction_evidence"] = restriction_evidence_for_row(
-            mhc_res,
-            pmid=pmid,
-            submission_id=record.get("submission_id", ""),
-            is_binding_assay=bool(record["is_binding_assay"]),
-            is_monoallelic=bool(record.get("is_monoallelic", False)),
-            process_type=process_type,
-            disease=disease,
-            culture_condition=culture_condition,
-            source_tissue=source_tissue,
-            cell_name=cell_name,
-            assay_comments=record.get("assay_comments", ""),
-            assay_method=record.get("assay_method", ""),
-            response_measured=record.get("response_measured", ""),
-            qualitative_measurement=record.get("qualitative_measurement", ""),
-        )
-        # Exact-allele set expansion (issue #137).  Computed off the
-        # row's MHC restriction + the donor's typed alleles (Host |
-        # MHC Types Present, when IEDB carries them) + the per-PMID
-        # ``hla_alleles`` curation pool.  Provenance disambiguates
-        # ``exact`` (already 4-digit) / ``sample_allele_match`` /
-        # ``pmid_class_pool`` / ``unmatched``.  Always emitted so the
-        # parquet schema is uniform across modalities.
-        #
-        # Per-peptide attribution lookup (#45 / #236 / #414): for PMIDs
-        # that registered a ``peptide_attributions:`` CSV, the helper
-        # returns one ``(sample_label, alleles)`` pair per matched donor.
-        # Class-only rows narrow to that donor's typing; already resolved
-        # rows retain their reported restriction and gain only the
-        # source-backed sample label when that source cohort is eligible
-        # for the registered map (#534). Multiple matched
-        # donors emit one record apiece.  For every other row the helper
-        # returns ``()`` and the original single-record path is unchanged.
-        per_sample_typings: tuple[tuple[str, frozenset[str]], ...] = ()
-        if bare_peptide and peptide_attribution_applies_to_row(pmid, mhc_res_raw):
-            per_sample_typings = attribute_peptide_to_per_sample_typings(pmid, bare_peptide)
-
-        host_mhc_types = record.get("host_mhc_types", "")
-        row_mhc_class = record.get("mhc_class", "")
-
-        if per_sample_typings:
-            # Multi-donor split: one emitted record per matched donor.
-            for sample_label, donor_alleles in per_sample_typings:
-                donor_allele_set, donor_prov, donor_size = expand_allele_set(
-                    mhc_res,
-                    host_mhc_types,
-                    pmid,
-                    row_mhc_class,
-                    donor_alleles,
-                    species_context=mhc_species_context,
-                )
-                donor_record = dict(record)
-                donor_record["mhc_allele_set"] = donor_allele_set
-                donor_record["mhc_allele_provenance"] = donor_prov
-                donor_record["mhc_allele_set_size"] = donor_size
-                donor_record["attributed_sample_label"] = sample_label
-                if observe is not None:
-                    donor_record["provenance_id"] = observe(record_id, sample_label)
-                # Promote a narrowed class-only set to ``mhc_restriction``
-                # (#45).  An exact source restriction remains unchanged;
-                # the curated donor label is independent metadata (#414).
-                if donor_size > 0 and donor_prov in CLASS_ONLY_CANDIDATE_PROVENANCES:
-                    donor_annotation = resolve_mhc_annotation(
-                        donor_allele_set,
-                        reported_mhc_class,
-                        mhc_species_context,
-                    )
-                    donor_record.update(donor_annotation.as_record_fields())
-                rows.append(donor_record)
-            continue
-
-        allele_set, set_provenance, set_size = expand_allele_set(
-            mhc_res,
-            host_mhc_types,
-            pmid,
-            row_mhc_class,
-            frozenset(),
-            species_context=mhc_species_context,
-        )
-        record["mhc_allele_set"] = allele_set
-        record["mhc_allele_provenance"] = set_provenance
-        record["mhc_allele_set_size"] = set_size
-        record["attributed_sample_label"] = ""
-        if observe is not None:
-            record["provenance_id"] = observe(record_id)
-
-        # Retain historical class-only promotion (#45). New gene/locus
-        # inference remains a separate candidate set even for a singleton;
-        # it never upgrades the reported restriction's precision (#599).
-        if set_size > 0 and set_provenance in CLASS_ONLY_CANDIDATE_PROVENANCES:
-            promoted_annotation = resolve_mhc_annotation(
-                allele_set,
-                reported_mhc_class,
-                mhc_species_context,
-            )
-            record.update(promoted_annotation.as_record_fields())
-
-        rows.append(record)
-    return rows
-
-
-_SCAN_BATCH_ROWS = 1024
-_SCAN_BATCH_BYTES = 4 * 1024**2
-_SCAN_PARENT_RESERVE_BYTES = 32 * 1024**3
-_SCAN_WORKER_BYTES = 2560 * 1024**2
-
-
-def _scan_available_bytes():
-    """Conservative capacity for extra scan workers, including container limits."""
-    try:
-        if sys.platform == "linux":
-            available = next(
-                int(line.split()[1]) * 1024
-                for line in Path("/proc/meminfo").read_text().splitlines()
-                if line.startswith("MemAvailable:")
-            )
-            for limit_path, used_path in (
-                ("/sys/fs/cgroup/memory.max", "/sys/fs/cgroup/memory.current"),
-                (
-                    "/sys/fs/cgroup/memory/memory.limit_in_bytes",
-                    "/sys/fs/cgroup/memory/memory.usage_in_bytes",
-                ),
-            ):
-                if Path(limit_path).exists() and Path(used_path).exists():
-                    limit = Path(limit_path).read_text().strip()
-                    if limit != "max":
-                        available = min(
-                            available, max(0, int(limit) - int(Path(used_path).read_text()))
-                        )
-            return available
-        if sys.platform == "darwin":
-            import subprocess
-
-            result = subprocess.run(["vm_stat"], capture_output=True, text=True, check=False)
-            if result.returncode:
-                return None
-            output = result.stdout
-            pages = {}
-            for line in output.splitlines():
-                if ":" in line:
-                    name, value = line.split(":", 1)
-                    if name in {"Pages free", "Pages speculative"}:
-                        pages[name] = int(value.strip().rstrip("."))
-            return (pages["Pages free"] + pages.get("Pages speculative", 0)) * os.sysconf(
-                "SC_PAGE_SIZE"
-            )
-    except (OSError, ValueError, KeyError, StopIteration):
-        return None
-    return None
-
-
-def _scan_workers(requested):
-    """Admit at most four workers while reserving the measured full-scan parent peak."""
-    if requested is None:
-        requested = int(
-            os.environ.get("HITLIST_SCAN_WORKERS", os.environ.get("HITLIST_BUILD_WORKERS", "4"))
-        )
-    if isinstance(requested, bool) or not isinstance(requested, int) or requested < 1:
-        raise ValueError("Scanner workers must be a positive integer")
-    if requested == 1:
-        return 1
-    available = _scan_available_bytes()
-    if available is None:
-        return 1
-    memory_cap = max(1, (available - _SCAN_PARENT_RESERVE_BYTES) // _SCAN_WORKER_BYTES)
-    return min(requested, 4, max(1, (os.cpu_count() or 1) // 2), memory_cap)
-
-
-def _scan_batches(source_rows):
-    """Bound queued inputs by rows and owned Python bytes; isolate an oversized row."""
-    batch, batch_bytes = [], 0
-    dataset = columns = None
-    for source, layout, item in source_rows:
-        row_number, values, record_id, duplicate = item
-        size = sum(map(sys.getsizeof, values))
-        size += sum(map(sys.getsizeof, (item, row_number, values, record_id, duplicate)))
-        if batch and (
-            len(batch) >= _SCAN_BATCH_ROWS
-            or batch_bytes + size > _SCAN_BATCH_BYTES
-            or source != dataset
-            or layout is not columns
-        ):
-            yield dataset, columns, batch
-            batch, batch_bytes = [], 0
-        dataset, columns = source, layout
-        batch.append(item)
-        batch_bytes += size
-        if batch_bytes >= _SCAN_BATCH_BYTES:
-            yield dataset, columns, batch
-            batch, batch_bytes = [], 0
-    if batch:
-        yield dataset, columns, batch
-
-
-def _initialize_scan_worker(data_directory):
-    from .curation import _clear_curation_caches
-    from .downloads import set_data_dir
-
-    set_data_dir(data_directory)
-    _clear_curation_caches()
-
-
-def _annotate_batch(batch, options, capture):
-    from .provenance import _encode_csv_blocks, _observation_id
-
-    dataset, columns, inputs = batch
-    observations = []
-
-    def observe(record_id, label=""):
-        observations.append((record_id, label))
-        return _observation_id(record_id, label)
-
-    field_names = tuple(columns)
-    project = itemgetter(*columns.values())
-    max_column = max(columns.values())
-
-    def source_rows():
-        for _row_number, values, record_id, duplicate in inputs:
-            if not duplicate:
-                fields = (
-                    dict(zip(field_names, project(values)))
-                    if len(values) > max_column
-                    else {name: _safe_col(values, index) for name, index in columns.items()}
-                )
-                yield fields, record_id
-
-    blocks = _encode_csv_blocks(columns, inputs) if capture else []
-    rows = _annotate_rows(source_rows(), **options, observe=observe if capture else None)
-    return dataset, blocks, rows, observations
-
-
-def _parallel_scan(source_rows, options, provenance, n_workers):
-    """Consume bounded futures in source order; only the parent owns the graph."""
-    import multiprocessing
-    from concurrent.futures import ProcessPoolExecutor
-
-    from .downloads import data_dir
-
-    pending = deque()
-    rows = []
-
-    def collect(future):
-        dataset, blocks, records, observations = future.result()
-        if provenance is not None:
-            provenance._import_csv_blocks(dataset, blocks)
-            provenance._observe_batch(observations)
-        rows.extend(records)
-
-    executor = ProcessPoolExecutor(
-        max_workers=n_workers,
-        mp_context=multiprocessing.get_context("spawn"),
-        initializer=_initialize_scan_worker,
-        initargs=(str(data_dir()),),
-    )
-    try:
-        for batch in _scan_batches(source_rows):
-            pending.append(executor.submit(_annotate_batch, batch, options, provenance is not None))
-            if len(pending) >= 2 * n_workers:
-                collect(pending.popleft())
-        while pending:
-            collect(pending.popleft())
-    finally:
-        executor.shutdown(wait=True, cancel_futures=True)
-    return rows
-
-
 def scan(
     peptides: set[str] | None = None,
     iedb_path: str | Path | None = None,
@@ -767,7 +300,6 @@ def scan(
     human_only: bool | None = None,
     *,
     provenance=None,
-    n_workers=1,
 ) -> pd.DataFrame:
     """Scan IEDB/CEDAR for matching peptides, or profile entire dataset.
 
@@ -804,12 +336,6 @@ def scan(
             ``mhc_species="Homo sapiens"``; ``human_only=False`` maps to
             ``mhc_species=None``.  If both are passed, ``mhc_species`` wins.
             Slated for removal in hitlist 2.0.
-    n_workers
-        Source-row workers. Default 1 keeps direct calls serial. None selects
-        HITLIST_SCAN_WORKERS, then HITLIST_BUILD_WORKERS, then 4. Extra workers
-        require available memory beyond a 32 GiB parent reserve, plus 2.5 GiB
-        per worker; unknown capacity selects the serial path. Inputs, results
-        and contributor writes retain source order in either path.
 
     Returns
     -------
@@ -837,99 +363,345 @@ def scan(
     if cedar_path is not None:
         source_paths.append(Path(cedar_path))
 
-    from .curation import allele_resolution_rank, normalize_species
+    from .assays import assay_annotations
+    from .curation import (
+        allele_resolution_rank,
+        attribute_peptide_to_per_sample_typings,
+        classify_allele_resolution,
+        is_non_peptide_ligand,
+        normalize_species,
+        peptide_attribution_applies_to_row,
+        pmid_mhc_species_context,
+        resolve_mhc_annotation,
+    )
 
     if mhc_species is not None:
         mhc_species = normalize_species(mhc_species)
     min_res_rank = allele_resolution_rank(min_allele_resolution) if min_allele_resolution else None
-    effective_workers = _scan_workers(n_workers)
 
-    def source_rows():
-        from .provenance import _record_prefix
+    rows: list[dict] = []
+    seen: set[str] = set()
+    scan_id = provenance.begin_scan() if provenance is not None else None
 
-        seen: set[str] = set()
-        scan_id = provenance.begin_scan() if provenance is not None else None
-
-        for source_path in source_paths:
-            if not source_path.exists():
-                continue
-            dataset = (
-                "iedb" if iedb_path is not None and source_path == Path(iedb_path) else "cedar"
+    for source_path in source_paths:
+        if not source_path.exists():
+            continue
+        dataset = "iedb" if iedb_path is not None and source_path == Path(iedb_path) else "cedar"
+        if provenance is not None:
+            provenance.register_source(dataset, source_path)
+        reader, c, p, fh = _open_csv(source_path)
+        field_names = tuple(c)
+        project = itemgetter(*c.values())
+        max_column = max(c.values())
+        record_csv = provenance.csv_record_writer(dataset, c) if provenance is not None else None
+        for row_number, row in enumerate(_progress(reader, p, f"Scanning {p.name}", fh=fh), 1):
+            if peptides is not None:
+                pep_raw = _safe_col(row, c["epitope_name"])
+                # Match the targeted-peptide filter against either the
+                # raw string (back-compat) or the bare PTM-stripped form
+                # (so callers passing bare AA sequences still match
+                # rows that IEDB has annotated with PTMs).
+                if pep_raw not in peptides:
+                    bare = parse_peptide_modifications(pep_raw)[0]
+                    if bare not in peptides:
+                        continue
+            # Dedup only on a *present* Assay IRI. A blank IRI is not an
+            # identity — deduping on "" would collapse every blank-IRI row
+            # (distinct observations) into one. _safe_col guards short rows.
+            fields = (
+                dict(zip(field_names, project(row)))
+                if len(row) > max_column
+                else {name: _safe_col(row, index) for name, index in c.items()}
             )
+            iri = fields["assay_iri"]
+            record_id = ""
             if provenance is not None:
-                provenance.register_source(dataset, source_path)
-            reader, c, p, fh = _open_csv(source_path)
-            field_names = tuple(c)
-            project = itemgetter(*c.values())
-            max_column = max(c.values())
-            record_csv = (
-                provenance.csv_record_writer(dataset, c)
-                if provenance is not None and effective_workers == 1
-                else None
-            )
-            record_prefix = _record_prefix(dataset)
-            try:
-                for row_number, row in enumerate(
-                    _progress(reader, p, f"Scanning {p.name}", fh=fh), 1
-                ):
-                    if peptides is not None:
-                        pep_raw = _safe_col(row, c["epitope_name"])
-                        # Match the targeted-peptide filter against either the
-                        # raw string (back-compat) or the bare PTM-stripped form
-                        # (so callers passing bare AA sequences still match
-                        # rows that IEDB has annotated with PTMs).
-                        if pep_raw not in peptides:
-                            bare = parse_peptide_modifications(pep_raw)[0]
-                            if bare not in peptides:
-                                continue
-                    # Dedup only on a *present* Assay IRI. A blank IRI is not an
-                    # identity — deduping on "" would collapse every blank-IRI row
-                    # (distinct observations) into one. _safe_col guards short rows.
-                    iri = _safe_col(row, c["assay_iri"])
-                    record_id = ""
-                    duplicate = False
-                    if provenance is not None:
-                        record_id = (
-                            record_csv(row_number, row)
-                            if record_csv is not None
-                            else f"{record_prefix}{row_number}"
-                        )
-                    if iri:
-                        if provenance is not None:
-                            duplicate = provenance.duplicate_assay(scan_id, iri, record_id)
-                        else:
-                            duplicate = iri in seen
-                            seen.add(iri)
-                    if effective_workers > 1:
-                        # Every original record is captured, including duplicate
-                        # assays; only the first present IRI reaches annotation.
-                        if provenance is not None or not duplicate:
-                            yield dataset, c, (row_number, row, record_id, duplicate)
-                    elif not duplicate:
-                        fields = (
-                            dict(zip(field_names, project(row)))
-                            if len(row) > max_column
-                            else {name: _safe_col(row, index) for name, index in c.items()}
-                        )
-                        yield fields, record_id
-            finally:
-                fh.close()
+                record_id = record_csv(row_number, row)
+            if iri:
+                if provenance is not None:
+                    if provenance.duplicate_assay(scan_id, iri, record_id):
+                        continue
+                else:
+                    if iri in seen:
+                        continue
+                    seen.add(iri)
 
-    options = {
-        "mhc_species": mhc_species,
-        "species_fallback": species_fallback,
-        "mhc_class": mhc_class,
-        "classify_source": classify_source,
-        "min_res_rank": min_res_rank,
-    }
-    with closing(source_rows()) as inputs:
-        if effective_workers == 1:
-            rows = _annotate_rows(
-                inputs, **options, observe=provenance.observe if provenance is not None else None
+            src_org = fields["source_organism"]
+            species = fields["species"]
+            host = fields["host"]
+            raw_pmid = fields["pmid"].strip()
+            pmid: str | int = ""
+            if raw_pmid:
+                try:
+                    pmid = int(raw_pmid)
+                except ValueError:
+                    pmid = raw_pmid
+
+            mhc_res_raw = fields["mhc_restriction"]
+            reported_mhc_class = fields["mhc_class"]
+            mhc_species_context = pmid_mhc_species_context(pmid)
+            mhc_annotation = resolve_mhc_annotation(
+                mhc_res_raw,
+                reported_mhc_class,
+                mhc_species_context,
             )
-        else:
-            print(
-                f"Processing source rows with {effective_workers} workers (bounded, ordered batches)"
+            mhc_res = mhc_annotation.restriction
+
+            # Species filtering: use MHC allele name (via mhcgnomes) as the
+            # authoritative species source; when species_fallback=True and
+            # mhcgnomes can't parse, fall back to host/species text columns.
+            mhc_sp = mhc_annotation.mhc_species
+
+            if mhc_species is not None:
+                if mhc_sp:
+                    if mhc_sp != mhc_species:
+                        continue
+                elif species_fallback:
+                    if mhc_species not in (
+                        normalize_species(host),
+                        normalize_species(species),
+                    ):
+                        continue
+                else:
+                    # Strict mode: unparseable MHC restriction → drop.
+                    continue
+            if mhc_class is not None and mhc_annotation.mhc_class != mhc_class:
+                continue
+            if min_res_rank is not None:
+                res = classify_allele_resolution(mhc_res)
+                if allele_resolution_rank(res) > min_res_rank:
+                    continue
+
+            # Per-PMID source-organism curation (#307): fill the source proteome
+            # for self-peptidome datasets IEDB left blank / "unidentified".  Only
+            # fills genuinely-unresolved rows, and only for PMIDs explicitly
+            # curated in pmid_overrides.yaml (NOT a blanket source=host rule).
+            if not src_org or src_org.strip().lower() == "unidentified":
+                from .curation import pmid_source_organism
+
+                curated_src, curated_spc = pmid_source_organism(pmid)
+                if curated_src:
+                    src_org = curated_src
+                    if not species or species.strip().lower() == "unidentified":
+                        species = curated_spc
+
+            process_type = fields["process_type"]
+            disease = fields["disease"]
+            culture_condition = fields["culture_condition"]
+            source_tissue = fields["source_tissue"]
+            cell_name = fields["cell_name"]
+
+            # Per-PMID provenance curation (#314): fill blank source_tissue /
+            # cell_name / disease / culture_condition for epitope-ID papers IEDB
+            # left unlabeled, from the PMID's pmid_overrides entry.  Fills before
+            # classification so a curated cell line classifies correctly.  Only
+            # fills unresolved values.  IEDB's "Other"/"unidentified" sentinels
+            # (for source_tissue or cell_name) count as unresolved, so curating
+            # the real value replaces them (#36 / "Other"-tissue papers).
+            from .cell_name_parser import _UNINFORMATIVE_CELL_NAMES
+
+            _cell_unresolved = cell_name.strip().lower() in _UNINFORMATIVE_CELL_NAMES
+            _tissue_unresolved = source_tissue.strip().lower() in _UNRESOLVED_TISSUE
+            if not (
+                not _tissue_unresolved and not _cell_unresolved and disease and culture_condition
+            ):
+                from .curation import pmid_provenance
+
+                _prov = pmid_provenance(pmid)
+                if _prov:
+                    if _tissue_unresolved and _prov.get("source_tissue"):
+                        source_tissue = _prov["source_tissue"]
+                    if _cell_unresolved and _prov.get("cell_name"):
+                        cell_name = _prov["cell_name"]
+                    disease = disease or _prov.get("disease", "")
+                    culture_condition = culture_condition or _prov.get("culture_condition", "")
+
+            # IEDB embeds PTMs inline in the Epitope|Name column
+            # (e.g. "LQPFPQPQLPY + DEAM(Q8)"). Pull them into structured
+            # columns so length filters, AA validation, and model
+            # training inputs see clean sequences while PTM information
+            # is preserved alongside (#194).
+            (
+                bare_peptide,
+                peptide_modifications_str,
+                has_ptm,
+                peptide_extended,
+            ) = parse_peptide_modifications(fields["epitope_name"])
+
+            record: dict = {
+                "peptide": bare_peptide,
+                "peptide_modifications": peptide_modifications_str,
+                "has_ptm": has_ptm,
+                "peptide_extended": peptide_extended,
+                **mhc_annotation.as_record_fields(),
+                "assay_iri": iri,
+                "reference_iri": fields["ref_iri"],
+                "pmid": pmid,
+                "submission_id": fields["submission_id"],
+                "reference_title": fields["ref_title"],
+                "source_organism": src_org,
+                "species": species,
+                "host": fields["host"],
+                "host_age": fields["host_age"],
+                "host_mhc_types": fields["host_mhc_types"],
+                "process_type": process_type,
+                "disease": disease,
+                "disease_stage": fields["disease_stage"],
+                "source_tissue": source_tissue,
+                "cell_name": cell_name,
+                "culture_condition": culture_condition,
+                "antigen_processing_comments": fields["antigen_processing_comments"],
+                "assay_comments": fields["assay_comments"],
+                "qualitative_measurement": fields["qualitative_measurement"],
+                # Structured quantitative binding-assay fields from IEDB /
+                # CEDAR (issue #148, issue #135).  The raw string is preserved
+                # so consumers can audit parsing; ``quantitative_value`` is the
+                # float cast (NaN when the cell is empty / non-numeric) for
+                # downstream filtering.  ``measurement_inequality`` ("", "<",
+                # ">", "=", "<=", ">=") paired with ``quantitative_value``
+                # distinguishes exact IC50 measurements from bounded ones.
+                # ``response_measured`` (e.g. "qualitative binding",
+                # "half life", "ligand presentation", "dissociation constant
+                # KD") is the readout type — combined with ``assay_method``
+                # and ``measurement_units`` it tells consumers whether a
+                # numeric value is IC50 vs Kd vs t_half vs Tm.
+                "assay_method": fields["assay_method"],
+                "response_measured": fields["response_measured"],
+                "measurement_units": fields["measurement_units"],
+                "measurement_inequality": fields["measurement_inequality"],
+                "quantitative_measurement": fields["quantitative_measurement"],
+                "quantitative_value": _parse_float(fields["quantitative_measurement"]),
+                **assay_annotations(
+                    fields["qualitative_measurement"],
+                    fields["assay_comments"],
+                    fields["assay_method"],
+                    fields["response_measured"],
+                ),
+                # Flags rows whose MHC molecule presents lipids / metabolites
+                # rather than peptides (CD1, MR1, MIC, ULBP, etc. — see #228).
+                # IEDB curates these alongside peptide-MHC and stores chemical
+                # names or compound IDs in the peptide column; downstream
+                # peptide consumers should filter these out.
+                "is_non_peptide_ligand": is_non_peptide_ligand(mhc_res),
+            }
+
+            if classify_source:
+                record.update(
+                    classify_ms_row(
+                        process_type,
+                        disease,
+                        culture_condition,
+                        source_tissue,
+                        cell_name,
+                        pmid,
+                        mhc_restriction=mhc_res,
+                        mhc_species_context=mhc_species_context,
+                        submission_id=record.get("submission_id", ""),
+                        assay_comments=record.get("assay_comments", ""),
+                    )
+                )
+            record["restriction_evidence"] = restriction_evidence_for_row(
+                mhc_res,
+                pmid=pmid,
+                submission_id=record.get("submission_id", ""),
+                is_binding_assay=bool(record["is_binding_assay"]),
+                is_monoallelic=bool(record.get("is_monoallelic", False)),
+                process_type=process_type,
+                disease=disease,
+                culture_condition=culture_condition,
+                source_tissue=source_tissue,
+                cell_name=cell_name,
+                assay_comments=record.get("assay_comments", ""),
+                assay_method=record.get("assay_method", ""),
+                response_measured=record.get("response_measured", ""),
+                qualitative_measurement=record.get("qualitative_measurement", ""),
             )
-            rows = _parallel_scan(inputs, options, provenance, effective_workers)
+            # Exact-allele set expansion (issue #137).  Computed off the
+            # row's MHC restriction + the donor's typed alleles (Host |
+            # MHC Types Present, when IEDB carries them) + the per-PMID
+            # ``hla_alleles`` curation pool.  Provenance disambiguates
+            # ``exact`` (already 4-digit) / ``sample_allele_match`` /
+            # ``pmid_class_pool`` / ``unmatched``.  Always emitted so the
+            # parquet schema is uniform across modalities.
+            #
+            # Per-peptide attribution lookup (#45 / #236 / #414): for PMIDs
+            # that registered a ``peptide_attributions:`` CSV, the helper
+            # returns one ``(sample_label, alleles)`` pair per matched donor.
+            # Class-only rows narrow to that donor's typing; already resolved
+            # rows retain their reported restriction and gain only the
+            # source-backed sample label when that source cohort is eligible
+            # for the registered map (#534). Multiple matched
+            # donors emit one record apiece.  For every other row the helper
+            # returns ``()`` and the original single-record path is unchanged.
+            per_sample_typings: tuple[tuple[str, frozenset[str]], ...] = ()
+            if bare_peptide and peptide_attribution_applies_to_row(pmid, mhc_res_raw):
+                per_sample_typings = attribute_peptide_to_per_sample_typings(pmid, bare_peptide)
+
+            host_mhc_types = record.get("host_mhc_types", "")
+            row_mhc_class = record.get("mhc_class", "")
+
+            if per_sample_typings:
+                # Multi-donor split: one emitted record per matched donor.
+                for sample_label, donor_alleles in per_sample_typings:
+                    donor_allele_set, donor_prov, donor_size = expand_allele_set(
+                        mhc_res,
+                        host_mhc_types,
+                        pmid,
+                        row_mhc_class,
+                        donor_alleles,
+                        species_context=mhc_species_context,
+                    )
+                    donor_record = dict(record)
+                    donor_record["mhc_allele_set"] = donor_allele_set
+                    donor_record["mhc_allele_provenance"] = donor_prov
+                    donor_record["mhc_allele_set_size"] = donor_size
+                    donor_record["attributed_sample_label"] = sample_label
+                    if provenance is not None:
+                        donor_record["provenance_id"] = provenance.observe(record_id, sample_label)
+                    # Promote a narrowed class-only set to ``mhc_restriction``
+                    # (#45).  An exact source restriction remains unchanged;
+                    # the curated donor label is independent metadata (#414).
+                    if donor_size > 0 and donor_prov in CLASS_ONLY_CANDIDATE_PROVENANCES:
+                        donor_annotation = resolve_mhc_annotation(
+                            donor_allele_set,
+                            reported_mhc_class,
+                            mhc_species_context,
+                        )
+                        donor_record.update(donor_annotation.as_record_fields())
+                    rows.append(donor_record)
+                continue
+
+            allele_set, set_provenance, set_size = expand_allele_set(
+                mhc_res,
+                host_mhc_types,
+                pmid,
+                row_mhc_class,
+                frozenset(),
+                species_context=mhc_species_context,
+            )
+            record["mhc_allele_set"] = allele_set
+            record["mhc_allele_provenance"] = set_provenance
+            record["mhc_allele_set_size"] = set_size
+            record["attributed_sample_label"] = ""
+            if provenance is not None:
+                record["provenance_id"] = provenance.observe(record_id)
+
+            # Retain historical class-only promotion (#45). New gene/locus
+            # inference remains a separate candidate set even for a singleton;
+            # it never upgrades the reported restriction's precision (#599).
+            if set_size > 0 and set_provenance in CLASS_ONLY_CANDIDATE_PROVENANCES:
+                promoted_annotation = resolve_mhc_annotation(
+                    allele_set,
+                    reported_mhc_class,
+                    mhc_species_context,
+                )
+                record.update(promoted_annotation.as_record_fields())
+
+            rows.append(record)
+        # Close the wrapped file handle explicitly — relying on garbage
+        # collection produced ResourceWarnings under pytest's strict-
+        # warning filters (the noqa: SIM115 in _open_csv signals the
+        # close lives at the call site).
+        fh.close()
+
     return pd.DataFrame(rows)

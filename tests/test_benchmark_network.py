@@ -120,18 +120,14 @@ def test_interrupted_experiment_records_failure_and_reaps_child(tmp_path, benchm
     assert "received signal 15" in (base / "interrupted/failure.txt").read_text()
 
 
-def test_scan_diagnostic_uses_builder_pmid_projection_and_keeps_originals(
-    tmp_path, benchmark, monkeypatch
-):
+def test_scan_diagnostic_uses_builder_pmid_projection_and_keeps_originals(tmp_path, benchmark):
     import json
 
     import pandas as pd
 
-    from hitlist import scanner
     from tests.test_provenance import _row
     from tests.test_scanner import _write_tiny_iedb_csv
 
-    monkeypatch.setattr(scanner, "_scan_workers", lambda requested: 1)
     source = tmp_path / "iedb.csv"
     rows = [_row("integer"), _row("missing"), _row("noninteger")]
     rows[1][2], rows[2][2] = "", "reported-reference"

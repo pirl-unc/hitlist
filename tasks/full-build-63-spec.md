@@ -207,3 +207,22 @@ outputs and apply identical equality/network/dependency checks. Separately run
 test.sh in an alternating pair on one Git-equipped allocation with fresh caches,
 identical dependencies and TEST_SH_MAX=2; test networking is not audited as build
 networking because tests intentionally exercise local sockets and audit failures.
+
+## Accepted production direction
+
+The durable six-run experiment completed, with exact bytes across all six runs
+and matching dependency versions. Baseline times: 69.465, 68.568 s; serial
+candidate: 60.036, 59.855 s; parallel capture: 65.806, 65.205 s. Means are 69.016,
+59.946 and 65.505 s respectively. Serial uses 57.39 CPU s on average, compared
+with baseline 66.755 and parallel 103.335 including children. Parallel is slower
+than the simpler serial path and substantially more costly; reject it. Remove
+worker scheduling/admission/capture code and its implementation-specific tests.
+Retain exact CSV token reuse, single field projection, relationship serialization
+caching and tuple-based contributor output. The final serial encoder uses
+list(map(escape, cells)); no source-value caching is introduced.
+
+The 13.1% lower mean wall time is a scan-prefix result, not a full-build claim.
+Measure the reduced final producer against released 2.1.0 on a single allocation
+with the same four-run full-build design. The 2× target remains unproved and #63
+must stay open unless the final evidence establishes it. Removing rejected
+concurrency is part of the result, not a reason to discard its receipts.
