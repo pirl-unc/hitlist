@@ -64,6 +64,13 @@ def test_empty_modification_field_does_not_assert_unmodified(tmp_path):
     assert pd.isna(result.has_ptm.iloc[0])
 
 
+def test_unknown_modification_text_is_not_a_reported_modification(tmp_path):
+    result = scan(tmp_path, [{"peptide": "AAAAAAAAA", "peptide_modifications": "Unknown"}])
+    assert pd.isna(result.has_ptm.iloc[0])
+    assert result.peptide_modifications.iloc[0] == ""
+    assert result.peptide_modifications_raw.iloc[0] == "Unknown"
+
+
 def test_cited_file_policy_and_row_conflict(tmp_path):
     result = scan(
         tmp_path,

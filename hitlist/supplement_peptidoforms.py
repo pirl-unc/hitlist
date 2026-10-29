@@ -33,6 +33,8 @@ def _state(flag, modifications):
     else:
         raise ValueError(f"Unsupported supplementary has_ptm value: {flag!r}")
     text = modifications.strip()
+    if text.lower() in {"unknown", "not_reported", "not reported", "unspecified"}:
+        text = ""
     declared_unmodified = text.lower() in {"none", "unmodified", "no modifications"}
     modified = bool(text) and not declared_unmodified
     conflict = (reported is False and modified) or (reported is True and declared_unmodified)
