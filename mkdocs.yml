@@ -28,6 +28,8 @@ nav:
   - Offline Canine Ligand Curation: canine-ligands.md
   - Canine Bulk Proteomics: canine-bulk.md
   - Species-scoped Evidence Bundles: species-evidence.md
+  - Release Integrity: release-integrity.md
+  - Build Performance Measurements: reliability-performance.md
 
 theme:
   name: readthedocs

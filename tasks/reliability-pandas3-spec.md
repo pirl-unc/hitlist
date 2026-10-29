@@ -126,7 +126,7 @@ Dependency review: request pandas' `pyarrow` extra so the chosen pandas release
 also constrains its compatible Arrow floor (pandas 3.0 requires Arrow 13; 3.1's
 extra requires Arrow 16). An unconstrained separate Arrow requirement would
 allow an existing older installation to survive an upgrade and fail at runtime.
-The benchmark pins already use Arrow 26; their installed versions are unchanged.
+The benchmark pins already use Arrow 25.0.1; their installed versions are unchanged.
 
 The candidate's separate 100,000-row diagnostic retains the same 100,000 source
 links and byte-identical contributor Parquet (SHA-256
@@ -178,3 +178,16 @@ Repeat focused checks with `-m 'not integration'`, and preserve test.sh's normal
 admission policy. Make FutureWarning originating from Hitlist code an error in
 the shared pytest configuration so both supported pandas branches retain the
 migration contract without suppressing third-party warnings.
+
+Warning-category correction: pandas 3.1's Pandas4Warning inherits from
+DeprecationWarning, not FutureWarning. The first strict rerun passed 3,734 tests
+but retained two deprecated test-fixture drop calls plus ten expected runtime/
+abstention warnings. Remove those fixture calls and enforce both standard
+warning categories for Hitlist/tests; avoid referencing a pandas warning class
+that does not exist on the supported pandas 3.0 floor. Repeat the full unit run
+with both categories promoted globally to errors. Production code remains the
+same as candidate-4 for output/performance measurement.
+
+Receipt review confirms the pinned remote Arrow version is 25.0.1; the local
+verification environment uses 26.0.0. These are distinct environments. All
+paired remote variants retain the same dependency versions apart from Hitlist.

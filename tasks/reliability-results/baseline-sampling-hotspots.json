@@ -1,0 +1,26 @@
+{
+  "method": "Pyinstrument 5.1.3, 10 ms sampling; inclusive durations, diagnostic only",
+  "run": "baseline-sampling",
+  "parent": {
+    "duration_seconds": 3382.979,
+    "cpu_seconds": 2763.79,
+    "samples": 259561,
+    "scanner_seconds": 1947.47,
+    "record_capture_seconds": 836.98,
+    "payload_zlib_compression_seconds": 333.13,
+    "payload_json_serialization_seconds": 309.27,
+    "contributor_publication_seconds": 353.6,
+    "optional_gene_name_fill_seconds": 68.39,
+    "gene_name_fill_lazy_reference_download_seconds": 68.27
+  },
+  "mapping_worker_27": {
+    "duration_seconds": 493.691,
+    "cpu_seconds": 473.55,
+    "samples": 37909,
+    "map_peptides_seconds": 431.74,
+    "pandas_group_iteration_seconds": 242.24,
+    "pandas_column_selection_seconds": 63.37
+  },
+  "reference_policy_bug": "#865: missing Ensembl sources were fetched despite the requested cache-only policy; gene-symbol backfill also attempted downloads.",
+  "retained_profiles": "presto-data/hitlist-reliability-20261028/baseline-sampling/{build.txt,build.pyisession,workers/}"
+}

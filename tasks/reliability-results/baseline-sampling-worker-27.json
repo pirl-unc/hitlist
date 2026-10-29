@@ -1,0 +1,6 @@
+{
+  "n_tasks": 2,
+  "cpu_seconds": 478.85,
+  "process_peak_rss_bytes": 33483698176,
+  "scope": "worker process lifetime; diagnostic sampling enabled"
+}

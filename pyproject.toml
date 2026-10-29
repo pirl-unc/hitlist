@@ -207,8 +207,12 @@ testpaths = ["tests"]
 # every local + CI run without aiding triage — --tb=short already gives
 # concise failure context.  Use `pytest -v` ad hoc when bisecting.
 addopts = "--tb=short"
-# Keep pandas migration regressions visible without silencing dependency warnings.
-filterwarnings = ['error::FutureWarning:hitlist\..*']
+# Pandas4Warning subclasses DeprecationWarning, not FutureWarning. Use standard
+# categories so the rules also work on pandas 3.0, before that class existed.
+filterwarnings = [
+    'error::FutureWarning:(hitlist|tests)\..*',
+    'error::DeprecationWarning:(hitlist|tests)\..*',
+]
 markers = [
     "integration: tests that exercise the built observations.parquet corpus (skipped by default in ./test.sh; included by ./test.sh --all and ./deploy.sh)",
 ]

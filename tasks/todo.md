@@ -6,43 +6,51 @@ Specification: [reliability-pandas3-spec.md](reliability-pandas3-spec.md).
 - [x] Adopt pandas 3+/Python 3.11+ and verify import/string behavior.
 - [x] Audit historical release #844 and enforce publication integrity.
 - [x] Complete the bounded #754 incident investigation and durable diagnostics.
-- [ ] Profile full real-source observation/mapping/build stages on bounded remote compute.
-- [ ] Implement measured optimizations and reconcile full before/after outputs.
-- [ ] Run formatting, lint, tests, compatibility checks and final-head CI.
-- [ ] Merge, deploy from clean main, verify public files and reconcile all five issues.
+- [x] Profile full real-source observation/mapping/build stages on bounded remote compute.
+- [x] Implement measured optimizations and reconcile full before/after outputs.
+- [ ] Finish final-head CI after format, lint, strict docs and local tests.
+- [ ] Merge, deploy from clean main, verify public files and reconcile issue outcomes.
 
 ## Review
 
-Baseline is main dfe15bcb1a5c75a2e1ef225c424e9de89df37d0b (2.0.44).
-The workstation has about 0.35 GiB free+speculative memory and 9.8 GiB free
-storage at planning time; full source profiling belongs on the existing remote
-corpus infrastructure. Existing release swap/progress diagnostics are already
-shipped. Historical SIGTERM sender attribution and 2.0.39 publication still
-require direct evidence. No performance claim has yet been measured.
+The runtime baseline is Python 3.11+ and pandas[pyarrow] >=3. The final production
+revision is 4e5a696 (planned 2.1.0), based on main dfe15bc (2.0.44). The original
+checkout retains only the user's tasks/lessons.md change, and the shared Python
+environment is untouched. Repository-local and remote verification environments
+are distinct; remote benchmark dependencies are pinned identically across runs.
 
-The 112 focused runtime tests pass on pandas 3.0.0 and 3.1.0, including a
-warnings-as-errors lazy import. The isolated environment is restored to 3.1.0.
-Publication/signal regressions pass (53 tests); formatting and lint pass.
-Local test.sh refuses at 0.25 GiB versus its unchanged 2.5 GiB admission floor.
-The full baseline is running on bounded remote CPU resources with pinned raw
-IEDB/CEDAR inputs and a rebuilt human Ensembl 112 reference. Other missing
-references remain explicit limits, not invented mapping coverage.
+The guarded local test.sh passes 3,735 tests (one skip), with both FutureWarning
+and DeprecationWarning promoted to errors. Ten expected runtime/abstention
+warnings remain. Format, lint, strict docs, pip check and editable metadata pass.
+Production revision 4e5a696 also passes the Python 3.11–3.14 CI matrix (including
+pandas 3.0.0) and all 97 integration tests. Final evidence, verifier and warning
+configuration changes still need final-head hosted checks before merge.
 
-2.0.39 was built successfully but absent from PyPI. Its retained hosted pair
-was independently verified against the exact historical clean main, published,
-and both public downloads matched. See docs/release-integrity.md and the checked
-publication receipt. #754's original log explicitly reports runner shutdown;
-the same-commit retry passed all 96 integration tests. The initiating actor and
-underlying trigger are not established. New durable diagnostics preserve this
-distinction. The planned new release is 2.1.0 because its runtime baseline changes.
+Historical 2.0.39 was built successfully but absent from PyPI. Its exact retained
+hosted pair was independently verified against historical clean main, published,
+and both public downloads matched; #844 is closed. #754's original log explicitly
+reports runner shutdown, and its same-commit retry passed all 96 integration
+tests. The initiating actor and underlying trigger remain unknown. Durable
+signal/resource/log diagnostics retain evidence without declaring an unproved OOM.
 
-PR863's first runtime matrix passes Python 3.11–3.14, including pandas 3.0.0,
-and the full integration suite (Tests40813062396). The block-storage change
-passes 190 focused tests; eight profiler/comparison checks pass, including
-rejection of altered curation flags, counts, inventory and untrusted bytes.
-Format/lint and isolated pip check pass. Full output receipts, matched build
-measurements, final-head CI and deployment remain pending.
+Two full baselines and four candidates preserve every byte of all seven Parquet
+outputs. Strict comparisons validate generation source/output receipts and other
+metadata. The final build took 1563.96 seconds versus baseline measurements of
+2307.36 and 3320.58 seconds. Mapping took 107.73 seconds versus 367.49–474.10 seconds.
+Sampling identified contributor compression/JSON capture, contributor publication
+and tiny pandas mapping groups as dominant costs. Bounded payload blocks and
+direct aggregation preserve identifiers, graphs, schemas and occurrence counts.
 
+The full profile also exposed unintended Ensembl downloads despite cache-only
+policy (#865), including optional gene-symbol filling. Missing references now
+skip before lazy feature access. Earlier benchmark wall times include uncontrolled
+network work; the CPU model is unknown and host variance is substantial. The
+2× whole-build target in #63 is not established and must remain open. #176 has
+its requested profiling and measured implementation evidence.
+
+The pandas deprecation cleanup is tracked in #866; the existing broken published
+documentation link is #864. Exact before/after receipts and scope limitations are
+in docs/reliability-performance.md and tasks/reliability-results/.
 
 # #668 — released canine peptide evidence (planned 2.0.44)
 
@@ -53,8 +61,8 @@ Specification: [orfdata-canine-peptide-spec.md](orfdata-canine-peptide-spec.md).
 - [x] Add the explicit pinned provider, frozen bundle verification and bounded reads.
 - [x] Add offline consumer fixtures and regressions for source fidelity and failure modes.
 - [x] Reconcile real released artifact bytes, counts, source context and query records.
-- [ ] Format, lint, test, verify final-head CI; review and merge a separate PR.
-- [ ] Deploy from clean main, verify public hashes and update #668.
+- [x] Format, lint, test, verify final-head CI; review and merge a separate PR.
+- [x] Deploy from clean main, verify public hashes and update #668.
 
 ## Review
 

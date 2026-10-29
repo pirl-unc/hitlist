@@ -2,7 +2,8 @@
 
 Invoked by reliability_modal.py. Source acquisition, verification and reference
 preparation are outside the measured warm-cache build. Every run has fresh output.
-Only human Ensembl 112 is admitted; absent other references remain explicit limits.
+Preparation pins human Ensembl 112. The build requests cache-only references;
+baselines before #865 may nevertheless attempt missing Ensembl downloads.
 """
 
 from __future__ import annotations
@@ -78,7 +79,7 @@ def prepare(scratch):
             ),
             "unavailable",
         ),
-        "reference_scope": "human Ensembl 112; missing other references not downloaded",
+        "reference_scope": "prepared human Ensembl 112; cache-only build requested (see #865 for older producers)",
         "resources": {
             "cpu_limit": 8,
             "memory_limit_mib": 65536,

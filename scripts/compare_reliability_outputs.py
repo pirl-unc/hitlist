@@ -10,7 +10,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import shutil
+import tempfile
+from datetime import datetime
 from pathlib import Path
+from unittest.mock import patch
 
 import pyarrow.parquet as pq
 
@@ -53,7 +57,32 @@ def metadata_differences(left, right, filename, path=()):
         elif len(path) == 3 and path[0] == "observations" and path[-1] in ("path", "mtime"):
             allowed = True
             reason = "new output location or filesystem timestamp"
-    if allowed and path[-1] == "path" and Path(left).name != Path(right).name:
+    elif filename == ".datacache-manifest.json":
+        if path == ("created_at",):
+            allowed, reason = True, "new generation timestamp"
+        elif path == ("definition", "transform", "version"):
+            allowed, reason = True, "producer version, checked against the build report"
+        elif (
+            len(path) == 4
+            and path[:2] == ("definition", "sources")
+            and path[-1] in ("origin", "identity")
+        ) or (
+            len(path) == 3
+            and path[0] == "sources"
+            and path[-1] in ("origin", "identity", "fetched_at")
+        ):
+            allowed, reason = True, "source location/time; identity and content pins validated"
+        elif (
+            len(path) == 3
+            and path[0] == "outputs"
+            and path[1] in ("README.md", "observations_meta.json", "peptide_mappings_meta.json")
+            and path[-1] in ("size", "sha256")
+        ):
+            allowed, reason = (
+                True,
+                "validated receipt for separately checked metadata/documentation",
+            )
+    if allowed and path[-1] in ("path", "origin") and Path(left).name != Path(right).name:
         allowed = False  # A different source filename is not just a moved checkout.
     if not allowed:
         raise ValueError(
@@ -62,16 +91,86 @@ def metadata_differences(left, right, filename, path=()):
     return [{"path": list(path), "before": left, "after": right, "reason": reason}]
 
 
+def validate_generation(root, inventory):
+    """Validate generation receipts before allowing their derived differences.
+
+    The benchmark retained every Parquet/JSON file. Reconstruct the deterministic
+    README with its recorded producer version and verify its hash too; this is
+    explicitly recorded rather than claiming the original README was retained.
+    """
+    from hitlist.dataset import _write_readme
+
+    output = root / "output"
+    manifest = json.loads((output / ".datacache-manifest.json").read_text())
+    inputs = json.loads((root / "inputs.json").read_text())
+    report = json.loads((root / "report.json").read_text())
+    version = report["versions"]["hitlist"]
+    definition = manifest["definition"]
+    if manifest["format"] != 1 or definition["transform"]["version"] != f"hitlist-{version}":
+        raise ValueError("Generation producer differs from its successful build report")
+    if report["status"] != "success":
+        raise ValueError("Incomplete build cannot support an output comparison")
+    datetime.fromisoformat(manifest["created_at"])
+    if definition["sources"].keys() != inputs["sources"].keys():
+        raise ValueError("Generation source inventory changed")
+    if manifest["sources"].keys() != definition["sources"].keys():
+        raise ValueError("Generation source receipts are incomplete")
+    for name, source in definition["sources"].items():
+        receipt = manifest["sources"][name]
+        pin = inputs["sources"][name]
+        identity = hashlib.sha256(json.dumps(source["origin"], sort_keys=True).encode()).hexdigest()
+        if source["identity"] != identity:
+            raise ValueError("Generation source location identity is invalid")
+        for item in (source, receipt):
+            if item["sha256"] != pin["sha256"] or item["size"] != pin["size_bytes"]:
+                raise ValueError("Generation source bytes differ from the pinned inputs")
+            if item["origin"] != source["origin"] or item["identity"] != identity:
+                raise ValueError("Generation source receipt identity differs")
+        if receipt["verified"] is not True:
+            raise ValueError("Generation source was not checked against its input pin")
+        datetime.fromisoformat(receipt["fetched_at"])
+    expected = (set(inventory) - {".datacache-manifest.json"}) | {"README.md"}
+    if set(manifest["outputs"]) != expected or set(definition["outputs"]) != expected:
+        raise ValueError("Generation output inventory changed")
+    for name in expected - {"README.md"}:
+        record = manifest["outputs"][name]
+        if record != {"sha256": inventory[name]["sha256"], "size": inventory[name]["size_bytes"]}:
+            raise ValueError(f"Generation output receipt differs: {name}")
+    with tempfile.TemporaryDirectory(prefix="hitlist-readme-check-") as temporary:
+        directory = Path(temporary)
+        for name in expected - {"README.md"}:
+            (directory / name).touch()
+        shutil.copyfile(output / "observations_meta.json", directory / "observations_meta.json")
+        with patch("hitlist.version.__version__", version):
+            _write_readme(directory)
+        readme = directory / "README.md"
+        if manifest["outputs"]["README.md"] != {
+            "sha256": digest(readme),
+            "size": readme.stat().st_size,
+        }:
+            raise ValueError("Reconstructed generation README differs from its recorded bytes")
+    return {
+        "producer_version": version,
+        "readme": "reconstructed and hash-verified",
+        "sources": "all pins match",
+    }
+
+
 def compare(left, right):
     manifests = [json.loads((root / "outputs.json").read_text()) for root in (left, right)]
     if manifests[0].keys() != manifests[1].keys():
         raise ValueError("Output file inventory changed")
     if not manifests[0]:
         raise ValueError("No completed output inventory")
+    if any(Path(name).name != name for name in manifests[0]):
+        raise ValueError("Invalid output filename")
     result = {"status": "success", "before": str(left), "after": str(right), "files": {}}
+    if ".datacache-manifest.json" in manifests[0]:
+        result["generation_validation"] = {
+            "before": validate_generation(left, manifests[0]),
+            "after": validate_generation(right, manifests[1]),
+        }
     for name in sorted(manifests[0]):
-        if Path(name).name != name:
-            raise ValueError("Invalid output filename")
         paths = [root / "output" / name for root in (left, right)]
         identities = []
         for path, manifest in zip(paths, manifests, strict=True):

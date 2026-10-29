@@ -67,7 +67,7 @@ clean historical main checkout, its successful workflow, manifest and exact file
 inventory. The pair was then published as
 [2.0.39](https://pypi.org/project/hitlist/2.0.39/) and both actual public downloads
 were verified. The checked receipt is
-[`tasks/reliability-results/pypi-2.0.39-verified.json`](../tasks/reliability-results/pypi-2.0.39-verified.json).
+[`tasks/reliability-results/pypi-2.0.39-verified.json`](https://github.com/pirl-unc/hitlist/blob/main/tasks/reliability-results/pypi-2.0.39-verified.json).
 This establishes the replacement's provenance; it does not retroactively assign
 that provenance to 2.0.38.
 
