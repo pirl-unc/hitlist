@@ -1,0 +1,76 @@
+{
+  "status": "success",
+  "scope": "test.sh default non-integration suite; fresh caches; two admitted workers; same allocation",
+  "python": "3.12.16 (main, Oct 28 2026, 02:01:35) [GCC 12.2.0]",
+  "runs": [
+    {
+      "run": 1,
+      "variant": "baseline",
+      "n_tests_passed": 3734,
+      "n_tests_skipped": 2,
+      "n_warnings": 10,
+      "pytest_wall_seconds": 253.64,
+      "n_test_workers": 2,
+      "script_wall_seconds": 260.703608986,
+      "cpu_seconds": 504.15,
+      "waited_child_peak_rss_gib": 0.5340652465820312,
+      "sampled_tree_peak_rss_gib": 10.919532775878906
+    },
+    {
+      "run": 2,
+      "variant": "candidate",
+      "n_tests_passed": 3744,
+      "n_tests_skipped": 2,
+      "n_warnings": 10,
+      "pytest_wall_seconds": 258.68,
+      "n_test_workers": 2,
+      "script_wall_seconds": 264.042728405,
+      "cpu_seconds": 508.78000000000003,
+      "waited_child_peak_rss_gib": 0.5368003845214844,
+      "sampled_tree_peak_rss_gib": 11.03030014038086
+    },
+    {
+      "run": 3,
+      "variant": "candidate",
+      "n_tests_passed": 3744,
+      "n_tests_skipped": 2,
+      "n_warnings": 10,
+      "pytest_wall_seconds": 248.31,
+      "n_test_workers": 2,
+      "script_wall_seconds": 253.70082951300003,
+      "cpu_seconds": 489.93000000000006,
+      "waited_child_peak_rss_gib": 0.5379524230957031,
+      "sampled_tree_peak_rss_gib": 10.978038787841797
+    },
+    {
+      "run": 4,
+      "variant": "baseline",
+      "n_tests_passed": 3734,
+      "n_tests_skipped": 2,
+      "n_warnings": 10,
+      "pytest_wall_seconds": 246.75,
+      "n_test_workers": 2,
+      "script_wall_seconds": 252.10741077300008,
+      "cpu_seconds": 484.76,
+      "waited_child_peak_rss_gib": 0.5338478088378906,
+      "sampled_tree_peak_rss_gib": 10.92618179321289
+    }
+  ],
+  "means": {
+    "baseline": {
+      "script_wall_seconds": 256.4055098795001,
+      "cpu_seconds": 494.455,
+      "waited_child_peak_rss_gib": 0.5339565277099609,
+      "sampled_tree_peak_rss_gib": 10.922857284545898
+    },
+    "candidate": {
+      "script_wall_seconds": 258.87177895900004,
+      "cpu_seconds": 499.355,
+      "waited_child_peak_rss_gib": 0.5373764038085938,
+      "sampled_tree_peak_rss_gib": 11.004169464111328
+    }
+  },
+  "wall_change_percent": 0.9618627464983209,
+  "memory_scope": "Waited-child high-water mark and sampled process-tree RSS are different metrics; tree sums may double-count shared pages",
+  "test_count_change": "Candidate includes ten additional regressions; all complete suites are timed as shipped"
+}

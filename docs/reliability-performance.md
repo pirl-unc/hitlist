@@ -1,5 +1,9 @@
 # Build profiling and output validation
 
+This report covers the changes shipped in 2.1.0. The subsequent
+[serial build comparison](serial-build-performance.md) uses released 2.1.0 as its
+baseline and measures both variants repeatedly on one allocation.
+
 The final forced build took 1563.96 seconds (26.1 minutes); the mapping-fix revision
 took 1593.01 seconds. Baselines took 2307.36 and 3320.58 seconds (38.5–55.3 minutes).
 All seven Parquet artifacts are byte-identical across these runs, including all source

@@ -1,0 +1,217 @@
+{
+  "status": "success",
+  "scope": "four complete same-allocation forced builds; ratio of means",
+  "runs": [
+    {
+      "run": 1,
+      "variant": "baseline",
+      "wall_seconds": 1638.8988472649999,
+      "cpu_seconds": 1643.6200000000001,
+      "parent_peak_rss_gib": 30.730133056640625,
+      "sampled_tree_peak_rss_gib": 36.466678619384766
+    },
+    {
+      "run": 2,
+      "variant": "candidate",
+      "wall_seconds": 1485.8930132009998,
+      "cpu_seconds": 1492.6299999999999,
+      "parent_peak_rss_gib": 30.961772918701172,
+      "sampled_tree_peak_rss_gib": 36.85300064086914
+    },
+    {
+      "run": 3,
+      "variant": "candidate",
+      "wall_seconds": 1510.4802645730006,
+      "cpu_seconds": 1510.55,
+      "parent_peak_rss_gib": 30.99791717529297,
+      "sampled_tree_peak_rss_gib": 37.068870544433594
+    },
+    {
+      "run": 4,
+      "variant": "baseline",
+      "wall_seconds": 1656.0757216840002,
+      "cpu_seconds": 1653.8,
+      "parent_peak_rss_gib": 30.67644500732422,
+      "sampled_tree_peak_rss_gib": 42.728363037109375
+    }
+  ],
+  "means": {
+    "baseline": {
+      "wall_seconds": 1647.4872844745,
+      "cpu_seconds": 1648.71,
+      "parent_peak_rss_gib": 30.703289031982422,
+      "sampled_tree_peak_rss_gib": 39.59752082824707
+    },
+    "candidate": {
+      "wall_seconds": 1498.1866388870003,
+      "cpu_seconds": 1501.59,
+      "parent_peak_rss_gib": 30.97984504699707,
+      "sampled_tree_peak_rss_gib": 36.96093559265137
+    }
+  },
+  "wall_reduction_percent": 9.062324607568806,
+  "wall_speed_ratio": 1.0996542364697732,
+  "cpu_reduction_percent": 8.92334006586969,
+  "stages": [
+    {
+      "stage": "hitlist.scanner.scan",
+      "sources": [
+        "iedb"
+      ],
+      "baseline": {
+        "wall_seconds": 537.5626889485004,
+        "cpu_seconds": 538.175,
+        "sampled_parent_peak_rss_gib": 23.960681915283203
+      },
+      "candidate": {
+        "wall_seconds": 470.62646734650014,
+        "cpu_seconds": 474.23,
+        "sampled_parent_peak_rss_gib": 24.211994171142578
+      }
+    },
+    {
+      "stage": "hitlist.scanner.scan",
+      "sources": [
+        "cedar"
+      ],
+      "baseline": {
+        "wall_seconds": 453.4410452069999,
+        "cpu_seconds": 452.78499999999997,
+        "sampled_parent_peak_rss_gib": 30.536235809326172
+      },
+      "candidate": {
+        "wall_seconds": 398.61489488300003,
+        "cpu_seconds": 397.00499999999994,
+        "sampled_parent_peak_rss_gib": 30.97984504699707
+      }
+    },
+    {
+      "stage": "hitlist.supplement.scan_supplementary",
+      "sources": null,
+      "baseline": {
+        "wall_seconds": 23.325504346000116,
+        "cpu_seconds": 23.100000000000136,
+        "sampled_parent_peak_rss_gib": 20.844757080078125
+      },
+      "candidate": {
+        "wall_seconds": 23.69816798050033,
+        "cpu_seconds": 23.585000000000036,
+        "sampled_parent_peak_rss_gib": 21.547096252441406
+      }
+    },
+    {
+      "stage": "hitlist.mappings.build_peptide_mappings",
+      "sources": null,
+      "baseline": {
+        "wall_seconds": 120.58302443050013,
+        "cpu_seconds": 121.8250000000003,
+        "sampled_parent_peak_rss_gib": 23.05617904663086
+      },
+      "candidate": {
+        "wall_seconds": 119.49191855449999,
+        "cpu_seconds": 120.69499999999998,
+        "sampled_parent_peak_rss_gib": 23.919174194335938
+      }
+    },
+    {
+      "stage": "hitlist.provenance.ContributorCollector.write",
+      "sources": null,
+      "baseline": {
+        "wall_seconds": 216.39131945150007,
+        "cpu_seconds": 213.58500000000004,
+        "sampled_parent_peak_rss_gib": 21.350643157958984
+      },
+      "candidate": {
+        "wall_seconds": 179.70535176400017,
+        "cpu_seconds": 177.48000000000002,
+        "sampled_parent_peak_rss_gib": 22.075836181640625
+      }
+    },
+    {
+      "stage": "hitlist.builder.atomic_write_parquet",
+      "sources": null,
+      "baseline": {
+        "wall_seconds": 5.663133376499786,
+        "cpu_seconds": 5.614999999999782,
+        "sampled_parent_peak_rss_gib": 20.838436126708984
+      },
+      "candidate": {
+        "wall_seconds": 5.645836037499976,
+        "cpu_seconds": 5.57000000000005,
+        "sampled_parent_peak_rss_gib": 21.562652587890625
+      }
+    },
+    {
+      "stage": "hitlist.builder.atomic_write_parquet",
+      "sources": null,
+      "baseline": {
+        "wall_seconds": 1.2432131569997864,
+        "cpu_seconds": 1.2250000000001364,
+        "sampled_parent_peak_rss_gib": 20.837459564208984
+      },
+      "candidate": {
+        "wall_seconds": 1.2496430035000685,
+        "cpu_seconds": 1.2350000000000136,
+        "sampled_parent_peak_rss_gib": 21.562652587890625
+      }
+    },
+    {
+      "stage": "hitlist.builder.atomic_write_parquet",
+      "sources": null,
+      "baseline": {
+        "wall_seconds": 0.06444325050006228,
+        "cpu_seconds": 0.0649999999998272,
+        "sampled_parent_peak_rss_gib": 20.822811126708984
+      },
+      "candidate": {
+        "wall_seconds": 0.06634586799964381,
+        "cpu_seconds": 0.06500000000005457,
+        "sampled_parent_peak_rss_gib": 21.547027587890625
+      }
+    },
+    {
+      "stage": "hitlist.builder.build_bulk_proteomics",
+      "sources": null,
+      "baseline": {
+        "wall_seconds": 29.85065673250017,
+        "cpu_seconds": 29.80499999999995,
+        "sampled_parent_peak_rss_gib": 23.419979095458984
+      },
+      "candidate": {
+        "wall_seconds": 28.91875603800031,
+        "cpu_seconds": 28.875000000000114,
+        "sampled_parent_peak_rss_gib": 24.089019775390625
+      }
+    },
+    {
+      "stage": "hitlist.builder.atomic_write_parquet",
+      "sources": null,
+      "baseline": {
+        "wall_seconds": 3.218244008500392,
+        "cpu_seconds": 3.169999999999959,
+        "sampled_parent_peak_rss_gib": 23.419979095458984
+      },
+      "candidate": {
+        "wall_seconds": 3.1108076954999433,
+        "cpu_seconds": 3.074999999999932,
+        "sampled_parent_peak_rss_gib": 24.089019775390625
+      }
+    },
+    {
+      "stage": "hitlist.builder.build_line_expression",
+      "sources": null,
+      "baseline": {
+        "wall_seconds": 0.37567054150019885,
+        "cpu_seconds": 0.3650000000000091,
+        "sampled_parent_peak_rss_gib": 23.395645141601562
+      },
+      "candidate": {
+        "wall_seconds": 0.3752403570001661,
+        "cpu_seconds": 0.35999999999989996,
+        "sampled_parent_peak_rss_gib": 24.067615509033203
+      }
+    }
+  ],
+  "comparisons": "all seven retained Parquet files byte-identical in all four runs",
+  "memory_caveat": "Tree RSS may double-count shared pages; stage means are means of sampled peaks, not allocation deltas"
+}

@@ -30,6 +30,7 @@ nav:
   - Species-scoped Evidence Bundles: species-evidence.md
   - Release Integrity: release-integrity.md
   - Build Performance Measurements: reliability-performance.md
+  - Serial Build Optimization: serial-build-performance.md
 
 theme:
   name: readthedocs

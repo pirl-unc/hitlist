@@ -1,3 +1,42 @@
+# Controlled full-build performance — #63, 2026-10-29
+
+Specification: [full-build-63-spec.md](full-build-63-spec.md).
+
+- [x] Read #63, prior receipts and relevant lessons; isolate work from main.
+- [x] Specify baseline, controlled comparison, output invariants and release gates.
+- [x] Profile the released scanner/publication paths and choose measured changes.
+- [x] Implement bounded optimizations and regressions for affected invariants.
+- [x] Run repeated paired full builds and strict retained-output comparisons.
+- [x] Measure test.sh separately; document time, CPU, memory and remaining limits.
+- [ ] Format, lint, test, validate docs/dependencies and pass final-head CI.
+- [ ] Merge, deploy from clean main, verify public downloads and reconcile #63.
+
+## Review
+
+Baseline is released 2.1.0, main 5f988fc. Original checkout and shared environment
+remain untouched. New timing ratios require paired runs on the same allocation;
+the earlier separately hosted runs cannot establish the issue's 2× target.
+
+Draft PR #870 is open. The six-run controlled prefix experiment selected the
+serial path (59.95 s mean versus released 69.02 s); parallel capture was slower
+and cost more CPU, so its implementation was removed. Final serial producer
+2b850a3 passes 80 focused tests, format/lint, strict documentation, editable
+metadata and pip check. Local test.sh passes 3,745 tests (one skip); all five
+hosted unit jobs, 97 integration tests and the separate release-build gate pass.
+The four-run full experiment and strict retained-file comparisons pass. Baseline
+times are 1,638.90/1,656.08 s; candidate times are 1,485.89/1,510.48 s. Mean wall
+time falls 9.1%, CPU falls 8.9%, and mean parent peak RSS rises 0.28 GiB. All seven
+Parquet artifacts are byte-identical, input/dependency pins match, and the Python
+network audits show no attempts. The separate four-run test.sh experiment also
+passes: baseline/candidate means 256.41/258.87 s, 3,734/3,744 passed tests, two
+skips each, two admitted workers and matching dependencies. No suite speedup is
+claimed. Final documentation, evidence-head checks, merge and deployment remain.
+The 2× whole-build target is not achieved by this candidate. #869 tracks
+cancellation diagnostics; durable background submission completed the six-run
+comparison after earlier synchronous calls were interrupted. The signal cleanup
+regression now publishes its child PID atomically; cleanup tolerates a child
+exiting between the liveness check and signal, and always commits the receipt.
+
 # Reliability/performance and pandas 3+ — 2026-10-28
 
 Specification: [reliability-pandas3-spec.md](reliability-pandas3-spec.md).

@@ -36,7 +36,23 @@ if modal.is_local():
             "python -m pip install --no-deps --no-build-isolation -e /opt/producer",
             "python -m pip check",
         )
-        .add_local_file(
+    )
+    baseline_archive = os.environ.get("HITLIST_BENCHMARK_BASELINE_ARCHIVE")
+    if baseline_archive:
+        image = image.add_local_file(
+            str(Path(baseline_archive).resolve()), "/opt/benchmark/baseline.tar.gz", copy=True
+        ).run_commands(
+            "mkdir -p /opt/baseline && tar -xzf /opt/benchmark/baseline.tar.gz -C /opt/baseline",
+            "python -m pip uninstall -y hitlist",
+            "python -m venv --system-site-packages /opt/baseline-env",
+            "python -m venv --system-site-packages /opt/candidate-env",
+            "/opt/baseline-env/bin/python -m pip install --no-deps --no-build-isolation -e /opt/baseline",
+            "/opt/candidate-env/bin/python -m pip install --no-deps --no-build-isolation -e /opt/producer",
+            "/opt/baseline-env/bin/python -m pip check",
+            "/opt/candidate-env/bin/python -m pip check",
+        )
+    image = (
+        image.add_local_file(
             str(ROOT / "tasks/reliability-benchmark-requirements.txt"),
             "/opt/benchmark/requirements.txt",
         )
@@ -58,8 +74,20 @@ if modal.is_local():
         )
         .add_local_file(str(ROOT / "scripts/profile_scan.py"), "/opt/benchmark/profile_scan.py")
         .add_local_file(
+            str(ROOT / "scripts/profile_csv_serialization.py"),
+            "/opt/benchmark/profile_csv_serialization.py",
+        )
+        .add_local_file(
             str(ROOT / "scripts/compare_reliability_outputs.py"),
             "/opt/benchmark/compare_reliability_outputs.py",
+        )
+        .add_local_file(
+            str(ROOT / "scripts/paired_build_benchmark.py"),
+            "/opt/benchmark/paired_build_benchmark.py",
+        )
+        .add_local_file(
+            str(ROOT / "scripts/benchmark_site/sitecustomize.py"),
+            "/opt/benchmark/network_guard/sitecustomize.py",
         )
     )
 
@@ -93,17 +121,31 @@ def main(
     label: str,
     profile: bool = False,
     scan_sample: bool = False,
+    scan_workers: int = 1,
+    scan_rows: int = 100000,
     codec_sample: bool = False,
+    serialization_sample: bool = False,
+    paired: bool = False,
+    scan_pair: bool = False,
+    test_pair: bool = False,
+    include_serial: bool = False,
+    background: bool = False,
     test_suite: bool = False,
     compare_before: str = "",
     compare_after: str = "",
 ):
-    if compare_before or compare_after:
+    if paired or scan_pair or test_pair:
+        if background:
+            call = execute_pair.spawn(label, scan_pair, test_pair, include_serial)
+            print(f"Submitted benchmark function call: {call.object_id}", flush=True)
+        else:
+            execute_pair.remote(label, scan_pair, test_pair, include_serial)
+    elif compare_before or compare_after:
         compare_outputs.remote(label, compare_before, compare_after)
     elif test_suite:
         measure_tests.remote(label)
-    elif scan_sample or codec_sample:
-        diagnose_scan.remote(label, codec_sample)
+    elif scan_sample or codec_sample or serialization_sample:
+        diagnose_scan.remote(label, codec_sample, serialization_sample, scan_workers, scan_rows)
     else:
         execute.remote(label, profile)
 
@@ -112,20 +154,76 @@ def main(
     image=image,
     volumes={"/data": volume},
     cpu=(8, 8),
-    memory=(16384, 16384),
+    memory=(65536, 65536),
+    ephemeral_disk=524288,
+    timeout=14400,
+    max_containers=1,
+    retries=0,
+    nonpreemptible=True,
+)
+def execute_pair(
+    label: str, scan_only: bool, tests_only: bool = False, include_serial: bool = False
+):
+    """Alternate variants in fresh processes on one allocation, with a finite deadline."""
+    import contextlib
+    import signal
+    import subprocess
+    import sys
+
+    command = [sys.executable, "/opt/benchmark/paired_build_benchmark.py", label]
+    if scan_only:
+        command.append("--scan-pair")
+    if tests_only:
+        command.append("--test-pair")
+    if include_serial:
+        command.append("--include-serial")
+    process = subprocess.Popen(command, start_new_session=True)
+    try:
+        code = process.wait(timeout=14100)
+        if code:
+            raise subprocess.CalledProcessError(code, command)
+    finally:
+        try:
+            if process.poll() is None:
+                with contextlib.suppress(ProcessLookupError):
+                    os.killpg(process.pid, signal.SIGTERM)
+                try:
+                    process.wait(timeout=20)
+                except subprocess.TimeoutExpired:
+                    with contextlib.suppress(ProcessLookupError):
+                        os.killpg(process.pid, signal.SIGKILL)
+                    process.wait()
+        finally:
+            volume.commit()
+
+
+@app.function(
+    image=image,
+    volumes={"/data": volume},
+    cpu=(8, 8),
+    memory=(65536, 65536),
     ephemeral_disk=524288,
     timeout=1800,
     max_containers=1,
     retries=0,
 )
-def diagnose_scan(label: str, codecs_only: bool = False):
+def diagnose_scan(
+    label: str,
+    codecs_only: bool = False,
+    serialization_only: bool = False,
+    workers: int = 1,
+    n_rows: int = 100000,
+):
     """Locate row-level hotspots; this sample is not a full-build speed result."""
     import subprocess
     import sys
 
-    command = [sys.executable, "/opt/benchmark/profile_scan.py", label]
+    script = "profile_csv_serialization.py" if serialization_only else "profile_scan.py"
+    command = [sys.executable, f"/opt/benchmark/{script}", label]
     if codecs_only:
         command.append("--codecs-only")
+    if not serialization_only:
+        command.extend(["--rows", str(n_rows), "--workers", str(workers)])
     try:
         subprocess.run(
             command,

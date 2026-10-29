@@ -70,6 +70,11 @@ def _record_prefix(dataset):
     return f"record:{quote(dataset, safe='')}:row:"
 
 
+@lru_cache(maxsize=32)
+def _relationship_json(flags):
+    return json.dumps([name for name, value in RELATIONS.items() if flags & value] or ["retained"])
+
+
 class ProvenanceStorageError(RuntimeError):
     """The disposable contributor graph or output filesystem ran out of capacity."""
 
@@ -264,11 +269,44 @@ class ContributorCollector:
         self.sources[dataset] = snapshot
 
     def record(self, dataset, row_number, fields, row_values) -> str:
-        record_id = f"{_record_prefix(dataset)}{row_number}"
         # Keep the original JSON strings byte-for-byte, including Unicode
         # escaping and unmapped cells. Compress bounded groups so repeated
         # source metadata shares one dictionary instead of one per row.
         payload = (self._fields_encoder.encode(fields) + "\n" + json.dumps(row_values)).encode()
+        pmid = str(fields.get("pmid", fields.get("manifest", {}).get("pmid", "")))
+        return self._record_payload(dataset, row_number, payload, pmid)
+
+    def csv_record_writer(self, dataset, columns):
+        """Bind a CSV layout and encode each string cell once for both JSON views.
+
+        CSV readers return only strings. The general record method still owns
+        nested/typed supplementary payloads. Reusing JSON's string encoder here
+        preserves its exact escaping, spaces, key order and unmapped cells.
+        No source values are cached across rows.
+        """
+        prefixes = tuple(
+            (json.dumps(name) + ": ", index) for name, index in sorted(columns.items())
+        )
+        pmid_index = columns.get("pmid")
+        escape = json.encoder.encode_basestring_ascii
+
+        def record_row(row_number, row_values):
+            encoded = list(map(escape, row_values))
+            n_columns = len(encoded)
+            fields = ", ".join(
+                prefix + (encoded[index] if index < n_columns else '""')
+                for prefix, index in prefixes
+            )
+            payload = ("{" + fields + "}\n[" + ", ".join(encoded) + "]").encode()
+            pmid = (
+                row_values[pmid_index] if pmid_index is not None and pmid_index < n_columns else ""
+            )
+            return self._record_payload(dataset, row_number, payload, pmid)
+
+        return record_row
+
+    def _record_payload(self, dataset, row_number, payload, pmid):
+        record_id = f"{_record_prefix(dataset)}{row_number}"
         if (
             self._pending_payloads
             and self._pending_bytes + len(payload) > self._CAPTURE_BATCH_BYTES
@@ -283,7 +321,7 @@ class ContributorCollector:
                 self._block_id,
                 self._pending_bytes,
                 len(payload),
-                str(fields.get("pmid", fields.get("manifest", {}).get("pmid", ""))),
+                pmid,
             ),
         )
         self._pending_payloads.append(payload)
@@ -462,26 +500,18 @@ class ContributorCollector:
                     fields, values = decoded.decode().split("\n", 1)
                     batch_bytes += len(decoded) + len(node) + len(source) + len(label)
                     records.append(
-                        dict(
-                            zip(
-                                CONTRIBUTOR_COLUMNS,
-                                (
-                                    node,
-                                    source,
-                                    dataset,
-                                    row,
-                                    pmid,
-                                    fields,
-                                    values,
-                                    label,
-                                    "curated_peptide_map" if label else "not_attributed",
-                                    json.dumps(
-                                        [k for k, v in RELATIONS.items() if flags & v]
-                                        or ["retained"]
-                                    ),
-                                    "overlap_unresolved" if flags & 28 else "source_record",
-                                ),
-                            )
+                        (
+                            node,
+                            source,
+                            dataset,
+                            row,
+                            pmid,
+                            fields,
+                            values,
+                            label,
+                            "curated_peptide_map" if label else "not_attributed",
+                            _relationship_json(flags),
+                            "overlap_unresolved" if flags & 28 else "source_record",
                         )
                     )
                     if (
@@ -489,13 +519,21 @@ class ContributorCollector:
                         or len(records) >= self._OUTPUT_BATCH_ROWS
                     ):
                         self._check_space(force=True)
-                        writer.write_table(pa.Table.from_pylist(records, schema=schema))
+                        writer.write_table(
+                            pa.Table.from_pydict(
+                                dict(zip(CONTRIBUTOR_COLUMNS, zip(*records))), schema=schema
+                            )
+                        )
                         n_links += len(records)
                         records.clear()
                         batch_bytes = 0
                 if records:
                     self._check_space(force=True)
-                    writer.write_table(pa.Table.from_pylist(records, schema=schema))
+                    writer.write_table(
+                        pa.Table.from_pydict(
+                            dict(zip(CONTRIBUTOR_COLUMNS, zip(*records))), schema=schema
+                        )
+                    )
                     n_links += len(records)
             # Catch source replacement during a long build instead of binding
             # rows to the digest of bytes that were never actually scanned.
