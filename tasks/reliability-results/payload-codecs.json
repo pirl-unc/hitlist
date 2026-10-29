@@ -1,0 +1,170 @@
+[
+  {
+    "codec": "zlib-1",
+    "repeat": 1,
+    "n_rows": 10000,
+    "raw_bytes": 23187061,
+    "compressed_bytes": 8716064,
+    "encode_wall_seconds": 0.33148175399999946,
+    "encode_cpu_seconds": 0.3199999999999994,
+    "decode_wall_seconds": 0.13267870900000034,
+    "decode_cpu_seconds": 0.13000000000000078
+  },
+  {
+    "codec": "zlib-1",
+    "repeat": 2,
+    "n_rows": 10000,
+    "raw_bytes": 23187061,
+    "compressed_bytes": 8716064,
+    "encode_wall_seconds": 0.3374446330000005,
+    "encode_cpu_seconds": 0.33000000000000007,
+    "decode_wall_seconds": 0.11945956000000013,
+    "decode_cpu_seconds": 0.1200000000000001
+  },
+  {
+    "codec": "zlib-1",
+    "repeat": 3,
+    "n_rows": 10000,
+    "raw_bytes": 23187061,
+    "compressed_bytes": 8716064,
+    "encode_wall_seconds": 0.3079797200000005,
+    "encode_cpu_seconds": 0.2999999999999998,
+    "decode_wall_seconds": 0.09385052099999935,
+    "decode_cpu_seconds": 0.08999999999999986
+  },
+  {
+    "codec": "zstd-1",
+    "repeat": 1,
+    "n_rows": 10000,
+    "raw_bytes": 23187061,
+    "compressed_bytes": 9095271,
+    "encode_wall_seconds": 0.1343094659999995,
+    "encode_cpu_seconds": 0.13000000000000078,
+    "decode_wall_seconds": 0.08798616199999998,
+    "decode_cpu_seconds": 0.08000000000000007
+  },
+  {
+    "codec": "zstd-1",
+    "repeat": 2,
+    "n_rows": 10000,
+    "raw_bytes": 23187061,
+    "compressed_bytes": 9095271,
+    "encode_wall_seconds": 0.13461027700000017,
+    "encode_cpu_seconds": 0.1299999999999999,
+    "decode_wall_seconds": 0.07853037200000035,
+    "decode_cpu_seconds": 0.08000000000000007
+  },
+  {
+    "codec": "zstd-1",
+    "repeat": 3,
+    "n_rows": 10000,
+    "raw_bytes": 23187061,
+    "compressed_bytes": 9095271,
+    "encode_wall_seconds": 0.13530860599999972,
+    "encode_cpu_seconds": 0.1299999999999999,
+    "decode_wall_seconds": 0.08836966100000065,
+    "decode_cpu_seconds": 0.08999999999999986
+  },
+  {
+    "codec": "zstd-3",
+    "repeat": 1,
+    "n_rows": 10000,
+    "raw_bytes": 23187061,
+    "compressed_bytes": 8921454,
+    "encode_wall_seconds": 0.16071274399999957,
+    "encode_cpu_seconds": 0.15000000000000036,
+    "decode_wall_seconds": 0.07975799300000119,
+    "decode_cpu_seconds": 0.08000000000000007
+  },
+  {
+    "codec": "zstd-3",
+    "repeat": 2,
+    "n_rows": 10000,
+    "raw_bytes": 23187061,
+    "compressed_bytes": 8921454,
+    "encode_wall_seconds": 0.15997998500000143,
+    "encode_cpu_seconds": 0.15000000000000036,
+    "decode_wall_seconds": 0.08722069199999893,
+    "decode_cpu_seconds": 0.08999999999999986
+  },
+  {
+    "codec": "zstd-3",
+    "repeat": 3,
+    "n_rows": 10000,
+    "raw_bytes": 23187061,
+    "compressed_bytes": 8921454,
+    "encode_wall_seconds": 0.15934751500000033,
+    "encode_cpu_seconds": 0.16000000000000014,
+    "decode_wall_seconds": 0.0789362520000001,
+    "decode_cpu_seconds": 0.08000000000000007
+  },
+  {
+    "codec": "lz4",
+    "repeat": 1,
+    "n_rows": 10000,
+    "raw_bytes": 23187061,
+    "compressed_bytes": 12169759,
+    "encode_wall_seconds": 0.03819209700000137,
+    "encode_cpu_seconds": 0.040000000000000036,
+    "decode_wall_seconds": 0.034473805999999385,
+    "decode_cpu_seconds": 0.02999999999999936
+  },
+  {
+    "codec": "lz4",
+    "repeat": 2,
+    "n_rows": 10000,
+    "raw_bytes": 23187061,
+    "compressed_bytes": 12169759,
+    "encode_wall_seconds": 0.03760430600000042,
+    "encode_cpu_seconds": 0.03999999999999915,
+    "decode_wall_seconds": 0.02409580800000022,
+    "decode_cpu_seconds": 0.020000000000000462
+  },
+  {
+    "codec": "lz4",
+    "repeat": 3,
+    "n_rows": 10000,
+    "raw_bytes": 23187061,
+    "compressed_bytes": 12169759,
+    "encode_wall_seconds": 0.037939936000000785,
+    "encode_cpu_seconds": 0.03000000000000025,
+    "decode_wall_seconds": 0.029821617999999717,
+    "decode_cpu_seconds": 0.03000000000000025
+  },
+  {
+    "codec": "zstd-1-block-128",
+    "repeat": 1,
+    "n_rows": 10000,
+    "raw_bytes": 23187061,
+    "compressed_bytes": 889246,
+    "size_note": "includes 24 bytes per row for block/offset/length references",
+    "encode_wall_seconds": 0.02659049799999913,
+    "encode_cpu_seconds": 0.019999999999999574,
+    "decode_wall_seconds": 0.01949739900000047,
+    "decode_cpu_seconds": 0.020000000000000462
+  },
+  {
+    "codec": "zstd-1-block-128",
+    "repeat": 2,
+    "n_rows": 10000,
+    "raw_bytes": 23187061,
+    "compressed_bytes": 889246,
+    "size_note": "includes 24 bytes per row for block/offset/length references",
+    "encode_wall_seconds": 0.013329219000000947,
+    "encode_cpu_seconds": 0.009999999999999787,
+    "decode_wall_seconds": 0.005636639000000443,
+    "decode_cpu_seconds": 0.010000000000000675
+  },
+  {
+    "codec": "zstd-1-block-128",
+    "repeat": 3,
+    "n_rows": 10000,
+    "raw_bytes": 23187061,
+    "compressed_bytes": 889246,
+    "size_note": "includes 24 bytes per row for block/offset/length references",
+    "encode_wall_seconds": 0.028002678000000003,
+    "encode_cpu_seconds": 0.02999999999999936,
+    "decode_wall_seconds": 0.004619878999999827,
+    "decode_cpu_seconds": 0.0
+  }
+]

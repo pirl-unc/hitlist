@@ -74,9 +74,9 @@ def execute(label: str, profile: bool):
 
 
 @app.local_entrypoint()
-def main(label: str, profile: bool = False, scan_sample: bool = False):
-    if scan_sample:
-        diagnose_scan.remote(label)
+def main(label: str, profile: bool = False, scan_sample: bool = False, codec_sample: bool = False):
+    if scan_sample or codec_sample:
+        diagnose_scan.remote(label, codec_sample)
     else:
         execute.remote(label, profile)
 
@@ -91,14 +91,17 @@ def main(label: str, profile: bool = False, scan_sample: bool = False):
     max_containers=1,
     retries=0,
 )
-def diagnose_scan(label: str):
+def diagnose_scan(label: str, codecs_only: bool = False):
     """Locate row-level hotspots; this sample is not a full-build speed result."""
     import subprocess
     import sys
 
+    command = [sys.executable, "/opt/benchmark/profile_scan.py", label]
+    if codecs_only:
+        command.append("--codecs-only")
     try:
         subprocess.run(
-            [sys.executable, "/opt/benchmark/profile_scan.py", label],
+            command,
             check=True,
             timeout=1650,
         )

@@ -76,3 +76,21 @@ feature branch; review the final diff and measurements, merge through PR, deploy
 from clean main and compare public PyPI bytes with the tested artifacts. Update
 each issue with its own evidence and disposition; do not close profiling issues
 based on a synthetic benchmark or label the historical SIGTERM as proven OOM.
+
+## Selected storage optimization
+
+The valid 100,000-row sampling diagnostic placed provenance record capture at
+10.01 s of the 26.66 s scan (diagnostic durations, not a speed ratio). On 10,000
+identical real payloads, median compression time over three repetitions was
+0.3315 s for per-row zlib level 1 and 0.0266 s for 128-row zstd level-1 blocks.
+Including a conservative 24-byte reference per row, compressed payload storage
+was 8,716,064 versus 889,246 bytes. Every decoded payload matched exactly.
+
+Implement bounded disposable SQLite payload blocks: at most 128 rows or 1 MiB
+per block, with a single oversized source row isolated, and a 4 MiB decoded-block
+LRU. Store each row's byte offset/length and retain its existing stable ID and
+exact JSON serialization. Keep graph traversal, public contributor columns,
+relationships, schema version, scratch cap and atomic publication unchanged.
+Reuse the canonical JSON encoder and bounded escaped dataset-prefix cache.
+Full before/after builds and complete output reconciliation remain required;
+these microbenchmark results do not establish a whole-build speedup.

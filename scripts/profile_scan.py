@@ -76,10 +76,38 @@ def measure_codecs(sample):
                     "decode_cpu_seconds": decoded_cpu - encoded_cpu,
                 }
             )
+    codec = pa.Codec("zstd", compression_level=1)
+    groups = [payloads[index : index + 128] for index in range(0, len(payloads), 128)]
+    for repeat in range(3):
+        started, cpu = time.perf_counter(), time.process_time()
+        blocks = [b"".join(group) for group in groups]
+        compressed = [codec.compress(block, asbytes=True) for block in blocks]
+        encoded, encoded_cpu = time.perf_counter(), time.process_time()
+        restored = [
+            codec.decompress(block, decompressed_size=len(raw), asbytes=True)
+            for block, raw in zip(compressed, blocks)
+        ]
+        decoded, decoded_cpu = time.perf_counter(), time.process_time()
+        if restored != blocks:
+            raise ValueError("Non-lossless block codec")
+        results.append(
+            {
+                "codec": "zstd-1-block-128",
+                "repeat": repeat + 1,
+                "n_rows": len(payloads),
+                "raw_bytes": sum(map(len, payloads)),
+                "compressed_bytes": sum(map(len, compressed)) + 24 * len(payloads),
+                "size_note": "includes 24 bytes per row for block/offset/length references",
+                "encode_wall_seconds": encoded - started,
+                "encode_cpu_seconds": encoded_cpu - cpu,
+                "decode_wall_seconds": decoded - encoded,
+                "decode_cpu_seconds": decoded_cpu - encoded_cpu,
+            }
+        )
     return results
 
 
-def main(label):
+def main(label, codecs_only=False):
     import csv
     import itertools
     import json
@@ -105,13 +133,20 @@ def main(label):
             sample.open("w", newline="") as target,
         ):
             writer = csv.writer(target)
-            writer.writerows(itertools.islice(csv.reader(source), 100002))
+            writer.writerows(itertools.islice(csv.reader(source), 10002 if codecs_only else 100002))
         receipt = {
-            "scope": "first 100000 logical IEDB data rows; diagnostic only",
+            "scope": f"first {10000 if codecs_only else 100000} logical IEDB data rows; diagnostic only",
             "source": pin,
             "sample": file_digest(sample),
             "producer_archive": file_digest(Path("/opt/benchmark/producer.tar.gz")),
+            "recipe": file_digest(Path(__file__)),
         }
+        if codecs_only:
+            (destination / "codecs.json").write_text(
+                json.dumps(measure_codecs(sample), indent=2) + "\n"
+            )
+            (destination / "inputs.json").write_text(json.dumps(receipt, indent=2) + "\n")
+            return
         profiler = Profiler(interval=0.01, async_mode="disabled")
         profiler.start()
         try:
@@ -141,4 +176,6 @@ def main(label):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("label")
-    main(parser.parse_args().label)
+    parser.add_argument("--codecs-only", action="store_true")
+    args = parser.parse_args()
+    main(args.label, args.codecs_only)

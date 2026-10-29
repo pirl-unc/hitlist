@@ -15,11 +15,13 @@ import shutil
 import sqlite3
 import tempfile
 import time
-import zlib
+from collections import OrderedDict
+from functools import lru_cache
 from pathlib import Path
 from urllib.parse import quote
 
 import pandas as pd
+import pyarrow as pa
 
 from .dataset import dataset_path, dataset_snapshot
 
@@ -63,6 +65,11 @@ def contributors_path() -> Path:
     return dataset_path("observation_contributors.parquet", root=data_dir())
 
 
+@lru_cache(maxsize=128)
+def _record_prefix(dataset):
+    return f"record:{quote(dataset, safe='')}:row:"
+
+
 class ProvenanceStorageError(RuntimeError):
     """The disposable contributor graph or output filesystem ran out of capacity."""
 
@@ -84,6 +91,9 @@ class ContributorCollector:
     _ROOT_BATCH_SIZE = 256
     _OUTPUT_BATCH_BYTES = 4 * 1024**2
     _OUTPUT_BATCH_ROWS = 10000
+    _CAPTURE_BATCH_ROWS = 128
+    _CAPTURE_BATCH_BYTES = 1024**2
+    _DECODE_CACHE_BYTES = 4 * 1024**2
 
     def __init__(self, *, scratch_dir=None, max_scratch_bytes=None, min_free_bytes=None):
         self.scratch_dir = Path(
@@ -111,6 +121,13 @@ class ContributorCollector:
         self.db = None
         self.sources = {}
         self._scan_count = 0
+        self._codec = pa.Codec("zstd", compression_level=1)
+        self._block_id = 0
+        self._pending_payloads = []
+        self._pending_bytes = 0
+        self._decoded_blocks = OrderedDict()
+        self._decoded_bytes = 0
+        self._fields_encoder = json.JSONEncoder(sort_keys=True)
 
     def _storage_error(self, reason):
         return ProvenanceStorageError(
@@ -156,6 +173,9 @@ class ContributorCollector:
             raise
 
     def _close(self):
+        self._pending_payloads.clear()
+        self._decoded_blocks.clear()
+        self._pending_bytes = self._decoded_bytes = 0
         if self.db is not None:
             self.db.close()
         if self._temporary is not None:
@@ -202,8 +222,10 @@ class ContributorCollector:
                 PRAGMA cache_size=-8192;
                 PRAGMA automatic_index=OFF;
                 PRAGMA max_page_count={self.max_scratch_bytes // 4096};
+                CREATE TABLE payload_blocks (id INTEGER PRIMARY KEY, payload BLOB, raw_size INTEGER);
                 CREATE TABLE records (id TEXT PRIMARY KEY, dataset TEXT, row_number INTEGER,
-                                      payload BLOB, pmid TEXT);
+                                      block_id INTEGER, byte_offset INTEGER, byte_length INTEGER,
+                                      pmid TEXT);
                 CREATE TABLE edges (source TEXT, target TEXT, relation INTEGER, label TEXT);
                 CREATE INDEX edge_target ON edges(target);
                 CREATE TABLE retained (id TEXT PRIMARY KEY) WITHOUT ROWID;
@@ -242,23 +264,71 @@ class ContributorCollector:
         self.sources[dataset] = snapshot
 
     def record(self, dataset, row_number, fields, row_values) -> str:
-        record_id = f"record:{quote(dataset, safe='')}:row:{row_number}"
-        # Compress the original JSON strings together: output stays byte-for-byte
-        # compatible, including field order, Unicode escaping and unmapped cells.
-        payload = zlib.compress(
-            (json.dumps(fields, sort_keys=True) + "\n" + json.dumps(row_values)).encode(), level=1
-        )
+        record_id = f"{_record_prefix(dataset)}{row_number}"
+        # Keep the original JSON strings byte-for-byte, including Unicode
+        # escaping and unmapped cells. Compress bounded groups so repeated
+        # source metadata shares one dictionary instead of one per row.
+        payload = (self._fields_encoder.encode(fields) + "\n" + json.dumps(row_values)).encode()
+        if (
+            self._pending_payloads
+            and self._pending_bytes + len(payload) > self._CAPTURE_BATCH_BYTES
+        ):
+            self._flush_payloads()
         self._execute(
-            "INSERT INTO records VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO records VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
                 record_id,
                 dataset,
                 int(row_number),
-                payload,
+                self._block_id,
+                self._pending_bytes,
+                len(payload),
                 str(fields.get("pmid", fields.get("manifest", {}).get("pmid", ""))),
             ),
         )
+        self._pending_payloads.append(payload)
+        self._pending_bytes += len(payload)
+        if (
+            len(self._pending_payloads) >= self._CAPTURE_BATCH_ROWS
+            or self._pending_bytes >= self._CAPTURE_BATCH_BYTES
+        ):
+            self._flush_payloads()
         return record_id
+
+    def _flush_payloads(self):
+        """Publish one bounded scratch block; a single oversized row stands alone."""
+        if not self._pending_payloads:
+            return
+        payload = self._codec.compress(b"".join(self._pending_payloads), asbytes=True)
+        self._execute(
+            "INSERT INTO payload_blocks VALUES (?, ?, ?)",
+            (self._block_id, payload, self._pending_bytes),
+        )
+        self._block_id += 1
+        self._pending_payloads.clear()
+        self._pending_bytes = 0
+
+    def _payload(self, block_id, offset, length):
+        """Decode with a byte-capped LRU; graph traversal need not follow source order."""
+        block = self._decoded_blocks.pop(block_id, None)
+        if block is not None:
+            self._decoded_blocks[block_id] = block
+        else:
+            row = self._execute(
+                "SELECT payload, raw_size FROM payload_blocks WHERE id=?", (block_id,)
+            ).fetchone()
+            if row is None:
+                raise ValueError(f"Missing contributor payload block: {block_id}")
+            block = self._codec.decompress(row[0], decompressed_size=row[1], asbytes=True)
+            if len(block) <= self._DECODE_CACHE_BYTES:
+                while self._decoded_bytes + len(block) > self._DECODE_CACHE_BYTES:
+                    _, evicted = self._decoded_blocks.popitem(last=False)
+                    self._decoded_bytes -= len(evicted)
+                self._decoded_blocks[block_id] = block
+                self._decoded_bytes += len(block)
+        if offset < 0 or length < 0 or offset + length > len(block):
+            raise ValueError("Contributor payload slice exceeds its block")
+        return block[offset : offset + length]
 
     def observe(self, record_id: str, sample_label="") -> str:
         node = f"observation:{record_id}"
@@ -343,7 +413,8 @@ class ContributorCollector:
             # CROSS JOIN keeps the ordered narrow ancestry index outermost.
             # Ordering by a.node (equal to r.id) avoids sorting full payloads.
             yield from self._execute("""
-                SELECT a.root, r.id, r.dataset, r.row_number, r.pmid, r.payload,
+                SELECT a.root, r.id, r.dataset, r.row_number, r.pmid,
+                       r.block_id, r.byte_offset, r.byte_length,
                        a.label, a.relations
                 FROM ancestry a CROSS JOIN records r ON r.id = a.node
                 ORDER BY a.root, a.node, a.label, a.relations
@@ -364,6 +435,7 @@ class ContributorCollector:
         temporary = path.with_suffix(".parquet.partial")
         n_links = 0
         try:
+            self._flush_payloads()
             for frame in frames:
                 if "provenance_id" in frame:
                     self.db.executemany(
@@ -374,8 +446,19 @@ class ContributorCollector:
             with pq.ParquetWriter(temporary, schema, compression="zstd") as writer:
                 records = []
                 batch_bytes = 0
-                for node, source, dataset, row, pmid, payload, label, flags in self._iter_links():
-                    decoded = zlib.decompress(payload)
+                for (
+                    node,
+                    source,
+                    dataset,
+                    row,
+                    pmid,
+                    block_id,
+                    offset,
+                    length,
+                    label,
+                    flags,
+                ) in self._iter_links():
+                    decoded = self._payload(block_id, offset, length)
                     fields, values = decoded.decode().split("\n", 1)
                     batch_bytes += len(decoded) + len(node) + len(source) + len(label)
                     records.append(
