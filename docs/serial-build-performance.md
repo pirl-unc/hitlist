@@ -154,7 +154,7 @@ neither should be substituted for the other or described as physical RAM usage.
 
 The test candidate is `ff604fd2f2f5bb4d8054ce98b24ccb3eac7525fa`: identical production
 code to the full-build producer, with benchmark cleanup and its regression fixture
-hardened. Local test.sh separately passes 3,745 tests (one platform-dependent skip).
+hardened. Local test.sh separately passes 3,745 tests (one skip).
 Both measured production and harness revisions pass the hosted Python/pandas
 matrix, 97 integration tests and the release-build gate. Their verification
 receipts are separate from these paired suite measurements.

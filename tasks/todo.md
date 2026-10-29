@@ -1,3 +1,16 @@
+# Performance-report skip wording — #873, 2026-10-29
+
+Scope: remove the unsupported operating-system attribution from the local test
+skip count. Keep all reported measurements, counts and production behavior intact;
+optional data/dependency availability does not prove a platform cause. Follow the
+repository's documentation-only version-bump rule with 2.1.2, rechecking main
+before landing because another PR is open. The tested 2.1.1 release remains bound
+to its original source commit and proceeds independently.
+
+- [x] Verify the actual skip reasons in final-head CI and file #873.
+- [x] Correct the wording and bump the patch version on a feature branch.
+- [ ] Run required checks, merge via PR, and verify the tested patch publication.
+
 # Controlled full-build performance — #63, 2026-10-29
 
 Specification: [full-build-63-spec.md](full-build-63-spec.md).
