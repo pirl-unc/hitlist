@@ -1388,7 +1388,7 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
     if "modifications" not in df.columns:
         df["modifications"] = ""
     else:
-        df["modifications"] = df["modifications"].fillna("")
+        df["modifications"] = df["modifications"].astype("str").fillna("")
 
     ordered_cols = [
         # evidence + granularity
@@ -2242,7 +2242,7 @@ def _add_flanking(
         how="left",
     )
     obs["flanking_species"] = obs["_canonical_species"].replace("", pd.NA)
-    obs.drop(columns=["_canonical_species", "_flanking_organism"], inplace=True)
+    obs = obs.drop(columns=["_canonical_species", "_flanking_organism"])
 
     # --- Per-sample reference_proteomes override ---
     # For PMIDs whose ms_samples list additional reference_proteomes (e.g.

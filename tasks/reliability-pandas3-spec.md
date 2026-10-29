@@ -160,3 +160,21 @@ Run focused checks and another pinned full candidate build, then reconcile all
 outputs and report timing variance. The two completed baseline builds took
 2307.36 and 3320.58 s, so a single before/after ratio is not a reliable speedup
 estimate. The full sampling run is diagnostic and excluded from timing ratios.
+
+## Complete-suite pandas deprecation cleanup
+
+The local guarded test.sh passed 3,734 tests but exposed three additional
+pandas 3.1 deprecation sites: filling an all-missing float modifications column
+with a string, and two deprecated DataFrame.drop(inplace=True) calls. Declare
+the textual column's string dtype before filling and assign drop results.
+Verify the existing bulk/flanking/export contracts and the full unit suite with
+FutureWarning promoted to errors. Include this final runtime revision in a
+separate pinned full candidate measurement/output comparison.
+
+The first focused warning check accidentally selected integration-marked export
+tests as well as unit tests. It was interrupted after 82 passes; it is not a
+completed check. A simultaneous test.sh correctly refused admission at 0.19 GiB.
+Repeat focused checks with `-m 'not integration'`, and preserve test.sh's normal
+admission policy. Make FutureWarning originating from Hitlist code an error in
+the shared pytest configuration so both supported pandas branches retain the
+migration contract without suppressing third-party warnings.
