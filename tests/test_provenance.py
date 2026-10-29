@@ -46,7 +46,12 @@ def test_chained_dedup_retains_sources_without_reweighting(tmp_path, monkeypatch
     )
     _write_tiny_iedb_csv(cedar, [_row("https://cedar.iedb.org/assay/1")])
     supp = tmp_path / "sample.csv"
-    supp.write_text("peptide,mhc_restriction\nSLYNTVATL,HLA-A*02:01\nSLYNTVATL,HLA-A*02:01\n")
+    # Chemistry must agree for cross-source deduplication; an unspecified
+    # supplementary form is no longer equivalent to a reported unmodified one.
+    supp.write_text(
+        "peptide,mhc_restriction,has_ptm\n"
+        "SLYNTVATL,HLA-A*02:01,False\nSLYNTVATL,HLA-A*02:01,False\n"
+    )
     monkeypatch.setattr("hitlist.supplement._SUPP_DIR", tmp_path)
     monkeypatch.setattr(
         "hitlist.supplement.load_supplementary_manifest",
