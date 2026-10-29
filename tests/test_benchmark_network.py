@@ -68,6 +68,58 @@ def test_missing_audit_marker_is_not_a_verified_run(tmp_path, benchmark):
         benchmark.check_network_audit(tmp_path, 123)
 
 
+@pytest.mark.skipif(os.name != "posix", reason="POSIX process-group signal cleanup")
+def test_interrupted_experiment_records_failure_and_reaps_child(tmp_path, benchmark):
+    import json
+    import signal
+    import time
+
+    config, base, producers = (tmp_path / name for name in ("config", "results", "producers"))
+    for directory in (config, base, producers):
+        directory.mkdir()
+    for name in ("baseline-env", "candidate-env"):
+        bin_directory = producers / name / "bin"
+        bin_directory.mkdir(parents=True)
+        (bin_directory / "python").symlink_to(sys.executable)
+    for name in ("baseline.tar.gz", "producer.tar.gz", "sitecustomize.py"):
+        (config / name).write_bytes(b"fixture")
+    marker = tmp_path / "child.pid"
+    (config / "reliability_benchmark.py").write_text(
+        "import os,time\nfrom pathlib import Path\n"
+        f"Path({str(marker)!r}).write_text(str(os.getpid()))\ntime.sleep(120)\n"
+    )
+    code = (
+        f"import sys,signal\nsys.path.insert(0,{str(Path(benchmark.__file__).parent)!r})\n"
+        "from pathlib import Path\nimport paired_build_benchmark as b\n"
+        f"b.CONFIG=Path({str(config)!r}); b.BASE=Path({str(base)!r})\n"
+        f"b.GUARD_DIRECTORY=b.CONFIG; b.PRODUCER_ROOT=Path({str(producers)!r})\n"
+        "signal.signal(signal.SIGTERM,b.interrupted)\nb.run('interrupted',False)\n"
+    )
+    with (tmp_path / "parent.log").open("w") as log:
+        parent = subprocess.Popen([sys.executable, "-c", code], stdout=log, stderr=log)
+        try:
+            deadline = time.monotonic() + 15
+            while not marker.exists() and time.monotonic() < deadline:
+                if parent.poll() is not None:
+                    pytest.fail((tmp_path / "parent.log").read_text())
+                time.sleep(0.02)
+            assert marker.exists()
+            child_pid = int(marker.read_text())
+            parent.send_signal(signal.SIGTERM)
+            assert parent.wait(timeout=15) != 0
+            with pytest.raises(ProcessLookupError):
+                os.kill(child_pid, 0)
+        finally:
+            if parent.poll() is None:
+                parent.send_signal(signal.SIGTERM)
+                parent.wait(timeout=15)
+    receipt = json.loads((base / "interrupted/experiment.json").read_text())
+    assert receipt["status"] == "failed"
+    assert receipt["active_run"] == "interrupted-1-baseline"
+    assert receipt["runs"] == []
+    assert "received signal 15" in (base / "interrupted/failure.txt").read_text()
+
+
 def test_scan_diagnostic_uses_builder_pmid_projection_and_keeps_originals(
     tmp_path, benchmark, monkeypatch
 ):

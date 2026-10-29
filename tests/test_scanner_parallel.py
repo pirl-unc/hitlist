@@ -115,6 +115,31 @@ def test_failed_worker_closes_source_and_removes_owned_scratch(tmp_path, monkeyp
     assert list(scratch.iterdir()) == []
 
 
+def test_parallel_targeted_scan_keeps_original_row_numbers_and_filter_order(tmp_path, monkeypatch):
+    monkeypatch.setattr(scanner, "_scan_workers", lambda requested: requested)
+    monkeypatch.setattr(scanner, "_SCAN_BATCH_ROWS", 1)
+    source = tmp_path / "source.csv"
+    rows = [_row("same"), _row("same"), _row(""), _row("excluded")]
+    target = rows[1][5]
+    rows[0][5] = rows[3][5] = "AAAAAA"
+    _write_tiny_iedb_csv(source, rows)
+    frames = []
+    for n_workers in (1, 2):
+        with ContributorCollector(scratch_dir=tmp_path) as collector:
+            frame = scanner.scan(
+                peptides={target}, iedb_path=source, provenance=collector, n_workers=n_workers
+            )
+            collector.write([frame], tmp_path / f"targeted-{n_workers}.parquet")
+            frames.append(frame)
+    pd.testing.assert_frame_equal(*frames)
+    assert len(frames[0]) == 2
+    assert (tmp_path / "targeted-1.parquet").read_bytes() == (
+        tmp_path / "targeted-2.parquet"
+    ).read_bytes()
+    links = pd.read_parquet(tmp_path / "targeted-2.parquet")
+    assert links.source_row.tolist() == [2, 3]
+
+
 def test_scan_batch_limits_keep_order_and_isolate_oversized_input(monkeypatch):
     monkeypatch.setattr(scanner, "_SCAN_BATCH_ROWS", 3)
     monkeypatch.setattr(scanner, "_SCAN_BATCH_BYTES", 1500)

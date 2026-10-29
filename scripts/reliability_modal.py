@@ -127,12 +127,19 @@ def main(
     serialization_sample: bool = False,
     paired: bool = False,
     scan_pair: bool = False,
+    test_pair: bool = False,
+    include_serial: bool = False,
+    background: bool = False,
     test_suite: bool = False,
     compare_before: str = "",
     compare_after: str = "",
 ):
-    if paired or scan_pair:
-        execute_pair.remote(label, scan_pair)
+    if paired or scan_pair or test_pair:
+        if background:
+            call = execute_pair.spawn(label, scan_pair, test_pair, include_serial)
+            print(f"Submitted benchmark function call: {call.object_id}", flush=True)
+        else:
+            execute_pair.remote(label, scan_pair, test_pair, include_serial)
     elif compare_before or compare_after:
         compare_outputs.remote(label, compare_before, compare_after)
     elif test_suite:
@@ -154,17 +161,34 @@ def main(
     retries=0,
     nonpreemptible=True,
 )
-def execute_pair(label: str, scan_only: bool):
+def execute_pair(
+    label: str, scan_only: bool, tests_only: bool = False, include_serial: bool = False
+):
     """Alternate variants in fresh processes on one allocation, with a finite deadline."""
+    import signal
     import subprocess
     import sys
 
     command = [sys.executable, "/opt/benchmark/paired_build_benchmark.py", label]
     if scan_only:
         command.append("--scan-pair")
+    if tests_only:
+        command.append("--test-pair")
+    if include_serial:
+        command.append("--include-serial")
+    process = subprocess.Popen(command, start_new_session=True)
     try:
-        subprocess.run(command, check=True, timeout=14100)
+        code = process.wait(timeout=14100)
+        if code:
+            raise subprocess.CalledProcessError(code, command)
     finally:
+        if process.poll() is None:
+            os.killpg(process.pid, signal.SIGTERM)
+            try:
+                process.wait(timeout=20)
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGKILL)
+                process.wait()
         volume.commit()
 
 

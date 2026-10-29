@@ -183,3 +183,27 @@ non-ASCII/control/unmapped cells, pending serial payloads before/after imported
 blocks, duplicate records, capacity exhaustion during import, filtered duplicate
 IRIs, cross-source boundaries and worker failure. Re-run the same unprofiled
 alternating diagnostic before committing to full measurements.
+
+The revised boundary passes 98 focused tests. A further targeted-peptide
+regression checks filtering before assay deduplication and original row numbers.
+The required full local test.sh attempt refused at 0.13 GiB free versus its
+unchanged 2.5 GiB guard; no tests started in that attempt.
+
+`issue63-paired-scan-4` was also cancelled, after one baseline and one revised
+candidate had completed according to the remote lifecycle log. The local stream
+was incomplete. Its receipt remains failed and cannot supply a repeated ratio.
+Track cancellation diagnostics in #869. Modal's invocation documentation says
+synchronous remote calls are cancelled after caller disconnect even when an
+app is detached, while spawn calls are durable. That is a plausible mechanism,
+not proof of this initiating cause. Add explicit background submission with a
+retained function-call ID, start/per-run checkpoints, signal diagnostics and
+process-group cleanup. Verify signal cleanup in a real subprocess regression.
+Reference: https://modal.com/docs/guide/function-invocation-methods#durability
+
+Before a full-corpus experiment, compare baseline/serial-candidate/parallel-
+candidate/parallel-candidate/serial-candidate/baseline on one allocation. This
+tests whether concurrency improves on the simpler serial changes; keep all
+outputs and apply identical equality/network/dependency checks. Separately run
+test.sh in an alternating pair on one Git-equipped allocation with fresh caches,
+identical dependencies and TEST_SH_MAX=2; test networking is not audited as build
+networking because tests intentionally exercise local sockets and audit failures.
