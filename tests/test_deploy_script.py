@@ -158,3 +158,21 @@ def test_unknown_deployment_option_fails_before_any_tests(tmp_path):
     assert result.returncode == 2
     assert not marker.exists()
     assert not (tmp_path / "dist").exists()
+
+
+def test_hosted_artifact_mode_delegates_to_provenance_verifier(tmp_path):
+    marker = tmp_path / "tests_started"
+    env = _stub_deploy_dir(tmp_path, test_sh_body=f'#!/bin/sh\ntouch "{marker}"\n')
+    args_file = tmp_path / "publication_args"
+    (tmp_path / "bin" / "python").write_text(
+        f'#!/bin/sh\nprintf "%s\\n" "$@" > "{args_file}"\nexit 37\n'
+    )
+    result = _run(tmp_path, env, "--artifacts", "tested artifacts")
+    assert result.returncode == 37  # verification/upload failure must propagate
+    assert args_file.read_text().splitlines() == [
+        "scripts/release_artifacts.py",
+        "publish",
+        "tested artifacts",
+    ]
+    assert not marker.exists()
+    assert not (tmp_path / "dist").exists()

@@ -234,7 +234,7 @@ are excluded from binary training labels ([#731](https://github.com/pirl-unc/hit
 
 ## Python API
 
-Hitlist supports Python 3.10 and newer; CI tests Python 3.10 through 3.14.
+Current Hitlist requires Python 3.11+ and pandas 3+; CI tests Python 3.11 through 3.14.
 
 `hitlist build observations` checks the source files and the curation inputs that define stored
 annotations, including study overrides, tissue/cell-line metadata, and peptide-attribution CSVs.

@@ -756,21 +756,30 @@ def test_concat_tables_promote_options_still_rejects_true_type_mismatches():
         pa.concat_tables([numeric, textual], promote_options=_CONCAT_PROMOTE_OPTIONS)
 
 
-def test_hitlist_import_enables_pandas_infer_string():
-    """Importing hitlist must enable ``pd.options.future.infer_string``
-    process-wide.  Without this, the build pipeline holds string columns
-    as ``object`` (Python str overhead, ~50-100 bytes/cell) instead of
-    ``StringDtype`` (Arrow-backed, ~10 bytes/cell) — a 5x base-cost
-    inflation that the categorical compression can only partially
-    recover.  Locking this in via test guards against an accidental
-    revert in ``hitlist/__init__.py``."""
-    import hitlist  # noqa: F401  -- side effect: sets the option
-
-    assert pd.options.future.infer_string is True
-    # New string DataFrames default to StringDtype, not object.
+def test_pandas_default_string_dtype_is_arrow_backed():
+    """The supported pandas baseline preserves compact inferred string columns."""
     df = pd.DataFrame({"x": ["a", "b"]})
-    assert pd.api.types.is_string_dtype(df["x"])
-    assert df["x"].dtype.name != "object"
+    assert isinstance(df["x"].dtype, pd.StringDtype)
+    assert df["x"].dtype.storage == "pyarrow"
+
+
+def test_hitlist_import_is_warning_free_and_does_not_import_pandas():
+    """#815: strict downstream imports must not touch deprecated pandas options."""
+    import subprocess
+    import sys
+
+    subprocess.run(
+        [
+            sys.executable,
+            "-W",
+            "error",
+            "-c",
+            "import hitlist, sys; assert 'pandas' not in sys.modules",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
 
 def test_compress_categoricals_handles_pandas_str_dtype():

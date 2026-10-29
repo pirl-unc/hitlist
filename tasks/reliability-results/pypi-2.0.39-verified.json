@@ -1,0 +1,15 @@
+{
+  "version": "2.0.39",
+  "source_commit": "4f4e398ca1618ddf2418d61b10eb254f61d2ae25",
+  "workflow_run_id": "40177039295",
+  "public_files": {
+    "hitlist-2.0.39-py3-none-any.whl": {
+      "sha256": "8ecab4fcde006a05e5de76cf11bcf565f9420ce1cd90b31063b86ef9649efcd1",
+      "size_bytes": 3206671
+    },
+    "hitlist-2.0.39.tar.gz": {
+      "sha256": "3eb4257817be92a4a33a801260046032f9da02939d731f6ddf481138f21308e7",
+      "size_bytes": 3643830
+    }
+  }
+}

@@ -7,8 +7,14 @@ set -e
 
 BUILD_ONLY=0
 if (( $# )); then
+    if [[ $# -eq 2 && "$1" == "--artifacts" ]]; then
+        # The hosted gate already ran lint and both complete test phases.
+        # Verify its source/run and independently download its artifact before
+        # uploading; then verify both actual public downloads (#844).
+        exec python scripts/release_artifacts.py publish "$2"
+    fi
     if [[ $# -ne 1 || "$1" != "--build-only" ]]; then
-        echo "Usage: ./deploy.sh [--build-only]" >&2
+        echo "Usage: ./deploy.sh [--build-only | --artifacts DIRECTORY]" >&2
         exit 2
     fi
     BUILD_ONLY=1
@@ -54,7 +60,7 @@ fi
 
 echo ""
 echo "==> Uploading to PyPI..."
-twine upload dist/*
+python scripts/release_artifacts.py publish-local dist
 
 echo ""
 echo "Deploy complete! https://pypi.org/project/hitlist/${VERSION}/"

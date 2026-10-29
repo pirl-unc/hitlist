@@ -259,15 +259,19 @@ def test_traversal_has_no_hidden_sqlite_work_files(tmp_path):
         collector.db.set_trace_callback(statements.add)
         collector.write([pd.DataFrame({"provenance_id": roots})], tmp_path / "out.parquet")
         collector.db.set_trace_callback(None)
+        # A final pending block is flushed during write(). EXPLAIN may expose
+        # that literal BLOB in p4; it is arbitrary bytes, not UTF-8 text.
+        collector.db.text_factory = bytes
         for sql in statements:
             if sql.lstrip().split()[0] not in {"SELECT", "INSERT", "DELETE"}:
                 continue
             bytecode = collector.db.execute("EXPLAIN " + sql).fetchall()
             assert not {row[1] for row in bytecode} & {
-                "OpenEphemeral",
-                "SorterOpen",
-                "OpenAutoindex",
+                b"OpenEphemeral",
+                b"SorterOpen",
+                b"OpenAutoindex",
             }, sql
+        collector.db.text_factory = str
         scratch_files = list(Path(collector._temporary.name).iterdir())
         assert [path.name for path in scratch_files] == ["records.sqlite"]
 
@@ -417,3 +421,54 @@ def test_long_sql_notices_free_space_loss(tmp_path, monkeypatch):
     assert output.read_bytes() == b"published"
     assert not output.with_suffix(".parquet.partial").exists()
     assert not list(tmp_path.glob("hitlist-contributors-*"))
+
+
+def test_payload_blocks_preserve_exact_json_across_boundaries_and_eviction(tmp_path):
+    output = tmp_path / "contributors.parquet"
+    expected = {}
+    with ContributorCollector() as collector:
+        collector._CAPTURE_BATCH_ROWS = 3
+        collector._CAPTURE_BATCH_BYTES = 600
+        collector._DECODE_CACHE_BYTES = 600
+        roots = []
+        for i in range(37):
+            fields = {
+                "pmid": str(i),
+                "nested": {"flag": False, "empty": None},
+                "note": 'é\n"' * (1000 if i == 7 else 2),
+            }
+            values = [fields["note"], "", f"unmapped source cell {i}"]
+            record = collector.record("source / é", i, fields, values)
+            roots.append(collector.observe(record, "donor / é" if i % 2 else ""))
+            expected[i] = (json.dumps(fields, sort_keys=True), json.dumps(values))
+            assert collector._pending_bytes <= collector._CAPTURE_BATCH_BYTES
+            assert len(collector._pending_payloads) < collector._CAPTURE_BATCH_ROWS
+        collector.write([pd.DataFrame({"provenance_id": roots[::-1]})], output)
+        assert collector._pending_bytes == 0
+        assert collector._decoded_bytes <= collector._DECODE_CACHE_BYTES
+        assert collector._decoded_bytes == sum(map(len, collector._decoded_blocks.values()))
+        assert collector.db.execute("SELECT COUNT(*) FROM payload_blocks").fetchone()[0] > 1
+    links = pd.read_parquet(output)
+    assert len(links) == len(expected)
+    for row in links.itertuples():
+        assert (row.original_fields, row.source_row_values) == expected[row.source_row]
+        assert row.source_record_id == f"record:source%20%2F%20%C3%A9:row:{row.source_row}"
+        assert row.attributed_sample_label == ("donor / é" if row.source_row % 2 else "")
+        assert row.relationships == '["retained"]'
+
+
+@pytest.mark.parametrize("damage", ["missing_block", "invalid_slice"])
+def test_invalid_scratch_payload_cannot_replace_published_contributors(tmp_path, damage):
+    output = tmp_path / "contributors.parquet"
+    output.write_bytes(b"previous published artifact")
+    with ContributorCollector() as collector:
+        collector._CAPTURE_BATCH_ROWS = 1
+        root = collector.observe(collector.record("x", 1, {}, []))
+        if damage == "missing_block":
+            collector.db.execute("DELETE FROM payload_blocks")
+        else:
+            collector.db.execute("UPDATE records SET byte_offset=999999")
+        with pytest.raises(ValueError, match="payload"):
+            collector.write([pd.DataFrame({"provenance_id": [root]})], output)
+    assert output.read_bytes() == b"previous published artifact"
+    assert not output.with_suffix(".parquet.partial").exists()

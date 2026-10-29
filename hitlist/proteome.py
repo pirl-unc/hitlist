@@ -817,6 +817,7 @@ class ProteomeIndex:
         species: str = "human",
         *,
         gene_biotypes: Iterable[str] | None = None,
+        fetch_missing: bool = True,
     ) -> ProteomeIndex:
         """Build an index from translated Ensembl gene records.
 
@@ -841,6 +842,9 @@ class ProteomeIndex:
             biotypes are deliberately excluded. Ensembl contains germline
             V/D/J/C segments, not donor-specific rearranged receptors, so
             peptides spanning a V(D)J junction remain outside this index.
+        fetch_missing
+            Allow PyEnsembl to download missing reference files. If false,
+            use an existing index or require locally installed reference data.
 
         Returns
         -------
@@ -884,6 +888,11 @@ class ProteomeIndex:
                 hit = _hit_disk_cache(cache_key, label, verbose)
             if hit is not None:
                 return hit
+
+        # PyEnsembl's lazy feature API downloads missing sources by default.
+        # Check availability without entering that API in cache-only workers.
+        if not fetch_missing and not ensembl.required_local_files_exist():
+            raise FileNotFoundError(f"Ensembl {species} release {release} is not installed locally")
 
         proteins: dict[str, str] = {}
         meta: dict[str, dict] = {}
@@ -1358,13 +1367,23 @@ class ProteomeIndex:
         )
 
         rows: list[dict] = []
+        source_counts: list[int] = []
+        unique_n_flanks: list[str] = []
+        unique_c_flanks: list[str] = []
         for pep in pep_iter:
             hits = self.lookup(pep)
+            protein_ids: set[str] = set()
+            n_flanks: set[str] = set()
+            c_flanks: set[str] = set()
+            first_row = len(rows)
             for prot_id, pos in hits:
                 seq = self.proteins[prot_id]
                 m = self.protein_meta.get(prot_id, {})
                 n_flank = seq[max(0, pos - flank) : pos]
                 c_flank = seq[pos + len(pep) : pos + len(pep) + flank]
+                protein_ids.add(prot_id)
+                n_flanks.add(n_flank)
+                c_flanks.add(c_flank)
                 rows.append(
                     {
                         "peptide": pep,
@@ -1385,6 +1404,16 @@ class ProteomeIndex:
                         "c_flank": c_flank,
                     }
                 )
+            # Hits are already grouped by peptide. Avoid constructing millions
+            # of tiny pandas frames just to recover these same groups.
+            n_occurrences = len(rows) - first_row
+            source_counts.extend([len(protein_ids)] * n_occurrences)
+            unique_n_flanks.extend(
+                [next(iter(n_flanks)) if len(n_flanks) == 1 else ""] * n_occurrences
+            )
+            unique_c_flanks.extend(
+                [next(iter(c_flanks)) if len(c_flanks) == 1 else ""] * n_occurrences
+            )
 
         if not rows:
             return pd.DataFrame(
@@ -1407,18 +1436,9 @@ class ProteomeIndex:
 
         df = pd.DataFrame(rows)
 
-        # Compute per-peptide source counts and unique flank indicators
-        source_counts = df.groupby("peptide")["protein_id"].nunique().rename("n_sources")
-        df = df.merge(source_counts, on="peptide", how="left")
-
-        # Unique flank: if all sources have the same flank, store it; else ""
-        for side in ["n_flank", "c_flank"]:
-            unique_col = f"unique_{side}"
-            unique_map: dict[str, str] = {}
-            for pep, group in df.groupby("peptide"):
-                flanks = set(group[side])
-                unique_map[str(pep)] = next(iter(flanks)) if len(flanks) == 1 else ""
-            df[unique_col] = df["peptide"].map(unique_map)
+        df["n_sources"] = source_counts
+        df["unique_n_flank"] = unique_n_flanks
+        df["unique_c_flank"] = unique_c_flanks
 
         return df
 

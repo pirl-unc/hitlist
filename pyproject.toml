@@ -18,16 +18,15 @@ classifiers = [
     "Operating System :: OS Independent",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
-    "pandas",
+    "pandas[pyarrow]>=3",
     "pyarrow",
     # Imported directly by builder, export, predict and proteome — until #602
     # only transitively present via pandas' own pin, which is a dependency we
@@ -42,10 +41,7 @@ dependencies = [
     # Shared downloads/registry and transactional materialization generations (#645).
     "datacache>=1.27.1",
     # Explicit shared canine protein/reference acquisition; imports stay lazy.
-    # Native peptide evidence needs ORFdata 0.40+, whose Python floor is 3.11.
-    # Keep existing providers installable on Hitlist's supported Python 3.10.
-    "orfdata>=0.40.0; python_version >= '3.11'",
-    "orfdata>=0.10.0; python_version < '3.11'",
+    "orfdata>=0.40.0",
     "packaging>=21",
     "filelock>=3.13",
     # Ensembl gene/transcript annotation: proteome indexing + ENSG→HGNC symbol
@@ -143,7 +139,7 @@ hitlist = [
 ]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 line-length = 100
 src = ["hitlist", "tests"]
 # The one list of files ./lint.sh, ./format.sh and CI check; they pass no paths.
@@ -154,6 +150,13 @@ include = [
     "scripts/species_context_inventory.py",
     "scripts/allele_candidate_audit.py",
     "scripts/release_artifacts.py",
+    "scripts/release_diagnostics.py",
+    "scripts/profile_build.py",
+    "scripts/compare_reliability_outputs.py",
+    "scripts/profile_scan.py",
+    "scripts/profile_mapping_workers.py",
+    "scripts/reliability_benchmark.py",
+    "scripts/reliability_modal.py",
     "scripts/check_dev_install.py",
     "scripts/build_uniprot_reference.py",
     "scripts/benchmark_provenance.py",
@@ -188,7 +191,8 @@ include = [
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "B", "C4", "UP", "SIM", "RUF"]
-ignore = ["E501", "B008", "B905", "SIM108", "UP007"]
+# Keep the existing explicit timezone.utc spelling when raising the runtime floor.
+ignore = ["E501", "B008", "B905", "SIM108", "UP007", "UP017"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["B011", "RUF012"]
@@ -203,6 +207,12 @@ testpaths = ["tests"]
 # every local + CI run without aiding triage — --tb=short already gives
 # concise failure context.  Use `pytest -v` ad hoc when bisecting.
 addopts = "--tb=short"
+# Pandas4Warning subclasses DeprecationWarning, not FutureWarning. Use standard
+# categories so the rules also work on pandas 3.0, before that class existed.
+filterwarnings = [
+    'error::FutureWarning:(hitlist|tests)\..*',
+    'error::DeprecationWarning:(hitlist|tests)\..*',
+]
 markers = [
     "integration: tests that exercise the built observations.parquet corpus (skipped by default in ./test.sh; included by ./test.sh --all and ./deploy.sh)",
 ]

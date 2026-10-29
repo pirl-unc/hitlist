@@ -1388,7 +1388,7 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
     if "modifications" not in df.columns:
         df["modifications"] = ""
     else:
-        df["modifications"] = df["modifications"].fillna("")
+        df["modifications"] = df["modifications"].astype("str").fillna("")
 
     ordered_cols = [
         # evidence + granularity
@@ -1713,6 +1713,10 @@ def _fill_gene_names_via_ensembl(
             return df
         try:
             data = EnsemblRelease(release)
+            # gene_ids() enters PyEnsembl's lazy DB initializer, which otherwise
+            # downloads missing GTF/FASTA files even for this optional backfill.
+            if not data.required_local_files_exist():
+                continue
             present = set(data.gene_ids())  # raises if this release's DB isn't built
         except Exception:  # this release's data not installed/indexed — try the next
             continue
@@ -2238,7 +2242,7 @@ def _add_flanking(
         how="left",
     )
     obs["flanking_species"] = obs["_canonical_species"].replace("", pd.NA)
-    obs.drop(columns=["_canonical_species", "_flanking_organism"], inplace=True)
+    obs = obs.drop(columns=["_canonical_species", "_flanking_organism"])
 
     # --- Per-sample reference_proteomes override ---
     # For PMIDs whose ms_samples list additional reference_proteomes (e.g.

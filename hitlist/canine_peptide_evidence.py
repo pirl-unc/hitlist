@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import shutil
-import sys
 import tempfile
 from dataclasses import dataclass
 from importlib.metadata import version
@@ -27,8 +26,6 @@ DEFAULT_LIMITS = {
 
 
 def _require_provider():
-    if sys.version_info < (3, 11):
-        raise RuntimeError("The orfdata_peptides provider requires Python 3.11+ and ORFdata 0.40+")
     from packaging.version import Version
 
     if Version(version("orfdata")) < Version("0.40.0"):

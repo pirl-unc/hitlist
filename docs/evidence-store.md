@@ -822,7 +822,7 @@ The adjacent PXD009181 (24 raw files) and PXD009112 (14) inventories were also
 audited as potential tryptic companions for the PXD007263 time-course and
 PXD009438 PBMC MAPP deposits. Neither inventory carries a raw-file
 `sampleProperties` mapping, just as PXD009360's nine raw files do not. The
-hash-pinned [crosswalk audit](../tasks/wolf-levy-crosswalk-audit-results/README.md)
+hash-pinned [crosswalk audit](https://github.com/pirl-unc/hitlist/blob/main/tasks/wolf-levy-crosswalk-audit-results/README.md)
 therefore retains them as source candidates rather than promoting them to
 paired precursor measurements.
 

@@ -1,0 +1,42 @@
+{
+  ".datacache-manifest.json": {
+    "sha256": "bbb9e9b6057feb1845aee6104c6bb9e95e611381b0e3abde31f08abb55c5b64d",
+    "size_bytes": 3350
+  },
+  "binding.parquet": {
+    "sha256": "fb82156643188e0a35e9a1c8bfe270105591ba448769cc7628a098a69ac0c2e2",
+    "size_bytes": 17102143
+  },
+  "bulk_proteomics.parquet": {
+    "sha256": "b6880a1d26bb4a0a1506457ccbd9e0c1f273f21b1602c0f6f6889bd5562079e9",
+    "size_bytes": 46172442
+  },
+  "line_expression.parquet": {
+    "sha256": "ebdb0d038f0ecaee3d96d1aed264e9b72daf35e55b65e5afe08feaaae9beaa19",
+    "size_bytes": 732671
+  },
+  "observation_contributors.parquet": {
+    "sha256": "8fb1d19660729be4878a1ad0165a08a1c4069aca800e5115752ffc43b8b71d54",
+    "size_bytes": 628447260
+  },
+  "observations.parquet": {
+    "sha256": "3fdcd9f2eb65cfda5930e98adfb7bc070d61ba373329e8f95d83b91f434ac9c8",
+    "size_bytes": 145674084
+  },
+  "observations_meta.json": {
+    "sha256": "df516db7623734f9c5ac876d741a3258e43f6212b4d57beb5f8cdd7959e565fb",
+    "size_bytes": 18776
+  },
+  "other_assays.parquet": {
+    "sha256": "1297b4cc1194dd42ceb26bd2dd010dd58758877d4e1eabbbd3d0521653ba545b",
+    "size_bytes": 1259995
+  },
+  "peptide_mappings.parquet": {
+    "sha256": "571cea239513c86b4ea06756135e7ff6524df1ba568aa881a9a99374a8ed96b2",
+    "size_bytes": 176062629
+  },
+  "peptide_mappings_meta.json": {
+    "sha256": "c51cca86b4e05809d08ca1a89ba52b00d77086406b688de3b70b587e196e3430",
+    "size_bytes": 90651
+  }
+}

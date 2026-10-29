@@ -2817,7 +2817,7 @@ def generate_observations_table(
     # The ``_fb`` shadows are gone already: the coalesce above consumes each
     # one with ``pop`` so ~40 object columns no longer ride from there to here
     # just to be dropped (#566).  Only the two join keys are left.
-    obs.drop(columns=["_pmid_int", "_mhc_class_norm"], inplace=True)
+    obs = obs.drop(columns=["_pmid_int", "_mhc_class_norm"])
 
     # "No shadow reaches the export" used to be enforced by that single drop
     # naming ``fb_cols``; the coalesce's ``pop`` calls now enforce it 48 times

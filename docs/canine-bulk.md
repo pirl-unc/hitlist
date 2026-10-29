@@ -67,7 +67,7 @@ orfdata's existing cache entries are retained. No vendor database is acquired.
 
 On Python **3.11+**, select `provider="orfdata_peptides"` to consume ORFdata
 **0.40+** and its pinned `pfizer-atlas-dog-peptide-evidence` generation
-`2026-10-27.1`. Existing providers remain available on Python 3.10.
+`2026-10-27.1`. All current Hitlist providers require Python 3.11+ and pandas 3+.
 
 ```python
 from hitlist import open_canine_peptide_evidence

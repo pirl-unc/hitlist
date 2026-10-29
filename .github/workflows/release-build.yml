@@ -7,6 +7,8 @@ on:
       - .github/workflows/release-build.yml
       - deploy.sh
       - scripts/release_artifacts.py
+      - scripts/release_diagnostics.py
+      - tests/test_release_diagnostics.py
       - scripts/ci_corpus.py
       - scripts/publish_ci_corpus.sh
       - tests/test_ci_corpus.py
@@ -140,7 +142,7 @@ jobs:
           ruff check scripts/release_artifacts.py scripts/ci_corpus.py
           ruff format --check scripts/release_artifacts.py scripts/ci_corpus.py
           test -z "$(git status --porcelain --untracked-files=no)"
-          /usr/bin/time -v ./deploy.sh --build-only
+          python scripts/release_diagnostics.py "$RUNNER_TEMP/release-diagnostics" -- ./deploy.sh --build-only
           twine check dist/*.whl dist/*.tar.gz
           python scripts/release_artifacts.py write dist --corpus-dir "$HITLIST_DATA_DIR"
 
@@ -162,9 +164,20 @@ jobs:
         run: |
           # Kernel OOM evidence may be unavailable on a hosted runner.
           # Keep the release gate's original result even if access is denied.
-          sudo dmesg -T 2>&1 | tail -40 || true
+          mkdir -p "$RUNNER_TEMP/release-diagnostics"
+          sudo dmesg -T 2>&1 | tail -80 | tee "$RUNNER_TEMP/release-diagnostics/kernel-tail.txt" || true
+
+      - name: Retain release diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: hitlist-release-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-diagnostics/
+          if-no-files-found: warn
+          retention-days: 30
 
       - uses: actions/upload-artifact@v7
+        if: success()
         with:
           name: hitlist-release-${{ github.sha }}
           path: dist/

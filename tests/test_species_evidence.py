@@ -245,7 +245,9 @@ def update(inputs, name, transform):
     else:
         path = inputs / manifest["files"][name]["path"]
         value = pd.read_parquet(path) if path.suffix == ".parquet" else json.loads(path.read_text())
-        transform(value)
+        replacement = transform(value)
+        if replacement is not None:
+            value = replacement
         if path.suffix == ".parquet":
             value.to_parquet(path, index=False)
         else:
@@ -376,7 +378,7 @@ def test_ambiguous_allocations_retain_all_coding_alternatives(inputs, tmp_path):
 
 
 def test_explicit_empty_canine_normal_snapshot(inputs, tmp_path):
-    update(inputs, "normal", lambda d: d.drop(d.index, inplace=True))
+    update(inputs, "normal", lambda d: d.drop(d.index))
     update(inputs, "manifest", lambda d: d["normal_source"].update(coverage="missing"))
     out = bundle(inputs, tmp_path)
     peptides = pd.read_parquet(out / "peptides.parquet")
@@ -399,7 +401,7 @@ def test_donors_not_alleles_or_tumors_establish_blacklist(inputs, tmp_path):
 
 
 def test_contributor_coverage_required(inputs, tmp_path):
-    update(inputs, "contributors", lambda d: d.drop(d.index[0], inplace=True))
+    update(inputs, "contributors", lambda d: d.drop(d.index[0]))
     with pytest.raises(ValueError, match="contributor coverage"):
         bundle(inputs, tmp_path)
 

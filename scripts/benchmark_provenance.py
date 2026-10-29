@@ -54,6 +54,10 @@ def main():
                 previous = record
         finally:
             handle.close()
+        # Current collectors buffer a bounded final payload block. Historical
+        # comparison modules may publish each payload directly instead.
+        if hasattr(collector, "_flush_payloads"):
+            collector._flush_payloads()
         collector.db.commit()
         captured = time.perf_counter()
         page_size = collector.db.execute("PRAGMA page_size").fetchone()[0]
