@@ -545,8 +545,8 @@ def _drop_supplementary_duplicates(
     supp: pd.DataFrame, obs: pd.DataFrame, *, provenance=None
 ) -> pd.DataFrame:
     """Anti-join supplementary rows against IEDB/CEDAR rows on
-    ``(peptide, mhc_restriction, pmid)`` — IEDB/CEDAR wins when the
-    triple is shared (#45 supplements are intentionally redundant
+    ``(peptide, mhc_restriction, pmid, peptidoform)`` — IEDB/CEDAR wins when the
+    identity is shared (#45 supplements are intentionally redundant
     when the paper is also in IEDB).
 
     Replaces an earlier ``set(zip(...))`` Python set that held ~4 M
@@ -575,7 +575,12 @@ def _drop_supplementary_duplicates(
     """
     if supp.empty:
         return supp
-    join_cols = ["peptide", "mhc_restriction", "pmid"]
+    from .supplement_peptidoforms import peptidoform_keys
+
+    supp = supp.assign(_peptidoform_key=peptidoform_keys(supp))
+    if not obs.empty:
+        obs = obs.assign(_peptidoform_key=peptidoform_keys(obs))
+    join_cols = ["peptide", "mhc_restriction", "pmid", "_peptidoform_key"]
     if obs.empty:
         obs_keys = pd.DataFrame({c: pd.Series(dtype="object") for c in join_cols})
     else:
@@ -604,7 +609,7 @@ def _drop_supplementary_duplicates(
     return (
         supp.merge(obs_keys, on=join_cols, how="left", indicator=True)
         .query("_merge == 'left_only'")
-        .drop(columns="_merge")
+        .drop(columns=["_merge", "_peptidoform_key"])
         .reset_index(drop=True)
     )
 

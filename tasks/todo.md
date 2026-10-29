@@ -9187,3 +9187,9 @@ package replay in Presto0236 passes all61,852cells/348slots/3,684transition rows
 54form links and1,368sums; one length conflict retained. No training or old
 biological held-outs. Exact-head hosted integration verification still pending.
 PR publication is the next action; recipe/biological validation remain open.
+
+## Supplementary peptidoform recovery, 2026-10-29
+- [ ] Preserve source modification fields, review state and peptidoform identity (#854).
+- [ ] Review original source metadata and retain available qualified fields.
+- [ ] Verify scanner/export round trips, formatting, lint and tests.
+- [ ] Publish versioned PR and deployment evidence per repository workflow.
