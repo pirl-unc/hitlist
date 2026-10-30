@@ -1,0 +1,126 @@
+{
+  "sampler": {
+    "sampled_parent_peak_rss_bytes": 63111168,
+    "sampled_tree_peak_rss_bytes": 837541888
+  },
+  "child_self": {
+    "pid": 4,
+    "page_bytes": 4096,
+    "statm": "106227 37814 0 0 0 0 0",
+    "status": "Name:\tpython\nState:\tR (running)\nTgid:\t4\nPid:\t4\nPPid:\t2\nTracerPid:\t0\nUid:\t0\t0\t0\t0\nGid:\t0\t0\t0\t0\nFDSize:\t512\nGroups:\t \nVmSize:\t424908 kB\nVmRSS:\t151256 kB\nVmData:\t146268 kB\nThreads:\t5\nSigPnd:\t0000000000000000\nShdPnd:\t0000000000000000\nSigBlk:\t0000000000000000\nSigIgn:\t0000000001001000\nSigCgt:\t0000000180000002\nCapInh:\t00000000a80405fb\nCapPrm:\t00000000a80405fb\nCapEff:\t00000000a80405fb\nCapBnd:\t00000000a80405fb\nCapAmb:\t00000000a80405fb\nNoNewPrivs:\t1\nSeccomp:\t0\nMems_allowed:\t1\nMems_allowed_list:\t0\nvoluntary_ctxt_switches:\t0\nnonvoluntary_ctxt_switches:\t0\n",
+    "own_statm": "106227 37814 0 0 0 0 0",
+    "own_status": "Name:\tpython\nState:\tR (running)\nTgid:\t4\nPid:\t4\nPPid:\t2\nTracerPid:\t0\nUid:\t0\t0\t0\t0\nGid:\t0\t0\t0\t0\nFDSize:\t512\nGroups:\t \nVmSize:\t424908 kB\nVmRSS:\t151256 kB\nVmData:\t146268 kB\nThreads:\t5\nSigPnd:\t0000000000000000\nShdPnd:\t0000000000000000\nSigBlk:\t0000000000000000\nSigIgn:\t0000000001001000\nSigCgt:\t0000000180000002\nCapInh:\t00000000a80405fb\nCapPrm:\t00000000a80405fb\nCapEff:\t00000000a80405fb\nCapBnd:\t00000000a80405fb\nCapAmb:\t00000000a80405fb\nNoNewPrivs:\t1\nSeccomp:\t0\nMems_allowed:\t1\nMems_allowed_list:\t0\nvoluntary_ctxt_switches:\t0\nnonvoluntary_ctxt_switches:\t0\n",
+    "maxrss_kib": 151256
+  },
+  "tree": [
+    {
+      "pid": 2,
+      "page_bytes": 4096,
+      "statm": "33783 15408 0 0 0 0 0",
+      "status": {
+        "Name": "python",
+        "Tgid": "2",
+        "Pid": "2",
+        "PPid": "1",
+        "Threads": "2",
+        "VmRSS": "61632 kB",
+        "RssAnon": "",
+        "RssFile": "",
+        "RssShmem": ""
+      },
+      "children": [
+        "4",
+        "5",
+        "6",
+        "7",
+        "8"
+      ]
+    },
+    {
+      "pid": 8,
+      "page_bytes": 4096,
+      "statm": "106227 37814 0 0 0 0 0",
+      "status": {
+        "Name": "python",
+        "Tgid": "4",
+        "Pid": "8",
+        "PPid": "2",
+        "Threads": "5",
+        "VmRSS": "151256 kB",
+        "RssAnon": "",
+        "RssFile": "",
+        "RssShmem": ""
+      },
+      "children": []
+    },
+    {
+      "pid": 7,
+      "page_bytes": 4096,
+      "statm": "106227 37814 0 0 0 0 0",
+      "status": {
+        "Name": "python",
+        "Tgid": "4",
+        "Pid": "7",
+        "PPid": "2",
+        "Threads": "5",
+        "VmRSS": "151256 kB",
+        "RssAnon": "",
+        "RssFile": "",
+        "RssShmem": ""
+      },
+      "children": []
+    },
+    {
+      "pid": 6,
+      "page_bytes": 4096,
+      "statm": "106227 37814 0 0 0 0 0",
+      "status": {
+        "Name": "python",
+        "Tgid": "4",
+        "Pid": "6",
+        "PPid": "2",
+        "Threads": "5",
+        "VmRSS": "151256 kB",
+        "RssAnon": "",
+        "RssFile": "",
+        "RssShmem": ""
+      },
+      "children": []
+    },
+    {
+      "pid": 5,
+      "page_bytes": 4096,
+      "statm": "106227 37814 0 0 0 0 0",
+      "status": {
+        "Name": "python",
+        "Tgid": "4",
+        "Pid": "5",
+        "PPid": "2",
+        "Threads": "5",
+        "VmRSS": "151256 kB",
+        "RssAnon": "",
+        "RssFile": "",
+        "RssShmem": ""
+      },
+      "children": []
+    },
+    {
+      "pid": 4,
+      "page_bytes": 4096,
+      "statm": "106227 37814 0 0 0 0 0",
+      "status": {
+        "Name": "python",
+        "Tgid": "4",
+        "Pid": "4",
+        "PPid": "2",
+        "Threads": "5",
+        "VmRSS": "151256 kB",
+        "RssAnon": "",
+        "RssFile": "",
+        "RssShmem": ""
+      },
+      "children": []
+    }
+  ],
+  "platform": "linux"
+}

@@ -1,0 +1,20 @@
+{
+  "scope": "full forced build",
+  "status": "success",
+  "variants": {
+    "baseline": {
+      "wall_seconds_mean": 979.9875610189999,
+      "cpu_seconds_mean": 987.1300000000001,
+      "process_peak_rss_bytes_mean": 33334691840,
+      "sampled_tree_peak_rss_bytes_mean": 33334691840
+    },
+    "candidate": {
+      "wall_seconds_mean": 680.4717581854999,
+      "cpu_seconds_mean": 903.565,
+      "process_peak_rss_bytes_mean": 11687725056,
+      "sampled_tree_peak_rss_bytes_mean": 35916902400
+    }
+  },
+  "speed_ratio": 1.4401590502920631,
+  "wall_reduction_fraction": 0.30563224957882207
+}

@@ -1,3 +1,69 @@
+# Contributor storage and scanning — #63, second pass, 2026-10-29
+
+Specification: [contributor-storage-63-spec.md](contributor-storage-63-spec.md).
+
+- [x] Review prior profiles, preserve user work, branch from current main 2.1.3.
+- [x] Specify comparison baseline, invariants and release gates before implementation.
+- [x] Profile current source capture/publication and compare isolated candidates.
+- [x] Implement selected bounded optimization and meaningful regression coverage.
+- [x] Complete controlled real-source and full-build output/time/CPU/memory comparisons.
+- [x] Measure test.sh; run format, lint, full tests, metadata/dependency and measured-code CI gates.
+- [ ] Pass checks on the final evidence commit.
+- [ ] Merge, deploy exact clean-main artifacts, verify public downloads and update #63.
+
+## Review
+
+Prior #870 and documentation correction #874 are merged and deployed as 2.1.1 and
+2.1.2; both public wheel/sdist pairs were verified against their clean-main gates.
+The measured first pass achieved 1.10×, leaving the 2× target open. This pass starts
+from main ff5247f (2.1.3) to include #872 consistently in both measured variants.
+
+Candidate 4418993 passes 3,761 local unit tests (one skip). Candidate e2d820e
+adds scan-local reuse of identical adjacent assay annotations; 119 focused tests
+pass. The second four-run prefix comparison is byte-identical across both output
+files: means 57.96 s baseline versus 53.21 s candidate, with parent peak RSS
+2.77 versus 2.26 GiB. Full-build claims remain pending. Harness 610c2d9 passes
+130 focused tests including sibling cancellation, timeout cleanup and CEDAR source
+identity. The corrected two-source diagnostic has matching output bytes and mean wall
+73.54 s serial /37.49 s parallel, excluding cross-source merging. The production
+worker design is recorded in [source-workers-63-spec.md](source-workers-63-spec.md).
+The bounded implementation passes 127 focused tests, including actual spawn,
+scratch fallback, cancellation, corrupt snapshots, source identity, and exact
+merged contributor bytes. The real-prefix comparison including production IPC and
+graph merging passes all four exact outputs: 115.57 s serial / 76.79 s parallel
+means. No full-build speed claim yet. The complete local suite at f46d261 passes
+3,785 tests with one skip, using four workers admitted by the unchanged memory
+guard. Format/lint and isolated-environment dependency/metadata checks pass.
+Draft PR #877 reserves version 2.1.4; check main again before landing. Review
+identified nested cgroup admission issue #878, corrected before shipping with
+v1/v2, ancestor, hybrid-mount and CPU-affinity handling. The first full/test paired
+experiments were intentionally cancelled as superseded; their partial receipts
+are retained and do not count as qualification.
+The earlier e88891a suite comparison passes but is 3.3% slower (33 added tests).
+Review found #879: zero-row Arrow views retain full buffers. Owned empty columns
+correct the serial result lifetime. The full raw-IPC candidate then exceeded its
+reservation and retried serially (#880); that experiment was cancelled and is
+excluded. Zstandard IPC compression preserves the same total scratch budget.
+
+Current producer a71f2e9 passes format, lint, strict docs, all five hosted unit
+configurations, 97 integration tests and the PR release gate. The release gate's
+test.sh passes 3,794 unit tests with one skip, then all 97 integration tests.
+The local final-code test.sh refused before starting because free memory was below
+its unchanged admission threshold; hosted checks supply the full verification.
+The replacement full comparison completes candidate/baseline/baseline/candidate
+on one allocation. Both candidates use two source workers without a serial retry.
+All seven Parquet artifacts are byte-identical across all four builds, with matching
+input/dependency pins and zero recorded Python network attempts. Mean wall time
+falls from 979.99 to 680.47 seconds (30.6%, 1.44×); aggregate CPU falls 8.5%.
+Mean sampled tree peak RSS rises from 31.05 to 33.45 GiB; the 60 GiB minimum
+admission threshold remains. The 2× whole-build target is not met.
+
+The final-code four-run suite comparison passes with two normally admitted workers:
+3,754 baseline / 3,793 candidate tests, two skips each. Mean wall time rises 4.6%
+from 255.39 to 267.07 seconds; no suite speedup is claimed. Full receipts and
+reproduction commands are in docs/source-build-performance.md and the linked
+results directory. Final evidence-head checks, merge and publication remain.
+
 # Performance-report skip wording — #873, 2026-10-29
 
 Scope: remove the unsupported operating-system attribution from the local test
@@ -9245,3 +9311,16 @@ PR publication is the next action; recipe/biological validation remain open.
 - [ ] Review original source metadata and retain available qualified fields.
 - [ ] Verify scanner/export round trips, formatting, lint and tests.
 - [ ] Publish versioned PR and deployment evidence per repository workflow.
+
+
+## #63 qualification correction — #880
+
+The first e88891a full candidate exceeded its 3.2 GiB IEDB IPC quota, safely
+retried serially, and therefore did not qualify the parallel optimization. That
+full experiment and its superseded final-code suite run were cancelled with
+receipts. The one completed baseline is not a comparative result. Preserve the
+16 GiB total cap and compress IPC with Zstandard; test both compressible success
+and incompressible quota fallback. Repeat full qualification candidate-first on
+one allocation with enforced actual parallel selection/no retry. Start the final
+suite comparison only after the first full candidate succeeds. Local full tests
+were refused at 0.13 GiB available; preserve the guard and use hosted test.sh gates.

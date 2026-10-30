@@ -1,0 +1,26 @@
+{
+  "scan-1": {
+    "baseline": {
+      "wall_seconds": 58.96196607849999,
+      "process_cpu_seconds": 55.849999999999994,
+      "process_peak_rss_bytes": 2974580736
+    },
+    "candidate": {
+      "wall_seconds": 54.76588143550001,
+      "process_cpu_seconds": 52.045,
+      "process_peak_rss_bytes": 2428745728
+    }
+  },
+  "scan-2": {
+    "baseline": {
+      "wall_seconds": 57.95773333750001,
+      "process_cpu_seconds": 55.474999999999994,
+      "process_peak_rss_bytes": 2975531008
+    },
+    "candidate": {
+      "wall_seconds": 53.205146945999985,
+      "process_cpu_seconds": 50.795,
+      "process_peak_rss_bytes": 2431377408
+    }
+  }
+}

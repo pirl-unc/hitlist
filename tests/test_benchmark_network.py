@@ -69,7 +69,10 @@ def test_missing_audit_marker_is_not_a_verified_run(tmp_path, benchmark):
 
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX process-group signal cleanup")
-def test_interrupted_experiment_records_failure_and_reaps_child(tmp_path, benchmark):
+@pytest.mark.parametrize("candidate_first", [False, True])
+def test_interrupted_experiment_records_failure_and_reaps_child(
+    tmp_path, benchmark, candidate_first
+):
     import json
     import signal
     import time
@@ -94,7 +97,7 @@ def test_interrupted_experiment_records_failure_and_reaps_child(tmp_path, benchm
         "from pathlib import Path\nimport paired_build_benchmark as b\n"
         f"b.CONFIG=Path({str(config)!r}); b.BASE=Path({str(base)!r})\n"
         f"b.GUARD_DIRECTORY=b.CONFIG; b.PRODUCER_ROOT=Path({str(producers)!r})\n"
-        "signal.signal(signal.SIGTERM,b.interrupted)\nb.run('interrupted',False)\n"
+        f"signal.signal(signal.SIGTERM,b.interrupted)\nb.run('interrupted',False,candidate_first={candidate_first!r})\n"
     )
     with (tmp_path / "parent.log").open("w") as log:
         parent = subprocess.Popen([sys.executable, "-c", code], stdout=log, stderr=log)
@@ -116,7 +119,10 @@ def test_interrupted_experiment_records_failure_and_reaps_child(tmp_path, benchm
                 parent.wait(timeout=15)
     receipt = json.loads((base / "interrupted/experiment.json").read_text())
     assert receipt["status"] == "failed"
-    assert receipt["active_run"] == "interrupted-1-baseline"
+    first = "candidate" if candidate_first else "baseline"
+    second = "baseline" if candidate_first else "candidate"
+    assert receipt["active_run"] == f"interrupted-1-{first}"
+    assert receipt["order"] == [first, second, second, first]
     assert receipt["runs"] == []
     assert "received signal 15" in (base / "interrupted/failure.txt").read_text()
 
@@ -146,3 +152,93 @@ def test_scan_diagnostic_uses_builder_pmid_projection_and_keeps_originals(tmp_pa
         "reported-reference",
     ]
     assert json.loads((output / "report.json").read_text())["status"] == "success"
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX process-group signal cleanup")
+@pytest.mark.parametrize("failure", ["sibling", "timeout"])
+def test_source_diagnostic_reaps_all_children_on_failure(tmp_path, monkeypatch, benchmark, failure):
+    source_benchmark = importlib.import_module("source_scan_benchmark")
+    processes = []
+    launch = subprocess.Popen
+
+    def tracked(*args, **kwargs):
+        process = launch(*args, **kwargs)
+        processes.append(process)
+        return process
+
+    monkeypatch.setattr(source_benchmark.subprocess, "Popen", tracked)
+    with (tmp_path / "children.log").open("w") as log:
+        commands = [([sys.executable, "-c", "import time; time.sleep(30)"], os.environ.copy(), log)]
+        if failure == "sibling":
+            commands.append(([sys.executable, "-c", "raise SystemExit(7)"], os.environ.copy(), log))
+        with pytest.raises(subprocess.CalledProcessError if failure == "sibling" else TimeoutError):
+            source_benchmark.run_children(commands, concurrent=True, timeout=0.5)
+    assert processes
+    assert all(process.poll() is not None for process in processes)
+
+
+def test_source_diagnostic_preserves_cedar_identity(tmp_path, benchmark):
+    import json
+
+    import pandas as pd
+
+    from tests.test_provenance import _row
+    from tests.test_scanner import _write_tiny_iedb_csv
+
+    source_benchmark = importlib.import_module("source_scan_benchmark")
+    source = tmp_path / "cedar.csv"
+    _write_tiny_iedb_csv(source, [_row("cedar:1")])
+    output = tmp_path / "output"
+    output.mkdir()
+    source_benchmark.child("cedar", source, output)
+    links = pd.read_parquet(output / "contributors.parquet")
+    assert links.source_dataset.tolist() == ["cedar"]
+    assert links.source_record_id.tolist() == ["record:cedar:row:1"]
+    assert json.loads((output / "report.json").read_text())["status"] == "success"
+
+
+def test_memory_sampler_counts_thread_groups_once_and_keeps_descendants(tmp_path, benchmark):
+    profile = importlib.import_module("profile_build")
+    # Tasks 2/3/4 share one address space. Task 3 alone owns process 5;
+    # missing task 99 models an exit between the children read and inspection.
+    for pid, group, pages, children in (
+        (1, 1, 10, [2, 3, 4, 99]),
+        (2, 2, 20, []),
+        (3, 2, 20, [5]),
+        (4, 2, 20, []),
+        (5, 5, 30, []),
+    ):
+        path = tmp_path / str(pid)
+        (path / f"task/{pid}").mkdir(parents=True)
+        (path / f"task/{pid}/children").write_text(" ".join(map(str, children)))
+        (path / "status").write_text(f"Name:\tpython\nTgid:\t{group}\nPid:\t{pid}\n")
+        (path / "statm").write_text(f"100 {pages} 0 0 0 0 0\n")
+    own, total = profile._process_tree_rss(1, tmp_path)
+    assert own == 10 * os.sysconf("SC_PAGE_SIZE")
+    assert total == 60 * os.sysconf("SC_PAGE_SIZE")
+
+
+@pytest.mark.parametrize(
+    "log",
+    [
+        "Scanning iedb...\n",
+        "Scanning IEDB and CEDAR with two source workers.\nSource worker scratch reservations were insufficient; retrying source scans serially.\n",
+    ],
+)
+def test_full_worker_qualification_rejects_serial_scans(tmp_path, benchmark, log):
+    path = tmp_path / "build.log"
+    path.write_text(log)
+    with pytest.raises(ValueError, match="without a serial retry"):
+        benchmark.check_source_workers(path)
+
+
+def test_full_worker_qualification_records_actual_schedule(tmp_path, benchmark):
+    path = tmp_path / "build.log"
+    path.write_text(
+        "Scanning IEDB and CEDAR with two source workers.\nScanning iedb...\nScanning cedar...\n"
+    )
+    assert benchmark.check_source_workers(path) == {
+        "n_workers": 2,
+        "n_parallel_selections": 1,
+        "n_serial_retries": 0,
+    }

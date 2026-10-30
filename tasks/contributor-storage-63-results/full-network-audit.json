@@ -1,0 +1,58 @@
+{
+  "status": "success",
+  "scope": "Python socket/DNS audit markers and attempted-access logs; not an OS firewall",
+  "runs": [
+    {
+      "label": "issue63-pass2-full-pair-3-1-candidate",
+      "build_process_id": 12,
+      "installed_markers": [
+        "hitlist-reliability-20261028/issue63-pass2-full-pair-3-1-candidate/network/12.installed",
+        "hitlist-reliability-20261028/issue63-pass2-full-pair-3-1-candidate/network/16.installed",
+        "hitlist-reliability-20261028/issue63-pass2-full-pair-3-1-candidate/network/17.installed",
+        "hitlist-reliability-20261028/issue63-pass2-full-pair-3-1-candidate/network/18.installed",
+        "hitlist-reliability-20261028/issue63-pass2-full-pair-3-1-candidate/network/28.installed",
+        "hitlist-reliability-20261028/issue63-pass2-full-pair-3-1-candidate/network/32.installed"
+      ],
+      "n_python_process_markers": 6,
+      "n_attempt_logs": 0
+    },
+    {
+      "label": "issue63-pass2-full-pair-3-2-baseline",
+      "build_process_id": 41,
+      "installed_markers": [
+        "hitlist-reliability-20261028/issue63-pass2-full-pair-3-2-baseline/network/41.installed",
+        "hitlist-reliability-20261028/issue63-pass2-full-pair-3-2-baseline/network/53.installed",
+        "hitlist-reliability-20261028/issue63-pass2-full-pair-3-2-baseline/network/54.installed",
+        "hitlist-reliability-20261028/issue63-pass2-full-pair-3-2-baseline/network/57.installed"
+      ],
+      "n_python_process_markers": 4,
+      "n_attempt_logs": 0
+    },
+    {
+      "label": "issue63-pass2-full-pair-3-3-baseline",
+      "build_process_id": 67,
+      "installed_markers": [
+        "hitlist-reliability-20261028/issue63-pass2-full-pair-3-3-baseline/network/67.installed",
+        "hitlist-reliability-20261028/issue63-pass2-full-pair-3-3-baseline/network/79.installed",
+        "hitlist-reliability-20261028/issue63-pass2-full-pair-3-3-baseline/network/80.installed",
+        "hitlist-reliability-20261028/issue63-pass2-full-pair-3-3-baseline/network/83.installed"
+      ],
+      "n_python_process_markers": 4,
+      "n_attempt_logs": 0
+    },
+    {
+      "label": "issue63-pass2-full-pair-3-4-candidate",
+      "build_process_id": 93,
+      "installed_markers": [
+        "hitlist-reliability-20261028/issue63-pass2-full-pair-3-4-candidate/network/109.installed",
+        "hitlist-reliability-20261028/issue63-pass2-full-pair-3-4-candidate/network/113.installed",
+        "hitlist-reliability-20261028/issue63-pass2-full-pair-3-4-candidate/network/93.installed",
+        "hitlist-reliability-20261028/issue63-pass2-full-pair-3-4-candidate/network/97.installed",
+        "hitlist-reliability-20261028/issue63-pass2-full-pair-3-4-candidate/network/98.installed",
+        "hitlist-reliability-20261028/issue63-pass2-full-pair-3-4-candidate/network/99.installed"
+      ],
+      "n_python_process_markers": 6,
+      "n_attempt_logs": 0
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "producer_commit": "e88891a",
+  "version": "2.1.4",
+  "format": "pass",
+  "lint": "pass",
+  "test_sh": {
+    "status": "pass",
+    "n_passed": 3788,
+    "n_skipped": 1,
+    "n_warnings": 10,
+    "pytest_wall_seconds": 133.43,
+    "admitted_workers": 3,
+    "admission": "Unchanged test.sh policy; 8.29 GiB free at preflight"
+  },
+  "editable_metadata": "pass with isolated environment PATH",
+  "pip_check": "pass;53 compatible packages",
+  "log": "/private/tmp/hitlist63-pass2-final-local-tests.log",
+  "scope": "Local unit/default non-integration suite; hosted integration remains separate.",
+  "docs": "mkdocs build --strict --site-dir /private/tmp/hitlist63-pass2-docs: pass"
+}

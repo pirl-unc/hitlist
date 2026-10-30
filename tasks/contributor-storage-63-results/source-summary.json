@@ -1,0 +1,12 @@
+{
+  "serial": {
+    "wall_seconds": 113.724865935,
+    "cpu_seconds": 109.52499999999999
+  },
+  "parallel": {
+    "wall_seconds": 57.84324917949999,
+    "cpu_seconds": 108.83000000000001
+  },
+  "scope": "independent source processes; excludes production cross-source graph/partition merge",
+  "tree_rss_status": "Unqualified: discrepancy between parent-observed descendants and child self-RSS; see #876. Do not use for physical memory or concurrency admission."
+}

@@ -1,0 +1,20 @@
+{
+  "scope": "test suite",
+  "status": "success",
+  "variants": {
+    "baseline": {
+      "wall_seconds_mean": 255.39231979149997,
+      "cpu_seconds_mean": 494.4100000000001,
+      "process_peak_rss_bytes_mean": 38582272,
+      "sampled_tree_peak_rss_bytes_mean": 2384009216
+    },
+    "candidate": {
+      "wall_seconds_mean": 267.06895803649996,
+      "cpu_seconds_mean": 534.57,
+      "process_peak_rss_bytes_mean": 39755776,
+      "sampled_tree_peak_rss_bytes_mean": 2473447424
+    }
+  },
+  "speed_ratio": 0.9562785644170441,
+  "wall_reduction_fraction": -0.045720396974085586
+}

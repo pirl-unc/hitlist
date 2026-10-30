@@ -1,0 +1,1359 @@
+
+  _     ._   __/__   _ _  _  _ _/_   Recorded: 00:05:57  Samples:  7654
+ /_//_/// /_\ / //_// / //_'/ //     Duration: 80.650    CPU time: 79.300
+/   _/                      v5.1.3
+
+Profile at /opt/benchmark/profile_scan.py:155
+
+80.65 main  profile_scan.py:110
+|- 66.33 scan  ../producer/hitlist/scanner.py:291
+|  |- 19.18 record_row  ../producer/hitlist/provenance.py:293
+|  |  |- 8.45 [self]  ../producer/hitlist/provenance.py
+|  |  |- 6.25 ContributorCollector._record_payload  ../producer/hitlist/provenance.py:308
+|  |  |  |- 2.61 ContributorCollector._execute  ../producer/hitlist/provenance.py:170
+|  |  |  |  |- 2.10 Connection.execute  <built-in>
+|  |  |  |  |- 0.28 [self]  ../producer/hitlist/provenance.py
+|  |  |  |  `- 0.23 ContributorCollector._check_space  ../producer/hitlist/provenance.py:149
+|  |  |  |     |- 0.13 [self]  ../producer/hitlist/provenance.py
+|  |  |  |     `- 0.10 monotonic  <built-in>
+|  |  |  |- 1.78 ContributorCollector._flush_payloads  ../producer/hitlist/provenance.py:336
+|  |  |  |  |- 1.06 [self]  ../producer/hitlist/provenance.py
+|  |  |  |  |- 0.53 bytes.join  <built-in>
+|  |  |  |  |- 0.14 ContributorCollector._execute  ../producer/hitlist/provenance.py:170
+|  |  |  |  |  |- 0.13 Connection.execute  <built-in>
+|  |  |  |  |  `- 0.01 [self]  ../producer/hitlist/provenance.py
+|  |  |  |  `- 0.05 list.clear  <built-in>
+|  |  |  |- 1.44 [self]  ../producer/hitlist/provenance.py
+|  |  |  |- 0.33 len  <built-in>
+|  |  |  `- 0.09 list.append  <built-in>
+|  |  |- 2.89 <genexpr>  ../producer/hitlist/provenance.py:296
+|  |  |- 1.23 str.join  <built-in>
+|  |  |- 0.22 str.encode  <built-in>
+|  |  `- 0.14 len  <built-in>
+|  |- 11.14 _progress  ../producer/hitlist/scanner.py:264
+|  |  |- 7.04 [self]  ../producer/hitlist/scanner.py
+|  |  |- 3.96 _ByteCountingFile.__next__  ../producer/hitlist/scanner.py:244
+|  |  |  |- 2.22 TextIOWrapper.readline  <built-in>
+|  |  |  |- 1.36 [self]  ../producer/hitlist/scanner.py
+|  |  |  |- 0.29 IncrementalDecoder.decode  <frozen codecs>:319
+|  |  |  |  |- 0.20 utf_8_decode  <built-in>
+|  |  |  |  `- 0.09 [self]  <frozen codecs>
+|  |  |  |- 0.07 len  <built-in>
+|  |  |  `- 0.02 IncrementalDecoder.getstate  <frozen codecs>:331
+|  |  |- 0.13 tqdm_asyncio.update  tqdm/std.py:1204
+|  |  |  |- 0.11 tqdm_asyncio.refresh  tqdm/std.py:1333
+|  |  |  |  |- 0.10 tqdm_asyncio.display  tqdm/std.py:1472
+|  |  |  |  |  |- 0.06 tqdm_asyncio.__str__  tqdm/std.py:1156
+|  |  |  |  |  |  |- 0.03 format_meter  tqdm/std.py:462
+|  |  |  |  |  |  |  |- 0.01 [self]  tqdm/std.py
+|  |  |  |  |  |  |  |- 0.01 datetime.now  <built-in>
+|  |  |  |  |  |  |  `- 0.01 format_interval  tqdm/std.py:397
+|  |  |  |  |  |  |     `- 0.01 divmod  <built-in>
+|  |  |  |  |  |  |- 0.02 [self]  tqdm/std.py
+|  |  |  |  |  |  `- 0.01 tqdm_asyncio.format_dict  tqdm/std.py:1454
+|  |  |  |  |  `- 0.04 print_status  tqdm/std.py:455
+|  |  |  |  |     |- 0.03 fp_write  tqdm/std.py:449
+|  |  |  |  |     |  `- 0.03 inner  tqdm/utils.py:177
+|  |  |  |  |     |     `- 0.03 TextIOWrapper.write  <built-in>
+|  |  |  |  |     `- 0.01 disp_len  tqdm/utils.py:307
+|  |  |  |  |        `- 0.01 _text_width  tqdm/utils.py:303
+|  |  |  |  |           `- 0.01 <genexpr>  tqdm/utils.py:304
+|  |  |  |  `- 0.01 [self]  tqdm/std.py
+|  |  |  |- 0.01 [self]  tqdm/std.py
+|  |  |  `- 0.01 time  <built-in>
+|  |  `- 0.01 tqdm_asyncio.__new__  tqdm/std.py:664
+|  |     `- 0.01 tqdm_asyncio.get_lock  tqdm/std.py:766
+|  |        `- 0.01 TqdmDefaultWriteLock.__init__  tqdm/std.py:88
+|  |           `- 0.01 TqdmDefaultWriteLock.create_mp_lock  tqdm/std.py:114
+|  |              `- 0.01 DefaultContext.RLock  multiprocessing/context.py:70
+|  |                 `- 0.01 _find_and_load  <frozen importlib._bootstrap>:1349
+|  |                    `- 0.01 _find_and_load_unlocked  <frozen importlib._bootstrap>:1304
+|  |                       `- 0.01 _load_unlocked  <frozen importlib._bootstrap>:911
+|  |                          `- 0.01 SourceFileLoader.exec_module  <frozen importlib._bootstrap_external>:988
+|  |                             `- 0.01 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |                                `- 0.01 <module>  multiprocessing/synchronize.py:1
+|  |                                   `- 0.01 _handle_fromlist  <frozen importlib._bootstrap>:1390
+|  |                                      `- 0.01 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |                                         `- 0.01 _find_and_load  <frozen importlib._bootstrap>:1349
+|  |                                            `- 0.01 _find_and_load_unlocked  <frozen importlib._bootstrap>:1304
+|  |                                               `- 0.01 _find_spec  <frozen importlib._bootstrap>:1240
+|  |                                                  `- 0.01 PathFinder.find_spec  <frozen importlib._bootstrap_external>:1516
+|  |                                                     `- 0.01 PathFinder._get_spec  <frozen importlib._bootstrap_external>:1487
+|  |                                                        `- 0.01 FileFinder.find_spec  <frozen importlib._bootstrap_external>:1589
+|  |                                                           `- 0.01 _path_stat  <frozen importlib._bootstrap_external>:140
+|  |                                                              `- 0.01 stat  <built-in>
+|  |- 10.32 [self]  ../producer/hitlist/scanner.py
+|  |- 5.30 assay_annotations  ../producer/hitlist/assays.py:96
+|  |  |- 2.35 _text  ../producer/hitlist/assays.py:36
+|  |  |  |- 1.10 [self]  ../producer/hitlist/assays.py
+|  |  |  |- 0.58 str.lower  <built-in>
+|  |  |  |- 0.47 str.strip  <built-in>
+|  |  |  `- 0.20 isinstance  <built-in>
+|  |  |- 1.40 [self]  ../producer/hitlist/assays.py
+|  |  |- 1.19 _matches  ../producer/hitlist/assays.py:42
+|  |  |  |- 0.95 search  re/__init__.py:174
+|  |  |  |  |- 0.38 _compile  re/__init__.py:280
+|  |  |  |  |  |- 0.22 [self]  re/__init__.py
+|  |  |  |  |  `- 0.16 isinstance  <built-in>
+|  |  |  |  |- 0.31 Pattern.search  <built-in>
+|  |  |  |  `- 0.26 [self]  re/__init__.py
+|  |  |  |- 0.21 [self]  ../producer/hitlist/assays.py
+|  |  |  `- 0.03 isinstance  <built-in>
+|  |  |- 0.25 _classify  ../producer/hitlist/assays.py:82
+|  |  |  |- 0.24 _structured_rules  ../producer/hitlist/assays.py:53
+|  |  |  |  |- 0.19 _matches  ../producer/hitlist/assays.py:42
+|  |  |  |  |  |- 0.15 search  re/__init__.py:174
+|  |  |  |  |  |  |- 0.08 Pattern.search  <built-in>
+|  |  |  |  |  |  |- 0.05 [self]  re/__init__.py
+|  |  |  |  |  |  `- 0.02 _compile  re/__init__.py:280
+|  |  |  |  |  |     |- 0.01 isinstance  <built-in>
+|  |  |  |  |  |     `- 0.01 [self]  re/__init__.py
+|  |  |  |  |  |- 0.02 [self]  ../producer/hitlist/assays.py
+|  |  |  |  |  `- 0.02 isinstance  <built-in>
+|  |  |  |  `- 0.05 [self]  ../producer/hitlist/assays.py
+|  |  |  `- 0.01 [self]  ../producer/hitlist/assays.py
+|  |  `- 0.11 str.startswith  <built-in>
+|  |- 4.51 DataFrame.__init__  pandas/core/frame.py:466
+|  |  |- 4.50 nested_data_to_arrays  pandas/core/internals/construction.py:466
+|  |  |  `- 4.50 to_arrays  pandas/core/internals/construction.py:765
+|  |  |     |- 2.70 _finalize_columns_and_data  pandas/core/internals/construction.py:955
+|  |  |     |  `- 2.70 convert_object_array  pandas/core/internals/construction.py:1010
+|  |  |     |     `- 2.70 convert  pandas/core/internals/construction.py:1032
+|  |  |     |        |- 2.06 ArrowStringArray._from_sequence  pandas/core/arrays/string_arrow.py:233
+|  |  |     |        `- 0.64 [self]  pandas/core/internals/construction.py
+|  |  |     `- 1.79 _list_of_dict_to_arrays  pandas/core/internals/construction.py:913
+|  |  |        |- 1.18 [self]  pandas/core/internals/construction.py
+|  |  |        |- 0.58 <genexpr>  pandas/core/internals/construction.py:941
+|  |  |        |  |- 0.53 [self]  pandas/core/internals/construction.py
+|  |  |        |  `- 0.05 dict.keys  <built-in>
+|  |  |        `- 0.03 ensure_index  pandas/core/indexes/base.py:8354
+|  |  |           `- 0.03 Index.__new__  pandas/core/indexes/base.py:484
+|  |  |              `- 0.03 sanitize_array  pandas/core/construction.py:580
+|  |  |                 `- 0.03 ArrowStringArray._from_sequence  pandas/core/arrays/string_arrow.py:233
+|  |  |                    `- 0.03 _find_and_load  <frozen importlib._bootstrap>:1349
+|  |  |                       `- 0.03 _find_and_load_unlocked  <frozen importlib._bootstrap>:1304
+|  |  |                          `- 0.03 _load_unlocked  <frozen importlib._bootstrap>:911
+|  |  |                             `- 0.03 SourceFileLoader.exec_module  <frozen importlib._bootstrap_external>:988
+|  |  |                                `- 0.03 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |  |                                   `- 0.03 <module>  pyarrow/vendored/version.py:1
+|  |  |                                      `- 0.03 Version  pyarrow/vendored/version.py:301
+|  |  |                                         `- 0.03 compile  re/__init__.py:226
+|  |  |                                            `- 0.03 _compile  re/__init__.py:280
+|  |  |                                               `- 0.03 compile  re/_compiler.py:740
+|  |  |                                                  `- 0.03 parse  re/_parser.py:969
+|  |  |                                                     `- 0.03 _parse_sub  re/_parser.py:452
+|  |  |                                                        `- 0.03 _parse  re/_parser.py:512
+|  |  |                                                           `- 0.03 _parse_sub  re/_parser.py:452
+|  |  |                                                              `- 0.03 _parse  re/_parser.py:512
+|  |  |                                                                 `- 0.03 _parse_sub  re/_parser.py:452
+|  |  |                                                                    `- 0.03 _parse  re/_parser.py:512
+|  |  |                                                                       `- 0.03 _parse_sub  re/_parser.py:452
+|  |  |                                                                          `- 0.03 _parse  re/_parser.py:512
+|  |  |                                                                             `- 0.03 SubPattern.__getitem__  re/_parser.py:168
+|  |  |                                                                                `- 0.03 SubPattern.__init__  re/_parser.py:113
+|  |  `- 0.01 arrays_to_mgr  pandas/core/internals/construction.py:99
+|  |     `- 0.01 create_block_manager_from_column_arrays  pandas/core/internals/managers.py:2366
+|  |        `- 0.01 _form_blocks  pandas/core/internals/managers.py:2422
+|  |           `- 0.01 _stack_arrays  pandas/core/internals/managers.py:2488
+|  |- 2.69 resolve_mhc_annotation  ../producer/hitlist/curation.py:841
+|  |  |- 1.90 _parse_with_context  ../producer/hitlist/curation.py:730
+|  |  |  `- 1.90 _cached_parse  ../producer/hitlist/curation.py:693
+|  |  |     `- 1.90 parse  mhcgnomes/function_api.py:609
+|  |  |        `- 1.90 Parser.parse  mhcgnomes/parser.py:2500
+|  |  |           `- 1.90 cached_fn  mhcgnomes/common.py:71
+|  |  |              |- 1.89 Parser._parse_cached  mhcgnomes/parser.py:2555
+|  |  |              |  |- 1.76 Parser.parse_multiple_candidates  mhcgnomes/parser.py:2317
+|  |  |              |  |  |- 1.70 Parser.parse_tokens_to_multiple_candidates  mhcgnomes/parser.py:1993
+|  |  |              |  |  |  |- 1.55 Parser.parse_single_token_to_multiple_candidates  mhcgnomes/parser.py:1577
+|  |  |              |  |  |  |  |- 1.22 Parser.get_supertype  mhcgnomes/parser.py:500
+|  |  |              |  |  |  |  |  |- 1.20 Parser.parse  mhcgnomes/parser.py:2500
+|  |  |              |  |  |  |  |  |  `- 1.20 cached_fn  mhcgnomes/common.py:71
+|  |  |              |  |  |  |  |  |     |- 1.19 Parser._parse_cached  mhcgnomes/parser.py:2555
+|  |  |              |  |  |  |  |  |     |  |- 0.55 Parser.parse_species_from_prefix  mhcgnomes/parser.py:294
+|  |  |              |  |  |  |  |  |     |  |  |- 0.54 infer_species_from_prefix  mhcgnomes/species.py:1871
+|  |  |              |  |  |  |  |  |     |  |  |  |- 0.53 type.get_species_with_gene_name  mhcgnomes/species.py:898
+|  |  |              |  |  |  |  |  |     |  |  |  |  |- 0.50 Species.gene_is_context_only  mhcgnomes/species.py:815
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |- 0.48 Species.get_gene_properties  mhcgnomes/species.py:788
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |  |- 0.32 Species.find_matching_gene_name  mhcgnomes/species.py:693
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |  |  |- 0.13 NormalizingSet.get_original  mhcgnomes/normalizing_set.py:55
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |  |  |  |- 0.10 normalize_string  mhcgnomes/common.py:87
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |  |  |  |  |- 0.06 str.replace  <built-in>
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |  |  |  |  `- 0.04 [self]  mhcgnomes/common.py
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |  |  |  |- 0.02 dict.get  <built-in>
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |  |  |  `- 0.01 [self]  mhcgnomes/normalizing_set.py
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |  |  |- 0.13 NormalizingSet.__contains__  mhcgnomes/normalizing_set.py:44
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |  |  |  |- 0.10 normalize_string  mhcgnomes/common.py:87
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |  |  |  |  |- 0.05 [self]  mhcgnomes/common.py
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |  |  |  |  |- 0.02 str.upper  <built-in>
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |  |  |  |  |- 0.02 str.replace  <built-in>
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |  |  |  |  `- 0.01 str.strip  <built-in>
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |  |  |  `- 0.03 [self]  mhcgnomes/normalizing_set.py
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |  |  |- 0.04 [self]  mhcgnomes/species.py
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |  |  `- 0.02 NormalizingDictionary.__contains__  mhcgnomes/normalizing_dictionary.py:85
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |  |     `- 0.02 normalize_string  mhcgnomes/common.py:87
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |  |        |- 0.01 str.replace  <built-in>
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |  |        `- 0.01 [self]  mhcgnomes/common.py
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |  `- 0.16 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |     |- 0.10 normalize_string  mhcgnomes/common.py:87
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |     |  |- 0.04 [self]  mhcgnomes/common.py
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |     |  |- 0.04 str.replace  <built-in>
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |     |  `- 0.02 str.upper  <built-in>
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |     |- 0.04 [self]  mhcgnomes/normalizing_dictionary.py
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |     `- 0.02 dict.get  <built-in>
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  |- 0.01 mappingproxy.get  <built-in>
+|  |  |              |  |  |  |  |  |     |  |  |  |  |  `- 0.01 [self]  mhcgnomes/species.py
+|  |  |              |  |  |  |  |  |     |  |  |  |  |- 0.02 [self]  mhcgnomes/species.py
+|  |  |              |  |  |  |  |  |     |  |  |  |  `- 0.01 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |  |              |  |  |  |  |  |     |  |  |  |     `- 0.01 dict.get  <built-in>
+|  |  |              |  |  |  |  |  |     |  |  |  `- 0.01 [self]  mhcgnomes/species.py
+|  |  |              |  |  |  |  |  |     |  |  `- 0.01 [self]  mhcgnomes/parser.py
+|  |  |              |  |  |  |  |  |     |  |- 0.49 Parser._parse_explicit_species_allele_candidates  mhcgnomes/parser.py:2470
+|  |  |              |  |  |  |  |  |     |  |  `- 0.49 Parser.parse_species_from_prefix  mhcgnomes/parser.py:294
+|  |  |              |  |  |  |  |  |     |  |     `- 0.49 infer_species_from_prefix  mhcgnomes/species.py:1871
+|  |  |              |  |  |  |  |  |     |  |        |- 0.45 type.get_species_with_gene_name  mhcgnomes/species.py:898
+|  |  |              |  |  |  |  |  |     |  |        |  |- 0.44 Species.gene_is_context_only  mhcgnomes/species.py:815
+|  |  |              |  |  |  |  |  |     |  |        |  |  |- 0.43 Species.get_gene_properties  mhcgnomes/species.py:788
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |- 0.36 Species.find_matching_gene_name  mhcgnomes/species.py:693
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |  |- 0.16 NormalizingSet.__contains__  mhcgnomes/normalizing_set.py:44
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |  |  |- 0.11 normalize_string  mhcgnomes/common.py:87
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |  |  |  |- 0.05 str.replace  <built-in>
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |  |  |  |- 0.04 [self]  mhcgnomes/common.py
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |  |  |  `- 0.02 str.strip  <built-in>
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |  |  `- 0.05 [self]  mhcgnomes/normalizing_set.py
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |  |- 0.13 NormalizingSet.get_original  mhcgnomes/normalizing_set.py:55
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |  |  |- 0.12 normalize_string  mhcgnomes/common.py:87
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |  |  |  |- 0.06 [self]  mhcgnomes/common.py
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |  |  |  |- 0.03 str.replace  <built-in>
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |  |  |  `- 0.03 str.upper  <built-in>
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |  |  `- 0.01 dict.get  <built-in>
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |  |- 0.05 [self]  mhcgnomes/species.py
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |  `- 0.02 NormalizingDictionary.__getitem__  mhcgnomes/normalizing_dictionary.py:67
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |     |- 0.01 [self]  mhcgnomes/normalizing_dictionary.py
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |     `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |        `- 0.01 str.strip  <built-in>
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |- 0.04 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |  |- 0.03 normalize_string  mhcgnomes/common.py:87
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |  |  |- 0.02 [self]  mhcgnomes/common.py
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |  |  `- 0.01 str.replace  <built-in>
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  |  `- 0.01 dict.get  <built-in>
+|  |  |              |  |  |  |  |  |     |  |        |  |  |  `- 0.03 [self]  mhcgnomes/species.py
+|  |  |              |  |  |  |  |  |     |  |        |  |  `- 0.01 [self]  mhcgnomes/species.py
+|  |  |              |  |  |  |  |  |     |  |        |  `- 0.01 [self]  mhcgnomes/species.py
+|  |  |              |  |  |  |  |  |     |  |        |- 0.03 find_matching_species_objects  mhcgnomes/species.py:1776
+|  |  |              |  |  |  |  |  |     |  |        |  |- 0.02 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |  |              |  |  |  |  |  |     |  |        |  |  `- 0.02 normalize_string  mhcgnomes/common.py:87
+|  |  |              |  |  |  |  |  |     |  |        |  |     |- 0.01 [self]  mhcgnomes/common.py
+|  |  |              |  |  |  |  |  |     |  |        |  |     `- 0.01 str.upper  <built-in>
+|  |  |              |  |  |  |  |  |     |  |        |  `- 0.01 [self]  mhcgnomes/species.py
+|  |  |              |  |  |  |  |  |     |  |        `- 0.01 [self]  mhcgnomes/species.py
+|  |  |              |  |  |  |  |  |     |  |- 0.14 Parser.parse_multiple_candidates  mhcgnomes/parser.py:2317
+|  |  |              |  |  |  |  |  |     |  |  |- 0.07 Parser.parse_tokens_to_multiple_candidates  mhcgnomes/parser.py:1993
+|  |  |              |  |  |  |  |  |     |  |  |  `- 0.07 Parser.parse_single_token_to_multiple_candidates  mhcgnomes/parser.py:1577
+|  |  |              |  |  |  |  |  |     |  |  |     `- 0.07 parse_standard_allele_format  mhcgnomes/standard_format.py:32
+|  |  |              |  |  |  |  |  |     |  |  |        |- 0.04 Allele.get_with_gene  mhcgnomes/allele.py:191
+|  |  |              |  |  |  |  |  |     |  |  |        |  |- 0.02 Allele.__init__  mhcgnomes/allele.py:78
+|  |  |              |  |  |  |  |  |     |  |  |        |  |  `- 0.02 _normalize_fields  mhcgnomes/allele.py:106
+|  |  |              |  |  |  |  |  |     |  |  |        |  |     `- 0.02 _get_min_first_field_width  mhcgnomes/allele.py:100
+|  |  |              |  |  |  |  |  |     |  |  |        |  |        `- 0.02 Species.prefix  mhcgnomes/species.py:548
+|  |  |              |  |  |  |  |  |     |  |  |        |  |           `- 0.02 Species.species_prefix  mhcgnomes/species.py:539
+|  |  |              |  |  |  |  |  |     |  |  |        |  |              `- 0.02 display_prefix_for  mhcgnomes/prefix_display_policy.py:90
+|  |  |              |  |  |  |  |  |     |  |  |        |  |                 |- 0.01 get_prefix_display_policy  mhcgnomes/prefix_display_policy.py:62
+|  |  |              |  |  |  |  |  |     |  |  |        |  |                 |  `- 0.01 getattr  <built-in>
+|  |  |              |  |  |  |  |  |     |  |  |        |  |                 `- 0.01 [self]  mhcgnomes/prefix_display_policy.py
+|  |  |              |  |  |  |  |  |     |  |  |        |  |- 0.01 Species.gene_has_no_alleles  mhcgnomes/species.py:795
+|  |  |              |  |  |  |  |  |     |  |  |        |  |  `- 0.01 Species.get_gene_properties  mhcgnomes/species.py:788
+|  |  |              |  |  |  |  |  |     |  |  |        |  `- 0.01 Allele.split_allele_fields  mhcgnomes/allele.py:183
+|  |  |              |  |  |  |  |  |     |  |  |        |- 0.02 Species.gene_is_context_only  mhcgnomes/species.py:815
+|  |  |              |  |  |  |  |  |     |  |  |        |  `- 0.02 Species.get_gene_properties  mhcgnomes/species.py:788
+|  |  |              |  |  |  |  |  |     |  |  |        |     |- 0.01 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |  |              |  |  |  |  |  |     |  |  |        |     |  `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |              |  |  |  |  |  |     |  |  |        |     |     `- 0.01 str.upper  <built-in>
+|  |  |              |  |  |  |  |  |     |  |  |        |     `- 0.01 Species.find_matching_gene_name  mhcgnomes/species.py:693
+|  |  |              |  |  |  |  |  |     |  |  |        |        `- 0.01 NormalizingSet.__contains__  mhcgnomes/normalizing_set.py:44
+|  |  |              |  |  |  |  |  |     |  |  |        |           `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |              |  |  |  |  |  |     |  |  |        `- 0.01 Gene.get  mhcgnomes/gene.py:106
+|  |  |              |  |  |  |  |  |     |  |  |           `- 0.01 Species.find_matching_gene_name  mhcgnomes/species.py:693
+|  |  |              |  |  |  |  |  |     |  |  |              `- 0.01 NormalizingSet.get_original  mhcgnomes/normalizing_set.py:55
+|  |  |              |  |  |  |  |  |     |  |  |                 `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |              |  |  |  |  |  |     |  |  |                    `- 0.01 str.upper  <built-in>
+|  |  |              |  |  |  |  |  |     |  |  |- 0.03 tokenize  mhcgnomes/tokenize.py:188
+|  |  |              |  |  |  |  |  |     |  |  |  `- 0.03 cached_fn  mhcgnomes/common.py:71
+|  |  |              |  |  |  |  |  |     |  |  |     `- 0.03 _cached_tokenize  mhcgnomes/tokenize.py:165
+|  |  |              |  |  |  |  |  |     |  |  |        |- 0.01 Token.__init__  mhcgnomes/token.py:30
+|  |  |              |  |  |  |  |  |     |  |  |        |- 0.01 normalize_token  mhcgnomes/tokenize.py:95
+|  |  |              |  |  |  |  |  |     |  |  |        |  `- 0.01 strip_chars  mhcgnomes/parsing_helpers.py:14
+|  |  |              |  |  |  |  |  |     |  |  |        `- 0.01 split_and_extract_attributes  mhcgnomes/tokenize.py:121
+|  |  |              |  |  |  |  |  |     |  |  |           `- 0.01 split_token_sequences  mhcgnomes/tokenize.py:103
+|  |  |              |  |  |  |  |  |     |  |  |- 0.02 Parser.transform_parse_candidates  mhcgnomes/parser.py:1389
+|  |  |              |  |  |  |  |  |     |  |  |  `- 0.02 Parser.transform_parse_candidate  mhcgnomes/parser.py:1283
+|  |  |              |  |  |  |  |  |     |  |  |     |- 0.01 Species.get_known_allele  mhcgnomes/species.py:840
+|  |  |              |  |  |  |  |  |     |  |  |     `- 0.01 [self]  mhcgnomes/parser.py
+|  |  |              |  |  |  |  |  |     |  |  |- 0.01 [self]  mhcgnomes/parser.py
+|  |  |              |  |  |  |  |  |     |  |  `- 0.01 <genexpr>  mhcgnomes/parser.py:2333
+|  |  |              |  |  |  |  |  |     |  |     `- 0.01 str.isalnum  <built-in>
+|  |  |              |  |  |  |  |  |     |  `- 0.01 [self]  mhcgnomes/parser.py
+|  |  |              |  |  |  |  |  |     `- 0.01 [self]  mhcgnomes/common.py
+|  |  |              |  |  |  |  |  `- 0.02 Supertype.__init__  mhcgnomes/supertype.py:82
+|  |  |              |  |  |  |  |     `- 0.02 Supertype.__init__  mhcgnomes/result_with_multiple_alleles.py:29
+|  |  |              |  |  |  |  |        `- 0.02 Allele.__lt__  mhcgnomes/result.py:239
+|  |  |              |  |  |  |  |           |- 0.01 [self]  mhcgnomes/result.py
+|  |  |              |  |  |  |  |           `- 0.01 Gene.__eq__  mhcgnomes/gene.py:85
+|  |  |              |  |  |  |  |              `- 0.01 Species.__eq__  mhcgnomes/species.py:352
+|  |  |              |  |  |  |  |- 0.11 Parser.get_serotype  mhcgnomes/parser.py:424
+|  |  |              |  |  |  |  |  |- 0.10 Parser._find_matching_name_and_parse_alleles  mhcgnomes/parser.py:368
+|  |  |              |  |  |  |  |  |  |- 0.08 Parser.parse_allele_or_gene_candidates  mhcgnomes/parser.py:901
+|  |  |              |  |  |  |  |  |  |  |- 0.05 Parser.parse_allele_with_gene  mhcgnomes/parser.py:964
+|  |  |              |  |  |  |  |  |  |  |  |- 0.04 Parser.parse_allele_from_allele_fields  mhcgnomes/parser.py:714
+|  |  |              |  |  |  |  |  |  |  |  |  |- 0.02 Allele.get_with_gene  mhcgnomes/allele.py:191
+|  |  |              |  |  |  |  |  |  |  |  |  |  `- 0.02 Species.gene_has_no_alleles  mhcgnomes/species.py:795
+|  |  |              |  |  |  |  |  |  |  |  |  |     `- 0.02 Species.get_gene_properties  mhcgnomes/species.py:788
+|  |  |              |  |  |  |  |  |  |  |  |  |        |- 0.01 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |  |              |  |  |  |  |  |  |  |  |  |        `- 0.01 [self]  mhcgnomes/species.py
+|  |  |              |  |  |  |  |  |  |  |  |  |- 0.01 [self]  mhcgnomes/parser.py
+|  |  |              |  |  |  |  |  |  |  |  |  `- 0.01 Gene.is_chicken  mhcgnomes/result_with_species.py:57
+|  |  |              |  |  |  |  |  |  |  |  |     `- 0.01 Species.is_chicken  mhcgnomes/species.py:917
+|  |  |              |  |  |  |  |  |  |  |  |        `- 0.01 Species.prefix  mhcgnomes/species.py:548
+|  |  |              |  |  |  |  |  |  |  |  |           `- 0.01 Species.species_prefix  mhcgnomes/species.py:539
+|  |  |              |  |  |  |  |  |  |  |  |              `- 0.01 display_prefix_for  mhcgnomes/prefix_display_policy.py:90
+|  |  |              |  |  |  |  |  |  |  |  `- 0.01 parse_annotations_from_seq  mhcgnomes/allele_annotations.py:78
+|  |  |              |  |  |  |  |  |  |  |     `- 0.01 peel_suffix_annotations  mhcgnomes/allele_annotations.py:53
+|  |  |              |  |  |  |  |  |  |  |        `- 0.01 _has_two_digit_prefix  mhcgnomes/allele_annotations.py:32
+|  |  |              |  |  |  |  |  |  |  |- 0.02 Parser.parse_gene_candidates  mhcgnomes/parser.py:811
+|  |  |              |  |  |  |  |  |  |  |  `- 0.02 add_to_candidates  mhcgnomes/parser.py:838
+|  |  |              |  |  |  |  |  |  |  |     `- 0.02 Gene.get  mhcgnomes/gene.py:106
+|  |  |              |  |  |  |  |  |  |  |        `- 0.02 Gene.__init__  mhcgnomes/gene.py:66
+|  |  |              |  |  |  |  |  |  |  |           |- 0.01 [self]  mhcgnomes/gene.py
+|  |  |              |  |  |  |  |  |  |  |           `- 0.01 Species.get_mhc_class_of_gene  mhcgnomes/species.py:775
+|  |  |              |  |  |  |  |  |  |  |              `- 0.01 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |  |              |  |  |  |  |  |  |  `- 0.01 Gene.get  mhcgnomes/gene.py:106
+|  |  |              |  |  |  |  |  |  |     `- 0.01 Species.find_matching_gene_name  mhcgnomes/species.py:693
+|  |  |              |  |  |  |  |  |  |        `- 0.01 NormalizingSet.__contains__  mhcgnomes/normalizing_set.py:44
+|  |  |              |  |  |  |  |  |  |- 0.01 pick_best_result  mhcgnomes/result_sorting.py:31
+|  |  |              |  |  |  |  |  |  `- 0.01 str.startswith  <built-in>
+|  |  |              |  |  |  |  |  `- 0.01 cached_fn  mhcgnomes/common.py:71
+|  |  |              |  |  |  |  |- 0.06 Parser.parse_haplotype_with_class2_locus_from_any_string_split  mhcgnomes/parser.py:574
+|  |  |              |  |  |  |  |  |- 0.05 Parser.get_haplotype  mhcgnomes/parser.py:602
+|  |  |              |  |  |  |  |  |  |- 0.03 Parser._find_matching_name_and_parse_alleles  mhcgnomes/parser.py:368
+|  |  |              |  |  |  |  |  |  |  `- 0.03 Parser.parse_allele_or_gene_candidates  mhcgnomes/parser.py:901
+|  |  |              |  |  |  |  |  |  |     |- 0.02 Parser.parse_gene_candidates  mhcgnomes/parser.py:811
+|  |  |              |  |  |  |  |  |  |     |  |- 0.01 smart_split  mhcgnomes/parsing_helpers.py:33
+|  |  |              |  |  |  |  |  |  |     |  `- 0.01 is_non_mhc_gene_name  mhcgnomes/non_mhc_genes.py:75
+|  |  |              |  |  |  |  |  |  |     |     `- 0.01 normalize_non_mhc_gene_name  mhcgnomes/non_mhc_genes.py:62
+|  |  |              |  |  |  |  |  |  |     |        `- 0.01 str.strip  <built-in>
+|  |  |              |  |  |  |  |  |  |     `- 0.01 Gene.get  mhcgnomes/gene.py:106
+|  |  |              |  |  |  |  |  |  |        `- 0.01 Species.find_matching_gene_name  mhcgnomes/species.py:693
+|  |  |              |  |  |  |  |  |  |           `- 0.01 str.startswith  <built-in>
+|  |  |              |  |  |  |  |  |  `- 0.02 Haplotype.__init__  mhcgnomes/haplotype.py:91
+|  |  |              |  |  |  |  |  |     `- 0.02 Haplotype.__init__  mhcgnomes/result_with_multiple_alleles.py:29
+|  |  |              |  |  |  |  |  |        `- 0.02 Allele.__lt__  mhcgnomes/result.py:239
+|  |  |              |  |  |  |  |  |           |- 0.01 Gene.__lt__  mhcgnomes/result.py:239
+|  |  |              |  |  |  |  |  |           |  `- 0.01 Gene.to_tuple  mhcgnomes/result.py:212
+|  |  |              |  |  |  |  |  |           |     `- 0.01 Gene.tuple_field_names  mhcgnomes/result.py:122
+|  |  |              |  |  |  |  |  |           |        `- 0.01 Gene.init_field_names  mhcgnomes/result.py:81
+|  |  |              |  |  |  |  |  |           |           `- 0.01 signature  inspect.py:3325
+|  |  |              |  |  |  |  |  |           |              `- 0.01 Signature.from_callable  inspect.py:3067
+|  |  |              |  |  |  |  |  |           |                 `- 0.01 _signature_from_callable  inspect.py:2463
+|  |  |              |  |  |  |  |  |           |                    `- 0.01 Signature._signature_from_function  inspect.py:2368
+|  |  |              |  |  |  |  |  |           |                       `- 0.01 Parameter.__init__  inspect.py:2729
+|  |  |              |  |  |  |  |  |           `- 0.01 Allele.to_tuple  mhcgnomes/result.py:212
+|  |  |              |  |  |  |  |  |              `- 0.01 getattr  <built-in>
+|  |  |              |  |  |  |  |  `- 0.01 Class2Locus.get  mhcgnomes/class2_locus.py:149
+|  |  |              |  |  |  |  |     `- 0.01 NormalizingDictionary.__getitem__  mhcgnomes/normalizing_dictionary.py:67
+|  |  |              |  |  |  |  |- 0.06 Parser.parse_haplotype  mhcgnomes/parser.py:655
+|  |  |              |  |  |  |  |  |- 0.05 Parser.get_haplotype  mhcgnomes/parser.py:602
+|  |  |              |  |  |  |  |  |  `- 0.05 Parser._find_matching_name_and_parse_alleles  mhcgnomes/parser.py:368
+|  |  |              |  |  |  |  |  |     |- 0.03 NormalizingDictionary.keys_aligned_with_values  mhcgnomes/normalizing_dictionary.py:142
+|  |  |              |  |  |  |  |  |     |  |- 0.02 [self]  mhcgnomes/normalizing_dictionary.py
+|  |  |              |  |  |  |  |  |     |  `- 0.01 NormalizingDictionary.key_sets_aligned_with_values  mhcgnomes/normalizing_dictionary.py:131
+|  |  |              |  |  |  |  |  |     |     `- 0.01 list.append  <built-in>
+|  |  |              |  |  |  |  |  |     |- 0.01 Parser.parse_allele_or_gene_candidates  mhcgnomes/parser.py:901
+|  |  |              |  |  |  |  |  |     |  `- 0.01 Parser.parse_allele_with_gene  mhcgnomes/parser.py:964
+|  |  |              |  |  |  |  |  |     |     `- 0.01 Allele.get_with_gene  mhcgnomes/allele.py:191
+|  |  |              |  |  |  |  |  |     |        `- 0.01 Allele.__init__  mhcgnomes/allele.py:78
+|  |  |              |  |  |  |  |  |     |           `- 0.01 _normalize_fields  mhcgnomes/allele.py:106
+|  |  |              |  |  |  |  |  |     |              `- 0.01 _get_min_first_field_width  mhcgnomes/allele.py:100
+|  |  |              |  |  |  |  |  |     |                 `- 0.01 Species.prefix  mhcgnomes/species.py:548
+|  |  |              |  |  |  |  |  |     |                    `- 0.01 Species.species_prefix  mhcgnomes/species.py:539
+|  |  |              |  |  |  |  |  |     |                       `- 0.01 display_prefix_for  mhcgnomes/prefix_display_policy.py:90
+|  |  |              |  |  |  |  |  |     `- 0.01 NormalizingDictionary.__contains__  mhcgnomes/normalizing_dictionary.py:85
+|  |  |              |  |  |  |  |  |        `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |              |  |  |  |  |  `- 0.01 Parser.parse_species  mhcgnomes/parser.py:331
+|  |  |              |  |  |  |  |     `- 0.01 Parser.parse_species_from_prefix  mhcgnomes/parser.py:294
+|  |  |              |  |  |  |  |        `- 0.01 infer_species_from_prefix  mhcgnomes/species.py:1871
+|  |  |              |  |  |  |  |           `- 0.01 find_matching_species_objects  mhcgnomes/species.py:1776
+|  |  |              |  |  |  |  |              `- 0.01 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |  |              |  |  |  |  |                 `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |              |  |  |  |  |- 0.05 Parser.adjust_raw_strings  mhcgnomes/parser.py:1266
+|  |  |              |  |  |  |  |  `- 0.05 Gene.copy  mhcgnomes/result.py:231
+|  |  |              |  |  |  |  |     `- 0.05 Gene.to_dict  mhcgnomes/result.py:224
+|  |  |              |  |  |  |  |        |- 0.04 Gene.to_tuple  mhcgnomes/result.py:212
+|  |  |              |  |  |  |  |        |  |- 0.03 Gene.tuple_field_names  mhcgnomes/result.py:122
+|  |  |              |  |  |  |  |        |  |  `- 0.03 Gene.init_field_names  mhcgnomes/result.py:81
+|  |  |              |  |  |  |  |        |  |     `- 0.03 signature  inspect.py:3325
+|  |  |              |  |  |  |  |        |  |        `- 0.03 Signature.from_callable  inspect.py:3067
+|  |  |              |  |  |  |  |        |  |           `- 0.03 _signature_from_callable  inspect.py:2463
+|  |  |              |  |  |  |  |        |  |              |- 0.02 Signature._signature_from_function  inspect.py:2368
+|  |  |              |  |  |  |  |        |  |              |  |- 0.01 [self]  inspect.py
+|  |  |              |  |  |  |  |        |  |              |  `- 0.01 Parameter.__init__  inspect.py:2729
+|  |  |              |  |  |  |  |        |  |              |     `- 0.01 str.isidentifier  <built-in>
+|  |  |              |  |  |  |  |        |  |              `- 0.01 unwrap  inspect.py:747
+|  |  |              |  |  |  |  |        |  |                 `- 0.01 _is_wrapper  inspect.py:767
+|  |  |              |  |  |  |  |        |  `- 0.01 [self]  mhcgnomes/result.py
+|  |  |              |  |  |  |  |        `- 0.01 Serotype.tuple_field_names  mhcgnomes/result.py:122
+|  |  |              |  |  |  |  |           `- 0.01 Serotype.init_field_names  mhcgnomes/result.py:81
+|  |  |              |  |  |  |  |              `- 0.01 signature  inspect.py:3325
+|  |  |              |  |  |  |  |                 `- 0.01 Signature.from_callable  inspect.py:3067
+|  |  |              |  |  |  |  |                    `- 0.01 _signature_from_callable  inspect.py:2463
+|  |  |              |  |  |  |  |                       `- 0.01 Signature._signature_from_function  inspect.py:2368
+|  |  |              |  |  |  |  |- 0.02 Parser.parse_allele_or_gene_candidates  mhcgnomes/parser.py:901
+|  |  |              |  |  |  |  |  |- 0.01 Parser.parse_allele_with_gene  mhcgnomes/parser.py:964
+|  |  |              |  |  |  |  |  |  `- 0.01 Allele.get_with_gene  mhcgnomes/allele.py:191
+|  |  |              |  |  |  |  |  |     `- 0.01 Allele.__init__  mhcgnomes/allele.py:78
+|  |  |              |  |  |  |  |  |        `- 0.01 Allele.__init__  mhcgnomes/result_with_gene.py:29
+|  |  |              |  |  |  |  |  |           `- 0.01 Allele.__init__  mhcgnomes/result_with_mhc_class.py:30
+|  |  |              |  |  |  |  |  |              `- 0.01 Allele.__init__  mhcgnomes/result_with_species.py:30
+|  |  |              |  |  |  |  |  |                 `- 0.01 _set_field  mhcgnomes/result.py:29
+|  |  |              |  |  |  |  |  `- 0.01 Parser.parse_gene_candidates  mhcgnomes/parser.py:811
+|  |  |              |  |  |  |  |     `- 0.01 Species.find_matching_gene_name  mhcgnomes/species.py:693
+|  |  |              |  |  |  |  |- 0.01 Parser.get_heterodimer  mhcgnomes/parser.py:458
+|  |  |              |  |  |  |  |  `- 0.01 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |  |              |  |  |  |  |     `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |              |  |  |  |  |- 0.01 Parser.get_haplotype  mhcgnomes/parser.py:602
+|  |  |              |  |  |  |  |  `- 0.01 Parser._find_matching_name_and_parse_alleles  mhcgnomes/parser.py:368
+|  |  |              |  |  |  |  |     `- 0.01 str.lower  <built-in>
+|  |  |              |  |  |  |  `- 0.01 Parser.parse_species_from_prefix  mhcgnomes/parser.py:294
+|  |  |              |  |  |  |     `- 0.01 infer_species_from_prefix  mhcgnomes/species.py:1871
+|  |  |              |  |  |  |        `- 0.01 find_matching_species_objects  mhcgnomes/species.py:1776
+|  |  |              |  |  |  |           `- 0.01 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |  |              |  |  |  |              `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |              |  |  |  |                 `- 0.01 str.upper  <built-in>
+|  |  |              |  |  |  |- 0.10 Parser.parse_with_class_token_to_multiple_candidates  mhcgnomes/parser.py:1798
+|  |  |              |  |  |  |  |- 0.09 Parser.parse_tokens_to_multiple_candidates  mhcgnomes/parser.py:1993
+|  |  |              |  |  |  |  |  `- 0.09 Parser.parse_single_token_to_multiple_candidates  mhcgnomes/parser.py:1577
+|  |  |              |  |  |  |  |     |- 0.06 Parser.parse_haplotype  mhcgnomes/parser.py:655
+|  |  |              |  |  |  |  |     |  `- 0.06 Parser.get_haplotype  mhcgnomes/parser.py:602
+|  |  |              |  |  |  |  |     |     |- 0.03 Parser._find_matching_name_and_parse_alleles  mhcgnomes/parser.py:368
+|  |  |              |  |  |  |  |     |     |  `- 0.03 Parser.parse_allele_or_gene_candidates  mhcgnomes/parser.py:901
+|  |  |              |  |  |  |  |     |     |     |- 0.02 Parser.parse_allele_with_gene  mhcgnomes/parser.py:964
+|  |  |              |  |  |  |  |     |     |     |  |- 0.01 [self]  mhcgnomes/parser.py
+|  |  |              |  |  |  |  |     |     |     |  `- 0.01 Allele.get_with_gene  mhcgnomes/allele.py:191
+|  |  |              |  |  |  |  |     |     |     |     `- 0.01 Species.gene_has_no_alleles  mhcgnomes/species.py:795
+|  |  |              |  |  |  |  |     |     |     |        `- 0.01 Species.get_gene_properties  mhcgnomes/species.py:788
+|  |  |              |  |  |  |  |     |     |     |           `- 0.01 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |  |              |  |  |  |  |     |     |     |              `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |              |  |  |  |  |     |     |     |                 `- 0.01 str.replace  <built-in>
+|  |  |              |  |  |  |  |     |     |     `- 0.01 [self]  mhcgnomes/parser.py
+|  |  |              |  |  |  |  |     |     `- 0.03 Haplotype.__init__  mhcgnomes/haplotype.py:91
+|  |  |              |  |  |  |  |     |        `- 0.03 Haplotype.__init__  mhcgnomes/result_with_multiple_alleles.py:29
+|  |  |              |  |  |  |  |     |           `- 0.03 Allele.__lt__  mhcgnomes/result.py:239
+|  |  |              |  |  |  |  |     |              `- 0.03 Gene.__lt__  mhcgnomes/result.py:239
+|  |  |              |  |  |  |  |     |                 `- 0.03 Gene.to_tuple  mhcgnomes/result.py:212
+|  |  |              |  |  |  |  |     |                    `- 0.03 Gene.tuple_field_names  mhcgnomes/result.py:122
+|  |  |              |  |  |  |  |     |                       `- 0.03 Gene.init_field_names  mhcgnomes/result.py:81
+|  |  |              |  |  |  |  |     |                          |- 0.02 signature  inspect.py:3325
+|  |  |              |  |  |  |  |     |                          |  `- 0.02 Signature.from_callable  inspect.py:3067
+|  |  |              |  |  |  |  |     |                          |     `- 0.02 _signature_from_callable  inspect.py:2463
+|  |  |              |  |  |  |  |     |                          |        |- 0.01 [self]  inspect.py
+|  |  |              |  |  |  |  |     |                          |        `- 0.01 Signature._signature_from_function  inspect.py:2368
+|  |  |              |  |  |  |  |     |                          `- 0.01 [self]  mhcgnomes/result.py
+|  |  |              |  |  |  |  |     `- 0.03 Parser.get_haplotype  mhcgnomes/parser.py:602
+|  |  |              |  |  |  |  |        `- 0.03 Haplotype.__init__  mhcgnomes/haplotype.py:91
+|  |  |              |  |  |  |  |           `- 0.03 Haplotype.__init__  mhcgnomes/result_with_multiple_alleles.py:29
+|  |  |              |  |  |  |  |              `- 0.03 Allele.__lt__  mhcgnomes/result.py:239
+|  |  |              |  |  |  |  |                 `- 0.03 Gene.__lt__  mhcgnomes/result.py:239
+|  |  |              |  |  |  |  |                    `- 0.03 Gene.to_tuple  mhcgnomes/result.py:212
+|  |  |              |  |  |  |  |                       `- 0.03 Gene.tuple_field_names  mhcgnomes/result.py:122
+|  |  |              |  |  |  |  |                          `- 0.03 Gene.init_field_names  mhcgnomes/result.py:81
+|  |  |              |  |  |  |  |                             `- 0.03 signature  inspect.py:3325
+|  |  |              |  |  |  |  |                                `- 0.03 Signature.from_callable  inspect.py:3067
+|  |  |              |  |  |  |  |                                   `- 0.03 _signature_from_callable  inspect.py:2463
+|  |  |              |  |  |  |  |                                      |- 0.02 Signature._signature_from_function  inspect.py:2368
+|  |  |              |  |  |  |  |                                      |  |- 0.01 [self]  inspect.py
+|  |  |              |  |  |  |  |                                      |  `- 0.01 dict.get  <built-in>
+|  |  |              |  |  |  |  |                                      `- 0.01 callable  <built-in>
+|  |  |              |  |  |  |  `- 0.01 Haplotype.restrict_mhc_class  mhcgnomes/haplotype.py:130
+|  |  |              |  |  |  |     `- 0.01 Haplotype.__init__  mhcgnomes/haplotype.py:91
+|  |  |              |  |  |  |        `- 0.01 Haplotype.__init__  mhcgnomes/result_with_multiple_alleles.py:29
+|  |  |              |  |  |  |           `- 0.01 Allele.__lt__  mhcgnomes/result.py:239
+|  |  |              |  |  |  |              `- 0.01 Gene.__lt__  mhcgnomes/result.py:239
+|  |  |              |  |  |  |                 `- 0.01 Gene.to_tuple  mhcgnomes/result.py:212
+|  |  |              |  |  |  |                    `- 0.01 Gene.tuple_field_names  mhcgnomes/result.py:122
+|  |  |              |  |  |  |                       `- 0.01 Gene.init_field_names  mhcgnomes/result.py:81
+|  |  |              |  |  |  |                          `- 0.01 signature  inspect.py:3325
+|  |  |              |  |  |  |                             `- 0.01 Signature.from_callable  inspect.py:3067
+|  |  |              |  |  |  |                                `- 0.01 _signature_from_callable  inspect.py:2463
+|  |  |              |  |  |  |                                   `- 0.01 Signature._signature_from_function  inspect.py:2368
+|  |  |              |  |  |  |- 0.02 Parser.transform_parse_candidates  mhcgnomes/parser.py:1389
+|  |  |              |  |  |  |  `- 0.02 Parser.transform_parse_candidate  mhcgnomes/parser.py:1283
+|  |  |              |  |  |  |     `- 0.02 Haplotype.copy  mhcgnomes/result.py:231
+|  |  |              |  |  |  |        `- 0.02 Haplotype.from_dict  mhcgnomes/result.py:227
+|  |  |              |  |  |  |           `- 0.02 Haplotype.__init__  mhcgnomes/haplotype.py:91
+|  |  |              |  |  |  |              `- 0.02 Haplotype.__init__  mhcgnomes/result_with_multiple_alleles.py:29
+|  |  |              |  |  |  |                 `- 0.02 Allele.__lt__  mhcgnomes/result.py:239
+|  |  |              |  |  |  |                    |- 0.01 Gene.__lt__  mhcgnomes/result.py:239
+|  |  |              |  |  |  |                    |  `- 0.01 Gene.to_tuple  mhcgnomes/result.py:212
+|  |  |              |  |  |  |                    |     `- 0.01 Gene.tuple_field_names  mhcgnomes/result.py:122
+|  |  |              |  |  |  |                    |        `- 0.01 Gene.init_field_names  mhcgnomes/result.py:81
+|  |  |              |  |  |  |                    |           `- 0.01 signature  inspect.py:3325
+|  |  |              |  |  |  |                    |              `- 0.01 Signature.from_callable  inspect.py:3067
+|  |  |              |  |  |  |                    |                 `- 0.01 _signature_from_callable  inspect.py:2463
+|  |  |              |  |  |  |                    |                    `- 0.01 isfunction  inspect.py:371
+|  |  |              |  |  |  |                    `- 0.01 Allele.to_tuple  mhcgnomes/result.py:212
+|  |  |              |  |  |  |- 0.02 Parser.parse_tokens_around_slash  mhcgnomes/parser.py:1868
+|  |  |              |  |  |  |  `- 0.02 Parser.parse_tokens_to_multiple_candidates  mhcgnomes/parser.py:1993
+|  |  |              |  |  |  |     `- 0.02 Parser.parse_single_token_to_multiple_candidates  mhcgnomes/parser.py:1577
+|  |  |              |  |  |  |        |- 0.01 Parser.parse_haplotype  mhcgnomes/parser.py:655
+|  |  |              |  |  |  |        |  `- 0.01 Parser.get_haplotype  mhcgnomes/parser.py:602
+|  |  |              |  |  |  |        |     `- 0.01 Haplotype.__init__  mhcgnomes/haplotype.py:91
+|  |  |              |  |  |  |        |        `- 0.01 Haplotype.__init__  mhcgnomes/result_with_multiple_alleles.py:29
+|  |  |              |  |  |  |        |           `- 0.01 Allele.__lt__  mhcgnomes/result.py:239
+|  |  |              |  |  |  |        |              `- 0.01 Gene.__lt__  mhcgnomes/result.py:239
+|  |  |              |  |  |  |        |                 `- 0.01 Gene.to_tuple  mhcgnomes/result.py:212
+|  |  |              |  |  |  |        |                    `- 0.01 Gene.tuple_field_names  mhcgnomes/result.py:122
+|  |  |              |  |  |  |        |                       `- 0.01 Gene.init_field_names  mhcgnomes/result.py:81
+|  |  |              |  |  |  |        |                          `- 0.01 signature  inspect.py:3325
+|  |  |              |  |  |  |        |                             `- 0.01 Signature.from_callable  inspect.py:3067
+|  |  |              |  |  |  |        |                                `- 0.01 _signature_from_callable  inspect.py:2463
+|  |  |              |  |  |  |        |                                   `- 0.01 Signature._signature_from_function  inspect.py:2368
+|  |  |              |  |  |  |        `- 0.01 parse_standard_allele_format  mhcgnomes/standard_format.py:32
+|  |  |              |  |  |  |           `- 0.01 Gene.get  mhcgnomes/gene.py:106
+|  |  |              |  |  |  |              `- 0.01 Species.find_matching_gene_name  mhcgnomes/species.py:693
+|  |  |              |  |  |  |                 `- 0.01 NormalizingSet.get_original  mhcgnomes/normalizing_set.py:55
+|  |  |              |  |  |  |                    `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |              |  |  |  |                       `- 0.01 str.upper  <built-in>
+|  |  |              |  |  |  `- 0.01 Parser.parse_and_apply_mutations  mhcgnomes/parser.py:1216
+|  |  |              |  |  |     `- 0.01 Parser.parse_mutations  mhcgnomes/parser.py:1108
+|  |  |              |  |  |        `- 0.01 Mutation.parse  mhcgnomes/mutation.py:90
+|  |  |              |  |  |           `- 0.01 Mutation.get  mhcgnomes/mutation.py:83
+|  |  |              |  |  |              `- 0.01 str.upper  <built-in>
+|  |  |              |  |  |- 0.05 Parser.transform_parse_candidates  mhcgnomes/parser.py:1389
+|  |  |              |  |  |  `- 0.05 Parser.transform_parse_candidate  mhcgnomes/parser.py:1283
+|  |  |              |  |  |     |- 0.02 Parser.transform_parse_candidates  mhcgnomes/parser.py:1389
+|  |  |              |  |  |     |  `- 0.02 Parser.transform_parse_candidate  mhcgnomes/parser.py:1283
+|  |  |              |  |  |     |     |- 0.01 Species.get_known_allele  mhcgnomes/species.py:840
+|  |  |              |  |  |     |     |  `- 0.01 NormalizingDictionary.__contains__  mhcgnomes/normalizing_dictionary.py:85
+|  |  |              |  |  |     |     `- 0.01 [self]  mhcgnomes/parser.py
+|  |  |              |  |  |     |- 0.02 Serotype.copy  mhcgnomes/result.py:231
+|  |  |              |  |  |     |  |- 0.01 Serotype.to_dict  mhcgnomes/result.py:224
+|  |  |              |  |  |     |  |  `- 0.01 Serotype.tuple_field_names  mhcgnomes/result.py:122
+|  |  |              |  |  |     |  |     `- 0.01 Serotype.init_field_names  mhcgnomes/result.py:81
+|  |  |              |  |  |     |  |        `- 0.01 signature  inspect.py:3325
+|  |  |              |  |  |     |  |           `- 0.01 Signature.from_callable  inspect.py:3067
+|  |  |              |  |  |     |  |              `- 0.01 _signature_from_callable  inspect.py:2463
+|  |  |              |  |  |     |  |                 `- 0.01 Signature._signature_from_function  inspect.py:2368
+|  |  |              |  |  |     |  |                    `- 0.01 Parameter.__init__  inspect.py:2729
+|  |  |              |  |  |     |  |                       `- 0.01 isinstance  <built-in>
+|  |  |              |  |  |     |  `- 0.01 Serotype.from_dict  mhcgnomes/result.py:227
+|  |  |              |  |  |     |     `- 0.01 Serotype.__init__  mhcgnomes/serotype.py:64
+|  |  |              |  |  |     |        `- 0.01 Serotype.__init__  mhcgnomes/result_with_multiple_alleles.py:29
+|  |  |              |  |  |     |           `- 0.01 unique  mhcgnomes/common.py:17
+|  |  |              |  |  |     `- 0.01 Gene.__hash__  mhcgnomes/gene.py:82
+|  |  |              |  |  |        `- 0.01 Mutation.__hash__  mhcgnomes/result.py:201
+|  |  |              |  |  |           `- 0.01 Mutation.hash_field_names  mhcgnomes/result.py:137
+|  |  |              |  |  |              `- 0.01 Mutation.eq_field_names  mhcgnomes/result.py:130
+|  |  |              |  |  |                 `- 0.01 Mutation.init_field_names_without_raw_string  mhcgnomes/result.py:99
+|  |  |              |  |  |                    `- 0.01 Mutation.init_field_names  mhcgnomes/result.py:81
+|  |  |              |  |  |                       `- 0.01 signature  inspect.py:3325
+|  |  |              |  |  |                          `- 0.01 Signature.from_callable  inspect.py:3067
+|  |  |              |  |  |                             `- 0.01 _signature_from_callable  inspect.py:2463
+|  |  |              |  |  |                                `- 0.01 Signature._signature_from_function  inspect.py:2368
+|  |  |              |  |  |                                   `- 0.01 Signature.__init__  inspect.py:3015
+|  |  |              |  |  `- 0.01 [self]  mhcgnomes/parser.py
+|  |  |              |  |- 0.09 Parser._parse_explicit_species_allele_candidates  mhcgnomes/parser.py:2470
+|  |  |              |  |  |- 0.07 Parser.parse_allele_or_gene_candidates  mhcgnomes/parser.py:901
+|  |  |              |  |  |  |- 0.05 Parser.parse_gene_candidates  mhcgnomes/parser.py:811
+|  |  |              |  |  |  |  |- 0.03 Parser.parse_gene_candidates_from_prefixes  mhcgnomes/parser.py:770
+|  |  |              |  |  |  |  |  |- 0.02 Gene.get  mhcgnomes/gene.py:106
+|  |  |              |  |  |  |  |  |  `- 0.02 Species.find_matching_gene_name  mhcgnomes/species.py:693
+|  |  |              |  |  |  |  |  |     |- 0.01 str.startswith  <built-in>
+|  |  |              |  |  |  |  |  |     `- 0.01 NormalizingDictionary.__contains__  mhcgnomes/normalizing_dictionary.py:85
+|  |  |              |  |  |  |  |  `- 0.01 [self]  mhcgnomes/parser.py
+|  |  |              |  |  |  |  |- 0.01 Parser.strip_extra_chars  mhcgnomes/parser.py:805
+|  |  |              |  |  |  |  |  `- 0.01 strip_whitespace_and_dashes  mhcgnomes/parsing_helpers.py:29
+|  |  |              |  |  |  |  |     `- 0.01 strip_chars  mhcgnomes/parsing_helpers.py:14
+|  |  |              |  |  |  |  `- 0.01 add_to_candidates  mhcgnomes/parser.py:838
+|  |  |              |  |  |  |- 0.01 Gene.get  mhcgnomes/gene.py:106
+|  |  |              |  |  |  |  `- 0.01 Species.find_matching_gene_name  mhcgnomes/species.py:693
+|  |  |              |  |  |  |     `- 0.01 NormalizingDictionary.__contains__  mhcgnomes/normalizing_dictionary.py:85
+|  |  |              |  |  |  `- 0.01 Parser.parse_allele_with_gene  mhcgnomes/parser.py:964
+|  |  |              |  |  |     `- 0.01 Parser.parse_allele_from_allele_fields  mhcgnomes/parser.py:714
+|  |  |              |  |  |        `- 0.01 Gene.is_chicken  mhcgnomes/result_with_species.py:57
+|  |  |              |  |  |           `- 0.01 Species.is_chicken  mhcgnomes/species.py:917
+|  |  |              |  |  |              `- 0.01 Species.prefix  mhcgnomes/species.py:548
+|  |  |              |  |  |                 `- 0.01 Species.species_prefix  mhcgnomes/species.py:539
+|  |  |              |  |  |- 0.01 [self]  mhcgnomes/parser.py
+|  |  |              |  |  `- 0.01 Parser.strip_extra_chars  mhcgnomes/parser.py:805
+|  |  |              |  |- 0.03 Haplotype.copy  mhcgnomes/result.py:231
+|  |  |              |  |  |- 0.02 Haplotype.from_dict  mhcgnomes/result.py:227
+|  |  |              |  |  |  `- 0.02 Haplotype.__init__  mhcgnomes/haplotype.py:91
+|  |  |              |  |  |     `- 0.02 Haplotype.__init__  mhcgnomes/result_with_multiple_alleles.py:29
+|  |  |              |  |  |        `- 0.02 Allele.__lt__  mhcgnomes/result.py:239
+|  |  |              |  |  |           `- 0.02 Gene.__lt__  mhcgnomes/result.py:239
+|  |  |              |  |  |              `- 0.02 Gene.to_tuple  mhcgnomes/result.py:212
+|  |  |              |  |  |                 |- 0.01 getattr  <built-in>
+|  |  |              |  |  |                 `- 0.01 Gene.tuple_field_names  mhcgnomes/result.py:122
+|  |  |              |  |  |                    `- 0.01 Gene.init_field_names  mhcgnomes/result.py:81
+|  |  |              |  |  |                       `- 0.01 signature  inspect.py:3325
+|  |  |              |  |  |                          `- 0.01 Signature.from_callable  inspect.py:3067
+|  |  |              |  |  |                             `- 0.01 _signature_from_callable  inspect.py:2463
+|  |  |              |  |  |                                `- 0.01 Signature._signature_from_function  inspect.py:2368
+|  |  |              |  |  |                                   `- 0.01 Parameter.__init__  inspect.py:2729
+|  |  |              |  |  `- 0.01 Pair.to_dict  mhcgnomes/result.py:224
+|  |  |              |  |     `- 0.01 Pair.tuple_field_names  mhcgnomes/result.py:122
+|  |  |              |  |        `- 0.01 Pair.init_field_names  mhcgnomes/result.py:81
+|  |  |              |  |           `- 0.01 signature  inspect.py:3325
+|  |  |              |  |              `- 0.01 Signature.from_callable  inspect.py:3067
+|  |  |              |  |                 `- 0.01 _signature_from_callable  inspect.py:2463
+|  |  |              |  |                    `- 0.01 Signature._signature_from_function  inspect.py:2368
+|  |  |              |  `- 0.01 pick_best_result  mhcgnomes/result_sorting.py:31
+|  |  |              |     `- 0.01 sort_results  mhcgnomes/result_sorting.py:41
+|  |  |              |        `- 0.01 sort_key  mhcgnomes/result_sorting.py:49
+|  |  |              |           `- 0.01 Gene.__str__  mhcgnomes/result.py:161
+|  |  |              |              `- 0.01 Gene.str_field_names  mhcgnomes/result.py:108
+|  |  |              |                 `- 0.01 Gene.init_field_names_without_raw_string  mhcgnomes/result.py:99
+|  |  |              |                    `- 0.01 Gene.init_field_names  mhcgnomes/result.py:81
+|  |  |              |                       `- 0.01 signature  inspect.py:3325
+|  |  |              |                          `- 0.01 Signature.from_callable  inspect.py:3067
+|  |  |              |                             `- 0.01 _signature_from_callable  inspect.py:2463
+|  |  |              |                                `- 0.01 Signature._signature_from_function  inspect.py:2368
+|  |  |              |                                   `- 0.01 dict.get  <built-in>
+|  |  |              `- 0.01 arg_to_cache_key  mhcgnomes/common.py:34
+|  |  |                 `- 0.01 arg_to_cache_key  mhcgnomes/common.py:34
+|  |  |- 0.73 <genexpr>  ../producer/hitlist/curation.py:917
+|  |  |  |- 0.72 allele_to_all_serotypes  ../producer/hitlist/curation.py:1960
+|  |  |  |  |- 0.57 _build_allele_to_serotypes_map  ../producer/hitlist/curation.py:1880
+|  |  |  |  |  |- 0.45 _serotype_table_key  ../producer/hitlist/curation.py:1869
+|  |  |  |  |  |  |- 0.27 resolve_allele_identity  ../producer/hitlist/curation.py:1350
+|  |  |  |  |  |  |  |- 0.21 _parse_with_context  ../producer/hitlist/curation.py:730
+|  |  |  |  |  |  |  |  `- 0.21 _cached_parse  ../producer/hitlist/curation.py:693
+|  |  |  |  |  |  |  |     `- 0.21 parse  mhcgnomes/function_api.py:609
+|  |  |  |  |  |  |  |        |- 0.20 Parser.parse  mhcgnomes/parser.py:2500
+|  |  |  |  |  |  |  |        |  `- 0.20 cached_fn  mhcgnomes/common.py:71
+|  |  |  |  |  |  |  |        |     |- 0.19 Parser._parse_cached  mhcgnomes/parser.py:2555
+|  |  |  |  |  |  |  |        |     |  |- 0.17 Parser._parse_explicit_species_allele_candidates  mhcgnomes/parser.py:2470
+|  |  |  |  |  |  |  |        |     |  |  |- 0.14 Parser.parse_allele_or_gene_candidates  mhcgnomes/parser.py:901
+|  |  |  |  |  |  |  |        |     |  |  |  |- 0.10 Parser.parse_allele_with_gene  mhcgnomes/parser.py:964
+|  |  |  |  |  |  |  |        |     |  |  |  |  |- 0.04 Parser.parse_allele_from_allele_fields  mhcgnomes/parser.py:714
+|  |  |  |  |  |  |  |        |     |  |  |  |  |  |- 0.03 Allele.get_with_gene  mhcgnomes/allele.py:191
+|  |  |  |  |  |  |  |        |     |  |  |  |  |  |  |- 0.02 Species.gene_has_no_alleles  mhcgnomes/species.py:795
+|  |  |  |  |  |  |  |        |     |  |  |  |  |  |  |  |- 0.01 Species.get_gene_properties  mhcgnomes/species.py:788
+|  |  |  |  |  |  |  |        |     |  |  |  |  |  |  |  |  `- 0.01 Species.find_matching_gene_name  mhcgnomes/species.py:693
+|  |  |  |  |  |  |  |        |     |  |  |  |  |  |  |  |     `- 0.01 NormalizingSet.get_original  mhcgnomes/normalizing_set.py:55
+|  |  |  |  |  |  |  |        |     |  |  |  |  |  |  |  |        `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |  |  |  |  |  |        |     |  |  |  |  |  |  |  |           `- 0.01 str.replace  <built-in>
+|  |  |  |  |  |  |  |        |     |  |  |  |  |  |  |  `- 0.01 [self]  mhcgnomes/species.py
+|  |  |  |  |  |  |  |        |     |  |  |  |  |  |  `- 0.01 Allele.__init__  mhcgnomes/allele.py:78
+|  |  |  |  |  |  |  |        |     |  |  |  |  |  |     `- 0.01 Allele.__init__  mhcgnomes/result_with_gene.py:29
+|  |  |  |  |  |  |  |        |     |  |  |  |  |  |        `- 0.01 Allele.__init__  mhcgnomes/result_with_mhc_class.py:30
+|  |  |  |  |  |  |  |        |     |  |  |  |  |  `- 0.01 Gene.is_human  mhcgnomes/result_with_species.py:65
+|  |  |  |  |  |  |  |        |     |  |  |  |  |     `- 0.01 Species.is_human  mhcgnomes/species.py:925
+|  |  |  |  |  |  |  |        |     |  |  |  |  |- 0.04 parse_annotations_from_seq  mhcgnomes/allele_annotations.py:78
+|  |  |  |  |  |  |  |        |     |  |  |  |  |  |- 0.03 peel_suffix_annotations  mhcgnomes/allele_annotations.py:53
+|  |  |  |  |  |  |  |        |     |  |  |  |  |  |  |- 0.01 str.lower  <built-in>
+|  |  |  |  |  |  |  |        |     |  |  |  |  |  |  |- 0.01 [self]  mhcgnomes/allele_annotations.py
+|  |  |  |  |  |  |  |        |     |  |  |  |  |  |  `- 0.01 _has_two_digit_prefix  mhcgnomes/allele_annotations.py:32
+|  |  |  |  |  |  |  |        |     |  |  |  |  |  |     `- 0.01 str.isdigit  <built-in>
+|  |  |  |  |  |  |  |        |     |  |  |  |  |  `- 0.01 check_for_workshop_prefix  mhcgnomes/allele_annotations.py:38
+|  |  |  |  |  |  |  |        |     |  |  |  |  |- 0.01 split_allele_fields  mhcgnomes/parsing_helpers.py:83
+|  |  |  |  |  |  |  |        |     |  |  |  |  |  `- 0.01 list.append  <built-in>
+|  |  |  |  |  |  |  |        |     |  |  |  |  `- 0.01 str.startswith  <built-in>
+|  |  |  |  |  |  |  |        |     |  |  |  |- 0.03 Parser.parse_gene_candidates  mhcgnomes/parser.py:811
+|  |  |  |  |  |  |  |        |     |  |  |  |  `- 0.03 add_to_candidates  mhcgnomes/parser.py:838
+|  |  |  |  |  |  |  |        |     |  |  |  |     `- 0.03 Gene.get  mhcgnomes/gene.py:106
+|  |  |  |  |  |  |  |        |     |  |  |  |        |- 0.02 Gene.__init__  mhcgnomes/gene.py:66
+|  |  |  |  |  |  |  |        |     |  |  |  |        |  |- 0.01 Gene.__init__  mhcgnomes/result_with_mhc_class.py:30
+|  |  |  |  |  |  |  |        |     |  |  |  |        |  `- 0.01 _set_field  mhcgnomes/result.py:29
+|  |  |  |  |  |  |  |        |     |  |  |  |        `- 0.01 Species.find_matching_gene_name  mhcgnomes/species.py:693
+|  |  |  |  |  |  |  |        |     |  |  |  |           `- 0.01 NormalizingSet.__contains__  mhcgnomes/normalizing_set.py:44
+|  |  |  |  |  |  |  |        |     |  |  |  |              `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |  |  |  |  |  |        |     |  |  |  `- 0.01 Gene.get  mhcgnomes/gene.py:106
+|  |  |  |  |  |  |  |        |     |  |  |     `- 0.01 Species.find_matching_gene_name  mhcgnomes/species.py:693
+|  |  |  |  |  |  |  |        |     |  |  |        `- 0.01 NormalizingDictionary.__contains__  mhcgnomes/normalizing_dictionary.py:85
+|  |  |  |  |  |  |  |        |     |  |  |           `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |  |  |  |  |  |        |     |  |  `- 0.03 Parser.transform_parse_candidates  mhcgnomes/parser.py:1389
+|  |  |  |  |  |  |  |        |     |  |     `- 0.03 Parser.transform_parse_candidate  mhcgnomes/parser.py:1283
+|  |  |  |  |  |  |  |        |     |  |        `- 0.03 Species.get_known_allele  mhcgnomes/species.py:840
+|  |  |  |  |  |  |  |        |     |  |           |- 0.02 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |  |  |  |  |  |  |        |     |  |           |  `- 0.02 normalize_string  mhcgnomes/common.py:87
+|  |  |  |  |  |  |  |        |     |  |           |     |- 0.01 [self]  mhcgnomes/common.py
+|  |  |  |  |  |  |  |        |     |  |           |     `- 0.01 str.upper  <built-in>
+|  |  |  |  |  |  |  |        |     |  |           `- 0.01 set.update  <built-in>
+|  |  |  |  |  |  |  |        |     |  |- 0.01 [self]  mhcgnomes/parser.py
+|  |  |  |  |  |  |  |        |     |  `- 0.01 cached_fn  mhcgnomes/common.py:71
+|  |  |  |  |  |  |  |        |     |     `- 0.01 arg_to_cache_key  mhcgnomes/common.py:34
+|  |  |  |  |  |  |  |        |     |        `- 0.01 len  <built-in>
+|  |  |  |  |  |  |  |        |     `- 0.01 arg_to_cache_key  mhcgnomes/common.py:34
+|  |  |  |  |  |  |  |        `- 0.01 cached_fn  mhcgnomes/common.py:71
+|  |  |  |  |  |  |  |           `- 0.01 arg_to_cache_key  mhcgnomes/common.py:34
+|  |  |  |  |  |  |  |- 0.05 _resolve_allele_candidate  ../producer/hitlist/curation.py:1333
+|  |  |  |  |  |  |  |  |- 0.03 Parser.transform_parse_candidate  mhcgnomes/parser.py:1283
+|  |  |  |  |  |  |  |  |  |- 0.02 Parser.parse_allele_with_gene  mhcgnomes/parser.py:964
+|  |  |  |  |  |  |  |  |  |  |- 0.01 Parser.parse_allele_from_allele_fields  mhcgnomes/parser.py:714
+|  |  |  |  |  |  |  |  |  |  |  `- 0.01 Allele.get_with_gene  mhcgnomes/allele.py:191
+|  |  |  |  |  |  |  |  |  |  |     `- 0.01 Allele.__init__  mhcgnomes/allele.py:78
+|  |  |  |  |  |  |  |  |  |  |        `- 0.01 Allele.__init__  mhcgnomes/result_with_gene.py:29
+|  |  |  |  |  |  |  |  |  |  |           `- 0.01 Allele.__init__  mhcgnomes/result_with_mhc_class.py:30
+|  |  |  |  |  |  |  |  |  |  |              `- 0.01 Allele.__init__  mhcgnomes/result_with_species.py:30
+|  |  |  |  |  |  |  |  |  |  |                 `- 0.01 Allele.__init__  mhcgnomes/result.py:26
+|  |  |  |  |  |  |  |  |  |  `- 0.01 Species.is_mouse  mhcgnomes/species.py:913
+|  |  |  |  |  |  |  |  |  |     `- 0.01 Species.prefix  mhcgnomes/species.py:548
+|  |  |  |  |  |  |  |  |  |        `- 0.01 Species.species_prefix  mhcgnomes/species.py:539
+|  |  |  |  |  |  |  |  |  |           `- 0.01 display_prefix_for  mhcgnomes/prefix_display_policy.py:90
+|  |  |  |  |  |  |  |  |  |              `- 0.01 get_prefix_display_policy  mhcgnomes/prefix_display_policy.py:62
+|  |  |  |  |  |  |  |  |  |                 `- 0.01 getattr  <built-in>
+|  |  |  |  |  |  |  |  |  `- 0.01 Allele.__hash__  mhcgnomes/allele.py:130
+|  |  |  |  |  |  |  |  |     `- 0.01 Gene.__hash__  mhcgnomes/gene.py:82
+|  |  |  |  |  |  |  |  |- 0.01 Allele.restrict_allele_fields  mhcgnomes/allele.py:173
+|  |  |  |  |  |  |  |  |  `- 0.01 Allele.copy  mhcgnomes/result.py:231
+|  |  |  |  |  |  |  |  |     `- 0.01 Allele.from_dict  mhcgnomes/result.py:227
+|  |  |  |  |  |  |  |  |        `- 0.01 Allele.__init__  mhcgnomes/allele.py:78
+|  |  |  |  |  |  |  |  |           `- 0.01 _normalize_fields  mhcgnomes/allele.py:106
+|  |  |  |  |  |  |  |  |              `- 0.01 _get_min_first_field_width  mhcgnomes/allele.py:100
+|  |  |  |  |  |  |  |  |                 `- 0.01 Species.prefix  mhcgnomes/species.py:548
+|  |  |  |  |  |  |  |  |                    `- 0.01 Species.species_prefix  mhcgnomes/species.py:539
+|  |  |  |  |  |  |  |  |                       `- 0.01 display_prefix_for  mhcgnomes/prefix_display_policy.py:90
+|  |  |  |  |  |  |  |  `- 0.01 _handle_fromlist  <frozen importlib._bootstrap>:1390
+|  |  |  |  |  |  |  `- 0.01 Allele.to_string  mhcgnomes/allele.py:342
+|  |  |  |  |  |  |     `- 0.01 Gene.to_string  mhcgnomes/gene.py:165
+|  |  |  |  |  |  `- 0.18 _cached_parse  ../producer/hitlist/curation.py:693
+|  |  |  |  |  |     `- 0.18 parse  mhcgnomes/function_api.py:609
+|  |  |  |  |  |        |- 0.16 Parser.parse  mhcgnomes/parser.py:2500
+|  |  |  |  |  |        |  `- 0.16 cached_fn  mhcgnomes/common.py:71
+|  |  |  |  |  |        |     |- 0.15 Parser._parse_cached  mhcgnomes/parser.py:2555
+|  |  |  |  |  |        |     |  |- 0.13 Parser._parse_explicit_species_allele_candidates  mhcgnomes/parser.py:2470
+|  |  |  |  |  |        |     |  |  |- 0.10 Parser.parse_allele_or_gene_candidates  mhcgnomes/parser.py:901
+|  |  |  |  |  |        |     |  |  |  |- 0.07 Parser.parse_allele_with_gene  mhcgnomes/parser.py:964
+|  |  |  |  |  |        |     |  |  |  |  |- 0.04 Parser.parse_allele_from_allele_fields  mhcgnomes/parser.py:714
+|  |  |  |  |  |        |     |  |  |  |  |  |- 0.03 Allele.get_with_gene  mhcgnomes/allele.py:191
+|  |  |  |  |  |        |     |  |  |  |  |  |  |- 0.02 Species.gene_has_no_alleles  mhcgnomes/species.py:795
+|  |  |  |  |  |        |     |  |  |  |  |  |  |  `- 0.02 Species.get_gene_properties  mhcgnomes/species.py:788
+|  |  |  |  |  |        |     |  |  |  |  |  |  |     |- 0.01 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |  |  |  |  |        |     |  |  |  |  |  |  |     |  `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |  |  |  |        |     |  |  |  |  |  |  |     |     `- 0.01 str.replace  <built-in>
+|  |  |  |  |  |        |     |  |  |  |  |  |  |     `- 0.01 Species.find_matching_gene_name  mhcgnomes/species.py:693
+|  |  |  |  |  |        |     |  |  |  |  |  |  |        `- 0.01 NormalizingSet.get_original  mhcgnomes/normalizing_set.py:55
+|  |  |  |  |  |        |     |  |  |  |  |  |  `- 0.01 Allele.__init__  mhcgnomes/allele.py:78
+|  |  |  |  |  |        |     |  |  |  |  |  |     `- 0.01 _normalize_fields  mhcgnomes/allele.py:106
+|  |  |  |  |  |        |     |  |  |  |  |  `- 0.01 Gene.is_human  mhcgnomes/result_with_species.py:65
+|  |  |  |  |  |        |     |  |  |  |  |- 0.01 [self]  mhcgnomes/parser.py
+|  |  |  |  |  |        |     |  |  |  |  |- 0.01 Species.is_human  mhcgnomes/species.py:925
+|  |  |  |  |  |        |     |  |  |  |  |  `- 0.01 Species.prefix  mhcgnomes/species.py:548
+|  |  |  |  |  |        |     |  |  |  |  |     `- 0.01 Species.species_prefix  mhcgnomes/species.py:539
+|  |  |  |  |  |        |     |  |  |  |  |        `- 0.01 display_prefix_for  mhcgnomes/prefix_display_policy.py:90
+|  |  |  |  |  |        |     |  |  |  |  `- 0.01 Species.is_rat  mhcgnomes/species.py:921
+|  |  |  |  |  |        |     |  |  |  |     `- 0.01 Species.prefix  mhcgnomes/species.py:548
+|  |  |  |  |  |        |     |  |  |  |        `- 0.01 Species.species_prefix  mhcgnomes/species.py:539
+|  |  |  |  |  |        |     |  |  |  |           `- 0.01 ModuleSpec.parent  <frozen importlib._bootstrap>:645
+|  |  |  |  |  |        |     |  |  |  |              `- 0.01 str.rpartition  <built-in>
+|  |  |  |  |  |        |     |  |  |  |- 0.02 Parser.parse_gene_candidates  mhcgnomes/parser.py:811
+|  |  |  |  |  |        |     |  |  |  |  |- 0.01 add_to_candidates  mhcgnomes/parser.py:838
+|  |  |  |  |  |        |     |  |  |  |  |  `- 0.01 Gene.get  mhcgnomes/gene.py:106
+|  |  |  |  |  |        |     |  |  |  |  |     `- 0.01 Species.find_matching_gene_name  mhcgnomes/species.py:693
+|  |  |  |  |  |        |     |  |  |  |  |        `- 0.01 NormalizingSet.get_original  mhcgnomes/normalizing_set.py:55
+|  |  |  |  |  |        |     |  |  |  |  |           `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |  |  |  |        |     |  |  |  |  `- 0.01 [self]  mhcgnomes/parser.py
+|  |  |  |  |  |        |     |  |  |  `- 0.01 [self]  mhcgnomes/parser.py
+|  |  |  |  |  |        |     |  |  |- 0.01 Parser.strip_extra_chars  mhcgnomes/parser.py:805
+|  |  |  |  |  |        |     |  |  |  `- 0.01 str.startswith  <built-in>
+|  |  |  |  |  |        |     |  |  |- 0.01 Parser.transform_parse_candidates  mhcgnomes/parser.py:1389
+|  |  |  |  |  |        |     |  |  |  `- 0.01 Parser.transform_parse_candidate  mhcgnomes/parser.py:1283
+|  |  |  |  |  |        |     |  |  |     `- 0.01 Species.get_known_allele  mhcgnomes/species.py:840
+|  |  |  |  |  |        |     |  |  `- 0.01 [self]  mhcgnomes/parser.py
+|  |  |  |  |  |        |     |  |- 0.01 Parser.parse_species_from_prefix  mhcgnomes/parser.py:294
+|  |  |  |  |  |        |     |  |  `- 0.01 infer_species_from_prefix  mhcgnomes/species.py:1871
+|  |  |  |  |  |        |     |  |     `- 0.01 find_matching_species_objects  mhcgnomes/species.py:1776
+|  |  |  |  |  |        |     |  |        `- 0.01 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |  |  |  |  |        |     |  |           `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |  |  |  |        |     |  |              `- 0.01 str.replace  <built-in>
+|  |  |  |  |  |        |     |  `- 0.01 [self]  mhcgnomes/parser.py
+|  |  |  |  |  |        |     `- 0.01 arg_to_cache_key  mhcgnomes/common.py:34
+|  |  |  |  |  |        |        `- 0.01 arg_to_cache_key  mhcgnomes/common.py:34
+|  |  |  |  |  |        `- 0.02 cached_fn  mhcgnomes/common.py:71
+|  |  |  |  |  |           `- 0.02 arg_to_cache_key  mhcgnomes/common.py:34
+|  |  |  |  |  |              |- 0.01 [self]  mhcgnomes/common.py
+|  |  |  |  |  |              `- 0.01 arg_to_cache_key  mhcgnomes/common.py:34
+|  |  |  |  |  |- 0.10 resolve_allele_identity  ../producer/hitlist/curation.py:1350
+|  |  |  |  |  |  |- 0.08 _resolve_allele_candidate  ../producer/hitlist/curation.py:1333
+|  |  |  |  |  |  |  |- 0.07 Parser.transform_parse_candidate  mhcgnomes/parser.py:1283
+|  |  |  |  |  |  |  |  |- 0.05 Parser.parse_allele_with_gene  mhcgnomes/parser.py:964
+|  |  |  |  |  |  |  |  |  |- 0.02 Species.is_mouse  mhcgnomes/species.py:913
+|  |  |  |  |  |  |  |  |  |  `- 0.02 Species.prefix  mhcgnomes/species.py:548
+|  |  |  |  |  |  |  |  |  |     `- 0.02 Species.species_prefix  mhcgnomes/species.py:539
+|  |  |  |  |  |  |  |  |  |        |- 0.01 [self]  mhcgnomes/species.py
+|  |  |  |  |  |  |  |  |  |        `- 0.01 ModuleSpec.parent  <frozen importlib._bootstrap>:645
+|  |  |  |  |  |  |  |  |  |           `- 0.01 str.rpartition  <built-in>
+|  |  |  |  |  |  |  |  |  |- 0.02 Parser.parse_allele_from_allele_fields  mhcgnomes/parser.py:714
+|  |  |  |  |  |  |  |  |  |  |- 0.01 Gene.is_chicken  mhcgnomes/result_with_species.py:57
+|  |  |  |  |  |  |  |  |  |  |  `- 0.01 Species.is_chicken  mhcgnomes/species.py:917
+|  |  |  |  |  |  |  |  |  |  `- 0.01 Allele.get_with_gene  mhcgnomes/allele.py:191
+|  |  |  |  |  |  |  |  |  |     `- 0.01 Species.gene_has_no_alleles  mhcgnomes/species.py:795
+|  |  |  |  |  |  |  |  |  |        `- 0.01 Species.get_gene_properties  mhcgnomes/species.py:788
+|  |  |  |  |  |  |  |  |  |           `- 0.01 Species.find_matching_gene_name  mhcgnomes/species.py:693
+|  |  |  |  |  |  |  |  |  |              `- 0.01 NormalizingSet.get_original  mhcgnomes/normalizing_set.py:55
+|  |  |  |  |  |  |  |  |  |                 `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |  |  |  |  |  |  |  `- 0.01 parse_annotations_from_seq  mhcgnomes/allele_annotations.py:78
+|  |  |  |  |  |  |  |  |     `- 0.01 peel_suffix_annotations  mhcgnomes/allele_annotations.py:53
+|  |  |  |  |  |  |  |  `- 0.02 cached_fn  mhcgnomes/common.py:71
+|  |  |  |  |  |  |  |     `- 0.02 arg_to_cache_key  mhcgnomes/common.py:34
+|  |  |  |  |  |  |  |        |- 0.01 arg_to_cache_key  mhcgnomes/common.py:34
+|  |  |  |  |  |  |  |        `- 0.01 len  <built-in>
+|  |  |  |  |  |  |  `- 0.01 Allele.restrict_allele_fields  mhcgnomes/allele.py:173
+|  |  |  |  |  |  |     `- 0.01 Allele.copy  mhcgnomes/result.py:231
+|  |  |  |  |  |  |        `- 0.01 Allele.from_dict  mhcgnomes/result.py:227
+|  |  |  |  |  |  |           `- 0.01 Allele.__init__  mhcgnomes/allele.py:78
+|  |  |  |  |  |  |              `- 0.01 _normalize_fields  mhcgnomes/allele.py:106
+|  |  |  |  |  |  |                 `- 0.01 _get_min_first_field_width  mhcgnomes/allele.py:100
+|  |  |  |  |  |  |                    `- 0.01 Species.prefix  mhcgnomes/species.py:548
+|  |  |  |  |  |  |                       `- 0.01 Species.species_prefix  mhcgnomes/species.py:539
+|  |  |  |  |  |  `- 0.02 Allele.to_string  mhcgnomes/allele.py:342
+|  |  |  |  |  |     `- 0.02 Gene.to_string  mhcgnomes/gene.py:165
+|  |  |  |  |  |        |- 0.01 [self]  mhcgnomes/gene.py
+|  |  |  |  |  |        `- 0.01 Gene.species_prefix  mhcgnomes/result_with_species.py:38
+|  |  |  |  |  |           `- 0.01 display_prefix_for  mhcgnomes/prefix_display_policy.py:90
+|  |  |  |  |  |              `- 0.01 get_prefix_display_policy  mhcgnomes/prefix_display_policy.py:62
+|  |  |  |  |  |                 `- 0.01 getattr  <built-in>
+|  |  |  |  |  |- 0.01 [self]  ../producer/hitlist/curation.py
+|  |  |  |  |  `- 0.01 normalize_allele  ../producer/hitlist/curation.py:1294
+|  |  |  |  |- 0.14 resolve_allele_identity  ../producer/hitlist/curation.py:1350
+|  |  |  |  |  |- 0.10 _parse_with_context  ../producer/hitlist/curation.py:730
+|  |  |  |  |  |  `- 0.10 _cached_parse  ../producer/hitlist/curation.py:693
+|  |  |  |  |  |     `- 0.10 parse  mhcgnomes/function_api.py:609
+|  |  |  |  |  |        `- 0.10 Parser.parse  mhcgnomes/parser.py:2500
+|  |  |  |  |  |           `- 0.10 cached_fn  mhcgnomes/common.py:71
+|  |  |  |  |  |              `- 0.10 Parser._parse_cached  mhcgnomes/parser.py:2555
+|  |  |  |  |  |                 |- 0.09 Parser.parse_multiple_candidates  mhcgnomes/parser.py:2317
+|  |  |  |  |  |                 |  `- 0.09 Parser.parse_tokens_to_multiple_candidates  mhcgnomes/parser.py:1993
+|  |  |  |  |  |                 |     |- 0.06 Parser.parse_single_token_to_multiple_candidates  mhcgnomes/parser.py:1577
+|  |  |  |  |  |                 |     |  |- 0.04 Parser.parse_haplotype  mhcgnomes/parser.py:655
+|  |  |  |  |  |                 |     |  |  |- 0.03 Parser.get_haplotype  mhcgnomes/parser.py:602
+|  |  |  |  |  |                 |     |  |  |  |- 0.02 Parser._find_matching_name_and_parse_alleles  mhcgnomes/parser.py:368
+|  |  |  |  |  |                 |     |  |  |  |  |- 0.01 NormalizingDictionary.keys_aligned_with_values  mhcgnomes/normalizing_dictionary.py:142
+|  |  |  |  |  |                 |     |  |  |  |  |  `- 0.01 NormalizingDictionary.key_sets_aligned_with_values  mhcgnomes/normalizing_dictionary.py:131
+|  |  |  |  |  |                 |     |  |  |  |  |     `- 0.01 list.append  <built-in>
+|  |  |  |  |  |                 |     |  |  |  |  `- 0.01 Parser.parse_allele_or_gene_candidates  mhcgnomes/parser.py:901
+|  |  |  |  |  |                 |     |  |  |  |     `- 0.01 Gene.get  mhcgnomes/gene.py:106
+|  |  |  |  |  |                 |     |  |  |  |        `- 0.01 Species.find_matching_gene_name  mhcgnomes/species.py:693
+|  |  |  |  |  |                 |     |  |  |  |           `- 0.01 NormalizingSet.__contains__  mhcgnomes/normalizing_set.py:44
+|  |  |  |  |  |                 |     |  |  |  |              `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |  |  |  |                 |     |  |  |  `- 0.01 Haplotype.__init__  mhcgnomes/haplotype.py:91
+|  |  |  |  |  |                 |     |  |  |     `- 0.01 Haplotype.__init__  mhcgnomes/result_with_multiple_alleles.py:29
+|  |  |  |  |  |                 |     |  |  |        `- 0.01 Allele.__lt__  mhcgnomes/result.py:239
+|  |  |  |  |  |                 |     |  |  |           `- 0.01 Gene.__lt__  mhcgnomes/result.py:239
+|  |  |  |  |  |                 |     |  |  |              `- 0.01 Gene.to_tuple  mhcgnomes/result.py:212
+|  |  |  |  |  |                 |     |  |  |                 `- 0.01 Gene.tuple_field_names  mhcgnomes/result.py:122
+|  |  |  |  |  |                 |     |  |  |                    `- 0.01 Gene.init_field_names  mhcgnomes/result.py:81
+|  |  |  |  |  |                 |     |  |  |                       `- 0.01 signature  inspect.py:3325
+|  |  |  |  |  |                 |     |  |  |                          `- 0.01 Signature.from_callable  inspect.py:3067
+|  |  |  |  |  |                 |     |  |  |                             `- 0.01 _signature_from_callable  inspect.py:2463
+|  |  |  |  |  |                 |     |  |  |                                `- 0.01 Signature._signature_from_function  inspect.py:2368
+|  |  |  |  |  |                 |     |  |  |                                   `- 0.01 Parameter.__init__  inspect.py:2729
+|  |  |  |  |  |                 |     |  |  `- 0.01 Parser.parse_species  mhcgnomes/parser.py:331
+|  |  |  |  |  |                 |     |  |     `- 0.01 Parser.parse_species_from_prefix  mhcgnomes/parser.py:294
+|  |  |  |  |  |                 |     |  |        `- 0.01 infer_species_from_prefix  mhcgnomes/species.py:1871
+|  |  |  |  |  |                 |     |  |           `- 0.01 find_matching_species_objects  mhcgnomes/species.py:1776
+|  |  |  |  |  |                 |     |  |              `- 0.01 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |  |  |  |  |                 |     |  |                 `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |  |  |  |                 |     |  |- 0.01 Parser.adjust_raw_strings  mhcgnomes/parser.py:1266
+|  |  |  |  |  |                 |     |  |  `- 0.01 Gene.copy  mhcgnomes/result.py:231
+|  |  |  |  |  |                 |     |  |     `- 0.01 Gene.to_dict  mhcgnomes/result.py:224
+|  |  |  |  |  |                 |     |  |        `- 0.01 Gene.tuple_field_names  mhcgnomes/result.py:122
+|  |  |  |  |  |                 |     |  |           `- 0.01 Gene.init_field_names  mhcgnomes/result.py:81
+|  |  |  |  |  |                 |     |  |              `- 0.01 signature  inspect.py:3325
+|  |  |  |  |  |                 |     |  |                 `- 0.01 Signature.from_callable  inspect.py:3067
+|  |  |  |  |  |                 |     |  |                    `- 0.01 _signature_from_callable  inspect.py:2463
+|  |  |  |  |  |                 |     |  |                       `- 0.01 Signature._signature_from_function  inspect.py:2368
+|  |  |  |  |  |                 |     |  `- 0.01 Parser.parse_species_from_prefix  mhcgnomes/parser.py:294
+|  |  |  |  |  |                 |     |     `- 0.01 infer_species_from_prefix  mhcgnomes/species.py:1871
+|  |  |  |  |  |                 |     |        `- 0.01 find_matching_species_objects  mhcgnomes/species.py:1776
+|  |  |  |  |  |                 |     |           `- 0.01 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |  |  |  |  |                 |     |              `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |  |  |  |                 |     |- 0.02 Parser.transform_parse_candidates  mhcgnomes/parser.py:1389
+|  |  |  |  |  |                 |     |  `- 0.02 Parser.transform_parse_candidate  mhcgnomes/parser.py:1283
+|  |  |  |  |  |                 |     |     |- 0.01 Allele.__eq__  mhcgnomes/allele.py:133
+|  |  |  |  |  |                 |     |     |  `- 0.01 Mutation.__eq__  mhcgnomes/result.py:196
+|  |  |  |  |  |                 |     |     |     `- 0.01 Mutation.eq_field_names  mhcgnomes/result.py:130
+|  |  |  |  |  |                 |     |     |        `- 0.01 Mutation.init_field_names_without_raw_string  mhcgnomes/result.py:99
+|  |  |  |  |  |                 |     |     |           `- 0.01 Mutation.init_field_names  mhcgnomes/result.py:81
+|  |  |  |  |  |                 |     |     `- 0.01 Allele.__hash__  mhcgnomes/allele.py:130
+|  |  |  |  |  |                 |     |        `- 0.01 Mutation.__hash__  mhcgnomes/result.py:201
+|  |  |  |  |  |                 |     |           `- 0.01 Mutation.hash_field_names  mhcgnomes/result.py:137
+|  |  |  |  |  |                 |     |              `- 0.01 Mutation.eq_field_names  mhcgnomes/result.py:130
+|  |  |  |  |  |                 |     |                 `- 0.01 Mutation.init_field_names_without_raw_string  mhcgnomes/result.py:99
+|  |  |  |  |  |                 |     |                    `- 0.01 Mutation.init_field_names  mhcgnomes/result.py:81
+|  |  |  |  |  |                 |     |                       `- 0.01 signature  inspect.py:3325
+|  |  |  |  |  |                 |     |                          `- 0.01 Signature.from_callable  inspect.py:3067
+|  |  |  |  |  |                 |     |                             `- 0.01 _signature_from_callable  inspect.py:2463
+|  |  |  |  |  |                 |     |                                `- 0.01 Signature._signature_from_function  inspect.py:2368
+|  |  |  |  |  |                 |     |                                   `- 0.01 Parameter.__init__  inspect.py:2729
+|  |  |  |  |  |                 |     `- 0.01 Parser.parse_tokens_around_slash  mhcgnomes/parser.py:1868
+|  |  |  |  |  |                 |        `- 0.01 Parser.parse_tokens_to_multiple_candidates  mhcgnomes/parser.py:1993
+|  |  |  |  |  |                 |           `- 0.01 Parser.parse_single_token_to_multiple_candidates  mhcgnomes/parser.py:1577
+|  |  |  |  |  |                 |              `- 0.01 Parser.get_serotype  mhcgnomes/parser.py:424
+|  |  |  |  |  |                 |                 `- 0.01 Parser._find_matching_name_and_parse_alleles  mhcgnomes/parser.py:368
+|  |  |  |  |  |                 |                    `- 0.01 NormalizingDictionary.keys_aligned_with_values  mhcgnomes/normalizing_dictionary.py:142
+|  |  |  |  |  |                 |                       `- 0.01 NormalizingDictionary.key_sets_aligned_with_values  mhcgnomes/normalizing_dictionary.py:131
+|  |  |  |  |  |                 `- 0.01 Parser._parse_explicit_species_allele_candidates  mhcgnomes/parser.py:2470
+|  |  |  |  |  |                    `- 0.01 Parser.parse_species_from_prefix  mhcgnomes/parser.py:294
+|  |  |  |  |  |                       `- 0.01 infer_species_from_prefix  mhcgnomes/species.py:1871
+|  |  |  |  |  |                          `- 0.01 find_matching_species_objects  mhcgnomes/species.py:1776
+|  |  |  |  |  |                             `- 0.01 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |  |  |  |  |                                `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |  |  |  |                                   `- 0.01 str.strip  <built-in>
+|  |  |  |  |  |- 0.03 _resolve_allele_candidate  ../producer/hitlist/curation.py:1333
+|  |  |  |  |  |  |- 0.02 Pair.copy  mhcgnomes/result.py:231
+|  |  |  |  |  |  |  `- 0.02 Pair.to_dict  mhcgnomes/result.py:224
+|  |  |  |  |  |  |     `- 0.02 Pair.tuple_field_names  mhcgnomes/result.py:122
+|  |  |  |  |  |  |        `- 0.02 Pair.init_field_names  mhcgnomes/result.py:81
+|  |  |  |  |  |  |           `- 0.02 signature  inspect.py:3325
+|  |  |  |  |  |  |              `- 0.02 Signature.from_callable  inspect.py:3067
+|  |  |  |  |  |  |                 `- 0.02 _signature_from_callable  inspect.py:2463
+|  |  |  |  |  |  |                    |- 0.01 [self]  inspect.py
+|  |  |  |  |  |  |                    `- 0.01 Signature._signature_from_function  inspect.py:2368
+|  |  |  |  |  |  `- 0.01 _resolve_allele_candidate  ../producer/hitlist/curation.py:1333
+|  |  |  |  |  |     `- 0.01 Parser.transform_parse_candidate  mhcgnomes/parser.py:1283
+|  |  |  |  |  |        `- 0.01 Species.get_known_allele  mhcgnomes/species.py:840
+|  |  |  |  |  |           `- 0.01 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |  |  |  |  |              `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |  |  |  |                 `- 0.01 str.replace  <built-in>
+|  |  |  |  |  `- 0.01 Pair.to_string  mhcgnomes/pair.py:111
+|  |  |  |  |     `- 0.01 Allele.to_string  mhcgnomes/allele.py:342
+|  |  |  |  |        `- 0.01 Gene.to_string  mhcgnomes/gene.py:165
+|  |  |  |  |           `- 0.01 Gene.species_prefix  mhcgnomes/result_with_species.py:38
+|  |  |  |  `- 0.01 [self]  ../producer/hitlist/curation.py
+|  |  |  `- 0.01 [self]  ../producer/hitlist/curation.py
+|  |  |- 0.03 Allele.species_source  mhcgnomes/result.py:41
+|  |  |  `- 0.03 classify_species_source  mhcgnomes/species.py:1762
+|  |  |     `- 0.03 species_named_in  mhcgnomes/species.py:1712
+|  |  |        |- 0.01 tokenize  mhcgnomes/tokenize.py:188
+|  |  |        |  `- 0.01 cached_fn  mhcgnomes/common.py:71
+|  |  |        |- 0.01 ModuleSpec.parent  <frozen importlib._bootstrap>:645
+|  |  |        `- 0.01 find_matching_species_objects  mhcgnomes/species.py:1776
+|  |  |- 0.01 Allele.to_string  mhcgnomes/allele.py:342
+|  |  |  `- 0.01 Gene.to_string  mhcgnomes/gene.py:165
+|  |  |     `- 0.01 Gene.species_prefix  mhcgnomes/result_with_species.py:38
+|  |  |        `- 0.01 display_prefix_for  mhcgnomes/prefix_display_policy.py:90
+|  |  |           `- 0.01 get_prefix_display_policy  mhcgnomes/prefix_display_policy.py:62
+|  |  |              `- 0.01 getattr  <built-in>
+|  |  |- 0.01 [self]  ../producer/hitlist/curation.py
+|  |  `- 0.01 _molecule_class  ../producer/hitlist/curation.py:815
+|  |- 2.57 ContributorCollector.observe  ../producer/hitlist/provenance.py:371
+|  |  |- 2.27 ContributorCollector._execute  ../producer/hitlist/provenance.py:170
+|  |  |  |- 1.80 Connection.execute  <built-in>
+|  |  |  |- 0.26 [self]  ../producer/hitlist/provenance.py
+|  |  |  `- 0.21 ContributorCollector._check_space  ../producer/hitlist/provenance.py:149
+|  |  |     |- 0.14 monotonic  <built-in>
+|  |  |     `- 0.07 [self]  ../producer/hitlist/provenance.py
+|  |  `- 0.30 [self]  ../producer/hitlist/provenance.py
+|  |- 2.43 ContributorCollector.duplicate_assay  ../producer/hitlist/provenance.py:382
+|  |  |- 2.13 ContributorCollector._execute  ../producer/hitlist/provenance.py:170
+|  |  |  |- 1.60 Connection.execute  <built-in>
+|  |  |  |- 0.27 [self]  ../producer/hitlist/provenance.py
+|  |  |  `- 0.26 ContributorCollector._check_space  ../producer/hitlist/provenance.py:149
+|  |  |     |- 0.17 [self]  ../producer/hitlist/provenance.py
+|  |  |     `- 0.09 monotonic  <built-in>
+|  |  `- 0.30 [self]  ../producer/hitlist/provenance.py
+|  |- 2.01 peptide_attribution_applies_to_row  ../producer/hitlist/curation.py:2932
+|  |  |- 1.29 _coerce_pmid  ../producer/hitlist/curation.py:2918
+|  |  |  |- 0.96 [self]  ../producer/hitlist/curation.py
+|  |  |  |- 0.18 suppress.__exit__  contextlib.py:446
+|  |  |  |  |- 0.12 [self]  contextlib.py
+|  |  |  |  `- 0.06 issubclass  <built-in>
+|  |  |  |- 0.09 suppress.__init__  contextlib.py:440
+|  |  |  `- 0.06 suppress.__enter__  contextlib.py:443
+|  |  |- 0.48 [self]  ../producer/hitlist/curation.py
+|  |  `- 0.24 dict.get  <built-in>
+|  |- 1.00 pmid_mhc_species_context  ../producer/hitlist/curation.py:677
+|  |  `- 1.00 pmid_provenance  ../producer/hitlist/curation.py:638
+|  |     `- 1.00 load_pmid_overrides  ../producer/hitlist/curation.py:326
+|  |        |- 0.62 sample_mhc_metadata  ../producer/hitlist/curation.py:2730
+|  |        |  |- 0.61 sample_mhc_candidates  ../producer/hitlist/curation.py:2410
+|  |        |  |  `- 0.61 _mhc_field_spans  ../producer/hitlist/curation.py:2405
+|  |        |  |     `- 0.61 _mhc_field_scan  ../producer/hitlist/curation.py:2349
+|  |        |  |        |- 0.59 _cached_parse  ../producer/hitlist/curation.py:693
+|  |        |  |        |  |- 0.58 parse  mhcgnomes/function_api.py:609
+|  |        |  |        |  |  |- 0.45 Parser.parse  mhcgnomes/parser.py:2500
+|  |        |  |        |  |  |  `- 0.45 cached_fn  mhcgnomes/common.py:71
+|  |        |  |        |  |  |     |- 0.44 Parser._parse_cached  mhcgnomes/parser.py:2555
+|  |        |  |        |  |  |     |  |- 0.34 Parser.parse_multiple_candidates  mhcgnomes/parser.py:2317
+|  |        |  |        |  |  |     |  |  |- 0.16 Parser.parse_multiple_candidates  mhcgnomes/parser.py:2317
+|  |        |  |        |  |  |     |  |  |  |- 0.10 tokenize  mhcgnomes/tokenize.py:188
+|  |        |  |        |  |  |     |  |  |  |  `- 0.10 cached_fn  mhcgnomes/common.py:71
+|  |        |  |        |  |  |     |  |  |  |     `- 0.10 _cached_tokenize  mhcgnomes/tokenize.py:165
+|  |        |  |        |  |  |     |  |  |  |        |- 0.05 normalize_token  mhcgnomes/tokenize.py:95
+|  |        |  |        |  |  |     |  |  |  |        |  |- 0.02 [self]  mhcgnomes/tokenize.py
+|  |        |  |        |  |  |     |  |  |  |        |  |- 0.02 strip_chars  mhcgnomes/parsing_helpers.py:14
+|  |        |  |        |  |  |     |  |  |  |        |  `- 0.01 deparen  mhcgnomes/tokenize.py:88
+|  |        |  |        |  |  |     |  |  |  |        |     `- 0.01 str.replace  <built-in>
+|  |        |  |        |  |  |     |  |  |  |        |- 0.02 [self]  mhcgnomes/tokenize.py
+|  |        |  |        |  |  |     |  |  |  |        |- 0.02 split_and_extract_attributes  mhcgnomes/tokenize.py:121
+|  |        |  |        |  |  |     |  |  |  |        |  `- 0.02 split_token_sequences  mhcgnomes/tokenize.py:103
+|  |        |  |        |  |  |     |  |  |  |        `- 0.01 simplify_tokens  mhcgnomes/token_substitution.py:113
+|  |        |  |        |  |  |     |  |  |  |           `- 0.01 apply_token_substitutions  mhcgnomes/token_substitution.py:77
+|  |        |  |        |  |  |     |  |  |  |- 0.04 Parser.parse_tokens_to_multiple_candidates  mhcgnomes/parser.py:1993
+|  |        |  |        |  |  |     |  |  |  |  |- 0.03 Parser.parse_tokens_around_slash  mhcgnomes/parser.py:1868
+|  |        |  |        |  |  |     |  |  |  |  |  `- 0.03 Parser.parse_tokens_to_multiple_candidates  mhcgnomes/parser.py:1993
+|  |        |  |        |  |  |     |  |  |  |  |     |- 0.02 [self]  mhcgnomes/parser.py
+|  |        |  |        |  |  |     |  |  |  |  |     `- 0.01 Parser.parse_single_token_to_multiple_candidates  mhcgnomes/parser.py:1577
+|  |        |  |        |  |  |     |  |  |  |  |        `- 0.01 parse_standard_allele_format  mhcgnomes/standard_format.py:32
+|  |        |  |        |  |  |     |  |  |  |  |           `- 0.01 Species.gene_is_context_only  mhcgnomes/species.py:815
+|  |        |  |        |  |  |     |  |  |  |  |              `- 0.01 Species.get_gene_properties  mhcgnomes/species.py:788
+|  |        |  |        |  |  |     |  |  |  |  |                 `- 0.01 Species.find_matching_gene_name  mhcgnomes/species.py:693
+|  |        |  |        |  |  |     |  |  |  |  `- 0.01 Token.is_supertype  mhcgnomes/token.py:129
+|  |        |  |        |  |  |     |  |  |  `- 0.02 find_matching_species_objects  mhcgnomes/species.py:1776
+|  |        |  |        |  |  |     |  |  |     `- 0.02 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |        |  |        |  |  |     |  |  |        `- 0.02 normalize_string  mhcgnomes/common.py:87
+|  |        |  |        |  |  |     |  |  |           |- 0.01 [self]  mhcgnomes/common.py
+|  |        |  |        |  |  |     |  |  |           `- 0.01 str.replace  <built-in>
+|  |        |  |        |  |  |     |  |  |- 0.11 tokenize  mhcgnomes/tokenize.py:188
+|  |        |  |        |  |  |     |  |  |  `- 0.11 cached_fn  mhcgnomes/common.py:71
+|  |        |  |        |  |  |     |  |  |     |- 0.10 _cached_tokenize  mhcgnomes/tokenize.py:165
+|  |        |  |        |  |  |     |  |  |     |  |- 0.05 simplify_tokens  mhcgnomes/token_substitution.py:113
+|  |        |  |        |  |  |     |  |  |     |  |  |- 0.04 apply_token_substitutions  mhcgnomes/token_substitution.py:77
+|  |        |  |        |  |  |     |  |  |     |  |  |  |- 0.03 [self]  mhcgnomes/token_substitution.py
+|  |        |  |        |  |  |     |  |  |     |  |  |  `- 0.01 list.append  <built-in>
+|  |        |  |        |  |  |     |  |  |     |  |  `- 0.01 [self]  mhcgnomes/token_substitution.py
+|  |        |  |        |  |  |     |  |  |     |  |- 0.02 strip_whitespace_and_remove_quotes  mhcgnomes/tokenize.py:161
+|  |        |  |        |  |  |     |  |  |     |  |  `- 0.02 str.translate  <built-in>
+|  |        |  |        |  |  |     |  |  |     |  |- 0.01 normalize_token  mhcgnomes/tokenize.py:95
+|  |        |  |        |  |  |     |  |  |     |  |  `- 0.01 str.lower  <built-in>
+|  |        |  |        |  |  |     |  |  |     |  |- 0.01 split_and_extract_attributes  mhcgnomes/tokenize.py:121
+|  |        |  |        |  |  |     |  |  |     |  |  `- 0.01 split_token_sequences  mhcgnomes/tokenize.py:103
+|  |        |  |        |  |  |     |  |  |     |  `- 0.01 Token.__init__  mhcgnomes/token.py:30
+|  |        |  |        |  |  |     |  |  |     `- 0.01 [self]  mhcgnomes/common.py
+|  |        |  |        |  |  |     |  |  |- 0.04 [self]  mhcgnomes/parser.py
+|  |        |  |        |  |  |     |  |  |- 0.02 find_matching_species_objects  mhcgnomes/species.py:1776
+|  |        |  |        |  |  |     |  |  |  `- 0.02 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |        |  |        |  |  |     |  |  |     `- 0.02 normalize_string  mhcgnomes/common.py:87
+|  |        |  |        |  |  |     |  |  |        |- 0.01 str.strip  <built-in>
+|  |        |  |        |  |  |     |  |  |        `- 0.01 [self]  mhcgnomes/common.py
+|  |        |  |        |  |  |     |  |  `- 0.01 Parser.parse_tokens_to_multiple_candidates  mhcgnomes/parser.py:1993
+|  |        |  |        |  |  |     |  |     `- 0.01 Parser.parse_tokens_around_slash  mhcgnomes/parser.py:1868
+|  |        |  |        |  |  |     |  |        `- 0.01 Parser.parse_tokens_to_multiple_candidates  mhcgnomes/parser.py:1993
+|  |        |  |        |  |  |     |  |           `- 0.01 Parser.parse_tokens_around_slash  mhcgnomes/parser.py:1868
+|  |        |  |        |  |  |     |  |              `- 0.01 Parser.parse_tokens_to_multiple_candidates  mhcgnomes/parser.py:1993
+|  |        |  |        |  |  |     |  |                 `- 0.01 Parser.parse_single_token_to_multiple_candidates  mhcgnomes/parser.py:1577
+|  |        |  |        |  |  |     |  |                    `- 0.01 parse_standard_allele_format  mhcgnomes/standard_format.py:32
+|  |        |  |        |  |  |     |  |                       `- 0.01 Species.gene_is_context_only  mhcgnomes/species.py:815
+|  |        |  |        |  |  |     |  |                          `- 0.01 Species.get_gene_properties  mhcgnomes/species.py:788
+|  |        |  |        |  |  |     |  |                             `- 0.01 Species.find_matching_gene_name  mhcgnomes/species.py:693
+|  |        |  |        |  |  |     |  |                                `- 0.01 NormalizingSet.get_original  mhcgnomes/normalizing_set.py:55
+|  |        |  |        |  |  |     |  |                                   `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |        |  |        |  |  |     |  |- 0.08 Parser._parse_explicit_species_allele_candidates  mhcgnomes/parser.py:2470
+|  |        |  |        |  |  |     |  |  |- 0.04 Parser.parse_species_from_prefix  mhcgnomes/parser.py:294
+|  |        |  |        |  |  |     |  |  |  `- 0.04 infer_species_from_prefix  mhcgnomes/species.py:1871
+|  |        |  |        |  |  |     |  |  |     |- 0.02 find_matching_species_objects  mhcgnomes/species.py:1776
+|  |        |  |        |  |  |     |  |  |     |  |- 0.01 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |        |  |        |  |  |     |  |  |     |  |  `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |        |  |        |  |  |     |  |  |     |  `- 0.01 [self]  mhcgnomes/species.py
+|  |        |  |        |  |  |     |  |  |     `- 0.02 [self]  mhcgnomes/species.py
+|  |        |  |        |  |  |     |  |  |- 0.01 [self]  mhcgnomes/parser.py
+|  |        |  |        |  |  |     |  |  |- 0.01 Parser.strip_extra_chars  mhcgnomes/parser.py:805
+|  |        |  |        |  |  |     |  |  |  `- 0.01 str.startswith  <built-in>
+|  |        |  |        |  |  |     |  |  |- 0.01 Parser.transform_parse_candidates  mhcgnomes/parser.py:1389
+|  |        |  |        |  |  |     |  |  |  `- 0.01 Parser.transform_parse_candidate  mhcgnomes/parser.py:1283
+|  |        |  |        |  |  |     |  |  |     `- 0.01 Species.get_known_allele  mhcgnomes/species.py:840
+|  |        |  |        |  |  |     |  |  |        `- 0.01 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |        |  |        |  |  |     |  |  `- 0.01 Parser.parse_allele_or_gene_candidates  mhcgnomes/parser.py:901
+|  |        |  |        |  |  |     |  |     `- 0.01 Parser.parse_gene_candidates  mhcgnomes/parser.py:811
+|  |        |  |        |  |  |     |  |        `- 0.01 smart_split  mhcgnomes/parsing_helpers.py:33
+|  |        |  |        |  |  |     |  |- 0.01 [self]  mhcgnomes/parser.py
+|  |        |  |        |  |  |     |  `- 0.01 Parser.parse_species_from_prefix  mhcgnomes/parser.py:294
+|  |        |  |        |  |  |     |     `- 0.01 infer_species_from_prefix  mhcgnomes/species.py:1871
+|  |        |  |        |  |  |     `- 0.01 arg_to_cache_key  mhcgnomes/common.py:34
+|  |        |  |        |  |  |- 0.11 _context_only_prefix_error_message  mhcgnomes/function_api.py:223
+|  |        |  |        |  |  |  `- 0.11 infer_species_from_context_only_prefix  mhcgnomes/species.py:1833
+|  |        |  |        |  |  |     |- 0.08 _candidate_prefix_substrings  mhcgnomes/species.py:1815
+|  |        |  |        |  |  |     |  |- 0.07 split  re/__init__.py:199
+|  |        |  |        |  |  |     |  |  `- 0.07 _compile  re/__init__.py:280
+|  |        |  |        |  |  |     |  `- 0.01 list.append  <built-in>
+|  |        |  |        |  |  |     `- 0.03 find_matching_context_only_species_objects  mhcgnomes/species.py:1787
+|  |        |  |        |  |  |        `- 0.03 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |        |  |        |  |  |           |- 0.02 normalize_string  mhcgnomes/common.py:87
+|  |        |  |        |  |  |           `- 0.01 dict.get  <built-in>
+|  |        |  |        |  |  `- 0.02 cached_fn  mhcgnomes/common.py:71
+|  |        |  |        |  |     `- 0.02 arg_to_cache_key  mhcgnomes/common.py:34
+|  |        |  |        |  `- 0.01 [self]  ../producer/hitlist/curation.py
+|  |        |  |        |- 0.01 [self]  ../producer/hitlist/curation.py
+|  |        |  |        `- 0.01 search  re/__init__.py:174
+|  |        |  |           `- 0.01 Pattern.search  <built-in>
+|  |        |  `- 0.01 [self]  ../producer/hitlist/curation.py
+|  |        |- 0.29 load_curation_yaml  ../producer/hitlist/curation_yaml.py:58
+|  |        |  `- 0.29 load  yaml/__init__.py:74
+|  |        |     |- 0.26 UniqueKeyLoader.get_single_data  yaml/constructor.py:47
+|  |        |     |  |- 0.10 UniqueKeyLoader.construct_document  yaml/constructor.py:54
+|  |        |     |  |  |- 0.09 UniqueKeyLoader.construct_yaml_map  yaml/constructor.py:410
+|  |        |     |  |  |  `- 0.09 UniqueKeyLoader.construct_mapping  ../producer/hitlist/curation_yaml.py:42
+|  |        |     |  |  |     |- 0.07 UniqueKeyLoader.construct_mapping  yaml/constructor.py:215
+|  |        |     |  |  |     |  `- 0.07 UniqueKeyLoader.construct_mapping  yaml/constructor.py:132
+|  |        |     |  |  |     |     |- 0.05 UniqueKeyLoader.construct_object  yaml/constructor.py:67
+|  |        |     |  |  |     |     |  |- 0.02 UniqueKeyLoader.construct_yaml_str  yaml/constructor.py:402
+|  |        |     |  |  |     |     |  |  `- 0.02 UniqueKeyLoader.construct_scalar  yaml/constructor.py:173
+|  |        |     |  |  |     |     |  |     |- 0.01 isinstance  <built-in>
+|  |        |     |  |  |     |     |  |     `- 0.01 UniqueKeyLoader.construct_scalar  yaml/constructor.py:117
+|  |        |     |  |  |     |     |  |- 0.02 [self]  yaml/constructor.py
+|  |        |     |  |  |     |     |  `- 0.01 UniqueKeyLoader.construct_yaml_int  yaml/constructor.py:237
+|  |        |     |  |  |     |     |- 0.01 Hashable.__instancecheck__  <frozen abc>:117
+|  |        |     |  |  |     |     |  `- 0.01 _abc_instancecheck  <built-in>
+|  |        |     |  |  |     |     `- 0.01 [self]  yaml/constructor.py
+|  |        |     |  |  |     `- 0.02 UniqueKeyLoader.construct_object  yaml/constructor.py:67
+|  |        |     |  |  `- 0.01 UniqueKeyLoader.construct_yaml_seq  yaml/constructor.py:405
+|  |        |     |  |     `- 0.01 UniqueKeyLoader.construct_sequence  yaml/constructor.py:124
+|  |        |     |  |        `- 0.01 UniqueKeyLoader.construct_object  yaml/constructor.py:67
+|  |        |     |  |- 0.08 UniqueKeyLoader.resolve  yaml/resolver.py:143
+|  |        |     |  |- 0.06 [self]  yaml/constructor.py
+|  |        |     |  `- 0.02 ScalarNode.__init__  yaml/nodes.py:27
+|  |        |     |- 0.01 [self]  yaml/__init__.py
+|  |        |     `- 0.01 UniqueKeyLoader.__init__  yaml/cyaml.py:25
+|  |        |- 0.07 validate_study_conditions  ../producer/hitlist/conditions.py:694
+|  |        |  |- 0.06 validate_sample_conditions  ../producer/hitlist/conditions.py:622
+|  |        |  |  |- 0.05 _validate_column  ../producer/hitlist/conditions.py:556
+|  |        |  |  |  |- 0.02 _reject_alias  ../producer/hitlist/conditions.py:541
+|  |        |  |  |  |  |- 0.01 [self]  ../producer/hitlist/conditions.py
+|  |        |  |  |  |  `- 0.01 canonical_condition_token  ../producer/hitlist/conditions.py:489
+|  |        |  |  |  |- 0.01 [self]  ../producer/hitlist/conditions.py
+|  |        |  |  |  |- 0.01 str.strip  <built-in>
+|  |        |  |  |  `- 0.01 _validate_token  ../producer/hitlist/conditions.py:518
+|  |        |  |  `- 0.01 [self]  ../producer/hitlist/conditions.py
+|  |        |  `- 0.01 [self]  ../producer/hitlist/conditions.py
+|  |        `- 0.02 validate_species_context_condition_links  ../producer/hitlist/species_contexts.py:235
+|  |           `- 0.02 load_species_contexts  ../producer/hitlist/species_contexts.py:182
+|  |              |- 0.01 load_curation_yaml  ../producer/hitlist/curation_yaml.py:58
+|  |              |  `- 0.01 load  yaml/__init__.py:74
+|  |              |     `- 0.01 UniqueKeyLoader.get_single_data  yaml/constructor.py:47
+|  |              `- 0.01 _validate_record  ../producer/hitlist/species_contexts.py:114
+|  |                 `- 0.01 _validate_multivalue  ../producer/hitlist/species_contexts.py:101
+|  |                    `- 0.01 <genexpr>  ../producer/hitlist/species_contexts.py:108
+|  |                       `- 0.01 str.strip  <built-in>
+|  |- 0.85 dict.get  <built-in>
+|  |- 0.73 classify_ms_row  ../producer/hitlist/curation.py:3528
+|  |  |- 0.40 parse_cell_name  ../producer/hitlist/cell_name_parser.py:329
+|  |  |  |- 0.14 _resolve_line  ../producer/hitlist/cell_name_parser.py:248
+|  |  |  |  |- 0.06 _strip_noise  ../producer/hitlist/cell_name_parser.py:238
+|  |  |  |  |  |- 0.04 [self]  ../producer/hitlist/cell_name_parser.py
+|  |  |  |  |  |- 0.01 str.strip  <built-in>
+|  |  |  |  |  `- 0.01 str.endswith  <built-in>
+|  |  |  |  |- 0.04 _load_registry  ../producer/hitlist/cell_name_parser.py:185
+|  |  |  |  |  `- 0.04 load_curation_yaml  ../producer/hitlist/curation_yaml.py:58
+|  |  |  |  |     `- 0.04 load  yaml/__init__.py:74
+|  |  |  |  |        `- 0.04 UniqueKeyLoader.get_single_data  yaml/constructor.py:47
+|  |  |  |  |           |- 0.02 UniqueKeyLoader.construct_document  yaml/constructor.py:54
+|  |  |  |  |           |  |- 0.01 UniqueKeyLoader.construct_yaml_seq  yaml/constructor.py:405
+|  |  |  |  |           |  |  `- 0.01 UniqueKeyLoader.construct_sequence  yaml/constructor.py:124
+|  |  |  |  |           |  |     `- 0.01 UniqueKeyLoader.construct_object  yaml/constructor.py:67
+|  |  |  |  |           |  `- 0.01 UniqueKeyLoader.construct_yaml_map  yaml/constructor.py:410
+|  |  |  |  |           |     `- 0.01 UniqueKeyLoader.construct_mapping  ../producer/hitlist/curation_yaml.py:42
+|  |  |  |  |           |        `- 0.01 UniqueKeyLoader.construct_mapping  yaml/constructor.py:215
+|  |  |  |  |           |           `- 0.01 UniqueKeyLoader.construct_mapping  yaml/constructor.py:132
+|  |  |  |  |           |              `- 0.01 UniqueKeyLoader.construct_object  yaml/constructor.py:67
+|  |  |  |  |           |                 `- 0.01 UniqueKeyLoader.construct_yaml_bool  yaml/constructor.py:233
+|  |  |  |  |           `- 0.02 [self]  yaml/constructor.py
+|  |  |  |  |- 0.03 [self]  ../producer/hitlist/cell_name_parser.py
+|  |  |  |  `- 0.01 dict.get  <built-in>
+|  |  |  |- 0.09 _split_hybrid  ../producer/hitlist/cell_name_parser.py:284
+|  |  |  |  |- 0.07 [self]  ../producer/hitlist/cell_name_parser.py
+|  |  |  |  `- 0.02 str.lower  <built-in>
+|  |  |  |- 0.07 [self]  ../producer/hitlist/cell_name_parser.py
+|  |  |  |- 0.05 CellNameInfo.__init__  <string>:2
+|  |  |  |  |- 0.04 [self]  <string>
+|  |  |  |  `- 0.01 CellNameInfo.__post_init__  ../producer/hitlist/cell_name_parser.py:168
+|  |  |  |- 0.04 _extract_genetic_modification  ../producer/hitlist/cell_name_parser.py:268
+|  |  |  |  |- 0.02 [self]  ../producer/hitlist/cell_name_parser.py
+|  |  |  |  `- 0.02 search  re/__init__.py:174
+|  |  |  |     |- 0.01 _compile  re/__init__.py:280
+|  |  |  |     `- 0.01 Pattern.search  <built-in>
+|  |  |  `- 0.01 _extract_donor_id  ../producer/hitlist/cell_name_parser.py:305
+|  |  |- 0.18 [self]  ../producer/hitlist/curation.py
+|  |  |- 0.12 notna  pandas/core/dtypes/missing.py:312
+|  |  |  |- 0.06 isna  pandas/core/dtypes/missing.py:98
+|  |  |  |  |- 0.03 _isna  pandas/core/dtypes/missing.py:181
+|  |  |  |  `- 0.03 [self]  pandas/core/dtypes/missing.py
+|  |  |  `- 0.06 [self]  pandas/core/dtypes/missing.py
+|  |  |- 0.02 classify_mhc_species  ../producer/hitlist/curation.py:941
+|  |  |  |- 0.01 hasattr  <built-in>
+|  |  |  `- 0.01 [self]  ../producer/hitlist/curation.py
+|  |  `- 0.01 str.strip  <built-in>
+|  |- 0.55 ContributorCollector.register_source  ../producer/hitlist/provenance.py:257
+|  |  `- 0.55 file_digest  ../producer/hitlist/provenance.py:51
+|  |     |- 0.49 HASH.update  <built-in>
+|  |     `- 0.06 <lambda>  ../producer/hitlist/provenance.py:57
+|  |        `- 0.06 BufferedReader.read  <built-in>
+|  |- 0.55 ModuleSpec.parent  <frozen importlib._bootstrap>:645
+|  |  |- 0.34 [self]  <frozen importlib._bootstrap>
+|  |  `- 0.21 str.rpartition  <built-in>
+|  |- 0.46 str.strip  <built-in>
+|  |- 0.41 _parse_float  ../producer/hitlist/scanner.py:203
+|  |  |- 0.36 [self]  ../producer/hitlist/scanner.py
+|  |  `- 0.05 str.strip  <built-in>
+|  |- 0.40 parse_peptide_modifications  ../producer/hitlist/peptide_modifications.py:91
+|  |  |- 0.24 [self]  ../producer/hitlist/peptide_modifications.py
+|  |  |- 0.11 str.strip  <built-in>
+|  |  |- 0.01 Pattern.match  <built-in>
+|  |  |- 0.01 <genexpr>  ../producer/hitlist/peptide_modifications.py:130
+|  |  |- 0.01 Pattern.findall  <built-in>
+|  |  |- 0.01 len  <built-in>
+|  |  `- 0.01 str.join  <built-in>
+|  |- 0.29 str.lower  <built-in>
+|  |- 0.26 dict.update  <built-in>
+|  |- 0.26 MhcAnnotation.as_record_fields  ../producer/hitlist/curation.py:786
+|  |- 0.14 list.append  <built-in>
+|  |- 0.13 expand_allele_set  ../producer/hitlist/curation.py:3282
+|  |  |- 0.08 _is_exact_allele_candidate  ../producer/hitlist/curation.py:2207
+|  |  |  |- 0.07 _parse_with_context  ../producer/hitlist/curation.py:730
+|  |  |  |  `- 0.07 _cached_parse  ../producer/hitlist/curation.py:693
+|  |  |  |     `- 0.07 parse  mhcgnomes/function_api.py:609
+|  |  |  |        `- 0.07 Parser.parse  mhcgnomes/parser.py:2500
+|  |  |  |           `- 0.07 cached_fn  mhcgnomes/common.py:71
+|  |  |  |              `- 0.07 Parser._parse_cached  mhcgnomes/parser.py:2555
+|  |  |  |                 |- 0.04 Parser.parse_multiple_candidates  mhcgnomes/parser.py:2317
+|  |  |  |                 |  `- 0.04 Parser.parse_tokens_to_multiple_candidates  mhcgnomes/parser.py:1993
+|  |  |  |                 |     `- 0.04 Parser.parse_single_token_to_multiple_candidates  mhcgnomes/parser.py:1577
+|  |  |  |                 |        |- 0.02 Parser.parse_haplotype_with_class2_locus_from_any_string_split  mhcgnomes/parser.py:574
+|  |  |  |                 |        |  |- 0.01 [self]  mhcgnomes/parser.py
+|  |  |  |                 |        |  `- 0.01 Parser.get_haplotype  mhcgnomes/parser.py:602
+|  |  |  |                 |        |     `- 0.01 Parser._find_matching_name_and_parse_alleles  mhcgnomes/parser.py:368
+|  |  |  |                 |        |        `- 0.01 str.startswith  <built-in>
+|  |  |  |                 |        `- 0.02 Parser.parse_haplotype  mhcgnomes/parser.py:655
+|  |  |  |                 |           |- 0.01 Parser.parse_species  mhcgnomes/parser.py:331
+|  |  |  |                 |           |  `- 0.01 Parser.parse_species_from_prefix  mhcgnomes/parser.py:294
+|  |  |  |                 |           |     `- 0.01 infer_species_from_prefix  mhcgnomes/species.py:1871
+|  |  |  |                 |           |        `- 0.01 find_matching_species_objects  mhcgnomes/species.py:1776
+|  |  |  |                 |           |           `- 0.01 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |  |  |                 |           |              `- 0.01 normalize_string  mhcgnomes/common.py:87
+|  |  |  |                 |           |                 `- 0.01 str.strip  <built-in>
+|  |  |  |                 |           `- 0.01 Parser.get_haplotype  mhcgnomes/parser.py:602
+|  |  |  |                 |              `- 0.01 Parser._find_matching_name_and_parse_alleles  mhcgnomes/parser.py:368
+|  |  |  |                 |                 `- 0.01 NormalizingDictionary.keys_aligned_with_values  mhcgnomes/normalizing_dictionary.py:142
+|  |  |  |                 |                    `- 0.01 sorted  <built-in>
+|  |  |  |                 |- 0.02 Parser._parse_explicit_species_allele_candidates  mhcgnomes/parser.py:2470
+|  |  |  |                 |  `- 0.02 Parser.parse_allele_or_gene_candidates  mhcgnomes/parser.py:901
+|  |  |  |                 |     |- 0.01 Parser.parse_gene_candidates  mhcgnomes/parser.py:811
+|  |  |  |                 |     |  `- 0.01 add_to_candidates  mhcgnomes/parser.py:838
+|  |  |  |                 |     |     `- 0.01 Gene.get  mhcgnomes/gene.py:106
+|  |  |  |                 |     |        `- 0.01 Gene.__init__  mhcgnomes/gene.py:66
+|  |  |  |                 |     |           `- 0.01 Species.get_mhc_class_of_gene  mhcgnomes/species.py:775
+|  |  |  |                 |     |              `- 0.01 NormalizingDictionary.get  mhcgnomes/normalizing_dictionary.py:122
+|  |  |  |                 |     `- 0.01 [self]  mhcgnomes/parser.py
+|  |  |  |                 `- 0.01 hasattr  <built-in>
+|  |  |  `- 0.01 _side_resolution  ../producer/hitlist/curation.py:1728
+|  |  |     `- 0.01 _names_one_molecule  ../producer/hitlist/curation.py:1675
+|  |  |        `- 0.01 Allele.num_allele_fields  mhcgnomes/allele.py:165
+|  |  |           `- 0.01 len  <built-in>
+|  |  |- 0.02 _parse_host_mhc_types  ../producer/hitlist/curation.py:3217
+|  |  |  `- 0.02 _exact_typing_tokens  ../producer/hitlist/curation.py:2225
+|  |  |     `- 0.02 _mhc_field_spans  ../producer/hitlist/curation.py:2405
+|  |  |        `- 0.02 _mhc_field_scan  ../producer/hitlist/curation.py:2349
+|  |  |           `- 0.02 _mhc_field_scan  ../producer/hitlist/curation.py:2349
+|  |  |              `- 0.02 _cached_parse  ../producer/hitlist/curation.py:693
+|  |  |                 `- 0.02 parse  mhcgnomes/function_api.py:609
+|  |  |                    `- 0.02 Parser.parse  mhcgnomes/parser.py:2500
+|  |  |                       `- 0.02 cached_fn  mhcgnomes/common.py:71
+|  |  |                          `- 0.02 Parser._parse_cached  mhcgnomes/parser.py:2555
+|  |  |                             `- 0.02 Parser.parse_multiple_candidates  mhcgnomes/parser.py:2317
+|  |  |                                |- 0.01 Parser.transform_parse_candidates  mhcgnomes/parser.py:1389
+|  |  |                                |  `- 0.01 Parser.transform_parse_candidate  mhcgnomes/parser.py:1283
+|  |  |                                |     `- 0.01 Serotype.copy  mhcgnomes/result.py:231
+|  |  |                                |        `- 0.01 Serotype.to_dict  mhcgnomes/result.py:224
+|  |  |                                |           `- 0.01 Serotype.tuple_field_names  mhcgnomes/result.py:122
+|  |  |                                |              `- 0.01 Serotype.init_field_names  mhcgnomes/result.py:81
+|  |  |                                |                 `- 0.01 signature  inspect.py:3325
+|  |  |                                |                    `- 0.01 Signature.from_callable  inspect.py:3067
+|  |  |                                |                       `- 0.01 _signature_from_callable  inspect.py:2463
+|  |  |                                `- 0.01 Parser.parse_tokens_to_multiple_candidates  mhcgnomes/parser.py:1993
+|  |  |                                   `- 0.01 Parser.parse_single_token_to_multiple_candidates  mhcgnomes/parser.py:1577
+|  |  |                                      `- 0.01 Parser.get_serotype  mhcgnomes/parser.py:424
+|  |  |                                         `- 0.01 Parser._find_matching_name_and_parse_alleles  mhcgnomes/parser.py:368
+|  |  |                                            `- 0.01 Parser.parse_allele_or_gene_candidates  mhcgnomes/parser.py:901
+|  |  |                                               `- 0.01 Parser.parse_allele_with_gene  mhcgnomes/parser.py:964
+|  |  |                                                  `- 0.01 Parser.parse_allele_from_allele_fields  mhcgnomes/parser.py:714
+|  |  |                                                     `- 0.01 Allele.get_with_gene  mhcgnomes/allele.py:191
+|  |  |                                                        `- 0.01 Allele.split_allele_fields  mhcgnomes/allele.py:183
+|  |  |- 0.01 [self]  ../producer/hitlist/curation.py
+|  |  |- 0.01 Gene.species_source  mhcgnomes/result.py:41
+|  |  `- 0.01 _class_scoped_haplotype  ../producer/hitlist/curation.py:804
+|  |     `- 0.01 Haplotype.is_class2  mhcgnomes/result_with_multiple_alleles.py:109
+|  |        `- 0.01 <genexpr>  mhcgnomes/result_with_multiple_alleles.py:111
+|  |           `- 0.01 Allele.is_class2  mhcgnomes/result_with_mhc_class.py:42
+|  |              `- 0.01 is_class2  mhcgnomes/mhc_class_helpers.py:42
+|  |- 0.07 restriction_evidence_for_row  ../producer/hitlist/curation.py:3466
+|  |  |- 0.05 [self]  ../producer/hitlist/curation.py
+|  |  |- 0.01 dict.get  <built-in>
+|  |  `- 0.01 suppress.__exit__  contextlib.py:446
+|  |- 0.04 len  <built-in>
+|  |- 0.03 pmid_source_organism  ../producer/hitlist/curation.py:670
+|  |  |- 0.02 [self]  ../producer/hitlist/curation.py
+|  |  `- 0.01 dict.get  <built-in>
+|  `- 0.01 _open_csv  ../producer/hitlist/scanner.py:255
+|     `- 0.01 _ByteCountingFile.__next__  ../producer/hitlist/scanner.py:244
+|- 13.88 ContributorCollector.write  ../producer/hitlist/provenance.py:462
+|  |- 3.73 ContributorCollector._iter_links  ../producer/hitlist/provenance.py:415
+|  |  |- 2.09 [self]  ../producer/hitlist/provenance.py
+|  |  |- 1.27 ContributorCollector._execute  ../producer/hitlist/provenance.py:170
+|  |  |  |- 1.20 Connection.execute  <built-in>
+|  |  |  `- 0.07 [self]  ../producer/hitlist/provenance.py
+|  |  |- 0.28 Cursor.fetchall  <built-in>
+|  |  `- 0.09 <genexpr>  ../producer/hitlist/provenance.py:429
+|  |- 3.22 [self]  ../producer/hitlist/provenance.py
+|  |- 2.79 ParquetWriter.write_table  pyarrow/parquet/core.py:1191
+|  |- 1.25 ContributorCollector._payload  ../producer/hitlist/provenance.py:349
+|  |  |- 1.03 [self]  ../producer/hitlist/provenance.py
+|  |  |- 0.13 OrderedDict.pop  <built-in>
+|  |  |- 0.05 len  <built-in>
+|  |  `- 0.04 ContributorCollector._execute  ../producer/hitlist/provenance.py:170
+|  |     `- 0.04 Connection.execute  <built-in>
+|  |- 0.76 <genexpr>  ../producer/hitlist/provenance.py:481
+|  |  |- 0.66 ArrowStringArray.__iter__  pandas/core/arrays/arrow/array.py:1148
+|  |  `- 0.10 [self]  ../producer/hitlist/provenance.py
+|  |- 0.62 file_digest  ../producer/hitlist/provenance.py:51
+|  |  |- 0.48 HASH.update  <built-in>
+|  |  `- 0.14 <lambda>  ../producer/hitlist/provenance.py:57
+|  |     `- 0.14 BufferedReader.read  <built-in>
+|  |- 0.51 str.split  <built-in>
+|  |- 0.32 bytes.decode  <built-in>
+|  |- 0.32 len  <built-in>
+|  |- 0.14 list.clear  <built-in>
+|  |- 0.09 list.append  <built-in>
+|  |- 0.04 ContributorCollector._check_space  ../producer/hitlist/provenance.py:149
+|  |  |- 0.03 disk_usage  shutil.py:1389
+|  |  |  |- 0.02 statvfs  <built-in>
+|  |  |  `- 0.01 PosixPath.__fspath__  pathlib.py:447
+|  |  `- 0.01 [self]  ../producer/hitlist/provenance.py
+|  |- 0.04 _Environ.get  <frozen _collections_abc>:804
+|  |  |- 0.03 _Environ.__getitem__  <frozen os>:680
+|  |  `- 0.01 [self]  <frozen _collections_abc>
+|  |- 0.02 _find_and_load  <frozen importlib._bootstrap>:1349
+|  |  `- 0.02 _find_and_load_unlocked  <frozen importlib._bootstrap>:1304
+|  |     `- 0.02 _load_unlocked  <frozen importlib._bootstrap>:911
+|  |        `- 0.02 SourceFileLoader.exec_module  <frozen importlib._bootstrap_external>:988
+|  |           `- 0.02 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |              `- 0.02 <module>  pyarrow/parquet/__init__.py:1
+|  |                 `- 0.02 _find_and_load  <frozen importlib._bootstrap>:1349
+|  |                    `- 0.02 _find_and_load_unlocked  <frozen importlib._bootstrap>:1304
+|  |                       `- 0.02 _load_unlocked  <frozen importlib._bootstrap>:911
+|  |                          `- 0.02 SourceFileLoader.exec_module  <frozen importlib._bootstrap_external>:988
+|  |                             |- 0.01 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |                             |  `- 0.01 <module>  pyarrow/parquet/core.py:1
+|  |                             |     `- 0.01 _find_and_load  <frozen importlib._bootstrap>:1349
+|  |                             |        `- 0.01 _find_and_load_unlocked  <frozen importlib._bootstrap>:1304
+|  |                             |           `- 0.01 _load_unlocked  <frozen importlib._bootstrap>:911
+|  |                             |              `- 0.01 SourceFileLoader.exec_module  <frozen importlib._bootstrap_external>:988
+|  |                             |                 `- 0.01 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |                             |                    `- 0.01 <module>  pyarrow/fs.py:1
+|  |                             |                       `- 0.01 _find_and_load  <frozen importlib._bootstrap>:1349
+|  |                             |                          `- 0.01 _find_and_load_unlocked  <frozen importlib._bootstrap>:1304
+|  |                             |                             `- 0.01 _load_unlocked  <frozen importlib._bootstrap>:911
+|  |                             |                                `- 0.01 module_from_spec  <frozen importlib._bootstrap>:806
+|  |                             |                                   `- 0.01 ExtensionFileLoader.create_module  <frozen importlib._bootstrap_external>:1286
+|  |                             |                                      `- 0.01 _call_with_frames_removed  <frozen importlib._bootstrap>:480
+|  |                             `- 0.01 SourceFileLoader.get_code  <frozen importlib._bootstrap_external>:1061
+|  |                                `- 0.01 _compile_bytecode  <frozen importlib._bootstrap_external>:750
+|  |                                   `- 0.01 loads  <built-in>
+|  `- 0.02 Connection.commit  <built-in>
+|- 0.41 [self]  profile_scan.py
+`- 0.03 ContributorCollector.__exit__  ../producer/hitlist/provenance.py:254
+   `- 0.03 ContributorCollector._close  ../producer/hitlist/provenance.py:180
+      `- 0.03 TemporaryDirectory.cleanup  tempfile.py:948
+         `- 0.03 TemporaryDirectory._rmtree  tempfile.py:890
+            `- 0.03 rmtree  shutil.py:712
+               `- 0.03 _rmtree_safe_fd  shutil.py:643
+                  `- 0.03 unlink  <built-in>
+

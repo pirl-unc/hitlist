@@ -288,6 +288,38 @@ def _progress(reader, path: Path, desc: str, fh: _ByteCountingFile | None = None
 # ── Public API ──────────────────────────────────────────────────────────────
 
 
+class _ScanRows:
+    """Retain values without keeping a full dictionary for every source row.
+
+    The common schema takes the tuple fast path. Preserve DataFrame's first-seen
+    column order and absent-key NaNs if a later row has a different schema.
+    """
+
+    def __init__(self):
+        self.columns = ()
+        self.values = []
+
+    def append(self, record):
+        names = tuple(record)
+        if not self.values:
+            self.columns = names
+        if names == self.columns:
+            self.values.append(tuple(record.values()))
+            return
+        added = tuple(name for name in names if name not in self.columns)
+        missing = float("nan")
+        if added:
+            self.columns += added
+            padding = (missing,) * len(added)
+            self.values = [row + padding for row in self.values]
+        self.values.append(tuple(record.get(name, missing) for name in self.columns))
+
+    def to_frame(self):
+        if not self.values:
+            return pd.DataFrame()
+        return pd.DataFrame(self.values, columns=self.columns)
+
+
 def scan(
     peptides: set[str] | None = None,
     iedb_path: str | Path | None = None,
@@ -379,7 +411,7 @@ def scan(
         mhc_species = normalize_species(mhc_species)
     min_res_rank = allele_resolution_rank(min_allele_resolution) if min_allele_resolution else None
 
-    rows: list[dict] = []
+    rows = _ScanRows()
     seen: set[str] = set()
     scan_id = provenance.begin_scan() if provenance is not None else None
 
@@ -394,6 +426,8 @@ def scan(
         project = itemgetter(*c.values())
         max_column = max(c.values())
         record_csv = provenance.csv_record_writer(dataset, c) if provenance is not None else None
+        previous_assay_fields = None
+        assay_record = None
         for row_number, row in enumerate(_progress(reader, p, f"Scanning {p.name}", fh=fh), 1):
             if peptides is not None:
                 pep_raw = _safe_col(row, c["epitope_name"])
@@ -528,6 +562,15 @@ def scan(
                 peptide_extended,
             ) = parse_peptide_modifications(fields["epitope_name"])
 
+            assay_fields = (
+                fields["qualitative_measurement"],
+                fields["assay_comments"],
+                fields["assay_method"],
+                fields["response_measured"],
+            )
+            if assay_fields != previous_assay_fields:
+                assay_record = assay_annotations(*assay_fields)
+                previous_assay_fields = assay_fields
             record: dict = {
                 "peptide": bare_peptide,
                 "peptide_modifications": peptide_modifications_str,
@@ -571,12 +614,7 @@ def scan(
                 "measurement_inequality": fields["measurement_inequality"],
                 "quantitative_measurement": fields["quantitative_measurement"],
                 "quantitative_value": _parse_float(fields["quantitative_measurement"]),
-                **assay_annotations(
-                    fields["qualitative_measurement"],
-                    fields["assay_comments"],
-                    fields["assay_method"],
-                    fields["response_measured"],
-                ),
+                **assay_record,
                 # Flags rows whose MHC molecule presents lipids / metabolites
                 # rather than peptides (CD1, MR1, MIC, ULBP, etc. — see #228).
                 # IEDB curates these alongside peptide-MHC and stores chemical
@@ -704,4 +742,4 @@ def scan(
         # close lives at the call site).
         fh.close()
 
-    return pd.DataFrame(rows)
+    return rows.to_frame()

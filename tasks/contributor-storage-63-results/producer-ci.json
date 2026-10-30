@@ -1,0 +1,90 @@
+{
+  "producer_commit": "e88891a092919b1f0bd31afb35f4afdeef3ada93",
+  "checks": [
+    {
+      "name": "coverage",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e88891a092919b1f0bd31afb35f4afdeef3ada93",
+      "details_url": "https://github.com/pirl-unc/hitlist/actions/runs/40984656153/job/123839735762"
+    },
+    {
+      "name": "deploy",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e88891a092919b1f0bd31afb35f4afdeef3ada93",
+      "details_url": "https://github.com/pirl-unc/hitlist/actions/runs/40984656481/job/123832993086"
+    },
+    {
+      "name": "build",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e88891a092919b1f0bd31afb35f4afdeef3ada93",
+      "details_url": "https://github.com/pirl-unc/hitlist/actions/runs/40984656239/job/123832830718"
+    },
+    {
+      "name": "unit (3.14, >=3)",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e88891a092919b1f0bd31afb35f4afdeef3ada93",
+      "details_url": "https://github.com/pirl-unc/hitlist/actions/runs/40984656153/job/123832823250"
+    },
+    {
+      "name": "unit (3.11, ==3.0.0)",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e88891a092919b1f0bd31afb35f4afdeef3ada93",
+      "details_url": "https://github.com/pirl-unc/hitlist/actions/runs/40984656153/job/123832823195"
+    },
+    {
+      "name": "unit (3.11, >=3)",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e88891a092919b1f0bd31afb35f4afdeef3ada93",
+      "details_url": "https://github.com/pirl-unc/hitlist/actions/runs/40984656153/job/123832823152"
+    },
+    {
+      "name": "unit (3.13, >=3)",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e88891a092919b1f0bd31afb35f4afdeef3ada93",
+      "details_url": "https://github.com/pirl-unc/hitlist/actions/runs/40984656153/job/123832823134"
+    },
+    {
+      "name": "unit (3.12, >=3)",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e88891a092919b1f0bd31afb35f4afdeef3ada93",
+      "details_url": "https://github.com/pirl-unc/hitlist/actions/runs/40984656153/job/123832823039"
+    },
+    {
+      "name": "integration",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e88891a092919b1f0bd31afb35f4afdeef3ada93",
+      "details_url": "https://github.com/pirl-unc/hitlist/actions/runs/40984656153/job/123832822956"
+    },
+    {
+      "name": "lint",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e88891a092919b1f0bd31afb35f4afdeef3ada93",
+      "details_url": "https://github.com/pirl-unc/hitlist/actions/runs/40984656153/job/123832822773"
+    },
+    {
+      "name": "build",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e88891a092919b1f0bd31afb35f4afdeef3ada93",
+      "details_url": "https://github.com/pirl-unc/hitlist/actions/runs/40984656481/job/123832736736"
+    }
+  ],
+  "release_gate": {
+    "headSha": "e88891a092919b1f0bd31afb35f4afdeef3ada93",
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/pirl-unc/hitlist/actions/runs/40984656239"
+  },
+  "integration": "97 passed;3789 deselected;1177.13seconds",
+  "scope": "PR producer validation only. Final evidence head and clean-main publication gate are separate."
+}

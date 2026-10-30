@@ -1,0 +1,1586 @@
+{
+  "status": "success",
+  "before": "/data/hitlist-reliability-20261028/issue63-pass2-full-pair-3-1-candidate",
+  "after": "/data/hitlist-reliability-20261028/issue63-pass2-full-pair-3-3-baseline",
+  "files": {
+    ".datacache-manifest.json": {
+      "before": {
+        "sha256": "1d199a23840f7ea47955c40915603632ccff0b58066330dbdf3ceee3286de13d",
+        "size_bytes": 3350
+      },
+      "after": {
+        "sha256": "4d63af60b5eec713c07326ff3816fbe2e00b8d07f049de730430a122180de067",
+        "size_bytes": 3350
+      },
+      "comparison": "all metadata values equal except the recorded location/time fields",
+      "expected_differences": [
+        {
+          "path": [
+            "created_at"
+          ],
+          "before": "2026-10-30T02:56:36.492882+00:00",
+          "after": "2026-10-30T03:33:01.669801+00:00",
+          "reason": "new generation timestamp"
+        },
+        {
+          "path": [
+            "definition",
+            "sources",
+            "cedar",
+            "identity"
+          ],
+          "before": "3ebb4f26a348d65ac29e3ec1991704d675c07d51bb1814c8165f5d030b392098",
+          "after": "35c590400d576c44aafc208ba28bd18135eded37ac7cf3e6237b419a26ad691f",
+          "reason": "source location/time; identity and content pins validated"
+        },
+        {
+          "path": [
+            "definition",
+            "sources",
+            "cedar",
+            "origin"
+          ],
+          "before": "file:///tmp/hitlist-benchmark-_dtd3yxl/inputs/cedar_mhc_ligand_full.csv",
+          "after": "file:///tmp/hitlist-benchmark-324qvhrz/inputs/cedar_mhc_ligand_full.csv",
+          "reason": "source location/time; identity and content pins validated"
+        },
+        {
+          "path": [
+            "definition",
+            "sources",
+            "iedb",
+            "identity"
+          ],
+          "before": "903ad7672975874a654a74ce5d4bb0e49163ff50d33c8aecb7e27a71e274e0a2",
+          "after": "9366875e9a424fbbcd512afafa1902cd96fed58baab87df19e2f2b437773c801",
+          "reason": "source location/time; identity and content pins validated"
+        },
+        {
+          "path": [
+            "definition",
+            "sources",
+            "iedb",
+            "origin"
+          ],
+          "before": "file:///tmp/hitlist-benchmark-_dtd3yxl/inputs/iedb_mhc_ligand_full.csv",
+          "after": "file:///tmp/hitlist-benchmark-324qvhrz/inputs/iedb_mhc_ligand_full.csv",
+          "reason": "source location/time; identity and content pins validated"
+        },
+        {
+          "path": [
+            "definition",
+            "transform",
+            "version"
+          ],
+          "before": "hitlist-2.1.4",
+          "after": "hitlist-2.1.3",
+          "reason": "producer version, checked against the build report"
+        },
+        {
+          "path": [
+            "outputs",
+            "README.md",
+            "sha256"
+          ],
+          "before": "aedf3db2c3fde8bbb5eea29c433faed77cfebef79cb8eb5e85d1a8c77e50fd90",
+          "after": "cea8fd08006818b00f724a4bacbb7f418b80e051708fa287e07e5df3ed3d7353",
+          "reason": "validated receipt for separately checked metadata/documentation"
+        },
+        {
+          "path": [
+            "outputs",
+            "observations_meta.json",
+            "sha256"
+          ],
+          "before": "8d2e4ed4199dee3452c21008392909ef4509c41b1d9ec5e4b30a352839469357",
+          "after": "a6075f3e2222523b07fa9580718a283bef0955f4ce39f22e6dd456ab4c5487ff",
+          "reason": "validated receipt for separately checked metadata/documentation"
+        },
+        {
+          "path": [
+            "outputs",
+            "observations_meta.json",
+            "size"
+          ],
+          "before": 18776,
+          "after": 18774,
+          "reason": "validated receipt for separately checked metadata/documentation"
+        },
+        {
+          "path": [
+            "outputs",
+            "peptide_mappings_meta.json",
+            "sha256"
+          ],
+          "before": "c4c874b132eabcf19bde0eeead31aa2681a30edcf19738c47f11103ab1eb45d5",
+          "after": "64b3c12c30bbd3cab55bab16a2bfb708650944d68200db4a03f2a2f6dcba5ba4",
+          "reason": "validated receipt for separately checked metadata/documentation"
+        },
+        {
+          "path": [
+            "sources",
+            "cedar",
+            "fetched_at"
+          ],
+          "before": "2026-10-30T02:45:41.688716+00:00",
+          "after": "2026-10-30T03:17:00.755669+00:00",
+          "reason": "source location/time; identity and content pins validated"
+        },
+        {
+          "path": [
+            "sources",
+            "cedar",
+            "identity"
+          ],
+          "before": "3ebb4f26a348d65ac29e3ec1991704d675c07d51bb1814c8165f5d030b392098",
+          "after": "35c590400d576c44aafc208ba28bd18135eded37ac7cf3e6237b419a26ad691f",
+          "reason": "source location/time; identity and content pins validated"
+        },
+        {
+          "path": [
+            "sources",
+            "cedar",
+            "origin"
+          ],
+          "before": "file:///tmp/hitlist-benchmark-_dtd3yxl/inputs/cedar_mhc_ligand_full.csv",
+          "after": "file:///tmp/hitlist-benchmark-324qvhrz/inputs/cedar_mhc_ligand_full.csv",
+          "reason": "source location/time; identity and content pins validated"
+        },
+        {
+          "path": [
+            "sources",
+            "iedb",
+            "fetched_at"
+          ],
+          "before": "2026-10-30T02:45:36.424159+00:00",
+          "after": "2026-10-30T03:16:56.047961+00:00",
+          "reason": "source location/time; identity and content pins validated"
+        },
+        {
+          "path": [
+            "sources",
+            "iedb",
+            "identity"
+          ],
+          "before": "903ad7672975874a654a74ce5d4bb0e49163ff50d33c8aecb7e27a71e274e0a2",
+          "after": "9366875e9a424fbbcd512afafa1902cd96fed58baab87df19e2f2b437773c801",
+          "reason": "source location/time; identity and content pins validated"
+        },
+        {
+          "path": [
+            "sources",
+            "iedb",
+            "origin"
+          ],
+          "before": "file:///tmp/hitlist-benchmark-_dtd3yxl/inputs/iedb_mhc_ligand_full.csv",
+          "after": "file:///tmp/hitlist-benchmark-324qvhrz/inputs/iedb_mhc_ligand_full.csv",
+          "reason": "source location/time; identity and content pins validated"
+        }
+      ]
+    },
+    "binding.parquet": {
+      "before": {
+        "sha256": "5431814e800426022adcdd1eb1b0dce67bf8ab0977337f7719c63874554f582a",
+        "size_bytes": 17110212
+      },
+      "after": {
+        "sha256": "5431814e800426022adcdd1eb1b0dce67bf8ab0977337f7719c63874554f582a",
+        "size_bytes": 17110212
+      },
+      "comparison": "byte-identical complete artifact",
+      "n_rows": 814268,
+      "n_columns": 75,
+      "columns": [
+        "peptide",
+        "peptide_modifications",
+        "has_ptm",
+        "peptide_extended",
+        "mhc_restriction",
+        "mhc_species",
+        "mhc_species_source",
+        "mhc_species_context_disagrees",
+        "mhc_class",
+        "mhc_class_reported",
+        "mhc_class_source",
+        "mhc_class_corrected",
+        "allele_resolution",
+        "serotype",
+        "serotypes",
+        "serotype_source",
+        "assay_iri",
+        "reference_iri",
+        "pmid",
+        "submission_id",
+        "reference_title",
+        "source_organism",
+        "species",
+        "host",
+        "host_age",
+        "host_mhc_types",
+        "process_type",
+        "disease",
+        "disease_stage",
+        "source_tissue",
+        "cell_name",
+        "culture_condition",
+        "antigen_processing_comments",
+        "assay_comments",
+        "qualitative_measurement",
+        "assay_method",
+        "response_measured",
+        "measurement_units",
+        "measurement_inequality",
+        "quantitative_measurement",
+        "quantitative_value",
+        "assay_modality",
+        "assay_modality_source",
+        "is_binding_assay",
+        "is_ms_observation",
+        "ms_outcome_status",
+        "is_non_peptide_ligand",
+        "src_cancer",
+        "src_adjacent_to_tumor",
+        "src_activated_apc",
+        "src_healthy_tissue",
+        "src_healthy_thymus",
+        "src_healthy_reproductive",
+        "src_healthy_reproductive_female",
+        "src_healthy_reproductive_male",
+        "src_cell_line",
+        "src_ebv_lcl",
+        "src_ex_vivo",
+        "cell_line_name",
+        "cell_type",
+        "is_monoallelic",
+        "monoallelic_host",
+        "restriction_evidence",
+        "mhc_allele_set",
+        "mhc_allele_provenance",
+        "mhc_allele_set_size",
+        "attributed_sample_label",
+        "provenance_id",
+        "source",
+        "peptide_modifications_raw",
+        "has_ptm_raw",
+        "peptidoform_review_status",
+        "peptidoform_evidence",
+        "supplementary_file",
+        "is_potential_contaminant"
+      ],
+      "schema_sha256": "1f9599659542bce3e94a1dd10fe7674bd3c38b0be5450d323dbbd3fe96f330ea"
+    },
+    "bulk_proteomics.parquet": {
+      "before": {
+        "sha256": "b6880a1d26bb4a0a1506457ccbd9e0c1f273f21b1602c0f6f6889bd5562079e9",
+        "size_bytes": 46172442
+      },
+      "after": {
+        "sha256": "b6880a1d26bb4a0a1506457ccbd9e0c1f273f21b1602c0f6f6889bd5562079e9",
+        "size_bytes": 46172442
+      },
+      "comparison": "byte-identical complete artifact",
+      "n_rows": 2269288,
+      "n_columns": 57,
+      "columns": [
+        "evidence_kind",
+        "granularity",
+        "source",
+        "reference",
+        "pmid",
+        "study_label",
+        "species",
+        "cell_line_name",
+        "sample_label",
+        "perturbation",
+        "gene_symbol",
+        "uniprot_acc",
+        "peptide",
+        "length",
+        "start_position",
+        "end_position",
+        "log2_intensity",
+        "abundance_log2_normalized",
+        "abundance_percentile",
+        "n_peptides",
+        "n_replicates_detected",
+        "reported_n_replicates_detected",
+        "reported_n_replicates_possible",
+        "n_experiments_detected",
+        "n_experiments_possible",
+        "n_replicates_possible",
+        "reproducibility_fraction",
+        "n_acquisition_runs",
+        "n_biological_replicates",
+        "replicate_protocol_id",
+        "replicate_experiment_ids",
+        "replicate_count_unit",
+        "replicate_count_status",
+        "replicate_count_reference",
+        "replicate_count_source_sha256",
+        "replicate_acquisition_ids_sha256",
+        "instrument",
+        "instrument_type",
+        "fragmentation",
+        "acquisition_mode",
+        "labeling",
+        "search_engine",
+        "fdr",
+        "digestion",
+        "digestion_enzyme",
+        "fractionation",
+        "n_fractions",
+        "n_fractions_in_run",
+        "fractionation_ph",
+        "legacy_fractionation_ph",
+        "fractionation_protocol_id",
+        "fractionation_ph_basis",
+        "fractionation_ph_reference",
+        "fractionation_ph_evidence_id",
+        "enrichment",
+        "modifications",
+        "quantification"
+      ],
+      "schema_sha256": "d34b70e86938bff2bca6b3c97da2bea7637bb89bd3baef836003c8e58268d911"
+    },
+    "line_expression.parquet": {
+      "before": {
+        "sha256": "ebdb0d038f0ecaee3d96d1aed264e9b72daf35e55b65e5afe08feaaae9beaa19",
+        "size_bytes": 732671
+      },
+      "after": {
+        "sha256": "ebdb0d038f0ecaee3d96d1aed264e9b72daf35e55b65e5afe08feaaae9beaa19",
+        "size_bytes": 732671
+      },
+      "comparison": "byte-identical complete artifact",
+      "n_rows": 42909,
+      "n_columns": 18,
+      "columns": [
+        "backend",
+        "source_id",
+        "pmid",
+        "reference",
+        "study_label",
+        "line_key",
+        "parent_line_key",
+        "granularity",
+        "gene_id",
+        "gene_name",
+        "transcript_id",
+        "profile_id",
+        "tpm",
+        "log2_tpm",
+        "normalization",
+        "quantifier",
+        "species",
+        "license"
+      ],
+      "schema_sha256": "e23c4cab49d15331477310f6c41fe302e7213fcf3eafda3e65777c631025080a"
+    },
+    "observation_contributors.parquet": {
+      "before": {
+        "sha256": "8fb1d19660729be4878a1ad0165a08a1c4069aca800e5115752ffc43b8b71d54",
+        "size_bytes": 628447260
+      },
+      "after": {
+        "sha256": "8fb1d19660729be4878a1ad0165a08a1c4069aca800e5115752ffc43b8b71d54",
+        "size_bytes": 628447260
+      },
+      "comparison": "byte-identical complete artifact",
+      "n_rows": 9381101,
+      "n_columns": 11,
+      "columns": [
+        "provenance_id",
+        "source_record_id",
+        "source_dataset",
+        "source_row",
+        "original_pmid",
+        "original_fields",
+        "source_row_values",
+        "attributed_sample_label",
+        "attribution_evidence",
+        "relationships",
+        "relationship_status"
+      ],
+      "schema_sha256": "cfd24a403c3180c7e4cdc7d6108befe14be9bb77358e97bbee811608a2b47d21"
+    },
+    "observations.parquet": {
+      "before": {
+        "sha256": "7428ac85d863d5c6fe7565ac9378be425913dd1ab1cea97eb6aeb55a37602e8c",
+        "size_bytes": 152182209
+      },
+      "after": {
+        "sha256": "7428ac85d863d5c6fe7565ac9378be425913dd1ab1cea97eb6aeb55a37602e8c",
+        "size_bytes": 152182209
+      },
+      "comparison": "byte-identical complete artifact",
+      "n_rows": 4486991,
+      "n_columns": 75,
+      "columns": [
+        "peptide",
+        "peptide_modifications",
+        "has_ptm",
+        "peptide_extended",
+        "mhc_restriction",
+        "mhc_species",
+        "mhc_species_source",
+        "mhc_species_context_disagrees",
+        "mhc_class",
+        "mhc_class_reported",
+        "mhc_class_source",
+        "mhc_class_corrected",
+        "allele_resolution",
+        "serotype",
+        "serotypes",
+        "serotype_source",
+        "assay_iri",
+        "reference_iri",
+        "pmid",
+        "submission_id",
+        "reference_title",
+        "source_organism",
+        "species",
+        "host",
+        "host_age",
+        "host_mhc_types",
+        "process_type",
+        "disease",
+        "disease_stage",
+        "source_tissue",
+        "cell_name",
+        "culture_condition",
+        "antigen_processing_comments",
+        "assay_comments",
+        "qualitative_measurement",
+        "assay_method",
+        "response_measured",
+        "measurement_units",
+        "measurement_inequality",
+        "quantitative_measurement",
+        "quantitative_value",
+        "assay_modality",
+        "assay_modality_source",
+        "is_binding_assay",
+        "is_ms_observation",
+        "ms_outcome_status",
+        "is_non_peptide_ligand",
+        "src_cancer",
+        "src_adjacent_to_tumor",
+        "src_activated_apc",
+        "src_healthy_tissue",
+        "src_healthy_thymus",
+        "src_healthy_reproductive",
+        "src_healthy_reproductive_female",
+        "src_healthy_reproductive_male",
+        "src_cell_line",
+        "src_ebv_lcl",
+        "src_ex_vivo",
+        "cell_line_name",
+        "cell_type",
+        "is_monoallelic",
+        "monoallelic_host",
+        "restriction_evidence",
+        "mhc_allele_set",
+        "mhc_allele_provenance",
+        "mhc_allele_set_size",
+        "attributed_sample_label",
+        "provenance_id",
+        "source",
+        "peptide_modifications_raw",
+        "has_ptm_raw",
+        "peptidoform_review_status",
+        "peptidoform_evidence",
+        "supplementary_file",
+        "is_potential_contaminant"
+      ],
+      "schema_sha256": "f3d742b2c8924713b56f8c463f4294ac5c8952d6b332a7efcff8cafdb4d22f00"
+    },
+    "observations_meta.json": {
+      "before": {
+        "sha256": "8d2e4ed4199dee3452c21008392909ef4509c41b1d9ec5e4b30a352839469357",
+        "size_bytes": 18776
+      },
+      "after": {
+        "sha256": "a6075f3e2222523b07fa9580718a283bef0955f4ce39f22e6dd456ab4c5487ff",
+        "size_bytes": 18774
+      },
+      "comparison": "all metadata values equal except the recorded location/time fields",
+      "expected_differences": [
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "iedb",
+            "path"
+          ],
+          "before": "/tmp/hitlist-benchmark-_dtd3yxl/inputs/iedb_mhc_ligand_full.csv",
+          "after": "/tmp/hitlist-benchmark-324qvhrz/inputs/iedb_mhc_ligand_full.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "cedar",
+            "path"
+          ],
+          "before": "/tmp/hitlist-benchmark-_dtd3yxl/inputs/cedar_mhc_ligand_full.csv",
+          "after": "/tmp/hitlist-benchmark-324qvhrz/inputs/cedar_mhc_ligand_full.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:abelin_2019_maptac_class1.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/abelin_2019_maptac_class1.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/abelin_2019_maptac_class1.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:abelin_2019_maptac_class2.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/abelin_2019_maptac_class2.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/abelin_2019_maptac_class2.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:abelin_2019_dr_tissue.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/abelin_2019_dr_tissue.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/abelin_2019_dr_tissue.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:strazar_2023_hla2.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/strazar_2023_hla2.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/strazar_2023_hla2.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:gomez_zepeda_2024_jy.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/gomez_zepeda_2024_jy.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/gomez_zepeda_2024_jy.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:gomez_zepeda_2024_hela.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/gomez_zepeda_2024_hela.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/gomez_zepeda_2024_hela.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:gomez_zepeda_2024_skmel37.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/gomez_zepeda_2024_skmel37.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/gomez_zepeda_2024_skmel37.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:gomez_zepeda_2024_raji.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/gomez_zepeda_2024_raji.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/gomez_zepeda_2024_raji.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:gomez_zepeda_2024_plasma.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/gomez_zepeda_2024_plasma.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/gomez_zepeda_2024_plasma.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:shapiro_2025_hap1_wildtype.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_wildtype.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_wildtype.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:shapiro_2025_hap1_b2m_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_b2m_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_b2m_ko.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:shapiro_2025_hap1_calr_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_calr_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_calr_ko.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:shapiro_2025_hap1_canx_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_canx_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_canx_ko.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:shapiro_2025_hap1_erap1_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_erap1_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_erap1_ko.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:shapiro_2025_hap1_ganab_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_ganab_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_ganab_ko.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:shapiro_2025_hap1_irf2_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_irf2_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_irf2_ko.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:shapiro_2025_hap1_pdia3_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_pdia3_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_pdia3_ko.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:shapiro_2025_hap1_sppl3_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_sppl3_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_sppl3_ko.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:shapiro_2025_hap1_tap1_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_tap1_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_tap1_ko.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:shapiro_2025_hap1_tap2_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_tap2_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_tap2_ko.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "provenance",
+            "sources",
+            "supplement:shapiro_2025_hap1_tapbp_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_tapbp_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_tapbp_ko.csv",
+          "reason": "source location; source hashes and sizes compared separately"
+        },
+        {
+          "path": [
+            "sources",
+            "iedb",
+            "path"
+          ],
+          "before": "/tmp/hitlist-benchmark-_dtd3yxl/inputs/iedb_mhc_ligand_full.csv",
+          "after": "/tmp/hitlist-benchmark-324qvhrz/inputs/iedb_mhc_ligand_full.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "cedar",
+            "path"
+          ],
+          "before": "/tmp/hitlist-benchmark-_dtd3yxl/inputs/cedar_mhc_ligand_full.csv",
+          "after": "/tmp/hitlist-benchmark-324qvhrz/inputs/cedar_mhc_ligand_full.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "curation:cell_lines.yaml",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/cell_lines.yaml",
+          "after": "/opt/baseline/hitlist/data/cell_lines.yaml",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "curation:cell_lines.yaml",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "curation:monoallelic_lines.yaml",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/monoallelic_lines.yaml",
+          "after": "/opt/baseline/hitlist/data/monoallelic_lines.yaml",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "curation:monoallelic_lines.yaml",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "curation:peptide_attributions/connelley_2022_bola_a19.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/peptide_attributions/connelley_2022_bola_a19.csv",
+          "after": "/opt/baseline/hitlist/data/peptide_attributions/connelley_2022_bola_a19.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "curation:peptide_attributions/connelley_2022_bola_a19.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "curation:peptide_attributions/sarkizova_2020_patient_cohort.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/peptide_attributions/sarkizova_2020_patient_cohort.csv",
+          "after": "/opt/baseline/hitlist/data/peptide_attributions/sarkizova_2020_patient_cohort.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "curation:peptide_attributions/sarkizova_2020_patient_cohort.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "curation:pmid_overrides.yaml",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/pmid_overrides.yaml",
+          "after": "/opt/baseline/hitlist/data/pmid_overrides.yaml",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "curation:pmid_overrides.yaml",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "curation:tissue_categories.yaml",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/tissue_categories.yaml",
+          "after": "/opt/baseline/hitlist/data/tissue_categories.yaml",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "curation:tissue_categories.yaml",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_manifest",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary.yaml",
+          "after": "/opt/baseline/hitlist/data/supplementary.yaml",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_manifest",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:abelin_2019_maptac_class1.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/abelin_2019_maptac_class1.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/abelin_2019_maptac_class1.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:abelin_2019_maptac_class1.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:abelin_2019_maptac_class2.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/abelin_2019_maptac_class2.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/abelin_2019_maptac_class2.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:abelin_2019_maptac_class2.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:abelin_2019_dr_tissue.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/abelin_2019_dr_tissue.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/abelin_2019_dr_tissue.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:abelin_2019_dr_tissue.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:strazar_2023_hla2.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/strazar_2023_hla2.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/strazar_2023_hla2.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:strazar_2023_hla2.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:gomez_zepeda_2024_jy.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/gomez_zepeda_2024_jy.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/gomez_zepeda_2024_jy.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:gomez_zepeda_2024_jy.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:gomez_zepeda_2024_hela.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/gomez_zepeda_2024_hela.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/gomez_zepeda_2024_hela.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:gomez_zepeda_2024_hela.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:gomez_zepeda_2024_skmel37.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/gomez_zepeda_2024_skmel37.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/gomez_zepeda_2024_skmel37.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:gomez_zepeda_2024_skmel37.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:gomez_zepeda_2024_raji.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/gomez_zepeda_2024_raji.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/gomez_zepeda_2024_raji.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:gomez_zepeda_2024_raji.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:gomez_zepeda_2024_plasma.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/gomez_zepeda_2024_plasma.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/gomez_zepeda_2024_plasma.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:gomez_zepeda_2024_plasma.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_wildtype.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_wildtype.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_wildtype.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_wildtype.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_b2m_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_b2m_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_b2m_ko.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_b2m_ko.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_calr_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_calr_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_calr_ko.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_calr_ko.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_canx_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_canx_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_canx_ko.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_canx_ko.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_erap1_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_erap1_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_erap1_ko.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_erap1_ko.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_ganab_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_ganab_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_ganab_ko.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_ganab_ko.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_irf2_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_irf2_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_irf2_ko.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_irf2_ko.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_pdia3_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_pdia3_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_pdia3_ko.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_pdia3_ko.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_sppl3_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_sppl3_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_sppl3_ko.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_sppl3_ko.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_tap1_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_tap1_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_tap1_ko.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_tap1_ko.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_tap2_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_tap2_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_tap2_ko.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_tap2_ko.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_tapbp_ko.csv",
+            "path"
+          ],
+          "before": "/opt/producer/hitlist/data/supplementary/shapiro_2025_hap1_tapbp_ko.csv",
+          "after": "/opt/baseline/hitlist/data/supplementary/shapiro_2025_hap1_tapbp_ko.csv",
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "sources",
+            "supplementary_csv:shapiro_2025_hap1_tapbp_ko.csv",
+            "mtime"
+          ],
+          "before": 1793327763.0,
+          "after": 1793305301.0,
+          "reason": "source location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "parquets",
+            "observations",
+            "mtime"
+          ],
+          "before": 1793328971.6478271,
+          "after": 1793331152.416638,
+          "reason": "new output filesystem timestamp"
+        },
+        {
+          "path": [
+            "parquets",
+            "binding",
+            "mtime"
+          ],
+          "before": 1793328972.290942,
+          "after": 1793331153.0615509,
+          "reason": "new output filesystem timestamp"
+        },
+        {
+          "path": [
+            "parquets",
+            "other_assays",
+            "mtime"
+          ],
+          "before": 1793328972.3260298,
+          "after": 1793331153.0974367,
+          "reason": "new output filesystem timestamp"
+        },
+        {
+          "path": [
+            "parquets",
+            "bulk_proteomics",
+            "mtime"
+          ],
+          "before": 1793328985.8395345,
+          "after": 1793331168.247474,
+          "reason": "new output filesystem timestamp"
+        },
+        {
+          "path": [
+            "parquets",
+            "line_expression",
+            "mtime"
+          ],
+          "before": 1793328986.1047652,
+          "after": 1793331168.5197732,
+          "reason": "new output filesystem timestamp"
+        },
+        {
+          "path": [
+            "parquets",
+            "contributors",
+            "mtime"
+          ],
+          "before": 1793328955.7886717,
+          "after": 1793331136.504753,
+          "reason": "new output filesystem timestamp"
+        }
+      ]
+    },
+    "other_assays.parquet": {
+      "before": {
+        "sha256": "44531373a85b441e0284acfb74a37191bd9d9278943ac07a51ca0bf9ccb62806",
+        "size_bytes": 1262436
+      },
+      "after": {
+        "sha256": "44531373a85b441e0284acfb74a37191bd9d9278943ac07a51ca0bf9ccb62806",
+        "size_bytes": 1262436
+      },
+      "comparison": "byte-identical complete artifact",
+      "n_rows": 26537,
+      "n_columns": 75,
+      "columns": [
+        "peptide",
+        "peptide_modifications",
+        "has_ptm",
+        "peptide_extended",
+        "mhc_restriction",
+        "mhc_species",
+        "mhc_species_source",
+        "mhc_species_context_disagrees",
+        "mhc_class",
+        "mhc_class_reported",
+        "mhc_class_source",
+        "mhc_class_corrected",
+        "allele_resolution",
+        "serotype",
+        "serotypes",
+        "serotype_source",
+        "assay_iri",
+        "reference_iri",
+        "pmid",
+        "submission_id",
+        "reference_title",
+        "source_organism",
+        "species",
+        "host",
+        "host_age",
+        "host_mhc_types",
+        "process_type",
+        "disease",
+        "disease_stage",
+        "source_tissue",
+        "cell_name",
+        "culture_condition",
+        "antigen_processing_comments",
+        "assay_comments",
+        "qualitative_measurement",
+        "assay_method",
+        "response_measured",
+        "measurement_units",
+        "measurement_inequality",
+        "quantitative_measurement",
+        "quantitative_value",
+        "assay_modality",
+        "assay_modality_source",
+        "is_binding_assay",
+        "is_ms_observation",
+        "ms_outcome_status",
+        "is_non_peptide_ligand",
+        "src_cancer",
+        "src_adjacent_to_tumor",
+        "src_activated_apc",
+        "src_healthy_tissue",
+        "src_healthy_thymus",
+        "src_healthy_reproductive",
+        "src_healthy_reproductive_female",
+        "src_healthy_reproductive_male",
+        "src_cell_line",
+        "src_ebv_lcl",
+        "src_ex_vivo",
+        "cell_line_name",
+        "cell_type",
+        "is_monoallelic",
+        "monoallelic_host",
+        "restriction_evidence",
+        "mhc_allele_set",
+        "mhc_allele_provenance",
+        "mhc_allele_set_size",
+        "attributed_sample_label",
+        "provenance_id",
+        "source",
+        "peptide_modifications_raw",
+        "has_ptm_raw",
+        "peptidoform_review_status",
+        "peptidoform_evidence",
+        "supplementary_file",
+        "is_potential_contaminant"
+      ],
+      "schema_sha256": "1f9599659542bce3e94a1dd10fe7674bd3c38b0be5450d323dbbd3fe96f330ea"
+    },
+    "peptide_mappings.parquet": {
+      "before": {
+        "sha256": "571cea239513c86b4ea06756135e7ff6524df1ba568aa881a9a99374a8ed96b2",
+        "size_bytes": 176062629
+      },
+      "after": {
+        "sha256": "571cea239513c86b4ea06756135e7ff6524df1ba568aa881a9a99374a8ed96b2",
+        "size_bytes": 176062629
+      },
+      "comparison": "byte-identical complete artifact",
+      "n_rows": 6205013,
+      "n_columns": 12,
+      "columns": [
+        "peptide",
+        "protein_id",
+        "gene_name",
+        "gene_id",
+        "gene_biotype",
+        "transcript_id",
+        "is_canonical_transcript",
+        "position",
+        "n_flank",
+        "c_flank",
+        "proteome",
+        "proteome_source"
+      ],
+      "schema_sha256": "bac6321cddebed2968ca4216e2fecb8efc8ecddd1b838b060fb930f405486659"
+    },
+    "peptide_mappings_meta.json": {
+      "before": {
+        "sha256": "c4c874b132eabcf19bde0eeead31aa2681a30edcf19738c47f11103ab1eb45d5",
+        "size_bytes": 90651
+      },
+      "after": {
+        "sha256": "64b3c12c30bbd3cab55bab16a2bfb708650944d68200db4a03f2a2f6dcba5ba4",
+        "size_bytes": 90651
+      },
+      "comparison": "all metadata values equal except the recorded location/time fields",
+      "expected_differences": [
+        {
+          "path": [
+            "observations",
+            "observations",
+            "mtime"
+          ],
+          "before": 1793328971.6478271,
+          "after": 1793331152.416638,
+          "reason": "new output location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "observations",
+            "binding",
+            "mtime"
+          ],
+          "before": 1793328972.290942,
+          "after": 1793331153.0615509,
+          "reason": "new output location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "observations",
+            "other_assays",
+            "mtime"
+          ],
+          "before": 1793328972.3260298,
+          "after": 1793331153.0974367,
+          "reason": "new output location or filesystem timestamp"
+        },
+        {
+          "path": [
+            "built_at"
+          ],
+          "before": "2026-10-30T02:54:10.386412+00:00",
+          "after": "2026-10-30T03:30:25.208940+00:00",
+          "reason": "new build timestamp"
+        }
+      ]
+    }
+  },
+  "generation_validation": {
+    "before": {
+      "producer_version": "2.1.4",
+      "readme": "reconstructed and hash-verified",
+      "sources": "all pins match"
+    },
+    "after": {
+      "producer_version": "2.1.3",
+      "readme": "reconstructed and hash-verified",
+      "sources": "all pins match"
+    }
+  }
+}

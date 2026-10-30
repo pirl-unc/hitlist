@@ -1283,3 +1283,51 @@ def test_scan_detects_monoallelic_host_on_a_cedar_shaped_layout(tmp_path):
     hit = df.loc[df["peptide"] == "AFDDIATYF"].iloc[0]
     assert bool(hit["is_monoallelic"]) is True
     assert hit["monoallelic_host"] == "C1R"
+
+
+@pytest.mark.parametrize(
+    "records",
+    [
+        [],
+        [{}, {}],
+        [{}, {"b": True, "a": "é"}, {"a": "x", "b": False}, {"c": 3}],
+        [{"pmid": "", "value": 1.5}, {"value": float("nan"), "pmid": 123}],
+        [{"flag": True}, {"flag": None}, {}],
+    ],
+)
+def test_scan_row_buffer_preserves_dataframe_inference_and_column_order(records):
+    from hitlist.scanner import _ScanRows
+
+    rows = _ScanRows()
+    for record in records:
+        rows.append(record)
+    pd.testing.assert_frame_equal(rows.to_frame(), pd.DataFrame(records))
+
+
+def test_scan_adjacent_assay_changes_match_independent_annotations(tmp_path):
+    from hitlist.assays import ANNOTATION_COLUMNS, assay_annotations
+
+    inputs = [
+        ("Positive", "", "mass spectrometry", "ligand presentation"),
+        ("Positive", "", "mass spectrometry", "ligand presentation"),
+        ("Negative", "", "mass spectrometry", "ligand presentation"),
+        ("Negative", "", "mass spectrometry", "3D structure"),
+        ("Negative", "", "x-ray crystallography", "3D structure"),
+        ("Positive", "", "", ""),
+        ("Positive", "binding assay", "", ""),
+        ("Positive", "binding assay", "", ""),
+        ("Positive", "", "", ""),
+    ]
+    source = tmp_path / "iedb.csv"
+    rows = []
+    for index, values in enumerate(inputs):
+        row = [""] * 27
+        row[0], row[2], row[5] = f"assay:{index}", "99999999", "SLYNTVATL"
+        row[19], row[20] = "HLA-A*02:01", "I"
+        row[14], row[15], row[22], row[23] = values
+        rows.append(row)
+    _write_tiny_iedb_csv(source, rows)
+    actual = scan(iedb_path=source, mhc_species=None)
+    assert actual[list(ANNOTATION_COLUMNS)].to_dict("records") == [
+        assay_annotations(*values) for values in inputs
+    ]

@@ -1,0 +1,31 @@
+{
+  "volume": "presto-data",
+  "root": "hitlist-reliability-20261028",
+  "submission": "Explicit background spawn; local caller completion is not benchmark completion.",
+  "earlier_producer_commit": "e88891a",
+  "earlier_full": {
+    "label": "issue63-pass2-full-pair-2",
+    "call": "fc-01M6562AZAZ2V2289GM4KQXZGG",
+    "app": "ap-evDgDthd15RdRcQfRfZmss",
+    "status": "cancelled after uncompressed IPC overflow and serial retry; excluded"
+  },
+  "earlier_tests": {
+    "label": "issue63-pass2-test-pair-2",
+    "call": "fc-01M6562TJS6ZJR6V3BMHHRR9FJ",
+    "app": "ap-qeO3wU3Va3zjXAwrOPTL0U",
+    "status": "success for earlier e88891a producer; final-code repeat pending"
+  },
+  "producer_commit": "a71f2e9bf7a01e0b33d751a3134a88f024f4b055",
+  "full": {
+    "label": "issue63-pass2-full-pair-3",
+    "call": "fc-01M65B1M9XHH5KDM1VT6XJ1ZGR",
+    "app": "ap-hyTXXZGTnmtq2STFSLlEaB",
+    "status": "success; all7Parquetsbyte-identical; bothcandidates2workers/no retry; mean979.987561baseline/680.471758candidate seconds"
+  },
+  "tests": {
+    "label": "issue63-pass2-test-pair-4",
+    "call": "fc-01M65C38RABDKAA3E3GNBK9VE6",
+    "app": "ap-MkORjJz0r6KwucJ1xFhbsP",
+    "status": "success; baseline255.392s/candidate267.069s means;3,754/3,793passed,2skips; two normally admitted workers"
+  }
+}

@@ -31,6 +31,7 @@ nav:
   - Release Integrity: release-integrity.md
   - Build Performance Measurements: reliability-performance.md
   - Serial Build Optimization: serial-build-performance.md
+  - Source Build Optimization: source-build-performance.md
 
 theme:
   name: readthedocs

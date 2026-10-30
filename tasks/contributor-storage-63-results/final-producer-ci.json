@@ -1,0 +1,107 @@
+{
+  "producer_commit": "a71f2e9bf7a01e0b33d751a3134a88f024f4b055",
+  "status": "success",
+  "scope": "Measured production code; later evidence-only head and clean-main release require separate checks.",
+  "checks": [
+    {
+      "workflow": "tests",
+      "url": "https://github.com/pirl-unc/hitlist/actions/runs/40992645800",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "lint",
+          "url": "https://github.com/pirl-unc/hitlist/actions/runs/40992645800/job/123858524117",
+          "conclusion": "success"
+        },
+        {
+          "name": "unit (3.14, >=3)",
+          "url": "https://github.com/pirl-unc/hitlist/actions/runs/40992645800/job/123858524264",
+          "conclusion": "success"
+        },
+        {
+          "name": "integration",
+          "url": "https://github.com/pirl-unc/hitlist/actions/runs/40992645800/job/123858524300",
+          "conclusion": "success"
+        },
+        {
+          "name": "unit (3.13, >=3)",
+          "url": "https://github.com/pirl-unc/hitlist/actions/runs/40992645800/job/123858524326",
+          "conclusion": "success"
+        },
+        {
+          "name": "unit (3.12, >=3)",
+          "url": "https://github.com/pirl-unc/hitlist/actions/runs/40992645800/job/123858524372",
+          "conclusion": "success"
+        },
+        {
+          "name": "unit (3.11, ==3.0.0)",
+          "url": "https://github.com/pirl-unc/hitlist/actions/runs/40992645800/job/123858524376",
+          "conclusion": "success"
+        },
+        {
+          "name": "unit (3.11, >=3)",
+          "url": "https://github.com/pirl-unc/hitlist/actions/runs/40992645800/job/123858524477",
+          "conclusion": "success"
+        },
+        {
+          "name": "coverage",
+          "url": "https://github.com/pirl-unc/hitlist/actions/runs/40992645800/job/123863695379",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "workflow": "release",
+      "url": "https://github.com/pirl-unc/hitlist/actions/runs/40992645791",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "build",
+          "url": "https://github.com/pirl-unc/hitlist/actions/runs/40992645791/job/123858512394",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "workflow": "docs",
+      "url": "https://github.com/pirl-unc/hitlist/actions/runs/40992645630",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "build",
+          "url": "https://github.com/pirl-unc/hitlist/actions/runs/40992645630/job/123858433890",
+          "conclusion": "success"
+        },
+        {
+          "name": "deploy",
+          "url": "https://github.com/pirl-unc/hitlist/actions/runs/40992645630/job/123858675697",
+          "conclusion": "skipped"
+        }
+      ]
+    }
+  ],
+  "release_test_sh": {
+    "n_passed_unit": 3794,
+    "n_skipped_unit": 1,
+    "n_passed_integration": 97,
+    "unit_pytest_wall_seconds": 568.11,
+    "integration_pytest_wall_seconds": 1229.22,
+    "skip_reasons": [
+      "pyensembl Ensembl release data not installed"
+    ]
+  },
+  "unit_matrix_count": 5,
+  "paired_suite_first_candidate": {
+    "n_passed": 3793,
+    "n_skipped": 2,
+    "n_admitted_workers": 2,
+    "guard": "unchanged"
+  },
+  "unit_matrix_skip_reasons": [
+    "pyensembl Ensembl release data not installed",
+    "could not import mhcflurry: No module named mhcflurry"
+  ]
+}

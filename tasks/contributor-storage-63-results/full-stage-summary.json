@@ -1,0 +1,77 @@
+{
+  "scope": "Means across the two runs per variant; source boundary differs as documented",
+  "stages": {
+    "Source ingestion": {
+      "baseline": {
+        "wall_seconds": 531.3591241924998,
+        "cpu_seconds": 532.2,
+        "sampled_tree_peak_rss_bytes": 33334691840
+      },
+      "candidate": {
+        "wall_seconds": 275.26607954550013,
+        "cpu_seconds": 497.36,
+        "sampled_tree_peak_rss_bytes": 35916902400
+      }
+    },
+    "Contributor publication": {
+      "baseline": {
+        "wall_seconds": 123.95135165750014,
+        "cpu_seconds": 122.61000000000001,
+        "sampled_tree_peak_rss_bytes": 23969177600
+      },
+      "candidate": {
+        "wall_seconds": 117.41214052400011,
+        "cpu_seconds": 116.04,
+        "sampled_tree_peak_rss_bytes": 7026198528
+      }
+    },
+    "Protein mappings": {
+      "baseline": {
+        "wall_seconds": 78.24156996100021,
+        "cpu_seconds": 79.00999999999999,
+        "sampled_tree_peak_rss_bytes": 31687069696
+      },
+      "candidate": {
+        "wall_seconds": 77.48433831550005,
+        "cpu_seconds": 78.195,
+        "sampled_tree_peak_rss_bytes": 14979094528
+      }
+    },
+    "Supplementary scan": {
+      "baseline": {
+        "wall_seconds": 20.055971161499883,
+        "cpu_seconds": 19.904999999999916,
+        "sampled_tree_peak_rss_bytes": 23159787520
+      },
+      "candidate": {
+        "wall_seconds": 19.164469608500042,
+        "cpu_seconds": 19.150000000000006,
+        "sampled_tree_peak_rss_bytes": 5381509120
+      }
+    },
+    "Bulk proteomics": {
+      "baseline": {
+        "wall_seconds": 14.790774775999807,
+        "cpu_seconds": 15.060000000000002,
+        "sampled_tree_peak_rss_bytes": 26154409984
+      },
+      "candidate": {
+        "wall_seconds": 13.659134007499858,
+        "cpu_seconds": 13.730000000000018,
+        "sampled_tree_peak_rss_bytes": 10592997376
+      }
+    },
+    "Line expression": {
+      "baseline": {
+        "wall_seconds": 0.26303744949996144,
+        "cpu_seconds": 0.2550000000000523,
+        "sampled_tree_peak_rss_bytes": 26126184448
+      },
+      "candidate": {
+        "wall_seconds": 0.2579747324999744,
+        "cpu_seconds": 0.2599999999999909,
+        "sampled_tree_peak_rss_bytes": 10556129280
+      }
+    }
+  }
+}

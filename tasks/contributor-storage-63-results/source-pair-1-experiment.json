@@ -1,0 +1,422 @@
+{
+  "status": "success",
+  "scope": "independent source processes; excludes production cross-source graph/partition merge",
+  "n_rows_per_source_limit": 500000,
+  "order": [
+    "serial",
+    "parallel",
+    "parallel",
+    "serial"
+  ],
+  "producer": {
+    "sha256": "c9e0d230e21b57d92e1bc02437ff22485bd55c38a15c7bb21f5b3077b47071aa",
+    "size_bytes": 50249438
+  },
+  "recipe": {
+    "sha256": "448b9a80ade5d07a2e6e13aa0330509f3e33c9f56c08d7f04f7d96c406f784f9",
+    "size_bytes": 9971
+  },
+  "versions": {
+    "matplotlib-inline": "0.1.6",
+    "fonttools": "4.66.1",
+    "pure-eval": "0.2.2",
+    "hpack": "4.0.0",
+    "jedi": "0.19.1",
+    "traitlets": "5.14.1",
+    "pyahocorasick": "2.3.1",
+    "openpyxl": "3.1.5",
+    "executing": "2.0.1",
+    "tblib": "1.7.0",
+    "iniconfig": "2.3.0",
+    "toml": "0.10.2",
+    "cycler": "0.12.1",
+    "yarl": "1.9.4",
+    "frozenlist": "1.4.1",
+    "typeguard": "4.1.5",
+    "pip": "23.3.2",
+    "decorator": "5.1.1",
+    "importlib-metadata": "4.8.1",
+    "mhcgnomes": "3.64.6",
+    "prompt-toolkit": "3.0.43",
+    "pillow": "12.3.0",
+    "oncoref": "1.8.207",
+    "numpy": "2.5.2",
+    "rich": "12.3.0",
+    "typer": "0.6.1",
+    "pandas": "3.1.0",
+    "adjustText": "1.4.0",
+    "fastprogress": "1.0.0",
+    "pytest-xdist": "3.8.0",
+    "et_xmlfile": "2.0.0",
+    "kiwisolver": "1.5.1",
+    "python-dateutil": "2.9.0.post0",
+    "pyensembl": "2.32.3",
+    "types-certifi": "2021.10.8.3",
+    "asttokens": "2.4.1",
+    "asgiref": "3.5.2",
+    "pluggy": "1.6.0",
+    "anyio": "4.2.0",
+    "pyarrow": "25.0.1",
+    "idna": "3.19",
+    "pyinstrument": "5.1.3",
+    "typing_extensions": "4.9.0",
+    "biotraj": "1.2.2",
+    "zipp": "3.17.0",
+    "click": "8.1.7",
+    "biotite": "2.0.0",
+    "types-toml": "0.10.4",
+    "grpclib": "0.4.7",
+    "contourpy": "1.4.0",
+    "parso": "0.8.3",
+    "fastapi": "0.88.0",
+    "requests": "2.34.2",
+    "pytest": "9.1.1",
+    "packaging": "26.3",
+    "charset-normalizer": "3.5.1",
+    "typechecks": "0.1.0",
+    "PyYAML": "6.0.3",
+    "scipy": "1.18.1",
+    "coverage": "7.16.0",
+    "filelock": "4.0.6",
+    "python-multipart": "0.0.6",
+    "msgpack": "1.2.4",
+    "pexpect": "4.9.0",
+    "matplotlib": "3.11.2",
+    "aiostream": "0.4.4",
+    "sniffio": "1.3.0",
+    "ptyprocess": "0.7.0",
+    "setuptools": "84.2.1",
+    "urllib3": "2.7.0",
+    "datacache": "1.29.3",
+    "matplotlib-venn": "1.1.2",
+    "serializable": "1.3.0",
+    "aiohttp": "3.9.1",
+    "ipython": "8.20.0",
+    "memoized-property": "1.0.3",
+    "platformdirs": "4.13.0",
+    "networkx": "3.7",
+    "ruff": "0.16.5",
+    "attrs": "23.2.0",
+    "Pygments": "2.21.0",
+    "commonmark": "0.9.1",
+    "protobuf": "4.25.2",
+    "orfdata": "0.42.0",
+    "starlette": "0.22.0",
+    "six": "1.17.0",
+    "wcwidth": "0.2.13",
+    "cloudpickle": "2.2.0",
+    "pydantic": "1.10.14",
+    "hitlist": "2.1.3",
+    "tqdm": "4.70.0",
+    "pyfaidx": "0.9.0.4",
+    "execnet": "2.1.2",
+    "hyperframe": "6.0.1",
+    "aiosignal": "1.3.1",
+    "stack-data": "0.6.3",
+    "h2": "4.1.0",
+    "wheel": "0.42.0",
+    "pyparsing": "3.3.3",
+    "gtfparse": "3.0.2",
+    "multidict": "6.0.4",
+    "certifi": "2026.7.22",
+    "tinytimer": "0.0.0",
+    "pytest-cov": "7.1.0"
+  },
+  "allocation": {
+    "cpu_limit": 8,
+    "memory_limit_mib": 65536,
+    "nonpreemptible": true
+  },
+  "runs": [
+    {
+      "variant": "serial",
+      "total": {
+        "wall_seconds": 114.31477481,
+        "process_cpu_seconds": 1.9100000000000037,
+        "waited_children_cpu_seconds": 108.24,
+        "process_peak_rss_bytes": 60334080,
+        "waited_child_peak_rss_bytes": 2574970880,
+        "sampled_parent_peak_rss_bytes": 37986304,
+        "sampled_tree_peak_rss_bytes": 10337869824
+      },
+      "sources": {
+        "iedb": {
+          "status": "success",
+          "source": "iedb",
+          "version": "2.1.3",
+          "scratch_bytes": 178929664,
+          "n_rows": 500000,
+          "total": {
+            "wall_seconds": 53.760207526,
+            "process_cpu_seconds": 51.13,
+            "waited_children_cpu_seconds": 0.0,
+            "process_peak_rss_bytes": 2430320640,
+            "waited_child_peak_rss_bytes": 0,
+            "sampled_parent_peak_rss_bytes": 2420842496,
+            "sampled_tree_peak_rss_bytes": 2420842496
+          },
+          "outputs": {
+            "contributors.parquet": {
+              "sha256": "ced661573a12cf8ba200fac6f97e51544b592c422b0e486787f5f8da53af2b83",
+              "size_bytes": 45892969
+            },
+            "observations.parquet": {
+              "sha256": "b5780f975708dec5f771286e60b8e29eebdd4cc6dc894fb125a7ae9c059720a7",
+              "size_bytes": 15691547
+            }
+          }
+        },
+        "cedar": {
+          "status": "success",
+          "source": "cedar",
+          "version": "2.1.3",
+          "scratch_bytes": 187219968,
+          "n_rows": 500000,
+          "total": {
+            "wall_seconds": 54.87754017200001,
+            "process_cpu_seconds": 52.01,
+            "waited_children_cpu_seconds": 0.0,
+            "process_peak_rss_bytes": 2574970880,
+            "waited_child_peak_rss_bytes": 0,
+            "sampled_parent_peak_rss_bytes": 2567999488,
+            "sampled_tree_peak_rss_bytes": 2567999488
+          },
+          "outputs": {
+            "contributors.parquet": {
+              "sha256": "58891d3027cdb0ac241c75c0a668499917e5fc1b292d1e01b7b707cc1508bb6a",
+              "size_bytes": 51944296
+            },
+            "observations.parquet": {
+              "sha256": "83a149f08daaf209f919e2746e003a17e6d7de2e4b74c208f6721578efe75902",
+              "size_bytes": 15240408
+            }
+          }
+        }
+      }
+    },
+    {
+      "variant": "parallel",
+      "total": {
+        "wall_seconds": 57.801176559,
+        "process_cpu_seconds": 0.4299999999999997,
+        "waited_children_cpu_seconds": 108.11,
+        "process_peak_rss_bytes": 60334080,
+        "waited_child_peak_rss_bytes": 2574970880,
+        "sampled_parent_peak_rss_bytes": 36155392,
+        "sampled_tree_peak_rss_bytes": 19477114880
+      },
+      "sources": {
+        "iedb": {
+          "status": "success",
+          "source": "iedb",
+          "version": "2.1.3",
+          "scratch_bytes": 178929664,
+          "n_rows": 500000,
+          "total": {
+            "wall_seconds": 53.767332460999995,
+            "process_cpu_seconds": 51.11000000000001,
+            "waited_children_cpu_seconds": 0.0,
+            "process_peak_rss_bytes": 2430504960,
+            "waited_child_peak_rss_bytes": 0,
+            "sampled_parent_peak_rss_bytes": 2419904512,
+            "sampled_tree_peak_rss_bytes": 2419904512
+          },
+          "outputs": {
+            "contributors.parquet": {
+              "sha256": "ced661573a12cf8ba200fac6f97e51544b592c422b0e486787f5f8da53af2b83",
+              "size_bytes": 45892969
+            },
+            "observations.parquet": {
+              "sha256": "b5780f975708dec5f771286e60b8e29eebdd4cc6dc894fb125a7ae9c059720a7",
+              "size_bytes": 15691547
+            }
+          }
+        },
+        "cedar": {
+          "status": "success",
+          "source": "cedar",
+          "version": "2.1.3",
+          "scratch_bytes": 187219968,
+          "n_rows": 500000,
+          "total": {
+            "wall_seconds": 55.09777807200001,
+            "process_cpu_seconds": 51.89,
+            "waited_children_cpu_seconds": 0.0,
+            "process_peak_rss_bytes": 2572599296,
+            "waited_child_peak_rss_bytes": 0,
+            "sampled_parent_peak_rss_bytes": 2504876032,
+            "sampled_tree_peak_rss_bytes": 2504876032
+          },
+          "outputs": {
+            "contributors.parquet": {
+              "sha256": "58891d3027cdb0ac241c75c0a668499917e5fc1b292d1e01b7b707cc1508bb6a",
+              "size_bytes": 51944296
+            },
+            "observations.parquet": {
+              "sha256": "83a149f08daaf209f919e2746e003a17e6d7de2e4b74c208f6721578efe75902",
+              "size_bytes": 15240408
+            }
+          }
+        }
+      }
+    },
+    {
+      "variant": "parallel",
+      "total": {
+        "wall_seconds": 57.885321799999986,
+        "process_cpu_seconds": 0.38000000000000256,
+        "waited_children_cpu_seconds": 108.74000000000004,
+        "process_peak_rss_bytes": 60334080,
+        "waited_child_peak_rss_bytes": 2574970880,
+        "sampled_parent_peak_rss_bytes": 36155392,
+        "sampled_tree_peak_rss_bytes": 19218460672
+      },
+      "sources": {
+        "iedb": {
+          "status": "success",
+          "source": "iedb",
+          "version": "2.1.3",
+          "scratch_bytes": 178929664,
+          "n_rows": 500000,
+          "total": {
+            "wall_seconds": 53.81938196599998,
+            "process_cpu_seconds": 51.160000000000004,
+            "waited_children_cpu_seconds": 0.0,
+            "process_peak_rss_bytes": 2430599168,
+            "waited_child_peak_rss_bytes": 0,
+            "sampled_parent_peak_rss_bytes": 2420064256,
+            "sampled_tree_peak_rss_bytes": 2420064256
+          },
+          "outputs": {
+            "contributors.parquet": {
+              "sha256": "ced661573a12cf8ba200fac6f97e51544b592c422b0e486787f5f8da53af2b83",
+              "size_bytes": 45892969
+            },
+            "observations.parquet": {
+              "sha256": "b5780f975708dec5f771286e60b8e29eebdd4cc6dc894fb125a7ae9c059720a7",
+              "size_bytes": 15691547
+            }
+          }
+        },
+        "cedar": {
+          "status": "success",
+          "source": "cedar",
+          "version": "2.1.3",
+          "scratch_bytes": 187219968,
+          "n_rows": 500000,
+          "total": {
+            "wall_seconds": 55.233451226,
+            "process_cpu_seconds": 52.309999999999995,
+            "waited_children_cpu_seconds": 0.0,
+            "process_peak_rss_bytes": 2572218368,
+            "waited_child_peak_rss_bytes": 0,
+            "sampled_parent_peak_rss_bytes": 2504495104,
+            "sampled_tree_peak_rss_bytes": 2504495104
+          },
+          "outputs": {
+            "contributors.parquet": {
+              "sha256": "58891d3027cdb0ac241c75c0a668499917e5fc1b292d1e01b7b707cc1508bb6a",
+              "size_bytes": 51944296
+            },
+            "observations.parquet": {
+              "sha256": "83a149f08daaf209f919e2746e003a17e6d7de2e4b74c208f6721578efe75902",
+              "size_bytes": 15240408
+            }
+          }
+        }
+      }
+    },
+    {
+      "variant": "serial",
+      "total": {
+        "wall_seconds": 113.13495705999998,
+        "process_cpu_seconds": 2.0600000000000023,
+        "waited_children_cpu_seconds": 106.83999999999997,
+        "process_peak_rss_bytes": 60334080,
+        "waited_child_peak_rss_bytes": 2574970880,
+        "sampled_parent_peak_rss_bytes": 36155392,
+        "sampled_tree_peak_rss_bytes": 10284183552
+      },
+      "sources": {
+        "iedb": {
+          "status": "success",
+          "source": "iedb",
+          "version": "2.1.3",
+          "scratch_bytes": 178929664,
+          "n_rows": 500000,
+          "total": {
+            "wall_seconds": 53.168764770999985,
+            "process_cpu_seconds": 50.2,
+            "waited_children_cpu_seconds": 0.0,
+            "process_peak_rss_bytes": 2426617856,
+            "waited_child_peak_rss_bytes": 0,
+            "sampled_parent_peak_rss_bytes": 2415185920,
+            "sampled_tree_peak_rss_bytes": 2415185920
+          },
+          "outputs": {
+            "contributors.parquet": {
+              "sha256": "ced661573a12cf8ba200fac6f97e51544b592c422b0e486787f5f8da53af2b83",
+              "size_bytes": 45892969
+            },
+            "observations.parquet": {
+              "sha256": "b5780f975708dec5f771286e60b8e29eebdd4cc6dc894fb125a7ae9c059720a7",
+              "size_bytes": 15691547
+            }
+          }
+        },
+        "cedar": {
+          "status": "success",
+          "source": "cedar",
+          "version": "2.1.3",
+          "scratch_bytes": 187219968,
+          "n_rows": 500000,
+          "total": {
+            "wall_seconds": 54.84495543600002,
+            "process_cpu_seconds": 51.75,
+            "waited_children_cpu_seconds": 0.0,
+            "process_peak_rss_bytes": 2565832704,
+            "waited_child_peak_rss_bytes": 0,
+            "sampled_parent_peak_rss_bytes": 2498109440,
+            "sampled_tree_peak_rss_bytes": 2498109440
+          },
+          "outputs": {
+            "contributors.parquet": {
+              "sha256": "58891d3027cdb0ac241c75c0a668499917e5fc1b292d1e01b7b707cc1508bb6a",
+              "size_bytes": 51944296
+            },
+            "observations.parquet": {
+              "sha256": "83a149f08daaf209f919e2746e003a17e6d7de2e4b74c208f6721578efe75902",
+              "size_bytes": 15240408
+            }
+          }
+        }
+      }
+    }
+  ],
+  "sources": {
+    "iedb": {
+      "export_date_status": "unverified; local mtime is not an export-date claim",
+      "filename": "iedb_mhc_ligand_full.csv",
+      "remote_path": "hitlist-qualification/raw-sources/957337189072a918fe38a216cfa4893cb08a74c35027ce0489252dd446eb6ad8/iedb_mhc_ligand_full.csv",
+      "sha256": "957337189072a918fe38a216cfa4893cb08a74c35027ce0489252dd446eb6ad8",
+      "size_bytes": 7773476136
+    },
+    "cedar": {
+      "export_date_status": "unverified; local mtime is not an export-date claim",
+      "filename": "cedar_mhc_ligand_full.csv",
+      "remote_path": "hitlist-qualification/raw-sources/3b137c99686c0df9f930a4e287995e818e289f7df47c6eeb56dbcb1c7f39d8e6/cedar_mhc_ligand_full.csv",
+      "sha256": "3b137c99686c0df9f930a4e287995e818e289f7df47c6eeb56dbcb1c7f39d8e6",
+      "size_bytes": 6945931753
+    }
+  },
+  "samples": {
+    "iedb": {
+      "sha256": "4026d1dba637d3b55461dc62f74d6108002ab918b391c9eaee39108491b2d37f",
+      "size_bytes": 669862227
+    },
+    "cedar": {
+      "sha256": "626b9c5b668884bad9546ae7cf0c0959ba524e57fff11336cdb08e07528c3ac1",
+      "size_bytes": 748451081
+    }
+  }
+}

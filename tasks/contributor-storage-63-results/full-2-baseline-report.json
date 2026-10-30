@@ -1,0 +1,485 @@
+{
+  "context": {
+    "assets": {
+      "abelin_2019_dr_tissue.csv": {
+        "sha256": "f95bb24097fc26a3272b3fb9942ae7dc8e4800b5a6cea2d9a6d92530d33b073c",
+        "size_bytes": 210368
+      },
+      "abelin_2019_maptac_class1.csv": {
+        "sha256": "74ec46e105ae406d89971fe2c87d3e03b36c8f650f8d78695425dd467bca9c42",
+        "size_bytes": 246822
+      },
+      "abelin_2019_maptac_class2.csv": {
+        "sha256": "a9b6454f05c24c11113bde92d35f3222d60eb0746ef8e6ac34ed2b0b6daa1c47",
+        "size_bytes": 1638237
+      },
+      "bekker_jensen_2017_peptides.csv.gz": {
+        "sha256": "3ec65dd05e8ec58c3293e0fb5720570197a8b152cd14778130bae4224106e3d3",
+        "size_bytes": 35074080
+      },
+      "bekker_jensen_2017_protein_abundance.csv.gz": {
+        "sha256": "17628f1a9c3ed5e3ee1ad7aab4480008000a6beb2c042928f3fbdf699366bc45",
+        "size_bytes": 4410669
+      },
+      "ccle_nusinow_2020.csv.gz": {
+        "sha256": "1cd9bdd7b40e1a22593c0045f5ba1d785004b64943c4845d4311bc44e7f97d82",
+        "size_bytes": 1671535
+      },
+      "gm12878_encode_rnaseq_tpm.csv.gz": {
+        "sha256": "b3d605f3426d283ecf166bd6a38006dc40d4d3aa9c4050c40f7f2101ff60d8ab",
+        "size_bytes": 271557
+      },
+      "gomez_zepeda_2024_hela.csv": {
+        "sha256": "56ea133ccd210f4267b366756d2693279349b962b95087e787f2c00cdc8f6709",
+        "size_bytes": 261764
+      },
+      "gomez_zepeda_2024_jy.csv": {
+        "sha256": "9eecfa2a8deeb75dc504caecfe659fb8cbbb58625180046ab2a68782d7cfa8b2",
+        "size_bytes": 577082
+      },
+      "gomez_zepeda_2024_plasma.csv": {
+        "sha256": "133fa549b65cd962a10648e72c4185dd5be1e2706b1f6388067d7ffbc6048718",
+        "size_bytes": 33847
+      },
+      "gomez_zepeda_2024_raji.csv": {
+        "sha256": "6e9b2d322aec33ff69a20050c842ce97111521576d0b012c206ec5507110c672",
+        "size_bytes": 668528
+      },
+      "gomez_zepeda_2024_skmel37.csv": {
+        "sha256": "c2d04f556f1bc39cee8856fc753a03739b5baf344e478cd973c7339496a1d207",
+        "size_bytes": 286030
+      },
+      "sarkizova_2020_patient_cohort.csv": {
+        "sha256": "f37af217074c08f23a9521c791bba5230a4cf849bf2871bfc20bed1aaaef0729",
+        "size_bytes": 1073141
+      },
+      "shapiro_2025_hap1_b2m_ko.csv": {
+        "sha256": "5d32d27ba14100925f3647644e6cb8c9ee2024e2dd4512b5e03b685c451c4364",
+        "size_bytes": 7650
+      },
+      "shapiro_2025_hap1_calr_ko.csv": {
+        "sha256": "6246a14486388806dc20f0bc7150be19653498f1fedffb6e7e45a51e4a4a0a69",
+        "size_bytes": 232191
+      },
+      "shapiro_2025_hap1_canx_ko.csv": {
+        "sha256": "8672e8c0d7bc0fd637a22a5b9d19f5b3020ff5d9c5d4f8fa1eecfbe36186d96b",
+        "size_bytes": 217182
+      },
+      "shapiro_2025_hap1_erap1_ko.csv": {
+        "sha256": "596a10f1eadeee71d2c24f4fa1b512862775672b2bc4999b5a726624d1d8a170",
+        "size_bytes": 125926
+      },
+      "shapiro_2025_hap1_ganab_ko.csv": {
+        "sha256": "5b6cec7cafafe17e823ca9789d5859ac2877f9120fdbe18c7621a330605bf2d2",
+        "size_bytes": 151604
+      },
+      "shapiro_2025_hap1_irf2_ko.csv": {
+        "sha256": "91836f74a6868cac49b5638add348792d1920521b2e701be66ced1d5adfbdab5",
+        "size_bytes": 70407
+      },
+      "shapiro_2025_hap1_pdia3_ko.csv": {
+        "sha256": "a24382e88da5dc06c877a5e1027db6ab26a765911840ffc173613fc2560ab608",
+        "size_bytes": 95826
+      },
+      "shapiro_2025_hap1_sppl3_ko.csv": {
+        "sha256": "38d66d6ca3dd12f1e13e0e448cf06cac6b9c229ccf2682f440fe8a8fb74da4a8",
+        "size_bytes": 199225
+      },
+      "shapiro_2025_hap1_tap1_ko.csv": {
+        "sha256": "babd57cb0fad48365369bbcb64f6c4fcb8a372f7bce6fd1e08e9d987c0e5bb38",
+        "size_bytes": 120243
+      },
+      "shapiro_2025_hap1_tap2_ko.csv": {
+        "sha256": "d0163b980196dd24fbb6f8a24d026d410f049a2cd9bf7e572c97d1896ed33867",
+        "size_bytes": 42720
+      },
+      "shapiro_2025_hap1_tapbp_ko.csv": {
+        "sha256": "86773579291c8fa0d51e8b5b0dbc57a2bf07646695f2eb21449f27bdcc154766",
+        "size_bytes": 59337
+      },
+      "shapiro_2025_hap1_wildtype.csv": {
+        "sha256": "ee2fe18ad0b10382d400670e3d2215c71714aad9234ac95b89bb9410055bdafb",
+        "size_bytes": 250548
+      },
+      "strazar_2023_hla2.csv": {
+        "sha256": "3dc547ae7cd4cfd735794e30c52430bb33f52d3960644d24bf07e44d6496e085",
+        "size_bytes": 13932615
+      }
+    },
+    "build_cache_state": "fresh outputs; warm raw sources and pyensembl reference; cold Hitlist mapping index",
+    "code_archive": {
+      "sha256": "366d14ee809af5f96f9332b7377d7e21dd86d8bab639d6340d76e0321874792f",
+      "size_bytes": 50246122
+    },
+    "cpu_model": "unknown",
+    "network_audit": {
+      "enabled": true,
+      "recipe": {
+        "sha256": "1cc31e0216449ccc65fa49b54599ad52dca1f366314623818932e52d1553fa6a",
+        "size_bytes": 1217
+      },
+      "scope": "Python Internet-socket and name-resolution attempts, including spawned interpreters"
+    },
+    "preparation_excluded": "source acquisition/copy/verification and pyensembl reference indexing",
+    "recipes": {
+      "compare_reliability_outputs.py": {
+        "sha256": "0dd42e8cb507b9cd59eaadaad2e50aa1a1c8e2bc314c206a6315e63f47568f5e",
+        "size_bytes": 9970
+      },
+      "paired_build_benchmark.py": {
+        "sha256": "b549e52f8ae6a2d9042f698e7073f49f6a4485ee4ceba20d4805a7b3fb04097d",
+        "size_bytes": 16102
+      },
+      "profile_build.py": {
+        "sha256": "79fedf567d3b0de103d744c8ce87d9dff32bdad65b1339426677452940bc56bd",
+        "size_bytes": 11075
+      },
+      "profile_csv_serialization.py": {
+        "sha256": "f450771782fce136ccff621440d89d2fc2c9d39a732264ef80b7efd5f3e65b4b",
+        "size_bytes": 4414
+      },
+      "profile_mapping_workers.py": {
+        "sha256": "d0c8ad961a63c4f39887eb4ef84929c0dd0e137963c275f695bbfd490a389860",
+        "size_bytes": 1758
+      },
+      "profile_scan.py": {
+        "sha256": "d1136947cf185193d3be92d95bf31296acf477aba7c54b0d531127465641acb5",
+        "size_bytes": 7830
+      },
+      "reliability_benchmark.py": {
+        "sha256": "463ca3a99871170576aeef137494f5113b7ebcb7bb28f81724d676d968d3fcb1",
+        "size_bytes": 7937
+      },
+      "source_scan_benchmark.py": {
+        "sha256": "99500624e6b612771a657a4d283f6f11170d26aed82929325ed7d99db6a3c822",
+        "size_bytes": 12905
+      }
+    },
+    "reference": {
+      "Homo_sapiens.GRCh38.112.chr_patch_hapl_scaff.gtf.gz": {
+        "path": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/reference-bundle/bundles/2026-10-16T01-48-37Z/Homo_sapiens.GRCh38.112.chr_patch_hapl_scaff.gtf.gz",
+        "sha256": "9068bd52a9def32ac22b248393461b9f52931f29404a94b397ecc7ddbc2fce38",
+        "size_bytes": 60149702
+      },
+      "Homo_sapiens.GRCh38.cdna.all.fa.gz": {
+        "path": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/reference-bundle/bundles/2026-10-16T01-48-37Z/Homo_sapiens.GRCh38.cdna.all.fa.gz",
+        "sha256": "0bb3012f45e2474b8ce79911c47de0fc216bd574c60f1ddc8a8d911cd8a32b4d",
+        "size_bytes": 79435386
+      },
+      "Homo_sapiens.GRCh38.ncrna.fa.gz": {
+        "path": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/reference-bundle/bundles/2026-10-16T01-48-37Z/Homo_sapiens.GRCh38.ncrna.fa.gz",
+        "sha256": "16b9e32d047653e42a5d3b8843b30eefea1a08f7984568746d8db15ada26540b",
+        "size_bytes": 19887296
+      },
+      "Homo_sapiens.GRCh38.pep.all.fa.gz": {
+        "path": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/reference-bundle/bundles/2026-10-16T01-48-37Z/Homo_sapiens.GRCh38.pep.all.fa.gz",
+        "sha256": "2868236131342d14afbfa8dbd8a5e3fb56ba85210fdca196b65db3e17c7ece83",
+        "size_bytes": 14904881
+      }
+    },
+    "reference_scope": "prepared human Ensembl 112; cache-only build requested (see #865 for older producers)",
+    "requirements": {
+      "sha256": "1e33caa51e3f8be804a849dbae502e68c8ba7abad2eaed8d3397420baf35de5c",
+      "size_bytes": 123030
+    },
+    "resources": {
+      "cpu_limit": 8,
+      "mapping_workers": 2,
+      "memory_limit_mib": 65536,
+      "nonpreemptible": true,
+      "requested_scan_workers": 4
+    },
+    "source_commit": "ff5247f787ce79fbb640a00bcbe702fb7b7910cb",
+    "sources": {
+      "cedar": {
+        "export_date_status": "unverified; local mtime is not an export-date claim",
+        "filename": "cedar_mhc_ligand_full.csv",
+        "remote_path": "hitlist-qualification/raw-sources/3b137c99686c0df9f930a4e287995e818e289f7df47c6eeb56dbcb1c7f39d8e6/cedar_mhc_ligand_full.csv",
+        "sha256": "3b137c99686c0df9f930a4e287995e818e289f7df47c6eeb56dbcb1c7f39d8e6",
+        "size_bytes": 6945931753
+      },
+      "iedb": {
+        "export_date_status": "unverified; local mtime is not an export-date claim",
+        "filename": "iedb_mhc_ligand_full.csv",
+        "remote_path": "hitlist-qualification/raw-sources/957337189072a918fe38a216cfa4893cb08a74c35027ce0489252dd446eb6ad8/iedb_mhc_ligand_full.csv",
+        "sha256": "957337189072a918fe38a216cfa4893cb08a74c35027ce0489252dd446eb6ad8",
+        "size_bytes": 7773476136
+      }
+    }
+  },
+  "cprofile_scope": "parent only; threaded cumulative timings require independent validation",
+  "cpu_scope": "parent plus exited/waited children reported separately",
+  "options": {
+    "build_mappings": true,
+    "fetch_missing_proteomes": false,
+    "force": true,
+    "use_uniprot_search": false
+  },
+  "output": "/tmp/hitlist-benchmark-bv3w_xg9/hitlist/dataset/bundles/2026-10-30T03-14-47Z/observations.parquet",
+  "platform": "Linux-4.19.0-gvisor-x86_64-with-glibc2.31",
+  "process_id": 41,
+  "profiled": false,
+  "python": "3.12.1 (main, Jan 11 2024, 10:22:40) [GCC 10.2.1 20210110]",
+  "rss_sampling": "Linux, 0.2-second samples; tree sum can double-count shared pages",
+  "rss_scope": "per-process lifetime high-water mark; not process-tree sum",
+  "sampling_interval_seconds": null,
+  "sampling_scope": "parent plus separate per-worker sessions",
+  "schema_version": 1,
+  "stage_timings": "inclusive; sequential calls are separate entries",
+  "stages": [
+    {
+      "call_id": 1,
+      "process_cpu_seconds": 285.76,
+      "process_peak_rss_bytes": 26101178368,
+      "sampled_parent_peak_rss_bytes": 25906540544,
+      "sampled_tree_peak_rss_bytes": 25906540544,
+      "sources": [
+        "iedb"
+      ],
+      "stage": "hitlist.scanner.scan",
+      "status": "success",
+      "waited_child_peak_rss_bytes": 232976384,
+      "waited_children_cpu_seconds": 0.0,
+      "wall_seconds": 287.158762118
+    },
+    {
+      "call_id": 2,
+      "process_cpu_seconds": 242.74000000000007,
+      "process_peak_rss_bytes": 33333354496,
+      "sampled_parent_peak_rss_bytes": 33333354496,
+      "sampled_tree_peak_rss_bytes": 33333354496,
+      "sources": [
+        "cedar"
+      ],
+      "stage": "hitlist.scanner.scan",
+      "status": "success",
+      "waited_child_peak_rss_bytes": 232976384,
+      "waited_children_cpu_seconds": 0.0,
+      "wall_seconds": 243.433709465
+    },
+    {
+      "call_id": 3,
+      "process_cpu_seconds": 19.8599999999999,
+      "process_peak_rss_bytes": 33333354496,
+      "sampled_parent_peak_rss_bytes": 23150555136,
+      "sampled_tree_peak_rss_bytes": 23150555136,
+      "stage": "hitlist.supplement.scan_supplementary",
+      "status": "success",
+      "waited_child_peak_rss_bytes": 232976384,
+      "waited_children_cpu_seconds": 0.0,
+      "wall_seconds": 19.94886842599999
+    },
+    {
+      "call_id": 4,
+      "process_cpu_seconds": 20.809999999999945,
+      "process_peak_rss_bytes": 33333354496,
+      "sampled_parent_peak_rss_bytes": 27300741120,
+      "sampled_tree_peak_rss_bytes": 31852625920,
+      "stage": "hitlist.mappings.build_peptide_mappings",
+      "status": "success",
+      "waited_child_peak_rss_bytes": 33333354496,
+      "waited_children_cpu_seconds": 57.760000000000005,
+      "wall_seconds": 78.086745887
+    },
+    {
+      "call_id": 5,
+      "process_cpu_seconds": 122.75999999999999,
+      "process_peak_rss_bytes": 33333354496,
+      "sampled_parent_peak_rss_bytes": 23927705600,
+      "sampled_tree_peak_rss_bytes": 23946186752,
+      "stage": "hitlist.provenance.ContributorCollector.write",
+      "status": "success",
+      "waited_child_peak_rss_bytes": 33333354496,
+      "waited_children_cpu_seconds": 0.0,
+      "wall_seconds": 124.22927287100015
+    },
+    {
+      "call_id": 6,
+      "process_cpu_seconds": 3.330000000000041,
+      "process_peak_rss_bytes": 33333354496,
+      "sampled_parent_peak_rss_bytes": 23380348928,
+      "sampled_tree_peak_rss_bytes": 23398830080,
+      "stage": "hitlist.builder.atomic_write_parquet",
+      "status": "success",
+      "waited_child_peak_rss_bytes": 33333354496,
+      "waited_children_cpu_seconds": 0.0,
+      "wall_seconds": 3.3710224219998963
+    },
+    {
+      "call_id": 7,
+      "process_cpu_seconds": 0.6200000000000045,
+      "process_peak_rss_bytes": 33333354496,
+      "sampled_parent_peak_rss_bytes": 23378251776,
+      "sampled_tree_peak_rss_bytes": 23396732928,
+      "stage": "hitlist.builder.atomic_write_parquet",
+      "status": "success",
+      "waited_child_peak_rss_bytes": 33333354496,
+      "waited_children_cpu_seconds": 0.0,
+      "wall_seconds": 0.6290305310001258
+    },
+    {
+      "call_id": 8,
+      "process_cpu_seconds": 0.029999999999972715,
+      "process_peak_rss_bytes": 33333354496,
+      "sampled_parent_peak_rss_bytes": 23378251776,
+      "sampled_tree_peak_rss_bytes": 23396732928,
+      "stage": "hitlist.builder.atomic_write_parquet",
+      "status": "success",
+      "waited_child_peak_rss_bytes": 33333354496,
+      "waited_children_cpu_seconds": 0.0,
+      "wall_seconds": 0.03482335399985459
+    },
+    {
+      "call_id": 9,
+      "process_cpu_seconds": 14.620000000000005,
+      "process_peak_rss_bytes": 33333354496,
+      "sampled_parent_peak_rss_bytes": 26060509184,
+      "sampled_tree_peak_rss_bytes": 26078990336,
+      "stage": "hitlist.builder.build_bulk_proteomics",
+      "status": "success",
+      "waited_child_peak_rss_bytes": 33333354496,
+      "waited_children_cpu_seconds": 0.0,
+      "wall_seconds": 14.55565188699984
+    },
+    {
+      "call_id": 10,
+      "process_cpu_seconds": 1.5499999999999545,
+      "process_peak_rss_bytes": 33333354496,
+      "sampled_parent_peak_rss_bytes": 26060509184,
+      "sampled_tree_peak_rss_bytes": 26078990336,
+      "stage": "hitlist.builder.atomic_write_parquet",
+      "status": "success",
+      "waited_child_peak_rss_bytes": 33333354496,
+      "waited_children_cpu_seconds": 0.0,
+      "wall_seconds": 1.5696823309999672
+    },
+    {
+      "call_id": 11,
+      "process_cpu_seconds": 0.2600000000001046,
+      "process_peak_rss_bytes": 33333354496,
+      "sampled_parent_peak_rss_bytes": 26030186496,
+      "sampled_tree_peak_rss_bytes": 26048667648,
+      "stage": "hitlist.builder.build_line_expression",
+      "status": "success",
+      "waited_child_peak_rss_bytes": 33333354496,
+      "waited_children_cpu_seconds": 0.0,
+      "wall_seconds": 0.2695697750000363
+    }
+  ],
+  "status": "success",
+  "total": {
+    "process_cpu_seconds": 924.6300000000001,
+    "process_peak_rss_bytes": 33333354496,
+    "sampled_parent_peak_rss_bytes": 33333354496,
+    "sampled_tree_peak_rss_bytes": 33333354496,
+    "waited_child_peak_rss_bytes": 33333354496,
+    "waited_children_cpu_seconds": 57.760000000000005,
+    "wall_seconds": 978.2028947489999
+  },
+  "versions": {
+    "PyYAML": "6.0.3",
+    "Pygments": "2.21.0",
+    "adjustText": "1.4.0",
+    "aiohttp": "3.9.1",
+    "aiosignal": "1.3.1",
+    "aiostream": "0.4.4",
+    "anyio": "4.2.0",
+    "asgiref": "3.5.2",
+    "asttokens": "2.4.1",
+    "attrs": "23.2.0",
+    "biotite": "2.0.0",
+    "biotraj": "1.2.2",
+    "certifi": "2026.7.22",
+    "charset-normalizer": "3.5.1",
+    "click": "8.1.7",
+    "cloudpickle": "2.2.0",
+    "commonmark": "0.9.1",
+    "contourpy": "1.4.0",
+    "coverage": "7.16.0",
+    "cycler": "0.12.1",
+    "datacache": "1.29.3",
+    "decorator": "5.1.1",
+    "et_xmlfile": "2.0.0",
+    "execnet": "2.1.2",
+    "executing": "2.0.1",
+    "fastapi": "0.88.0",
+    "fastprogress": "1.0.0",
+    "filelock": "4.0.6",
+    "fonttools": "4.66.1",
+    "frozenlist": "1.4.1",
+    "grpclib": "0.4.7",
+    "gtfparse": "3.0.2",
+    "h2": "4.1.0",
+    "hitlist": "2.1.3",
+    "hpack": "4.0.0",
+    "hyperframe": "6.0.1",
+    "idna": "3.19",
+    "importlib-metadata": "4.8.1",
+    "iniconfig": "2.3.0",
+    "ipython": "8.20.0",
+    "jedi": "0.19.1",
+    "kiwisolver": "1.5.1",
+    "matplotlib": "3.11.2",
+    "matplotlib-inline": "0.1.6",
+    "matplotlib-venn": "1.1.2",
+    "memoized-property": "1.0.3",
+    "mhcgnomes": "3.64.6",
+    "msgpack": "1.2.4",
+    "multidict": "6.0.4",
+    "networkx": "3.7",
+    "numpy": "2.5.2",
+    "oncoref": "1.8.207",
+    "openpyxl": "3.1.5",
+    "orfdata": "0.42.0",
+    "packaging": "26.3",
+    "pandas": "3.1.0",
+    "parso": "0.8.3",
+    "pexpect": "4.9.0",
+    "pillow": "12.3.0",
+    "pip": "23.3.2",
+    "platformdirs": "4.13.0",
+    "pluggy": "1.6.0",
+    "prompt-toolkit": "3.0.43",
+    "protobuf": "4.25.2",
+    "ptyprocess": "0.7.0",
+    "pure-eval": "0.2.2",
+    "pyahocorasick": "2.3.1",
+    "pyarrow": "25.0.1",
+    "pydantic": "1.10.14",
+    "pyensembl": "2.32.3",
+    "pyfaidx": "0.9.0.4",
+    "pyinstrument": "5.1.3",
+    "pyparsing": "3.3.3",
+    "pytest": "9.1.1",
+    "pytest-cov": "7.1.0",
+    "pytest-xdist": "3.8.0",
+    "python-dateutil": "2.9.0.post0",
+    "python-multipart": "0.0.6",
+    "requests": "2.34.2",
+    "rich": "12.3.0",
+    "ruff": "0.16.5",
+    "scipy": "1.18.1",
+    "serializable": "1.3.0",
+    "setuptools": "84.2.1",
+    "six": "1.17.0",
+    "sniffio": "1.3.0",
+    "stack-data": "0.6.3",
+    "starlette": "0.22.0",
+    "tblib": "1.7.0",
+    "tinytimer": "0.0.0",
+    "toml": "0.10.2",
+    "tqdm": "4.70.0",
+    "traitlets": "5.14.1",
+    "typechecks": "0.1.0",
+    "typeguard": "4.1.5",
+    "typer": "0.6.1",
+    "types-certifi": "2021.10.8.3",
+    "types-toml": "0.10.4",
+    "typing_extensions": "4.9.0",
+    "urllib3": "2.7.0",
+    "wcwidth": "0.2.13",
+    "wheel": "0.42.0",
+    "yarl": "1.9.4",
+    "zipp": "3.17.0"
+  }
+}
