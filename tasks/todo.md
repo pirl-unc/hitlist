@@ -6,8 +6,9 @@ Specification: [contributor-storage-63-spec.md](contributor-storage-63-spec.md).
 - [x] Specify comparison baseline, invariants and release gates before implementation.
 - [x] Profile current source capture/publication and compare isolated candidates.
 - [x] Implement selected bounded optimization and meaningful regression coverage.
-- [ ] Complete controlled real-source and full-build output/time/CPU/memory comparisons.
-- [ ] Measure test.sh; run format, lint, full tests, metadata/dependency and CI gates.
+- [x] Complete controlled real-source and full-build output/time/CPU/memory comparisons.
+- [x] Measure test.sh; run format, lint, full tests, metadata/dependency and measured-code CI gates.
+- [ ] Pass checks on the final evidence commit.
 - [ ] Merge, deploy exact clean-main artifacts, verify public downloads and update #63.
 
 ## Review
@@ -38,12 +39,30 @@ identified nested cgroup admission issue #878, corrected before shipping with
 v1/v2, ancestor, hybrid-mount and CPU-affinity handling. The first full/test paired
 experiments were intentionally cancelled as superseded; their partial receipts
 are retained and do not count as qualification.
-The complete e88891a suite comparison passes but is 3.3% slower (33 added tests);
-all producer CI gates pass, including 97 integration tests and release build.
-Review also found #879: zero-row Arrow views retain full buffers. The serial-only
-ownership correction passes 117 focused checks and leaves the measured parallel
-execution path unchanged. Verify actual parallel admission/no retry in both full
-candidate runs; rerun final-code local and paired suite checks.
+The earlier e88891a suite comparison passes but is 3.3% slower (33 added tests).
+Review found #879: zero-row Arrow views retain full buffers. Owned empty columns
+correct the serial result lifetime. The full raw-IPC candidate then exceeded its
+reservation and retried serially (#880); that experiment was cancelled and is
+excluded. Zstandard IPC compression preserves the same total scratch budget.
+
+Current producer a71f2e9 passes format, lint, strict docs, all five hosted unit
+configurations, 97 integration tests and the PR release gate. The release gate's
+test.sh passes 3,794 unit tests with one skip, then all 97 integration tests.
+The local final-code test.sh refused before starting because free memory was below
+its unchanged admission threshold; hosted checks supply the full verification.
+The replacement full comparison completes candidate/baseline/baseline/candidate
+on one allocation. Both candidates use two source workers without a serial retry.
+All seven Parquet artifacts are byte-identical across all four builds, with matching
+input/dependency pins and zero recorded Python network attempts. Mean wall time
+falls from 979.99 to 680.47 seconds (30.6%, 1.44×); aggregate CPU falls 8.5%.
+Mean sampled tree peak RSS rises from 31.05 to 33.45 GiB; the 60 GiB minimum
+admission threshold remains. The 2× whole-build target is not met.
+
+The final-code four-run suite comparison passes with two normally admitted workers:
+3,754 baseline / 3,793 candidate tests, two skips each. Mean wall time rises 4.6%
+from 255.39 to 267.07 seconds; no suite speedup is claimed. Full receipts and
+reproduction commands are in docs/source-build-performance.md and the linked
+results directory. Final evidence-head checks, merge and publication remain.
 
 # Performance-report skip wording — #873, 2026-10-29
 

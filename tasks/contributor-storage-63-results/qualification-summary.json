@@ -1,0 +1,68 @@
+{
+  "status": "success",
+  "n_full_runs": 4,
+  "input_fields_equal": [
+    "sources",
+    "reference",
+    "assets",
+    "requirements"
+  ],
+  "producer_commits": [
+    "a71f2e9bf7a01e0b33d751a3134a88f024f4b055",
+    "ff5247f787ce79fbb640a00bcbe702fb7b7910cb",
+    "ff5247f787ce79fbb640a00bcbe702fb7b7910cb",
+    "a71f2e9bf7a01e0b33d751a3134a88f024f4b055"
+  ],
+  "comparisons": [
+    {
+      "run": 2,
+      "n_byte_identical_parquets": 7,
+      "generation_validation": {
+        "before": {
+          "producer_version": "2.1.4",
+          "readme": "reconstructed and hash-verified",
+          "sources": "all pins match"
+        },
+        "after": {
+          "producer_version": "2.1.3",
+          "readme": "reconstructed and hash-verified",
+          "sources": "all pins match"
+        }
+      }
+    },
+    {
+      "run": 3,
+      "n_byte_identical_parquets": 7,
+      "generation_validation": {
+        "before": {
+          "producer_version": "2.1.4",
+          "readme": "reconstructed and hash-verified",
+          "sources": "all pins match"
+        },
+        "after": {
+          "producer_version": "2.1.3",
+          "readme": "reconstructed and hash-verified",
+          "sources": "all pins match"
+        }
+      }
+    },
+    {
+      "run": 4,
+      "n_byte_identical_parquets": 7,
+      "generation_validation": {
+        "before": {
+          "producer_version": "2.1.4",
+          "readme": "reconstructed and hash-verified",
+          "sources": "all pins match"
+        },
+        "after": {
+          "producer_version": "2.1.4",
+          "readme": "reconstructed and hash-verified",
+          "sources": "all pins match"
+        }
+      }
+    }
+  ],
+  "twofold_target_met": false,
+  "scope": "Independent checks of retained receipts; the remote comparison reread and hashed the actual output files."
+}

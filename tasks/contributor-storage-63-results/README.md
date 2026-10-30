@@ -4,6 +4,7 @@ Baseline: released 2.1.3, main `ff5247f787ce79fbb640a00bcbe702fb7b7910cb`.
 Earlier full/test producer: `e88891a`, version 2.1.4; full qualification was
 superseded after the IPC capacity failure. See
 [the report](../../docs/source-build-performance.md) for boundaries and results.
+Final measured producer: `a71f2e9bf7a01e0b33d751a3134a88f024f4b055`, version 2.1.4.
 
 - `baseline-profile*`: 500,000-row sampling profile; diagnostic timings only.
 - `scan-1*`: completed ABBA prefix comparison of tuple rows, previous-cell JSON
@@ -21,7 +22,17 @@ superseded after the IPC capacity failure. See
 - `admission-probe.json`: corrected membership/mount resolution on the actual
  64 GiB runtime. Local regression tests cover nested and hybrid hierarchies.
 - `local-validation.json`: complete local test.sh pass, format/lint and isolated
-  metadata/dependency checks; separate from paired suite timing.
+  metadata/dependency checks for earlier `e88891a`; separate from paired suite timing.
+- `test-*`: completed earlier `e88891a` suite comparison, before the empty-schema
+  and IPC-compression corrections.
+- `final-test-*`: four complete ordinary test.sh runs for `a71f2e9` and baseline,
+  identical dependencies, normal two-worker admission and individual summaries.
+- `final-producer-ci.json`: successful current-code matrix, integration, docs and
+  release gates; later evidence-head and clean-main checks remain separate.
+- `full-*`: complete candidate/baseline/baseline/candidate builds for the final
+  producer, exact seven-Parquet comparisons, input/output receipts, GNU time
+  resources, per-stage means and independently collected network-audit inventory.
+  Both candidates use two source workers without a serial retry.
 - `execution-identifiers.json`: durable app/call IDs. A local submission's exit
   does not establish remote completion. Running experiments remain unqualified.
 
@@ -34,5 +45,6 @@ thread-group once but can still count shared pages across distinct processes.
 
 `ipc-capacity-*` retains the full candidate's transfer-reservation failure and
 intentional cancellation. `final-local-memory-refusal.txt` records a local test.sh
-preflight refusal before any tests started. New full qualification will require
-actual parallel selection with no serial retry; old partial results are excluded.
+preflight refusal before any tests started. The replacement full qualification
+passes with actual parallel selection and no serial retry; old partial results
+remain excluded.

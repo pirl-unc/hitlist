@@ -1,0 +1,4 @@
+[test.sh] cpus=8 cpu_cap=6 ram_free=63.91GB mem_cap=25 per_worker=2.5GB workers=2
+[test.sh] → exec python -m pytest -n 2 -m not integration  --cov=hitlist/ --cov-report=term-missing tests
+[test.sh] Resource profile for 'not integration' (peak RSS is a process peak, not summed worker RAM)
+=========== 3754 passed, 2 skipped, 10 warnings in 245.70s (0:04:05) ===========

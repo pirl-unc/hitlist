@@ -104,3 +104,12 @@ two-worker selection, no serial retry, exact seven-Parquet equality, source and
 dependency pins, and zero recorded Python network attempts. Re-run the suite
 comparison only after the first complete candidate succeeds. No partial or
 superseded result counts as final qualification.
+
+## Qualification review
+
+Producer a71f2e9 completes both full candidates with two workers and no serial
+retry. All seven retained Parquet files match both baseline runs exactly. Mean
+whole-build wall time falls from 979.99 to 680.47 seconds. Sampled tree peaks are
+32.98 and 33.92 GiB; retain the conservative 60 GiB minimum admission threshold.
+The complete suite comparison and measured-code CI/release gates pass. This is
+a qualified 1.44× full-build result, leaving the 2× target open.

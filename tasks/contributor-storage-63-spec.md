@@ -45,8 +45,12 @@ Do not weaken force-build behavior, reference cache policy or network audits.
   stages and continue investigation while useful work remains.
 
 ## Review
-Pending current-base profiling and candidate selection. Prior completed evidence
-remains in docs/serial-build-performance.md and tasks/full-build-63-results/.
+Current-base profiling and candidate selection are complete. The final four-run
+comparison and exact output checks pass: 30.6% less mean wall time (1.44×), with
+8.5% less aggregate CPU and 7.7% higher sampled tree peak RSS. The 2× target stays
+open. See docs/source-build-performance.md and contributor-storage-63-results/ for
+complete measurements. Prior evidence remains in docs/serial-build-performance.md
+and tasks/full-build-63-results/.
 
 Current 500,000-row profile: 66.33 s scanning (19.18 s capture, 11.14 s CSV
 iteration, 10.32 s scanner self, 5.30 s assay annotation, 4.51 s DataFrame

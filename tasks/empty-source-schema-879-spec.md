@@ -22,3 +22,8 @@ the unchanged parallel path without a serial retry. Explicitly document the late
 serial-only ownership correction and do not claim a new measured serial memory or
 speed improvement from the small retained-buffer test. If the experiment exercises
 the changed serial path, requalification is required.
+
+The conditional reuse of e88891a timings was superseded by #880: that candidate
+retried serially and its experiment was cancelled. The replacement full producer
+includes the owned-schema correction and compressed IPC, so final measurements
+will use the complete current implementation.
