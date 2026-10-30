@@ -6,6 +6,7 @@ import io
 import json
 import multiprocessing
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -19,6 +20,44 @@ _RESULT_BYTES = 64 * 1024
 _PARTITIONS = ("ms", "binding", "other", "empty")
 
 
+def _cgroup_directories(controller):
+    """Resolve membership inside its mount and include every visible ancestor."""
+    memberships = {}
+    for line in Path("/proc/self/cgroup").read_text().splitlines():
+        _, controllers, location = line.split(":", 2)
+        for name in controllers.split(","):
+            memberships[name] = location
+    for line in Path("/proc/self/mountinfo").read_text().splitlines():
+        before, after = line.split(" - ", 1)
+        fields, filesystem = before.split(), after.split()
+        unified = filesystem[0] == "cgroup2"
+        if unified:
+            if controller in memberships:
+                continue  # A hybrid host can keep this controller on v1.
+            location = memberships.get("")
+        elif filesystem[0] == "cgroup" and controller in filesystem[2].split(","):
+            location = memberships.get(controller)
+        else:
+            continue
+        if location is None:
+            continue
+        root, mount = (
+            Path(re.sub(r"\\([0-7]{3})", lambda m: chr(int(m[1], 8)), value))
+            for value in fields[3:5]
+        )
+        member = Path(location)
+        if ".." in member.parts:
+            raise ValueError("Unresolved cgroup namespace")
+        current = mount / member.relative_to(root)
+        directories = []
+        while True:
+            directories.append(current)
+            if current == mount:
+                return unified, directories
+            current = current.parent
+    raise ValueError(f"No resolved {controller} cgroup mount")
+
+
 def _available_memory():
     """Conservative free capacity; unknown probes always select serial execution."""
     try:
@@ -28,19 +67,20 @@ def _available_memory():
                 for line in Path("/proc/meminfo").read_text().splitlines()
                 if line.startswith("MemAvailable:")
             )
-            for limit_name, used_name in (
-                ("/sys/fs/cgroup/memory.max", "/sys/fs/cgroup/memory.current"),
-                (
-                    "/sys/fs/cgroup/memory/memory.limit_in_bytes",
-                    "/sys/fs/cgroup/memory/memory.usage_in_bytes",
-                ),
-            ):
-                if Path(limit_name).exists():
-                    limit = Path(limit_name).read_text().strip()
-                    if limit != "max":
-                        available = min(
-                            available, max(0, int(limit) - int(Path(used_name).read_text()))
-                        )
+            unified, directories = _cgroup_directories("memory")
+            names = (
+                ("memory.max", "memory.current")
+                if unified
+                else ("memory.limit_in_bytes", "memory.usage_in_bytes")
+            )
+            for directory in directories:
+                if not (directory / names[0]).exists():
+                    continue  # The controller can be disabled at an ancestor.
+                limit = (directory / names[0]).read_text().strip()
+                if limit != "max":
+                    available = min(
+                        available, max(0, int(limit) - int((directory / names[1]).read_text()))
+                    )
             return available
         if sys.platform == "darwin":
             probe = subprocess.run(["vm_stat"], capture_output=True, text=True, check=True)
@@ -52,7 +92,7 @@ def _available_memory():
             return (pages["Pages free"] + pages.get("Pages speculative", 0)) * os.sysconf(
                 "SC_PAGE_SIZE"
             )
-    except (OSError, ValueError, KeyError, StopIteration, subprocess.SubprocessError):
+    except (OSError, ValueError, KeyError, IndexError, StopIteration, subprocess.SubprocessError):
         return None
     return None
 
@@ -61,16 +101,21 @@ def _available_cpus():
     count = os.cpu_count() or 1
     try:
         if sys.platform == "linux":
-            if Path("/sys/fs/cgroup/cpu.max").exists():
-                quota, period = Path("/sys/fs/cgroup/cpu.max").read_text().split()
-                if quota != "max":
-                    count = min(count, max(1, int(quota) // int(period)))
-            elif Path("/sys/fs/cgroup/cpu/cpu.cfs_quota_us").exists():
-                quota = int(Path("/sys/fs/cgroup/cpu/cpu.cfs_quota_us").read_text())
-                period = int(Path("/sys/fs/cgroup/cpu/cpu.cfs_period_us").read_text())
-                if quota > 0:
-                    count = min(count, max(1, quota // period))
-    except (OSError, ValueError, ZeroDivisionError):
+            count = min(count, len(os.sched_getaffinity(0)))
+            unified, directories = _cgroup_directories("cpu")
+            for directory in directories:
+                if unified:
+                    if not (directory / "cpu.max").exists():
+                        continue
+                    quota, period = (directory / "cpu.max").read_text().split()
+                    if quota != "max":
+                        count = min(count, max(1, int(quota) // int(period)))
+                elif (directory / "cpu.cfs_quota_us").exists():
+                    quota = int((directory / "cpu.cfs_quota_us").read_text())
+                    period = int((directory / "cpu.cfs_period_us").read_text())
+                    if quota > 0:
+                        count = min(count, max(1, quota // period))
+    except (OSError, ValueError, KeyError, IndexError, ZeroDivisionError):
         return 1
     return count
 

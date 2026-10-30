@@ -229,7 +229,75 @@ def test_source_failure_before_import_cleans_owned_scratch(tmp_path, monkeypatch
     ],
 )
 def test_memory_admission_caps_host_capacity_and_fails_closed(monkeypatch, contents, expected):
+    contents = {
+        "/proc/self/cgroup": "0::/\n",
+        "/proc/self/mountinfo": "1 0 0:1 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n",
+        **contents,
+    }
     monkeypatch.setattr(workers.sys, "platform", "linux")
     monkeypatch.setattr(workers.Path, "exists", lambda path: str(path) in contents)
     monkeypatch.setattr(workers.Path, "read_text", lambda path: contents[str(path)])
     assert workers._available_memory() == expected
+
+
+@pytest.mark.parametrize("unified", [True, False])
+def test_nested_cgroup_and_ancestor_limits_bound_admission(monkeypatch, unified):
+    gib = 1024**3
+    root = "/sys/fs/cgroup"
+    contents = {
+        "/proc/meminfo": f"MemAvailable: {200 * gib // 1024} kB\n",
+        "/proc/self/cgroup": "0::/service/task\n" if unified else "4:memory,cpu:/service/task\n",
+        "/proc/self/mountinfo": f"1 0 0:1 / {root} rw - cgroup2 cgroup rw\n"
+        if unified
+        else f"1 0 0:1 / {root} rw - cgroup cgroup rw,memory,cpu\n",
+    }
+    for location, limit, used, cpus in [
+        ("", 100, 4, 8),
+        ("/service", 40, 10, 1),
+        ("/service/task", 64, 2, 4),
+    ]:
+        path = root + location
+        if unified:
+            contents.update(
+                {
+                    path + "/memory.max": str(limit * gib),
+                    path + "/memory.current": str(used * gib),
+                    path + "/cpu.max": f"{cpus * 100000} 100000",
+                }
+            )
+        else:
+            contents.update(
+                {
+                    path + "/memory.limit_in_bytes": str(limit * gib),
+                    path + "/memory.usage_in_bytes": str(used * gib),
+                    path + "/cpu.cfs_quota_us": str(cpus * 100000),
+                    path + "/cpu.cfs_period_us": "100000",
+                }
+            )
+    monkeypatch.setattr(workers.sys, "platform", "linux")
+    monkeypatch.setattr(workers.os, "sched_getaffinity", lambda _: set(range(8)), raising=False)
+    monkeypatch.setattr(workers.os, "cpu_count", lambda: 8)
+    monkeypatch.setattr(workers.Path, "exists", lambda path: str(path) in contents)
+    monkeypatch.setattr(workers.Path, "read_text", lambda path: contents[str(path)])
+    assert workers._available_memory() == 30 * gib
+    assert workers._available_cpus() == 1
+    contents["/proc/self/cgroup"] = "invalid"
+    assert workers._available_memory() is None
+    assert workers._available_cpus() == 1
+
+
+def test_hybrid_cgroup_prefers_the_controllers_v1_membership(monkeypatch):
+    contents = {
+        "/proc/self/cgroup": "0::/unified\n4:memory,cpu:/service/task\n",
+        "/proc/self/mountinfo": (
+            "1 0 0:1 / /sys/fs/cgroup/unified rw - cgroup2 cgroup rw\n"
+            "2 0 0:2 /service /sys/fs/cgroup/legacy rw - cgroup cgroup rw,memory,cpu\n"
+        ),
+    }
+    monkeypatch.setattr(workers.Path, "read_text", lambda path: contents[str(path)])
+    unified, directories = workers._cgroup_directories("memory")
+    assert not unified
+    assert list(map(str, directories)) == [
+        "/sys/fs/cgroup/legacy/task",
+        "/sys/fs/cgroup/legacy",
+    ]

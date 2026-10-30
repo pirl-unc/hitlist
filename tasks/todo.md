@@ -28,11 +28,16 @@ identity. The corrected two-source diagnostic has matching output bytes and mean
 worker design is recorded in [source-workers-63-spec.md](source-workers-63-spec.md).
 The bounded implementation passes 127 focused tests, including actual spawn,
 scratch fallback, cancellation, corrupt snapshots, source identity, and exact
-merged contributor bytes. A real-prefix comparison including production IPC and
-graph merging is the next decision gate; no full-build speed claim yet. The complete local suite at f46d261 passes
+merged contributor bytes. The real-prefix comparison including production IPC and
+graph merging passes all four exact outputs:115.57 s serial /76.79 s parallel
+means. No full-build speed claim yet. The complete local suite at f46d261 passes
 3,785 tests with one skip, using four workers admitted by the unchanged memory
 guard. Format/lint and isolated-environment dependency/metadata checks pass.
-Version 2.1.4 is reserved for this PR; check main again before landing.
+Draft PR #877 reserves version 2.1.4; check main again before landing. Review
+identified nested cgroup admission issue #878, corrected before shipping with
+v1/v2, ancestor, hybrid-mount and CPU-affinity handling. The first full/test paired
+experiments were intentionally cancelled as superseded; their partial receipts
+are retained and do not count as qualification.
 
 # Performance-report skip wording — #873, 2026-10-29
 

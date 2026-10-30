@@ -26,7 +26,8 @@ cap. Two sources, two available CPUs and conservative memory admission are all
 required. Unknown memory selects serial scanning. The current admission threshold
 is 28 GiB per source plus 4 GiB parent headroom, increased for source files larger
 than the qualified inputs. Available memory is capped by the container's remaining
-allocation. This is a capacity estimate, not a memory reservation against other
+allocation, including the process’s resolved nested cgroup and visible ancestor
+limits. CPU affinity and ancestor quotas also cap admission. This is a capacity estimate, not a memory reservation against other
 applications. Full-corpus resource qualification is still pending.
 
 The existing contributor scratch budget covers the parent graph, both child
@@ -50,6 +51,7 @@ Receipts are in `tasks/contributor-storage-63-results/`.
 | Storage + tuple rows | 58.96 | 54.77 | 500,000 IEDB rows, capture and publication |
 | Plus adjacent annotation reuse | 57.96 | 53.21 | Same bounded IEDB workload |
 | Independent source processes, corrected sampler | 73.54 | 37.49 | 500,000 rows per source; excludes cross-source merging |
+| Actual merged builder source path | 115.57 | 76.79 | 500,000 rows per source; includes IPC, graph import and cross-source dedup |
 
 The second IEDB comparison reduces wall time 8.2% and mean parent peak RSS from
 2.77 to 2.26 GiB. Its observation and contributor outputs are byte-identical.
@@ -59,8 +61,9 @@ parallel. Shared pages across distinct processes can still be counted repeatedly
 this is not a physical-memory measurement.
 
 The independent-source diagnostic excludes production graph import and partition
-merging. An additional comparison using the actual merged builder source path and
-complete forced builds is required before selecting the production candidate.
+merging. The actual merged builder source path preserves all four output files across
+four runs and reduces mean wall time 33.6%. Complete forced builds remain required
+before making a whole-build claim.
 
 ## Memory sampler correction
 

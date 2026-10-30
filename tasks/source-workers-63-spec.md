@@ -17,7 +17,8 @@ existing IEDB-then-CEDAR order regardless of completion order.
 ## Admission and ownership
 Unknown capacity, fewer than two CPUs, a single source, or an explicit workers=1
 selects the serial path. Use Linux MemAvailable capped by cgroup v1/v2 remaining
-memory, or macOS free+speculative pages. Admit two sources only with conservative
+memory, resolving process membership and every visible ancestor mount limit
+(including hybrid v1/v2 hierarchies), or macOS free+speculative pages. Admit two sources only with conservative
 per-source budgets (at least28GiB each, increased for source files larger than the
 qualified corpus) plus4GiB parent headroom. Reconfirm against the full benchmark;
 never force workers past measured capacity. Honor HITLIST_SCAN_WORKERS as a cap.
@@ -73,3 +74,11 @@ pinned inputs/dependencies and corrected memory sampling, including startup, IPC
 merge and output verification. If the merged path loses the diagnostic benefit,
 remove it. Pass required local/hosted checks, version bump, PR merge and exact tested
 PyPI artifact publication; keep the 2x target open unless actually established.
+
+## Admission review — #878
+
+The initial draft checked only root controller files. A synthetic nested service
+with 96 GiB remaining at the root but 30 GiB at its parent demonstrates that this
+can admit workers incorrectly. Resolve mount-relative membership and all visible
+ancestor limits for both memory and CPU; also cap by CPU affinity. Unknown
+hierarchies select serial execution. This is an unshipped draft correction.
