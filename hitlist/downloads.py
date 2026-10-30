@@ -59,15 +59,35 @@ import json
 import os
 import sys
 import tempfile
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 
-from datacache import VersionedFileRegistry
+from datacache import FileValidationError, VersionedFileRegistry
+
+from .errors import DownloadError, HitlistError, IntegrityError
 
 # Socket inactivity bound; mapping prefetch separately enforces a wall-clock
 # deadline (#255/#402). Transfer, retry and publication belong to datacache.
 _DOWNLOAD_SOCKET_TIMEOUT = 300.0
+
+
+@contextmanager
+def _typed_download_errors(url: str):
+    """Re-raise datacache failures as :class:`DownloadError`/:class:`IntegrityError`.
+
+    ``FileValidationError`` (size/SHA-256/corrupt or empty file) is an integrity
+    failure; other ``OSError`` (HTTP, timeout, disk) and ``ValueError`` (empty
+    or oversized response) are download failures. The original exception stays
+    on ``__cause__``; anything else is a bug and propagates untouched.
+    """
+    try:
+        yield
+    except FileValidationError as error:
+        raise IntegrityError(f"Failed to download {url}: {error}") from error
+    except (OSError, ValueError) as error:
+        raise DownloadError(f"Failed to download {url}: {error}") from error
 
 
 def download_to_file(
@@ -97,14 +117,14 @@ def download_to_file(
     name = label or dest.name
     cached = dest.exists() and not force
     if verbose and not cached:
-        print(f"  [{name}] downloading from {url}")
+        print(f"  [{name}] downloading from {url}", file=sys.stderr)
     # Preserve hitlist's literal-URL opt-in, including query-bearing endpoints
     # whose query ends in an archive name (IEDB/CEDAR).
     source, target = url.lower(), dest.name.lower()
     expand = decompress and any(
         source.endswith(suffix) and not target.endswith(suffix) for suffix in (".gz", ".zip")
     )
-    try:
+    with _typed_download_errors(url):
         datacache.fetch_file(
             url,
             destination=dest,
@@ -118,10 +138,8 @@ def download_to_file(
             resume=resume,
             record_provenance=True,
         )
-    except Exception as error:
-        raise RuntimeError(f"Failed to download {url}: {error}") from error
     if verbose and cached:
-        print(f"  [{name}] already cached ({dest.stat().st_size:,} bytes)")
+        print(f"  [{name}] already cached ({dest.stat().st_size:,} bytes)", file=sys.stderr)
     return dest
 
 
@@ -1188,22 +1206,23 @@ def fetch_data_asset(filename: str, *, force: bool = False, verbose: bool = True
 
     meta = assets[filename]
     if verbose:
-        print(f"Fetching {filename} ({meta['source']}) via datacache...")
-    return Path(
-        datacache.fetch_file(
-            meta["url"],
-            filename=filename,
-            subdir="hitlist",
-            force=force,
-            timeout=_DOWNLOAD_SOCKET_TIMEOUT,
-            expected_sha256=meta["sha256"],
-            expected_size=meta["size_bytes"],
-            raw=True,
-            resume=os.name == "posix",
-            record_provenance=True,
-            show_progress=verbose,
+        print(f"Fetching {filename} ({meta['source']}) via datacache...", file=sys.stderr)
+    with _typed_download_errors(meta["url"]):
+        return Path(
+            datacache.fetch_file(
+                meta["url"],
+                filename=filename,
+                subdir="hitlist",
+                force=force,
+                timeout=_DOWNLOAD_SOCKET_TIMEOUT,
+                expected_sha256=meta["sha256"],
+                expected_size=meta["size_bytes"],
+                raw=True,
+                resume=os.name == "posix",
+                record_provenance=True,
+                show_progress=verbose,
+            )
         )
-    )
 
 
 def fetch_all_data_assets(*, force: bool = False, verbose: bool = True) -> dict[str, Path]:
@@ -1212,17 +1231,32 @@ def fetch_all_data_assets(*, force: bool = False, verbose: bool = True) -> dict[
     Backs the ``hitlist data fetch-all`` command — one call to pull the complete
     set of paper-derived CSVs from the GitHub data-assets release. Returns a
     ``{filename: cached_path}`` map. Re-uses cached copies unless ``force``.
+
+    A failed asset does not stop the rest: after every asset was attempted, a
+    summary is printed and a :class:`DownloadError` listing each failure is raised.
     """
     assets = _data_assets_registry()["assets"]
     out: dict[str, Path] = {}
+    failures: dict[str, HitlistError] = {}
     for i, filename in enumerate(sorted(assets), 1):
         if verbose:
-            print(f"[{i}/{len(assets)}] {filename}")
-        out[filename] = fetch_data_asset(filename, force=force, verbose=verbose)
+            print(f"[{i}/{len(assets)}] {filename}", file=sys.stderr)
+        try:
+            out[filename] = fetch_data_asset(filename, force=force, verbose=verbose)
+        except HitlistError as error:
+            failures[filename] = error
+            print(f"  FAILED {filename}: {error}", file=sys.stderr)
     if verbose and out:
         total = sum(p.stat().st_size for p in out.values())
         cache_dir = next(iter(out.values())).parent
-        print(f"Done — {len(out)} assets cached in {cache_dir} ({total / 1e6:.1f} MB).")
+        print(
+            f"Done — {len(out)} assets cached in {cache_dir} ({total / 1e6:.1f} MB).",
+            file=sys.stderr,
+        )
+    if failures:
+        listing = "; ".join(f"{name} ({error})" for name, error in failures.items())
+        print(f"{len(failures)} of {len(assets)} assets failed.", file=sys.stderr)
+        raise DownloadError(f"{len(failures)} of {len(assets)} data assets failed: {listing}")
     return out
 
 
@@ -1347,7 +1381,7 @@ def fetch(name: str, force: bool = False) -> Path:
             register(name, dest, ds["description"])
         return dest
 
-    print(f"Downloading {ds['description']}...")
+    print(f"Downloading {ds['description']}...", file=sys.stderr)
     # decompress=True unzips/gunzips the IEDB/CEDAR archives into their CSV; it
     # is a no-op for the plain-FASTA viral proteomes (download_to_file only
     # decompresses when the URL is a .zip/.gz the dest filename doesn't carry).
@@ -1368,7 +1402,7 @@ def fetch(name: str, force: bool = False) -> Path:
         "source": ds["url"],
     }
     _save_manifest(manifest)
-    print(f"  Saved to {dest} ({dest.stat().st_size:,} bytes)")
+    print(f"  Saved to {dest} ({dest.stat().st_size:,} bytes)", file=sys.stderr)
     return dest
 
 

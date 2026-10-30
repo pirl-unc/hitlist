@@ -55,7 +55,7 @@ def test_cache_hit_short_circuits(tmp_path, monkeypatch, capsys):
 
     assert out == dest
     assert dest.read_bytes() == b"cached"
-    assert "already cached" in capsys.readouterr().out
+    assert "already cached" in capsys.readouterr().err
 
 
 def test_fresh_download_streams_and_reports(tmp_path, monkeypatch, capsys):
@@ -67,7 +67,7 @@ def test_fresh_download_streams_and_reports(tmp_path, monkeypatch, capsys):
     assert out == dest
     assert dest.read_bytes() == b">sp|P1\nACDEF\n"
     assert calls["n_requests"] == 1
-    assert "downloading from" in capsys.readouterr().out
+    assert "downloading from" in capsys.readouterr().err
 
 
 def test_force_redownloads_over_existing(tmp_path, monkeypatch):

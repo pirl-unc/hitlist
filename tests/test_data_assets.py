@@ -8,8 +8,10 @@ import hashlib
 from pathlib import Path
 
 import pytest
+import requests
 
 from hitlist import downloads
+from hitlist.errors import DownloadError, IntegrityError
 
 _EXPECTED_EXCLUDED = {
     "bekker_jensen_2017_peptides.csv.gz",
@@ -114,8 +116,9 @@ def test_fetch_data_asset_does_not_swallow_a_validation_failure(monkeypatch, tmp
         )
 
     monkeypatch.setattr(datacache, "fetch_file", raising_fetch_file)
-    with pytest.raises(datacache.FileValidationError, match="sha256 mismatch"):
+    with pytest.raises(IntegrityError, match="sha256 mismatch") as raised:
         downloads.fetch_data_asset("ccle_nusinow_2020.csv.gz", verbose=False)
+    assert isinstance(raised.value.__cause__, datacache.FileValidationError)
 
 
 def test_fetch_all_iterates_every_asset(monkeypatch, tmp_path):
@@ -130,6 +133,54 @@ def test_fetch_all_iterates_every_asset(monkeypatch, tmp_path):
     out = downloads.fetch_all_data_assets(verbose=False)
     assert set(fetched) == set(downloads.data_assets())
     assert set(out) == set(downloads.data_assets())
+
+
+def test_fetch_all_continues_past_failures_and_raises_summary(monkeypatch, tmp_path, capsys):
+    names = sorted(downloads.data_assets())
+    bad = names[0]
+
+    def fake_fetch(filename, *, force=False, verbose=True):
+        if filename == bad:
+            raise DownloadError("boom")
+        path = tmp_path / filename
+        path.write_bytes(b"x")
+        return path
+
+    monkeypatch.setattr(downloads, "fetch_data_asset", fake_fetch)
+    with pytest.raises(DownloadError, match=f"1 of {len(names)} data assets failed") as raised:
+        downloads.fetch_all_data_assets(verbose=False)
+    assert bad in str(raised.value)
+    assert len(list(tmp_path.iterdir())) == len(names) - 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert f"FAILED {bad}" in captured.err
+
+
+def test_download_to_file_maps_cause_types(monkeypatch, tmp_path):
+    import datacache
+
+    def raiser(error):
+        def fetch_file(url, **kwargs):
+            raise error
+
+        return fetch_file
+
+    dest = tmp_path / "f.csv"
+    cases = [
+        (datacache.FileValidationError(dest, "bad hash"), IntegrityError),
+        (requests.ConnectionError("down"), DownloadError),
+        (OSError("disk full"), DownloadError),
+    ]
+    for cause, expected in cases:
+        monkeypatch.setattr(datacache, "fetch_file", raiser(cause))
+        with pytest.raises(expected) as raised:
+            downloads.download_to_file("http://x/f.csv", dest, verbose=False)
+        assert raised.value.__cause__ is cause
+        assert isinstance(raised.value, RuntimeError)
+
+    monkeypatch.setattr(datacache, "fetch_file", raiser(KeyError("bug")))
+    with pytest.raises(KeyError):
+        downloads.download_to_file("http://x/f.csv", dest, verbose=False)
 
 
 # ── Packaging + loader fallback for peptide_attributions (#347, #348) ──

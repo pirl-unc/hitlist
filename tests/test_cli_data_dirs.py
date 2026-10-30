@@ -259,3 +259,29 @@ def test_main_prints_nothing_when_not_on_the_legacy_dir(monkeypatch, capsys):
     monkeypatch.setattr(cli, "_handle_data", lambda args: None)
     cli.main()
     assert capsys.readouterr().err == ""
+
+
+def test_main_reports_hitlist_error_once_and_exits_1(monkeypatch, capsys):
+    from hitlist.errors import DownloadError
+
+    def fail(args):
+        raise DownloadError("network down")
+
+    monkeypatch.setattr(cli, "legacy_data_dir_notice", lambda: None)
+    monkeypatch.setattr(sys, "argv", ["hitlist", "data", "dirs"])
+    monkeypatch.setattr(cli, "_handle_data", fail)
+    with pytest.raises(SystemExit) as raised:
+        cli.main()
+    assert raised.value.code == 1
+    assert capsys.readouterr().err == "Error: network down\n"
+
+
+def test_main_leaves_unexpected_exceptions_as_tracebacks(monkeypatch):
+    def bug(args):
+        raise RuntimeError("bug")
+
+    monkeypatch.setattr(cli, "legacy_data_dir_notice", lambda: None)
+    monkeypatch.setattr(sys, "argv", ["hitlist", "data", "dirs"])
+    monkeypatch.setattr(cli, "_handle_data", bug)
+    with pytest.raises(RuntimeError, match="bug"):
+        cli.main()
