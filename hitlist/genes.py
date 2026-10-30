@@ -29,6 +29,7 @@ from __future__ import annotations
 import json
 import urllib.parse
 import urllib.request
+import warnings
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
@@ -60,28 +61,53 @@ def _save_cache(cache: dict) -> None:
     p.write_text(json.dumps(cache, indent=2, default=str) + "\n")
 
 
+class HGNCLookupError(RuntimeError):
+    """The HGNC REST service could not be reached or returned unusable data.
+
+    Distinct from a successful query with no matches, which is a real (cacheable) answer.
+    """
+
+
 def _fetch_hgnc(query: str, timeout: int = 10) -> list[dict]:
-    """Search HGNC for a symbol / alias / previous symbol match."""
+    """Search HGNC for a symbol / alias / previous symbol match.
+
+    Returns ``[]`` only for a genuine empty result; raises :class:`HGNCLookupError`
+    on transport failure (timeout, connection error, HTTP error) or malformed JSON.
+    """
     q = urllib.parse.quote(query)
     url = f"{_HGNC_SEARCH_URL}/symbol:{q}+OR+alias_symbol:{q}+OR+prev_symbol:{q}"
     req = urllib.request.Request(url, headers={"Accept": "application/json"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             d = json.load(r)
-    except Exception:
-        return []
+    except (OSError, ValueError) as exc:  # URLError/HTTPError/timeout are OSError
+        raise HGNCLookupError(f"HGNC lookup for {query!r} failed: {exc}") from exc
+    if not isinstance(d, dict):
+        raise HGNCLookupError(f"HGNC lookup for {query!r} returned unexpected JSON")
     return d.get("response", {}).get("docs", []) or []
 
 
-@lru_cache(maxsize=1024)
 def resolve_hgnc_symbol(query: str) -> tuple[str, ...]:
     """Return the canonical HGNC symbols matching a query (via name/alias/prev).
 
     Results are cached on disk under ``<data dir>/gene_cache/`` to avoid
-    repeated REST calls.
+    repeated REST calls. If HGNC cannot be reached, a ``RuntimeWarning`` is
+    emitted and ``()`` is returned for that call only; failures are never cached
+    (neither on disk nor in memory), so a later call retries.
     """
     if not query:
         return ()
+    try:
+        return _resolve_hgnc_symbol_cached(query)
+    except HGNCLookupError as exc:
+        warnings.warn(f"{exc}; not caching, treating as no synonyms", RuntimeWarning, stacklevel=2)
+        return ()
+
+
+@lru_cache(maxsize=1024)
+def _resolve_hgnc_symbol_cached(query: str) -> tuple[str, ...]:
+    # Raises on lookup failure; lru_cache does not memoize exceptions, so failures
+    # are retried on the next call rather than remembered.
     cache = _load_cache()
     cached = cache.get(query)
     if cached is not None:
