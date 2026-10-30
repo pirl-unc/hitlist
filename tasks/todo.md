@@ -5,7 +5,7 @@ Specification: [contributor-storage-63-spec.md](contributor-storage-63-spec.md).
 - [x] Review prior profiles, preserve user work, branch from current main 2.1.3.
 - [x] Specify comparison baseline, invariants and release gates before implementation.
 - [x] Profile current source capture/publication and compare isolated candidates.
-- [ ] Implement selected bounded optimization and meaningful regression coverage.
+- [x] Implement selected bounded optimization and meaningful regression coverage.
 - [ ] Complete controlled real-source and full-build output/time/CPU/memory comparisons.
 - [ ] Measure test.sh; run format, lint, full tests, metadata/dependency and CI gates.
 - [ ] Merge, deploy exact clean-main artifacts, verify public downloads and update #63.
@@ -26,10 +26,13 @@ files: means 57.96 s baseline versus 53.21 s candidate, with parent peak RSS
 identity. The corrected two-source diagnostic has matching output bytes and mean wall
 73.54 s serial /37.49 s parallel, excluding cross-source merging. The production
 worker design is recorded in [source-workers-63-spec.md](source-workers-63-spec.md).
-The bounded implementation passes127 focused tests, including actual spawn,
+The bounded implementation passes 127 focused tests, including actual spawn,
 scratch fallback, cancellation, corrupt snapshots, source identity, and exact
 merged contributor bytes. A real-prefix comparison including production IPC and
-graph merging is the next decision gate; no full-build speed claim yet.
+graph merging is the next decision gate; no full-build speed claim yet. The complete local suite at f46d261 passes
+3,785 tests with one skip, using four workers admitted by the unchanged memory
+guard. Format/lint and isolated-environment dependency/metadata checks pass.
+Version 2.1.4 is reserved for this PR; check main again before landing.
 
 # Performance-report skip wording — #873, 2026-10-29
 
