@@ -426,6 +426,8 @@ def scan(
         project = itemgetter(*c.values())
         max_column = max(c.values())
         record_csv = provenance.csv_record_writer(dataset, c) if provenance is not None else None
+        previous_assay_fields = None
+        assay_record = None
         for row_number, row in enumerate(_progress(reader, p, f"Scanning {p.name}", fh=fh), 1):
             if peptides is not None:
                 pep_raw = _safe_col(row, c["epitope_name"])
@@ -560,6 +562,15 @@ def scan(
                 peptide_extended,
             ) = parse_peptide_modifications(fields["epitope_name"])
 
+            assay_fields = (
+                fields["qualitative_measurement"],
+                fields["assay_comments"],
+                fields["assay_method"],
+                fields["response_measured"],
+            )
+            if assay_fields != previous_assay_fields:
+                assay_record = assay_annotations(*assay_fields)
+                previous_assay_fields = assay_fields
             record: dict = {
                 "peptide": bare_peptide,
                 "peptide_modifications": peptide_modifications_str,
@@ -603,12 +614,7 @@ def scan(
                 "measurement_inequality": fields["measurement_inequality"],
                 "quantitative_measurement": fields["quantitative_measurement"],
                 "quantitative_value": _parse_float(fields["quantitative_measurement"]),
-                **assay_annotations(
-                    fields["qualitative_measurement"],
-                    fields["assay_comments"],
-                    fields["assay_method"],
-                    fields["response_measured"],
-                ),
+                **assay_record,
                 # Flags rows whose MHC molecule presents lipids / metabolites
                 # rather than peptides (CD1, MR1, MIC, ULBP, etc. — see #228).
                 # IEDB curates these alongside peptide-MHC and stores chemical
