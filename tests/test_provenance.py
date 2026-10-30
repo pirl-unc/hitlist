@@ -79,6 +79,27 @@ def test_csv_capture_rejects_duplicate_record_immediately(tmp_path):
             capture(1, ["2"])
 
 
+def test_csv_capture_reused_row_and_oversized_cell_preserve_json(tmp_path):
+    output = tmp_path / "contributors.parquet"
+    columns = {"pmid": 0, "value": 1, "optional": 3}
+    expected = []
+    with ContributorCollector(scratch_dir=tmp_path) as collector:
+        collector._CAPTURE_BATCH_BYTES = 128
+        capture = collector.csv_record_writer("csv", columns)
+        roots = []
+        row = ["123", "original", "unmapped"]
+        for i, value in enumerate(("original", "changed", "x" * 10000, "é\n", "é\n"), 1):
+            row[1] = value
+            expected.append(list(row))
+            roots.append(collector.observe(capture(i, row)))
+        collector.write([pd.DataFrame({"provenance_id": roots})], output)
+    for actual, values in zip(pd.read_parquet(output).itertuples(), expected):
+        assert actual.source_row_values == json.dumps(values)
+        assert actual.original_fields == json.dumps(
+            {"pmid": "123", "value": values[1], "optional": ""}, sort_keys=True
+        )
+
+
 def test_chained_dedup_retains_sources_without_reweighting(tmp_path, monkeypatch):
     iedb, cedar = tmp_path / "iedb.csv", tmp_path / "cedar.csv"
     _write_tiny_iedb_csv(

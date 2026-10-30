@@ -1,3 +1,22 @@
+# Contributor storage and scanning — #63, second pass, 2026-10-29
+
+Specification: [contributor-storage-63-spec.md](contributor-storage-63-spec.md).
+
+- [x] Review prior profiles, preserve user work, branch from current main 2.1.3.
+- [x] Specify comparison baseline, invariants and release gates before implementation.
+- [ ] Profile current source capture/publication and compare isolated candidates.
+- [ ] Implement selected bounded optimization and meaningful regression coverage.
+- [ ] Complete controlled real-source and full-build output/time/CPU/memory comparisons.
+- [ ] Measure test.sh; run format, lint, full tests, metadata/dependency and CI gates.
+- [ ] Merge, deploy exact clean-main artifacts, verify public downloads and update #63.
+
+## Review
+
+Prior #870 and documentation correction #874 are merged and deployed as 2.1.1 and
+2.1.2; both public wheel/sdist pairs were verified against their clean-main gates.
+The measured first pass achieved 1.10×, leaving the 2× target open. This pass starts
+from main ff5247f (2.1.3) to include #872 consistently in both measured variants.
+
 # Performance-report skip wording — #873, 2026-10-29
 
 Scope: remove the unsupported operating-system attribution from the local test

@@ -288,6 +288,38 @@ def _progress(reader, path: Path, desc: str, fh: _ByteCountingFile | None = None
 # ── Public API ──────────────────────────────────────────────────────────────
 
 
+class _ScanRows:
+    """Retain values without keeping a full dictionary for every source row.
+
+    The common schema takes the tuple fast path. Preserve DataFrame's first-seen
+    column order and absent-key NaNs if a later row has a different schema.
+    """
+
+    def __init__(self):
+        self.columns = ()
+        self.values = []
+
+    def append(self, record):
+        names = tuple(record)
+        if not self.values:
+            self.columns = names
+        if names == self.columns:
+            self.values.append(tuple(record.values()))
+            return
+        added = tuple(name for name in names if name not in self.columns)
+        missing = float("nan")
+        if added:
+            self.columns += added
+            padding = (missing,) * len(added)
+            self.values = [row + padding for row in self.values]
+        self.values.append(tuple(record.get(name, missing) for name in self.columns))
+
+    def to_frame(self):
+        if not self.values:
+            return pd.DataFrame()
+        return pd.DataFrame(self.values, columns=self.columns)
+
+
 def scan(
     peptides: set[str] | None = None,
     iedb_path: str | Path | None = None,
@@ -379,7 +411,7 @@ def scan(
         mhc_species = normalize_species(mhc_species)
     min_res_rank = allele_resolution_rank(min_allele_resolution) if min_allele_resolution else None
 
-    rows: list[dict] = []
+    rows = _ScanRows()
     seen: set[str] = set()
     scan_id = provenance.begin_scan() if provenance is not None else None
 
@@ -704,4 +736,4 @@ def scan(
         # close lives at the call site).
         fh.close()
 
-    return pd.DataFrame(rows)
+    return rows.to_frame()

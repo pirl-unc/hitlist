@@ -230,7 +230,7 @@ class ContributorCollector:
                 CREATE TABLE payload_blocks (id INTEGER PRIMARY KEY, payload BLOB, raw_size INTEGER);
                 CREATE TABLE records (id TEXT PRIMARY KEY, dataset TEXT, row_number INTEGER,
                                       block_id INTEGER, byte_offset INTEGER, byte_length INTEGER,
-                                      pmid TEXT);
+                                      pmid TEXT) WITHOUT ROWID;
                 CREATE TABLE edges (source TEXT, target TEXT, relation INTEGER, label TEXT);
                 CREATE INDEX edge_target ON edges(target);
                 CREATE TABLE retained (id TEXT PRIMARY KEY) WITHOUT ROWID;
@@ -282,22 +282,39 @@ class ContributorCollector:
         CSV readers return only strings. The general record method still owns
         nested/typed supplementary payloads. Reusing JSON's string encoder here
         preserves its exact escaping, spaces, key order and unmapped cells.
-        No source values are cached across rows.
+        Only the preceding bounded row is retained to reuse unchanged cells.
         """
         prefixes = tuple(
             (json.dumps(name) + ": ", index) for name, index in sorted(columns.items())
         )
         pmid_index = columns.get("pmid")
         escape = json.encoder.encode_basestring_ascii
+        previous = ()
+        encoded = []
+        mapped = []
 
         def record_row(row_number, row_values):
-            encoded = list(map(escape, row_values))
+            nonlocal previous, encoded, mapped
+            if len(previous) == len(row_values) and mapped:
+                for index, (value, old) in enumerate(zip(row_values, previous)):
+                    if value != old:
+                        encoded[index] = escape(value)
+                for position, (prefix, index) in enumerate(prefixes):
+                    if index < len(row_values) and row_values[index] != previous[index]:
+                        mapped[position] = prefix + encoded[index]
+            else:
+                encoded = list(map(escape, row_values))
+                mapped = [
+                    prefix + (encoded[index] if index < len(encoded) else '""')
+                    for prefix, index in prefixes
+                ]
             n_columns = len(encoded)
-            fields = ", ".join(
-                prefix + (encoded[index] if index < n_columns else '""')
-                for prefix, index in prefixes
-            )
-            payload = ("{" + fields + "}\n[" + ", ".join(encoded) + "]").encode()
+            payload = ("{" + ", ".join(mapped) + "}\n[" + ", ".join(encoded) + "]").encode()
+            if len(payload) <= self._CAPTURE_BATCH_BYTES:
+                # A caller may reuse and mutate its CSV row list.
+                previous = tuple(row_values)
+            else:
+                previous, encoded, mapped = (), [], []
             pmid = (
                 row_values[pmid_index] if pmid_index is not None and pmid_index < n_columns else ""
             )

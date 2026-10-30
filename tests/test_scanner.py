@@ -1283,3 +1283,22 @@ def test_scan_detects_monoallelic_host_on_a_cedar_shaped_layout(tmp_path):
     hit = df.loc[df["peptide"] == "AFDDIATYF"].iloc[0]
     assert bool(hit["is_monoallelic"]) is True
     assert hit["monoallelic_host"] == "C1R"
+
+
+@pytest.mark.parametrize(
+    "records",
+    [
+        [],
+        [{}, {}],
+        [{}, {"b": True, "a": "é"}, {"a": "x", "b": False}, {"c": 3}],
+        [{"pmid": "", "value": 1.5}, {"value": float("nan"), "pmid": 123}],
+        [{"flag": True}, {"flag": None}, {}],
+    ],
+)
+def test_scan_row_buffer_preserves_dataframe_inference_and_column_order(records):
+    from hitlist.scanner import _ScanRows
+
+    rows = _ScanRows()
+    for record in records:
+        rows.append(record)
+    pd.testing.assert_frame_equal(rows.to_frame(), pd.DataFrame(records))
