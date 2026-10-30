@@ -189,3 +189,24 @@ def test_source_diagnostic_preserves_cedar_identity(tmp_path, benchmark):
     assert links.source_dataset.tolist() == ["cedar"]
     assert links.source_record_id.tolist() == ["record:cedar:row:1"]
     assert json.loads((output / "report.json").read_text())["status"] == "success"
+
+
+def test_memory_sampler_counts_thread_groups_once_and_keeps_descendants(tmp_path, benchmark):
+    profile = importlib.import_module("profile_build")
+    # Tasks 2/3/4 share one address space. Task 3 alone owns process 5;
+    # missing task 99 models an exit between the children read and inspection.
+    for pid, group, pages, children in (
+        (1, 1, 10, [2, 3, 4, 99]),
+        (2, 2, 20, []),
+        (3, 2, 20, [5]),
+        (4, 2, 20, []),
+        (5, 5, 30, []),
+    ):
+        path = tmp_path / str(pid)
+        (path / f"task/{pid}").mkdir(parents=True)
+        (path / f"task/{pid}/children").write_text(" ".join(map(str, children)))
+        (path / "status").write_text(f"Name:\tpython\nTgid:\t{group}\nPid:\t{pid}\n")
+        (path / "statm").write_text(f"100 {pages} 0 0 0 0 0\n")
+    own, total = profile._process_tree_rss(1, tmp_path)
+    assert own == 10 * os.sysconf("SC_PAGE_SIZE")
+    assert total == 60 * os.sysconf("SC_PAGE_SIZE")

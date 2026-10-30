@@ -36,6 +36,41 @@ STAGES = (
 )
 
 
+def _process_tree_rss(root_pid, proc=Path("/proc")):
+    """Count each address space once even when children includes task IDs (#876).
+
+    Still visit every task's children: a duplicate thread can own descendants
+    that are absent from its leader's children file. Distinct processes may
+    share pages, so the resulting RSS sum is not physical-memory usage.
+    """
+    pending, seen_tasks, seen_groups = [root_pid], set(), set()
+    own = total = 0
+    page_bytes = os.sysconf("SC_PAGE_SIZE")
+    while pending:
+        pid = pending.pop()
+        if pid in seen_tasks:
+            continue
+        seen_tasks.add(pid)
+        path = proc / str(pid)
+        try:
+            pending.extend(map(int, (path / f"task/{pid}/children").read_text().split()))
+            group = next(
+                int(line.partition(":")[2])
+                for line in (path / "status").read_text().splitlines()
+                if line.startswith("Tgid:")
+            )
+            if group in seen_groups:
+                continue
+            rss = int((path / "statm").read_text().split()[1]) * page_bytes
+        except (OSError, ValueError, IndexError, StopIteration):
+            continue  # Tasks may exit between snapshots.
+        seen_groups.add(group)
+        total += rss
+        if group == root_pid:
+            own = rss
+    return own, total
+
+
 class MemorySampler:
     """Sample Linux parent/tree RSS; sums can double-count shared pages."""
 
@@ -51,23 +86,7 @@ class MemorySampler:
     def sample(self):
         if not Path("/proc/self/statm").exists():
             return
-        pending, seen, own, total = [os.getpid()], set(), 0, 0
-        while pending:
-            pid = pending.pop()
-            if pid in seen:
-                continue
-            seen.add(pid)
-            try:
-                rss = int(Path(f"/proc/{pid}/statm").read_text().split()[1]) * os.sysconf(
-                    "SC_PAGE_SIZE"
-                )
-                children = Path(f"/proc/{pid}/task/{pid}/children").read_text().split()
-            except (OSError, ValueError, IndexError):
-                continue  # Children may exit between snapshots.
-            total += rss
-            if pid == os.getpid():
-                own = rss
-            pending.extend(map(int, children))
+        own, total = _process_tree_rss(os.getpid())
         with self.lock:
             for event in (self.total, *self.active):
                 for key, value in (

@@ -160,6 +160,7 @@ include = [
     "scripts/profile_csv_serialization.py",
     "scripts/paired_build_benchmark.py",
     "scripts/source_scan_benchmark.py",
+    "scripts/profile_memory_tree.py",
     "scripts/benchmark_site/sitecustomize.py",
     "scripts/check_dev_install.py",
     "scripts/build_uniprot_reference.py",

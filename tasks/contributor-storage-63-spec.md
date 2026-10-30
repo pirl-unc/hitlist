@@ -73,3 +73,16 @@ cross-source graph/partition merge a production implementation would require.
 If selected, write a separate resource/merge design before implementation: preserve
 one total scratch budget, per-source duplicate identity, deterministic partitions,
 source snapshots, worker cancellation, and atomic failure of the whole build.
+
+
+## Memory evidence correction — #876
+
+The completed source-scheduling diagnostic preserves exact outputs and measures
+113.72 s serial /57.84 s parallel means with similar aggregate CPU. Its tree RSS
+was inflated. A bounded live probe shows the parent's procfs children list contains
+both child process ID4 and thread IDs5–8, all sharing Tgid4 and the same RSS. The
+old sampler summed all five. Preserve the old receipts; fix traversal to count
+thread groups once while still following every listed task's descendants, verify
+against independent child self-RSS, and rerun resource measurements before admission.
+The first probe attempt failed during transport import and was explicitly stopped;
+it contributes no measurement. The corrected transport completed successfully.

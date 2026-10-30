@@ -97,7 +97,11 @@ candidate 4 adds the final pandas deprecation cleanup.
 Stage RSS is the sampled parent-process peak, not an allocation delta. Nested Parquet
 writes are included in their parent stages and must not be added again. Receipts also
 retain process-tree RSS sums; those can double-count shared pages and are not
-physical-memory totals. The full build includes additional joining, deduplication and
+physical-memory totals. Their descendant counting is additionally affected by
+[#876](https://github.com/pirl-unc/hitlist/issues/876), which found child thread IDs
+counted as separate address spaces on this runtime; retain those original receipts
+for audit, not memory comparisons. Parent RSS and timing measurements are separate.
+The full build includes additional joining, deduplication and
 generation publication work beyond the named stages below.
 
 | Stage | Baseline wall | Final wall | Baseline CPU | Final CPU | Baseline RSS (GiB) | Final RSS (GiB) |
