@@ -1,0 +1,20 @@
+{
+  "available_cpus": 8,
+  "cpu_directories": [
+    "/sys/fs/cgroup/cpu"
+  ],
+  "membership": "7:pids:/ta-01M6560HBBMDEYTB0BVJC3RZCR\n6:memory:/ta-01M6560HBBMDEYTB0BVJC3RZCR\n5:job:/ta-01M6560HBBMDEYTB0BVJC3RZCR\n4:devices:/ta-01M6560HBBMDEYTB0BVJC3RZCR\n3:cpuset:/ta-01M6560HBBMDEYTB0BVJC3RZCR\n2:cpuacct:/ta-01M6560HBBMDEYTB0BVJC3RZCR\n1:cpu:/ta-01M6560HBBMDEYTB0BVJC3RZCR\n",
+  "memory_available_bytes": 68470341632,
+  "memory_directories": [
+    "/sys/fs/cgroup/memory"
+  ],
+  "mounts": [
+    "26 25 0:10 /ta-01M6560HBBMDEYTB0BVJC3RZCR /sys/fs/cgroup/cpu rw - cgroup none rw,cpu",
+    "27 25 0:11 /ta-01M6560HBBMDEYTB0BVJC3RZCR /sys/fs/cgroup/cpuacct rw - cgroup none rw,cpuacct",
+    "28 25 0:12 /ta-01M6560HBBMDEYTB0BVJC3RZCR /sys/fs/cgroup/cpuset rw - cgroup none rw,cpuset",
+    "29 25 0:13 /ta-01M6560HBBMDEYTB0BVJC3RZCR /sys/fs/cgroup/devices rw - cgroup none rw,devices",
+    "30 25 0:14 /ta-01M6560HBBMDEYTB0BVJC3RZCR /sys/fs/cgroup/job rw - cgroup none rw,job",
+    "31 25 0:15 /ta-01M6560HBBMDEYTB0BVJC3RZCR /sys/fs/cgroup/memory rw - cgroup none rw,memory",
+    "32 25 0:16 /ta-01M6560HBBMDEYTB0BVJC3RZCR /sys/fs/cgroup/pids rw - cgroup none rw,pids"
+  ]
+}

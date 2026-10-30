@@ -338,4 +338,20 @@ def scan_sources(paths, provenance):
         print(
             "Source worker scratch reservations were insufficient; retrying source scans serially."
         )
-    return [(name, _scan_source_tables(name, path, provenance)) for name, path in sources]
+    results = []
+    for name, path in sources:
+        *tables, empty = _scan_source_tables(name, path, provenance)
+        results.append((name, (*tables, _owned_empty_schema(empty))))
+    return results
+
+
+def _owned_empty_schema(frame):
+    """Preserve an empty schema without retaining its source's Arrow buffers."""
+    import pandas as pd
+
+    if len(frame):
+        raise ValueError("Expected an empty source schema")
+    empty = frame.copy()
+    for column, dtype in frame.dtypes.items():
+        empty[column] = pd.Series(index=empty.index, dtype=dtype)
+    return empty

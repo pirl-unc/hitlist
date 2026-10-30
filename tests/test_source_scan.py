@@ -301,3 +301,29 @@ def test_hybrid_cgroup_prefers_the_controllers_v1_membership(monkeypatch):
         "/sys/fs/cgroup/legacy/task",
         "/sys/fs/cgroup/legacy",
     ]
+
+
+def test_owned_empty_schema_releases_arrow_buffers_and_preserves_metadata():
+    frame = pd.DataFrame(
+        {
+            "value": ["a" * 1000000, "b" * 1000000, "c" * 1000000],
+            "nullable": pd.Series(["a", None, "b"], dtype="string[pyarrow]"),
+            "category": pd.Categorical(["b", "a", "b"], categories=["b", "a"], ordered=True),
+            "integer": pd.Series([1, None, 3], dtype="Int64"),
+            "time": pd.to_datetime(["2026-01-01"] * 3, utc=True),
+        }
+    )
+    frame.index.name = "source row"
+    frame.columns.name = "source field"
+    frame.attrs = {"origin": {"dataset": "fixture"}}
+    original = frame.iloc[:0].copy()
+    assert original["value"].array._pa_array.chunk(0).buffers()[-1].size == 3000000
+    owned = workers._owned_empty_schema(original)
+    pd.testing.assert_frame_equal(original, owned)
+    assert owned.attrs == original.attrs
+    assert owned.attrs is not original.attrs
+    for name in ("value", "nullable"):
+        for chunk in owned[name].array._pa_array.chunks:
+            assert chunk.buffers()[-1] is None or chunk.buffers()[-1].size == 0
+    with pytest.raises(ValueError, match="empty source schema"):
+        workers._owned_empty_schema(frame)

@@ -19,8 +19,8 @@ Unknown capacity, fewer than two CPUs, a single source, or an explicit workers=1
 selects the serial path. Use Linux MemAvailable capped by cgroup v1/v2 remaining
 memory, resolving process membership and every visible ancestor mount limit
 (including hybrid v1/v2 hierarchies), or macOS free+speculative pages. Admit two sources only with conservative
-per-source budgets (at least28GiB each, increased for source files larger than the
-qualified corpus) plus4GiB parent headroom. Reconfirm against the full benchmark;
+per-source budgets (at least 28 GiB each, increased for source files larger than the
+qualified corpus) plus 4 GiB parent headroom. Reconfirm against the full benchmark;
 never force workers past measured capacity. Honor HITLIST_SCAN_WORKERS as a cap.
 
 Each worker owns a fresh process, collector, scratch subdirectory and Arrow IPC

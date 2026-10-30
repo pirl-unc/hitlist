@@ -29,7 +29,7 @@ worker design is recorded in [source-workers-63-spec.md](source-workers-63-spec.
 The bounded implementation passes 127 focused tests, including actual spawn,
 scratch fallback, cancellation, corrupt snapshots, source identity, and exact
 merged contributor bytes. The real-prefix comparison including production IPC and
-graph merging passes all four exact outputs:115.57 s serial /76.79 s parallel
+graph merging passes all four exact outputs: 115.57 s serial / 76.79 s parallel
 means. No full-build speed claim yet. The complete local suite at f46d261 passes
 3,785 tests with one skip, using four workers admitted by the unchanged memory
 guard. Format/lint and isolated-environment dependency/metadata checks pass.
@@ -38,6 +38,12 @@ identified nested cgroup admission issue #878, corrected before shipping with
 v1/v2, ancestor, hybrid-mount and CPU-affinity handling. The first full/test paired
 experiments were intentionally cancelled as superseded; their partial receipts
 are retained and do not count as qualification.
+The complete e88891a suite comparison passes but is 3.3% slower (33 added tests);
+all producer CI gates pass, including 97 integration tests and release build.
+Review also found #879: zero-row Arrow views retain full buffers. The serial-only
+ownership correction passes 117 focused checks and leaves the measured parallel
+execution path unchanged. Verify actual parallel admission/no retry in both full
+candidate runs; rerun final-code local and paired suite checks.
 
 # Performance-report skip wording — #873, 2026-10-29
 

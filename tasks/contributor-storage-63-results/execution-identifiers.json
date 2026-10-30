@@ -1,0 +1,18 @@
+{
+  "volume": "presto-data",
+  "root": "hitlist-reliability-20261028",
+  "producer_commit": "e88891a",
+  "full": {
+    "label": "issue63-pass2-full-pair-2",
+    "call": "fc-01M6562AZAZ2V2289GM4KQXZGG",
+    "app": "ap-evDgDthd15RdRcQfRfZmss",
+    "status": "running"
+  },
+  "tests": {
+    "label": "issue63-pass2-test-pair-2",
+    "call": "fc-01M6562TJS6ZJR6V3BMHHRR9FJ",
+    "app": "ap-qeO3wU3Va3zjXAwrOPTL0U",
+    "status": "success"
+  },
+  "submission": "Explicit background spawn; local caller completion is not benchmark completion."
+}

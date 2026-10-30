@@ -14,6 +14,12 @@ existing byte cap; oversized rows clear that cache. The disposable SQLite record
 table uses its primary key as its storage index. Original source cells, row order,
 identifiers and scientific classification rules remain unchanged.
 
+Serial results also construct owned empty columns: a zero-row Arrow view can
+otherwise retain its source’s full string buffers. This corrects
+[#879](https://github.com/pirl-unc/hitlist/issues/879) while preserving schema and
+metadata. The parallel IPC path already transports empty schemas without those
+source buffers.
+
 The builder can scan IEDB and CEDAR in two independent processes. It consumes their
 results in the existing source order and uses the same partition normalization as
 the serial path. Each child writes private Arrow tables and a closed contributor
@@ -79,3 +85,30 @@ reports. Their parent high-water marks, output hashes and wall/CPU measurements
 are independent of the overcount. The new source comparison uses the corrected
 sampler for both schedules. No cross-experiment timing change is attributed to
 the sampler correction.
+
+
+## Test-suite comparison before the empty-schema correction
+
+The separate `issue63-pass2-test-pair-2` experiment, producer `e88891a`, completes all four `test.sh`
+runs with identical dependencies, fresh caches, the ordinary memory policy and
+two admitted workers. Baseline 2.1.3 passes 3,754 tests and candidate 2.1.4 passes 3,787,
+with two skips each. The candidate includes 33 additional passing regression tests.
+Mean wall time increases from 386.65 to 399.34 seconds (3.3%); no suite speedup is
+claimed. Mean aggregate CPU time increases from 752.26 to 798.66 seconds. Mean sampled
+tree peak RSS is 2.22 GiB baseline and 2.36 GiB candidate; these are sums of process RSS,
+not physical-memory measurements.
+
+The isolated local suite separately passes 3,788 tests with one skip under its
+normal three-worker admission. Local and hosted runs have different optional
+resources; their skip counts are reported without attributing them to an OS.
+All five hosted unit configurations and 97 integration tests pass for the measured
+producer. Final evidence-head and clean-main release checks remain separate.
+
+
+The full-build experiment is bound to producer `e88891a`. The later #879
+correction changes only the serial source-result path after the parallel branch
+has returned, plus a regression test. Before using those full-build measurements,
+verify both candidate logs select two source workers and contain no serial
+capacity retry. No new measured serial speed or full-build memory claim follows
+from the bounded retained-buffer regression. A separate final-code suite comparison
+is pending.
