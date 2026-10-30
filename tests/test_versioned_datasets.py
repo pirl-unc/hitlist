@@ -57,6 +57,7 @@ def test_fetch_iedb_streams_unzips_and_notes_terms(tmp_path, monkeypatch, capsys
         return response
 
     monkeypatch.setattr(requests, "get", respond)
+    monkeypatch.setitem(FETCHABLE_DATASETS["iedb"], "min_size_bytes", 1)  # toy payload
     downloads.set_data_dir(tmp_path)
     try:
         path = downloads.fetch("iedb")
