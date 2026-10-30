@@ -1,0 +1,59 @@
+Scanning IEDB and CEDAR with two source workers.
+Scanning iedb (iedb)...
+Scanning cedar (cedar)...
+  4,016,825 MS + 121,845 binding + 25,190 other assay rows from cedar
+  4,060,077 MS + 815,967 binding + 26,519 other assay rows from iedb
+Process SpawnProcess-1:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/usr/local/lib/python3.12/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/opt/producer/hitlist/_source_scan.py", line 197, in _worker
+    writer.write_table(table)
+  File "pyarrow/ipc.pxi", line 616, in pyarrow.lib._CRecordBatchWriter.write_table
+  File "pyarrow/error.pxi", line 89, in pyarrow.lib.check_status
+  File "/opt/producer/hitlist/_source_scan.py", line 156, in write
+    raise self.collector._storage_error(
+hitlist.provenance.ProvenanceStorageError: Contributor build stopped: source table buffers reached their scratch reservation. Scratch directory: /tmp/hitlist-scan-w4e2a6cf/iedb; database limit: 3.200 GiB; free-space reserve: 1.000 GiB. Free space or choose HITLIST_PROVENANCE_SCRATCH_DIR (default: TMPDIR); increase HITLIST_PROVENANCE_MAX_GB only on a filesystem with capacity. The required space depends on the source rows and contributor links. Existing published contributor data is preserved; owned scratch and partial output are removed. Retry the build after correcting capacity.
+Source worker scratch reservations were insufficient; retrying source scans serially.
+Scanning iedb (iedb)...
+
+Scanning iedb:   0%|          | 0.00/7.77G [00:00<?, ?B/s]
+Scanning iedb:   0%|          | 1.14M/7.77G [00:00<1:01:41, 2.10MB/s]
+Scanning iedb:   0%|          | 2.18M/7.77G [00:00<34:54, 3.71MB/s]  
+Scanning iedb:   0%|          | 3.26M/7.77G [00:00<25:04, 5.16MB/s]
+Scanning iedb:   0%|          | 4.31M/7.77G [00:00<20:12, 6.41MB/s]
+Scanning iedb:   0%|          | 6.47M/7.77G [00:01<15:29, 8.35MB/s]
+Scanning iedb:   0%|          | 8.67M/7.77G [00:01<13:41, 9.45MB/s]
+Scanning iedb:   0%|          | 10.7M/7.77G [00:01<12:59, 9.95MB/s]
+Scanning iedb:   0%|          | 12.0M/7.77G [00:01<14:25, 8.97MB/s]
+Scanning iedb:   0%|          | 13.3M/7.77G [00:01<18:58, 6.82MB/s]
+Scanning iedb:   0%|          | 15.1M/7.77G [00:02<17:12, 7.51MB/s]
+Scanning iedb:   0%|          | 16.8M/7.77G [00:02<16:03, 8.05MB/s]
+Scanning iedb:   0%|          | 18.6M/7.77G [00:02<15:21, 8.42MB/s]
+Scanning iedb:   0%|          | 20.3M/7.77G [00:02<14:48, 8.73MB/s]
+Scanning iedb:   0%|          | 22.0M/7.77G [00:02<14:22, 8.98MB/s]
+Scanning iedb:   0%|          | 23.7M/7.77G [00:03<14:08, 9.13MB/s]
+Scanning iedb:   0%|          | 25.7M/7.77G [00:03<13:56, 9.26MB/s]
+Scanning iedb:   0%|          | 27.6M/7.77G [00:03<13:39, 9.45MB/s]
+Scanning iedb:   0%|          | 29.5M/7.77G [00:03<13:25, 9.62MB/s]
+Scanning iedb:   0%|          | 31.4M/7.77G [00:03<13:20, 9.67MB/s]
+Scanning iedb:   0%|          | 32.4M/7.77G [00:03<13:12, 9.77MB/s]
+Scanning iedb:   0%|          | 34.5M/7.77G [00:04<12:50, 10.0MB/s]
+Scanning iedb:   0%|          | 36.6M/7.77G [00:04<12:34, 10.3MB/s]
+Scanning iedb:   0%|          | 38.6M/7.77G [00:04<12:18, 10.5MB/s]
+Scanning iedb:   1%|          | 40.7M/7.77G [00:04<12:07, 10.6MB/s]
+Scanning iedb:   1%|          | 42.8M/7.77G [00:04<12:03, 10.7MB/s]
+Scanning iedb:   1%|          | 44.9M/7.77G [00:05<11:57, 10.8MB/s]
+Scanning iedb:   1%|          | 46.8M/7.77G [00:05<12:12, 10.5MB/s]
+Scanning iedb:   1%|          | 48.5M/7.77G [00:05<12:31, 10.3MB/s]
+Scanning iedb:   1%|          | 50.4M/7.77G [00:05<12:39, 10.2MB/s]
+Scanning iedb:   1%|          | 52.2M/7.77G [00:05<12:40, 10.2MB/s]
+Scanning iedb:   1%|          | 54.1M/7.77G [00:06<12:37, 10.2MB/s]
+Scanning iedb:   1%|          | 56.0M/7.77G [00:06<12:37, 10.2MB/s]
+Scanning iedb:   1%|          | 57.9M/7.77G [00:06<12:30, 10.3MB/s]
+Scanning iedb:   1%|          | 59.8M/7.77G [00:06<12:37, 10.2MB/s]
+Scanning iedb:   1%|          | 61.6M/7.77G [00:06<12:40, 10.1MB/s]
+Scanning iedb:   1%|          | 63.5M/7.77G [00:06<12:50, 10.0MB/s]
+Scanning

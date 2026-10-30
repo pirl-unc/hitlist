@@ -1,0 +1,183 @@
+{
+  "status": "cancelled; not qualifying parallel evidence",
+  "reason": "Full candidate exceeded uncompressed IPC reservation and retried serially; replace IPC encoding without increasing scratch budget.",
+  "calls": [
+    {
+      "label": "issue63-pass2-full-pair-2",
+      "call": "fc-01M6562AZAZ2V2289GM4KQXZGG",
+      "last_receipt": {
+        "status": "failed",
+        "scope": "full forced build",
+        "order": [
+          "baseline",
+          "candidate",
+          "candidate",
+          "baseline"
+        ],
+        "allocation": {
+          "hostname": "modal",
+          "cpu_limit": 8,
+          "memory_limit_mib": 65536,
+          "mapping_workers": 2,
+          "requested_scan_workers": 4,
+          "nonpreemptible": true
+        },
+        "archives": {
+          "baseline": {
+            "sha256": "366d14ee809af5f96f9332b7377d7e21dd86d8bab639d6340d76e0321874792f",
+            "size_bytes": 50246122
+          },
+          "candidate": {
+            "sha256": "e7f688d1ddf457fc5b8a49f382b7f17056a8f4be679059b56be728ece397f87a",
+            "size_bytes": 50291932
+          }
+        },
+        "recipes": {
+          "compare_reliability_outputs.py": {
+            "sha256": "0dd42e8cb507b9cd59eaadaad2e50aa1a1c8e2bc314c206a6315e63f47568f5e",
+            "size_bytes": 9970
+          },
+          "source_scan_benchmark.py": {
+            "sha256": "99500624e6b612771a657a4d283f6f11170d26aed82929325ed7d99db6a3c822",
+            "size_bytes": 12905
+          },
+          "profile_csv_serialization.py": {
+            "sha256": "f450771782fce136ccff621440d89d2fc2c9d39a732264ef80b7efd5f3e65b4b",
+            "size_bytes": 4414
+          },
+          "profile_mapping_workers.py": {
+            "sha256": "d0c8ad961a63c4f39887eb4ef84929c0dd0e137963c275f695bbfd490a389860",
+            "size_bytes": 1758
+          },
+          "profile_scan.py": {
+            "sha256": "d1136947cf185193d3be92d95bf31296acf477aba7c54b0d531127465641acb5",
+            "size_bytes": 7830
+          },
+          "profile_build.py": {
+            "sha256": "79fedf567d3b0de103d744c8ce87d9dff32bdad65b1339426677452940bc56bd",
+            "size_bytes": 11075
+          },
+          "paired_build_benchmark.py": {
+            "sha256": "9f41769e9ae3d3d8c24f1addd4a12230d609a1e182d2cf7a48a11fba42e55563",
+            "size_bytes": 14522
+          },
+          "reliability_benchmark.py": {
+            "sha256": "463ca3a99871170576aeef137494f5113b7ebcb7bb28f81724d676d968d3fcb1",
+            "size_bytes": 7937
+          }
+        },
+        "network_guard_recipe": {
+          "sha256": "1cc31e0216449ccc65fa49b54599ad52dca1f366314623818932e52d1553fa6a",
+          "size_bytes": 1217
+        },
+        "runs": [
+          {
+            "label": "issue63-pass2-full-pair-2-1-baseline",
+            "variant": "baseline",
+            "total": {
+              "process_cpu_seconds": 1825.7199999999998,
+              "process_peak_rss_bytes": 33330499584,
+              "sampled_parent_peak_rss_bytes": 32971755520,
+              "sampled_tree_peak_rss_bytes": 32971755520,
+              "waited_child_peak_rss_bytes": 33330499584,
+              "waited_children_cpu_seconds": 109.83,
+              "wall_seconds": 1981.1390306170001
+            },
+            "requested_scan_workers": 4
+          }
+        ],
+        "active_run": "issue63-pass2-full-pair-2-2-candidate"
+      },
+      "cancel_requested": true
+    },
+    {
+      "label": "issue63-pass2-test-pair-3",
+      "call": "fc-01M659Y9K0TTAXDSXWTDX4APRT",
+      "last_receipt": {
+        "status": "failed",
+        "scope": "test suite",
+        "order": [
+          "baseline",
+          "candidate",
+          "candidate",
+          "baseline"
+        ],
+        "allocation": {
+          "hostname": "modal",
+          "cpu_limit": 8,
+          "memory_limit_mib": 65536,
+          "mapping_workers": 2,
+          "requested_scan_workers": 4,
+          "nonpreemptible": true
+        },
+        "archives": {
+          "baseline": {
+            "sha256": "366d14ee809af5f96f9332b7377d7e21dd86d8bab639d6340d76e0321874792f",
+            "size_bytes": 50246122
+          },
+          "candidate": {
+            "sha256": "61a2d1038d3bf29d249dc773e25a7faa9313b282697be6d718988343357122b7",
+            "size_bytes": 50298859
+          }
+        },
+        "recipes": {
+          "profile_mapping_workers.py": {
+            "sha256": "d0c8ad961a63c4f39887eb4ef84929c0dd0e137963c275f695bbfd490a389860",
+            "size_bytes": 1758
+          },
+          "compare_reliability_outputs.py": {
+            "sha256": "0dd42e8cb507b9cd59eaadaad2e50aa1a1c8e2bc314c206a6315e63f47568f5e",
+            "size_bytes": 9970
+          },
+          "paired_build_benchmark.py": {
+            "sha256": "9f41769e9ae3d3d8c24f1addd4a12230d609a1e182d2cf7a48a11fba42e55563",
+            "size_bytes": 14522
+          },
+          "profile_csv_serialization.py": {
+            "sha256": "f450771782fce136ccff621440d89d2fc2c9d39a732264ef80b7efd5f3e65b4b",
+            "size_bytes": 4414
+          },
+          "profile_build.py": {
+            "sha256": "79fedf567d3b0de103d744c8ce87d9dff32bdad65b1339426677452940bc56bd",
+            "size_bytes": 11075
+          },
+          "profile_scan.py": {
+            "sha256": "d1136947cf185193d3be92d95bf31296acf477aba7c54b0d531127465641acb5",
+            "size_bytes": 7830
+          },
+          "reliability_benchmark.py": {
+            "sha256": "463ca3a99871170576aeef137494f5113b7ebcb7bb28f81724d676d968d3fcb1",
+            "size_bytes": 7937
+          },
+          "source_scan_benchmark.py": {
+            "sha256": "99500624e6b612771a657a4d283f6f11170d26aed82929325ed7d99db6a3c822",
+            "size_bytes": 12905
+          }
+        },
+        "network_guard_recipe": {
+          "sha256": "1cc31e0216449ccc65fa49b54599ad52dca1f366314623818932e52d1553fa6a",
+          "size_bytes": 1217
+        },
+        "runs": [
+          {
+            "label": "issue63-pass2-test-pair-3-1-baseline",
+            "variant": "baseline",
+            "total": {
+              "wall_seconds": 259.842917328,
+              "process_cpu_seconds": 2.12,
+              "waited_children_cpu_seconds": 499.86,
+              "process_peak_rss_bytes": 40816640,
+              "waited_child_peak_rss_bytes": 582582272,
+              "sampled_parent_peak_rss_bytes": 39854080,
+              "sampled_tree_peak_rss_bytes": 2380423168
+            },
+            "requested_scan_workers": 4
+          }
+        ],
+        "active_run": "issue63-pass2-test-pair-3-2-candidate"
+      },
+      "cancel_requested": true
+    }
+  ],
+  "live_read": "Read first4096bytes with one short read-only Python exec at2026-10-30T02:25UTC; retain observer action and exclude run from final timing evidence."
+}

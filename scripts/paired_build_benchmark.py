@@ -137,9 +137,31 @@ def _dependency_versions(report):
     }
 
 
-def run(label, scan_pair, test_pair=False, include_serial=False):
+def check_source_workers(log_path):
+    selections = retries = 0
+    with Path(log_path).open() as log:
+        for line in log:
+            selections += line.strip() == "Scanning IEDB and CEDAR with two source workers."
+            retries += "retrying source scans serially" in line
+    if selections != 1 or retries:
+        raise ValueError("Full candidate must use two source workers without a serial retry")
+    return {"n_workers": 2, "n_parallel_selections": selections, "n_serial_retries": retries}
+
+
+def run(
+    label,
+    scan_pair,
+    test_pair=False,
+    include_serial=False,
+    candidate_first=False,
+    require_source_workers=False,
+):
     if not label or any(c not in "abcdefghijklmnopqrstuvwxyz0123456789-_" for c in label):
         raise ValueError("Invalid experiment label")
+    if candidate_first and include_serial:
+        raise ValueError("Candidate-first ordering is a two-variant comparison")
+    if require_source_workers and (scan_pair or test_pair or include_serial):
+        raise ValueError("Source-worker qualification requires complete builds")
     destination = BASE / label
     destination.mkdir(parents=True, exist_ok=False)
     variants = {
@@ -163,8 +185,11 @@ def run(label, scan_pair, test_pair=False, include_serial=False):
         "order": (
             ["baseline", "serial", "candidate", "candidate", "serial", "baseline"]
             if include_serial
+            else ["candidate", "baseline", "baseline", "candidate"]
+            if candidate_first
             else ["baseline", "candidate", "candidate", "baseline"]
         ),
+        "require_source_workers": require_source_workers,
         "allocation": {
             "hostname": platform.node(),
             "cpu_limit": 8,
@@ -261,6 +286,11 @@ def run(label, scan_pair, test_pair=False, include_serial=False):
                 result = json.loads((output / "report.json").read_text())
                 if result["status"] != "success":
                     raise ValueError("Incomplete build cannot enter the comparison")
+                schedule = (
+                    check_source_workers(output / "build.log")
+                    if require_source_workers and variant == "candidate"
+                    else None
+                )
                 dependencies = _dependency_versions(result)
                 if expected_dependencies is None:
                     expected_dependencies = dependencies
@@ -272,27 +302,28 @@ def run(label, scan_pair, test_pair=False, include_serial=False):
                         "variant": variant,
                         "total": result["total"],
                         "requested_scan_workers": int(environment["HITLIST_SCAN_WORKERS"]),
+                        "source_worker_schedule": schedule,
                     }
                 )
                 receipt.pop("active_run", None)
                 (destination / "experiment.json").write_text(json.dumps(receipt, indent=2) + "\n")
                 print("PAIR_RESULT " + json.dumps(receipt["runs"][-1]), flush=True)
                 shutil.rmtree(cache, ignore_errors=True)
-            baseline = BASE / receipt["runs"][0]["label"]
+            reference = BASE / receipt["runs"][0]["label"]
             for item in receipt["runs"][1:]:
                 output = BASE / item["label"]
                 if test_pair:
                     continue
                 elif scan_pair:
                     for name in ("contributors.parquet", "observations.parquet"):
-                        if digest(baseline / name) != digest(output / name):
+                        if digest(reference / name) != digest(output / name):
                             raise ValueError(f"Paired output bytes differ: {output / name}")
                 else:
                     subprocess.run(
                         [
                             variants["candidate"][0],
                             str(CONFIG / "compare_reliability_outputs.py"),
-                            str(baseline),
+                            str(reference),
                             str(output),
                             str(destination / f"{item['label']}-comparison.json"),
                         ],
@@ -317,6 +348,8 @@ if __name__ == "__main__":
     parser.add_argument("--test-pair", action="store_true")
     parser.add_argument("--test-child")
     parser.add_argument("--include-serial", action="store_true")
+    parser.add_argument("--candidate-first", action="store_true")
+    parser.add_argument("--require-source-workers", action="store_true")
     parser.add_argument("--destination")
     args = parser.parse_args()
     if args.scan_child:
@@ -326,4 +359,11 @@ if __name__ == "__main__":
     else:
         if args.scan_pair and args.test_pair:
             parser.error("Choose one experiment scope")
-        run(args.label, args.scan_pair, args.test_pair, args.include_serial)
+        run(
+            args.label,
+            args.scan_pair,
+            args.test_pair,
+            args.include_serial,
+            args.candidate_first,
+            args.require_source_workers,
+        )

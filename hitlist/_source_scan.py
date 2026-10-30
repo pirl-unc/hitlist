@@ -192,7 +192,11 @@ def _worker(name, source, directory, quota, reserve, data_directory):
                 with (
                     (directory / f"{partition}.arrow").open("wb") as handle,
                     pa.PythonFile(_QuotaSink(handle, remaining, collector), mode="w") as sink,
-                    pa.ipc.new_stream(sink, table.schema) as writer,
+                    pa.ipc.new_stream(
+                        sink,
+                        table.schema,
+                        options=pa.ipc.IpcWriteOptions(compression="zstd", use_threads=False),
+                    ) as writer,
                 ):
                     writer.write_table(table)
                 written.append(partition)

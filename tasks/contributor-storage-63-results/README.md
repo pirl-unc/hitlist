@@ -1,7 +1,8 @@
 # Issue #63, second-pass evidence
 
 Baseline: released 2.1.3, main `ff5247f787ce79fbb640a00bcbe702fb7b7910cb`.
-Current full/test producer: `e88891a`, version 2.1.4. See
+Earlier full/test producer: `e88891a`, version 2.1.4; full qualification was
+superseded after the IPC capacity failure. See
 [the report](../../docs/source-build-performance.md) for boundaries and results.
 
 - `baseline-profile*`: 500,000-row sampling profile; diagnostic timings only.
@@ -29,3 +30,9 @@ Full comparisons require identical source/dependency pins, zero recorded Python
 network attempts and exact retained Parquet bytes. Named location/time/version
 metadata allowances are recorded individually. Sampled tree RSS counts each
 thread-group once but can still count shared pages across distinct processes.
+
+
+`ipc-capacity-*` retains the full candidate's transfer-reservation failure and
+intentional cancellation. `final-local-memory-refusal.txt` records a local test.sh
+preflight refusal before any tests started. New full qualification will require
+actual parallel selection with no serial retry; old partial results are excluded.

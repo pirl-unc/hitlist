@@ -9292,3 +9292,16 @@ PR publication is the next action; recipe/biological validation remain open.
 - [ ] Review original source metadata and retain available qualified fields.
 - [ ] Verify scanner/export round trips, formatting, lint and tests.
 - [ ] Publish versioned PR and deployment evidence per repository workflow.
+
+
+## #63 qualification correction — #880
+
+The first e88891a full candidate exceeded its 3.2 GiB IEDB IPC quota, safely
+retried serially, and therefore did not qualify the parallel optimization. That
+full experiment and its superseded final-code suite run were cancelled with
+receipts. The one completed baseline is not a comparative result. Preserve the
+16 GiB total cap and compress IPC with Zstandard; test both compressible success
+and incompressible quota fallback. Repeat full qualification candidate-first on
+one allocation with enforced actual parallel selection/no retry. Start the final
+suite comparison only after the first full candidate succeeds. Local full tests
+were refused at 0.13 GiB available; preserve the guard and use hosted test.sh gates.

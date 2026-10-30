@@ -82,3 +82,25 @@ with 96 GiB remaining at the root but 30 GiB at its parent demonstrates that thi
 can admit workers incorrectly. Resolve mount-relative membership and all visible
 ancestor limits for both memory and CPU; also cap by CPU affinity. Unknown
 hierarchies select serial execution. This is an unshipped draft correction.
+
+## Full-transfer correction — #880
+
+The e88891a full-corpus candidate exceeds its 3.2 GiB IEDB IPC reservation and
+retries serially. This invalidates parallel qualification, even though the safety
+fallback works. The original full/test comparisons are cancelled with receipts;
+the completed baseline alone cannot establish a speed ratio.
+
+Keep all five reservations and their sum unchanged. Write temporary IPC with
+Zstandard compression and disable IPC compression-thread fan-out. The receiver
+reads the same schema/values through Arrow's stream reader. Cover compressible
+rows whose raw transfer exceeds the reservation but whose compressed transfer
+fits; keep a deterministic incompressible fixture proving the quota still applies
+and serial retry remains exact. Use the same publication and corruption checks.
+
+Repeat full qualification in candidate/baseline/baseline/candidate order on one
+allocation. This is still a four-run counterbalanced comparison; candidate-first
+selection stops failures before spending another baseline run. Require actual
+two-worker selection, no serial retry, exact seven-Parquet equality, source and
+dependency pins, and zero recorded Python network attempts. Re-run the suite
+comparison only after the first complete candidate succeeds. No partial or
+superseded result counts as final qualification.

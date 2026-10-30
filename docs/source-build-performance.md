@@ -22,7 +22,7 @@ source buffers.
 
 The builder can scan IEDB and CEDAR in two independent processes. It consumes their
 results in the existing source order and uses the same partition normalization as
-the serial path. Each child writes private Arrow tables and a closed contributor
+the serial path. Each child writes private Zstandard-compressed Arrow tables and a closed contributor
 graph. The parent imports payload blocks, records and edges before existing
 cross-source deduplication and generation publication.
 
@@ -105,10 +105,23 @@ All five hosted unit configurations and 97 integration tests pass for the measur
 producer. Final evidence-head and clean-main release checks remain separate.
 
 
-The full-build experiment is bound to producer `e88891a`. The later #879
-correction changes only the serial source-result path after the parallel branch
-has returned, plus a regression test. Before using those full-build measurements,
-verify both candidate logs select two source workers and contain no serial
-capacity retry. No new measured serial speed or full-build memory claim follows
-from the bounded retained-buffer regression. A separate final-code suite comparison
-is pending.
+
+## Full-transfer capacity correction
+
+The first full candidate using uncompressed IPC exhausted the IEDB worker's
+3.2 GiB transfer reservation and correctly retried serially. That experiment was
+cancelled and is excluded from parallel timing claims; its completed baseline
+alone cannot establish a speed ratio. [#880](https://github.com/pirl-unc/hitlist/issues/880)
+records the failure. A read-only live inspection of the first 4 KiB of its log
+identified the retry; the observer action is retained with the excluded attempt.
+
+The corrected candidate uses [Arrow IPC compression](https://arrow.apache.org/docs/python/generated/pyarrow.ipc.IpcWriteOptions.html)
+with Zstandard and no compression-thread fan-out. The total scratch budget and
+all reservations remain unchanged. Regression cases cover both compressible
+transfers that fit only after compression and incompressible transfers that must
+still fail into the bounded serial retry.
+
+The replacement full experiment runs candidate/baseline/baseline/candidate on one
+allocation, checking the candidate first to expose capacity failures early. Each
+candidate must select two source workers without a serial retry before entering
+the comparison. Final-code full-build and suite qualification remain pending.

@@ -69,7 +69,10 @@ def test_missing_audit_marker_is_not_a_verified_run(tmp_path, benchmark):
 
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX process-group signal cleanup")
-def test_interrupted_experiment_records_failure_and_reaps_child(tmp_path, benchmark):
+@pytest.mark.parametrize("candidate_first", [False, True])
+def test_interrupted_experiment_records_failure_and_reaps_child(
+    tmp_path, benchmark, candidate_first
+):
     import json
     import signal
     import time
@@ -94,7 +97,7 @@ def test_interrupted_experiment_records_failure_and_reaps_child(tmp_path, benchm
         "from pathlib import Path\nimport paired_build_benchmark as b\n"
         f"b.CONFIG=Path({str(config)!r}); b.BASE=Path({str(base)!r})\n"
         f"b.GUARD_DIRECTORY=b.CONFIG; b.PRODUCER_ROOT=Path({str(producers)!r})\n"
-        "signal.signal(signal.SIGTERM,b.interrupted)\nb.run('interrupted',False)\n"
+        f"signal.signal(signal.SIGTERM,b.interrupted)\nb.run('interrupted',False,candidate_first={candidate_first!r})\n"
     )
     with (tmp_path / "parent.log").open("w") as log:
         parent = subprocess.Popen([sys.executable, "-c", code], stdout=log, stderr=log)
@@ -116,7 +119,10 @@ def test_interrupted_experiment_records_failure_and_reaps_child(tmp_path, benchm
                 parent.wait(timeout=15)
     receipt = json.loads((base / "interrupted/experiment.json").read_text())
     assert receipt["status"] == "failed"
-    assert receipt["active_run"] == "interrupted-1-baseline"
+    first = "candidate" if candidate_first else "baseline"
+    second = "baseline" if candidate_first else "candidate"
+    assert receipt["active_run"] == f"interrupted-1-{first}"
+    assert receipt["order"] == [first, second, second, first]
     assert receipt["runs"] == []
     assert "received signal 15" in (base / "interrupted/failure.txt").read_text()
 
@@ -210,3 +216,29 @@ def test_memory_sampler_counts_thread_groups_once_and_keeps_descendants(tmp_path
     own, total = profile._process_tree_rss(1, tmp_path)
     assert own == 10 * os.sysconf("SC_PAGE_SIZE")
     assert total == 60 * os.sysconf("SC_PAGE_SIZE")
+
+
+@pytest.mark.parametrize(
+    "log",
+    [
+        "Scanning iedb...\n",
+        "Scanning IEDB and CEDAR with two source workers.\nSource worker scratch reservations were insufficient; retrying source scans serially.\n",
+    ],
+)
+def test_full_worker_qualification_rejects_serial_scans(tmp_path, benchmark, log):
+    path = tmp_path / "build.log"
+    path.write_text(log)
+    with pytest.raises(ValueError, match="without a serial retry"):
+        benchmark.check_source_workers(path)
+
+
+def test_full_worker_qualification_records_actual_schedule(tmp_path, benchmark):
+    path = tmp_path / "build.log"
+    path.write_text(
+        "Scanning IEDB and CEDAR with two source workers.\nScanning iedb...\nScanning cedar...\n"
+    )
+    assert benchmark.check_source_workers(path) == {
+        "n_workers": 2,
+        "n_parallel_selections": 1,
+        "n_serial_retries": 0,
+    }

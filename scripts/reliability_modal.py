@@ -133,6 +133,8 @@ def main(
     scan_pair: bool = False,
     source_pair: bool = False,
     builder_source_pair: bool = False,
+    candidate_first: bool = False,
+    require_source_workers: bool = False,
     test_pair: bool = False,
     include_serial: bool = False,
     background: bool = False,
@@ -149,6 +151,8 @@ def main(
                 include_serial,
                 source_pair or builder_source_pair,
                 builder_source_pair,
+                candidate_first,
+                require_source_workers,
             )
             print(f"Submitted benchmark function call: {call.object_id}", flush=True)
         else:
@@ -159,6 +163,8 @@ def main(
                 include_serial,
                 source_pair or builder_source_pair,
                 builder_source_pair,
+                candidate_first,
+                require_source_workers,
             )
     elif compare_before or compare_after:
         compare_outputs.remote(label, compare_before, compare_after)
@@ -188,6 +194,8 @@ def execute_pair(
     include_serial: bool = False,
     source_only: bool = False,
     builder_sources: bool = False,
+    candidate_first: bool = False,
+    require_source_workers: bool = False,
 ):
     """Alternate variants in fresh processes on one allocation, with a finite deadline."""
     import contextlib
@@ -195,10 +203,16 @@ def execute_pair(
     import subprocess
     import sys
 
-    if source_only and (scan_only or tests_only or include_serial):
+    if source_only and (
+        scan_only or tests_only or include_serial or candidate_first or require_source_workers
+    ):
         raise ValueError("Choose one source-scheduling diagnostic scope")
     recipe = "source_scan_benchmark.py" if source_only else "paired_build_benchmark.py"
     command = [sys.executable, f"/opt/benchmark/{recipe}", label]
+    if candidate_first:
+        command.append("--candidate-first")
+    if require_source_workers:
+        command.append("--require-source-workers")
     if builder_sources:
         command.append("--builder")
     if scan_only:

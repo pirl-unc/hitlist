@@ -13,7 +13,7 @@ from tests.test_provenance import _row
 from tests.test_scanner import _write_tiny_iedb_csv
 
 
-def _sources(tmp_path, *, large=False):
+def _sources(tmp_path, *, large=False, compressible=False):
     paths = {name: tmp_path / f"{name}.csv" for name in ("iedb", "cedar")}
     for name, path in paths.items():
         rows = [_row("shared"), _row("shared", "copy metadata"), _row(""), _row(f"{name}:only")]
@@ -21,7 +21,16 @@ def _sources(tmp_path, *, large=False):
         if large:
             rows = [_row(f"{name}:{index}") for index in range(10)]
             for index, row in enumerate(rows):
-                row[15] = "unrelated comment " + "x" * 90000 + str(index)
+                if compressible:
+                    comment = "x" * 90000 + str(index)
+                else:
+                    import random
+                    import string
+
+                    comment = "".join(
+                        random.Random(index).choices(string.ascii_letters + string.digits, k=90000)
+                    )
+                row[15] = "unrelated comment " + comment
         _write_tiny_iedb_csv(path, rows)
     return paths
 
@@ -327,3 +336,30 @@ def test_owned_empty_schema_releases_arrow_buffers_and_preserves_metadata():
             assert chunk.buffers()[-1] is None or chunk.buffers()[-1].size == 0
     with pytest.raises(ValueError, match="empty source schema"):
         workers._owned_empty_schema(frame)
+
+
+def test_compressed_source_transfers_fit_the_existing_reservation(tmp_path, monkeypatch, capsys):
+    paths = _sources(tmp_path, large=True, compressible=True)
+    _, expected = _build(
+        paths,
+        tmp_path / "scratch",
+        tmp_path / "serial.parquet",
+        monkeypatch,
+        False,
+        limit=2 * 1024**2,
+    )
+    _, actual = _build(
+        paths,
+        tmp_path / "scratch",
+        tmp_path / "parallel.parquet",
+        monkeypatch,
+        True,
+        limit=2 * 1024**2,
+    )
+    output = capsys.readouterr().out
+    assert "two source workers" in output
+    assert "retrying source scans serially" not in output
+    pd.testing.assert_frame_equal(actual, expected)
+    assert (tmp_path / "serial.parquet").read_bytes() == (
+        tmp_path / "parallel.parquet"
+    ).read_bytes()
