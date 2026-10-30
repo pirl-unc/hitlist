@@ -124,7 +124,7 @@ def test_resolve_gene_query_uses_hgnc_synonyms(monkeypatch):
 
     monkeypatch.setattr(genes, "_fetch_hgnc", fake_fetch)
     monkeypatch.setattr(genes, "_load_cache", lambda: {})
-    monkeypatch.setattr(genes, "_save_cache", lambda c: None)
+    monkeypatch.setattr(genes, "_record_resolution", lambda q, e: None)
 
     spec = resolve_gene_query("MART-1")
     assert "MLANA" in spec["names"]

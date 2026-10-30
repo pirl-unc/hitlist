@@ -26,13 +26,18 @@ Usage::
 
 from __future__ import annotations
 
+import contextlib
 import json
+import os
+import tempfile
 import urllib.parse
 import urllib.request
 import warnings
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
+
+from filelock import FileLock
 
 _HGNC_SEARCH_URL = "https://rest.genenames.org/search"
 _HGNC_FETCH_URL = "https://rest.genenames.org/fetch"
@@ -56,9 +61,27 @@ def _load_cache() -> dict:
     return {}
 
 
-def _save_cache(cache: dict) -> None:
+def _record_resolution(query: str, entry: dict) -> None:
+    """Add one entry to the on-disk gene cache (locked, atomic read-modify-write).
+
+    Same scheme as ``downloads.manifest_transaction`` (#883): an exclusive
+    ``FileLock`` on a sidecar file serialises concurrent writers so entries are
+    not lost, and ``os.replace`` of a temp file means readers never see a
+    half-written cache.
+    """
     p = _cache_path()
-    p.write_text(json.dumps(cache, indent=2, default=str) + "\n")
+    with FileLock(str(p) + ".lock"):
+        cache = _load_cache()
+        cache[query] = entry
+        fd, tmp = tempfile.mkstemp(dir=str(p.parent), prefix=".hgnc-", suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w") as f:
+                f.write(json.dumps(cache, indent=2, default=str) + "\n")
+            os.replace(tmp, p)
+        except BaseException:
+            with contextlib.suppress(OSError):
+                os.unlink(tmp)
+            raise
 
 
 class HGNCLookupError(RuntimeError):
@@ -115,11 +138,13 @@ def _resolve_hgnc_symbol_cached(query: str) -> tuple[str, ...]:
 
     docs = _fetch_hgnc(query)
     symbols = tuple(d["symbol"] for d in docs if d.get("symbol"))
-    cache[query] = {
-        "symbols": list(symbols),
-        "resolved_at": datetime.now(timezone.utc).isoformat(),
-    }
-    _save_cache(cache)
+    _record_resolution(
+        query,
+        {
+            "symbols": list(symbols),
+            "resolved_at": datetime.now(timezone.utc).isoformat(),
+        },
+    )
     return symbols
 
 

@@ -145,9 +145,9 @@ def _source_fingerprints(paths: dict[str, Path], *, fetch_missing_assets: bool =
     # DepMap inputs are registered via downloads.py and live outside the
     # repo; fingerprint by registered path so a re-register / re-download
     # forces a line-expression rebuild.
-    from .downloads import _load_manifest
+    from .downloads import load_manifest
 
-    manifest = _load_manifest()
+    manifest = load_manifest()
     registered = manifest.get("datasets", {}) or {}
     for key in ("depmap_rna", "depmap_rna_transcript", "depmap_models"):
         entry = registered.get(key)
@@ -1814,9 +1814,9 @@ def build_line_expression(verbose: bool = False) -> pd.DataFrame:
     frames: list[pd.DataFrame] = [_load_packaged_union()]
 
     # --- Optional DepMap gene / transcript matrices ---
-    from .downloads import _load_manifest
+    from .downloads import load_manifest
 
-    manifest = _load_manifest()
+    manifest = load_manifest()
     registered = manifest.get("datasets", {}) or {}
 
     def _registered_path(key: str) -> Path | None:
