@@ -7,6 +7,7 @@ does not require another corpus-sized Python collection.
 
 from __future__ import annotations
 
+import contextlib
 import errno
 import json
 import math
@@ -384,6 +385,65 @@ class ContributorCollector:
         if offset < 0 or length < 0 or offset + length > len(block):
             raise ValueError("Contributor payload slice exceeds its block")
         return block[offset : offset + length]
+
+    def _set_scratch_limit(self, n_bytes):
+        """Apply a temporary reservation within the caller's total scratch budget."""
+        n_pages = n_bytes // 4096
+        if self.db.execute("PRAGMA page_count").fetchone()[0] > n_pages:
+            raise self._storage_error("existing graph exceeds its reserved scratch space")
+        actual = self.db.execute(f"PRAGMA max_page_count={n_pages}").fetchone()[0]
+        if actual != n_pages:
+            raise self._storage_error("could not apply the scratch reservation")
+        self.max_scratch_bytes = n_pages * 4096
+
+    def _export_snapshot(self, path):
+        """Move a closed, disposable worker graph; this is not a public artifact."""
+        path = Path(path)
+        if path.exists():
+            raise ValueError("Contributor snapshot destination already exists")
+        self._flush_payloads()
+        self.db.commit()
+        self.db.close()
+        self.db = None
+        (Path(self._temporary.name) / "records.sqlite").replace(path)
+        return self.sources
+
+    def _import_snapshot(self, path, sources):
+        """Merge a private source worker's graph without changing public identities."""
+        if self.sources.keys() & sources.keys():
+            raise ValueError("Contributor snapshot repeats a source namespace")
+        self._flush_payloads()
+        self.db.commit()
+        self._execute("ATTACH DATABASE ? AS captured", (str(path),))
+        try:
+            next_block = self._execute(
+                "SELECT COALESCE(MAX(id) + 1, 0) FROM captured.payload_blocks"
+            ).fetchone()[0]
+            self._execute(
+                "INSERT INTO payload_blocks SELECT id + ?, payload, raw_size "
+                "FROM captured.payload_blocks",
+                (self._block_id,),
+            )
+            self._execute(
+                "INSERT INTO records SELECT id, dataset, row_number, block_id + ?, "
+                "byte_offset, byte_length, pmid FROM captured.records",
+                (self._block_id,),
+            )
+            self._execute(
+                "INSERT INTO edges SELECT source, target, relation, label FROM captured.edges"
+            )
+            self.db.commit()
+            self._block_id += next_block
+            self.sources.update(sources)
+        except BaseException:
+            # Preserve the import error if cleanup also encounters a damaged DB.
+            # The enclosing build discards this graph and never publishes it.
+            with contextlib.suppress(sqlite3.Error):
+                self.db.rollback()
+                self.db.execute("DETACH DATABASE captured")
+            raise
+        else:
+            self.db.execute("DETACH DATABASE captured")
 
     def observe(self, record_id: str, sample_label="") -> str:
         node = f"observation:{record_id}"

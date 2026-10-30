@@ -1,0 +1,15 @@
+{
+  "scope": "independent source processes; excludes production cross-source graph/partition merge",
+  "status": "success",
+  "sampling": "Corrected thread-group RSS sampler; see #876. Distinct-process shared pages still count repeatedly.",
+  "serial": {
+    "wall_seconds_mean": 73.53603959099999,
+    "cpu_seconds_mean": 71.10500000000002,
+    "sampled_tree_peak_rss_bytes_mean": 2606276608.0
+  },
+  "parallel": {
+    "wall_seconds_mean": 37.49185588900001,
+    "cpu_seconds_mean": 70.66,
+    "sampled_tree_peak_rss_bytes_mean": 4875302912.0
+  }
+}

@@ -132,6 +132,7 @@ def main(
     paired: bool = False,
     scan_pair: bool = False,
     source_pair: bool = False,
+    builder_source_pair: bool = False,
     test_pair: bool = False,
     include_serial: bool = False,
     background: bool = False,
@@ -139,12 +140,26 @@ def main(
     compare_before: str = "",
     compare_after: str = "",
 ):
-    if paired or scan_pair or test_pair or source_pair:
+    if paired or scan_pair or test_pair or source_pair or builder_source_pair:
         if background:
-            call = execute_pair.spawn(label, scan_pair, test_pair, include_serial, source_pair)
+            call = execute_pair.spawn(
+                label,
+                scan_pair,
+                test_pair,
+                include_serial,
+                source_pair or builder_source_pair,
+                builder_source_pair,
+            )
             print(f"Submitted benchmark function call: {call.object_id}", flush=True)
         else:
-            execute_pair.remote(label, scan_pair, test_pair, include_serial, source_pair)
+            execute_pair.remote(
+                label,
+                scan_pair,
+                test_pair,
+                include_serial,
+                source_pair or builder_source_pair,
+                builder_source_pair,
+            )
     elif compare_before or compare_after:
         compare_outputs.remote(label, compare_before, compare_after)
     elif test_suite:
@@ -172,6 +187,7 @@ def execute_pair(
     tests_only: bool = False,
     include_serial: bool = False,
     source_only: bool = False,
+    builder_sources: bool = False,
 ):
     """Alternate variants in fresh processes on one allocation, with a finite deadline."""
     import contextlib
@@ -183,6 +199,8 @@ def execute_pair(
         raise ValueError("Choose one source-scheduling diagnostic scope")
     recipe = "source_scan_benchmark.py" if source_only else "paired_build_benchmark.py"
     command = [sys.executable, f"/opt/benchmark/{recipe}", label]
+    if builder_sources:
+        command.append("--builder")
     if scan_only:
         command.append("--scan-pair")
     if tests_only:

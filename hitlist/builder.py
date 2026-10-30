@@ -875,6 +875,46 @@ def build_observations(
     return published["observations.parquet"]
 
 
+def _scan_source_tables(name, path, provenance):
+    """Apply the same source scan and partition normalization in either process."""
+    import pyarrow as pa
+
+    from .assays import ANNOTATION_COLUMNS, annotate_assays
+    from .scanner import scan
+
+    print(f"Scanning {name} ({path.name})...")
+    df = scan(
+        peptides=None,
+        iedb_path=path if name == "iedb" else None,
+        cedar_path=path if name == "cedar" else None,
+        mhc_species=None,
+        classify_source=True,
+        provenance=provenance,
+    )
+    df["source"] = name
+    if not set(ANNOTATION_COLUMNS) <= set(df):
+        annotate_assays(df)
+    empty_schema = df.iloc[:0].copy()
+    frames = (
+        df[df["is_ms_observation"]].copy(),
+        df[df["is_binding_assay"]].copy(),
+        df[~(df["is_ms_observation"] | df["is_binding_assay"])].copy(),
+    )
+    del df
+    n_ms, n_binding, n_other = map(len, frames)
+    tables = []
+    for frame in frames:
+        # Preserve the existing nullable PMID conversion and per-source category
+        # order before Arrow transport; mixed raw PMIDs remain in provenance.
+        if "pmid" in frame:
+            frame["pmid"] = pd.to_numeric(frame["pmid"], errors="coerce").astype("Int64")
+        _compress_categoricals(frame)
+    for frame in frames:
+        tables.append(pa.Table.from_pandas(frame, preserve_index=False) if len(frame) else None)
+    print(f"  {n_ms:,} MS + {n_binding:,} binding + {n_other:,} other assay rows from {name}")
+    return (*tables, empty_schema)
+
+
 def _build_observations(
     paths,
     out_path,
@@ -891,7 +931,6 @@ def _build_observations(
 
     from .assays import ANNOTATION_COLUMNS, annotate_assays
     from .provenance import contributors_path, file_digest
-    from .scanner import scan
 
     # Buffer per-source partitions as pyarrow Tables, not pandas frames.
     # Two reasons:
@@ -913,61 +952,16 @@ def _build_observations(
     other_tables: list[pa.Table] = []
     empty_schema = pd.DataFrame()
 
-    for name in ("iedb", "cedar"):
-        if name not in paths:
-            continue
-        print(f"Scanning {name} ({paths[name].name})...")
-        df = scan(
-            peptides=None,
-            iedb_path=paths[name] if name == "iedb" else None,
-            cedar_path=paths[name] if name == "cedar" else None,
-            mhc_species=None,  # builder indexes all species; downstream filters per-call
-            classify_source=True,
-            provenance=provenance,
-        )
-        df["source"] = name
+    from ._source_scan import scan_sources
 
-        # A false binding flag never establishes MS modality. Retain all
-        # remaining assays independently, including explicit negative MS.
-        if not set(ANNOTATION_COLUMNS) <= set(df):
-            annotate_assays(df)
-        empty_schema = df.iloc[:0].copy()
-        ms_df = df[df["is_ms_observation"]].copy()
-        bd_df = df[df["is_binding_assay"]].copy()
-        other_df = df[~(df["is_ms_observation"] | df["is_binding_assay"])].copy()
-        del df  # free the source scan's frame before the next source's scan
-        n_ms, n_bd, n_other = len(ms_df), len(bd_df), len(other_df)
-
-        # Normalize ``pmid`` to ``Int64`` *per-partition* before the
-        # Arrow conversion.  The scanner emits ``pmid`` as object dtype
-        # with ``""`` for missing rows and integer-like strings for
-        # present ones; pyarrow's ``Table.from_pandas`` infers a single
-        # type per column and chokes on the mixed shapes (#232).  The
-        # full-frame normalization at the bottom of this function is
-        # kept as defensive scaffolding but is now a no-op.
-        for frame in (ms_df, bd_df, other_df):
-            if "pmid" in frame.columns:
-                frame["pmid"] = pd.to_numeric(frame["pmid"], errors="coerce").astype("Int64")
-
-        # Compress per-partition before Arrow conversion so dictionary-encoded
-        # categories survive the round-trip (Arrow ``DictionaryArray`` ↔
-        # pandas ``category`` is preserved by ``pa.Table.from_pandas`` /
-        # ``Table.to_pandas``).
-        _compress_categoricals(ms_df)
-        _compress_categoricals(bd_df)
-        _compress_categoricals(other_df)
-
-        # Convert to Arrow eagerly and free the pandas frame.  Holding the
-        # accumulated partitions as Arrow keeps the per-source memory cost
-        # ~5x lower than pandas.
-        if n_ms:
-            ms_tables.append(pa.Table.from_pandas(ms_df, preserve_index=False))
-        if n_bd:
-            binding_tables.append(pa.Table.from_pandas(bd_df, preserve_index=False))
-        if n_other:
-            other_tables.append(pa.Table.from_pandas(other_df, preserve_index=False))
-        del ms_df, bd_df, other_df
-        print(f"  {n_ms:,} MS + {n_bd:,} binding + {n_other:,} other assay rows from {name}")
+    for _, (ms_table, binding_table, other_table, source_schema) in scan_sources(paths, provenance):
+        empty_schema = source_schema
+        if ms_table is not None:
+            ms_tables.append(ms_table)
+        if binding_table is not None:
+            binding_tables.append(binding_table)
+        if other_table is not None:
+            other_tables.append(other_table)
 
     if not ms_tables and not binding_tables and not other_tables:
         raise RuntimeError("No data scanned.")

@@ -4,7 +4,7 @@ Specification: [contributor-storage-63-spec.md](contributor-storage-63-spec.md).
 
 - [x] Review prior profiles, preserve user work, branch from current main 2.1.3.
 - [x] Specify comparison baseline, invariants and release gates before implementation.
-- [ ] Profile current source capture/publication and compare isolated candidates.
+- [x] Profile current source capture/publication and compare isolated candidates.
 - [ ] Implement selected bounded optimization and meaningful regression coverage.
 - [ ] Complete controlled real-source and full-build output/time/CPU/memory comparisons.
 - [ ] Measure test.sh; run format, lint, full tests, metadata/dependency and CI gates.
@@ -16,6 +16,20 @@ Prior #870 and documentation correction #874 are merged and deployed as 2.1.1 an
 2.1.2; both public wheel/sdist pairs were verified against their clean-main gates.
 The measured first pass achieved 1.10×, leaving the 2× target open. This pass starts
 from main ff5247f (2.1.3) to include #872 consistently in both measured variants.
+
+Candidate 4418993 passes 3,761 local unit tests (one skip). Candidate e2d820e
+adds scan-local reuse of identical adjacent assay annotations; 119 focused tests
+pass. The second four-run prefix comparison is byte-identical across both output
+files: means 57.96 s baseline versus 53.21 s candidate, with parent peak RSS
+2.77 versus 2.26 GiB. Full-build claims remain pending. Harness 610c2d9 passes
+130 focused tests including sibling cancellation, timeout cleanup and CEDAR source
+identity. The corrected two-source diagnostic has matching output bytes and mean wall
+73.54 s serial /37.49 s parallel, excluding cross-source merging. The production
+worker design is recorded in [source-workers-63-spec.md](source-workers-63-spec.md).
+The bounded implementation passes127 focused tests, including actual spawn,
+scratch fallback, cancellation, corrupt snapshots, source identity, and exact
+merged contributor bytes. A real-prefix comparison including production IPC and
+graph merging is the next decision gate; no full-build speed claim yet.
 
 # Performance-report skip wording — #873, 2026-10-29
 

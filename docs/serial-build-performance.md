@@ -74,7 +74,7 @@ not a hardware-independent performance guarantee.
 | 3 | Candidate repeat | 1,510.48 | 1,510.55 | 31.00 | 37.07 |
 | 4 | Baseline repeat | 1,656.08 | 1,653.80 | 30.68 | 42.73 |
 
-The historical tree-RSS columns below are retained for audit, but are not qualified
+The historical tree-RSS columns in this report are retained for audit, but are not qualified
 for memory comparisons. [#876](https://github.com/pirl-unc/hitlist/issues/876)
 subsequently demonstrated that this runtime can list child thread IDs as descendants;
 the original sampler counted the same address space repeatedly. Parent-process and

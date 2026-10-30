@@ -27,6 +27,7 @@ from unittest.mock import patch
 
 STAGES = (
     ("hitlist.scanner", "scan"),
+    ("hitlist._source_scan", "scan_sources"),
     ("hitlist.supplement", "scan_supplementary"),
     ("hitlist.mappings", "build_peptide_mappings"),
     ("hitlist.builder", "build_bulk_proteomics"),
@@ -170,7 +171,12 @@ def measured_stages(events, memory):
 
     with contextlib.ExitStack() as stack:
         for module_name, attribute in STAGES:
-            owner = importlib.import_module(module_name)
+            try:
+                owner = importlib.import_module(module_name)
+            except ModuleNotFoundError as error:
+                if module_name == "hitlist._source_scan" and error.name == module_name:
+                    continue  # Older comparison producers predate source workers.
+                raise
             parts = attribute.split(".")
             for part in parts[:-1]:
                 owner = getattr(owner, part)

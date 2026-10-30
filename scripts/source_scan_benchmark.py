@@ -98,7 +98,53 @@ def child(source, sample, destination):
         (destination / "report.json").write_text(json.dumps(receipt, indent=2) + "\n")
 
 
-def run(label, n_rows):
+def builder_child(samples, destination):
+    """Include the actual builder's IPC, graph import and cross-source dedup."""
+    import pyarrow as pa
+
+    import hitlist
+    from hitlist import _source_scan
+    from hitlist.builder import _CONCAT_PROMOTE_OPTIONS, _drop_duplicate_iris
+    from hitlist.provenance import ContributorCollector
+
+    destination, samples = Path(destination), Path(samples)
+    paths = {name: samples / f"{name}.csv" for name in ("iedb", "cedar")}
+    receipt = {"status": "failed", "version": hitlist.__version__, "n_workers": 1}
+    parallel = _source_scan._parallel_sources
+
+    def observed_parallel(*args, **kwargs):
+        receipt["n_workers"] = 2
+        result = parallel(*args, **kwargs)
+        receipt["serial_capacity_retry"] = result is None
+        return result
+
+    _source_scan._parallel_sources = observed_parallel
+    before, memory = usage(), MemorySampler()
+    try:
+        with memory, ContributorCollector() as collector:
+            sources = _source_scan.scan_sources(paths, collector)
+            frames = []
+            for index, name in enumerate(("ms", "binding", "other")):
+                tables = [parts[index] for _, parts in sources if parts[index] is not None]
+                if not tables:
+                    continue
+                frame = pa.concat_tables(
+                    tables, promote_options=_CONCAT_PROMOTE_OPTIONS
+                ).to_pandas()
+                if name != "other":
+                    frame = _drop_duplicate_iris(frame, name, provenance=collector)
+                frames.append(frame)
+                frame.to_parquet(destination / f"{name}.parquet", index=False)
+            collector.write(frames, destination / "contributors.parquet")
+        receipt.update(status="success", total={**elapsed(before), **memory.total})
+        receipt["outputs"] = {path.name: digest(path) for path in destination.glob("*.parquet")}
+    finally:
+        (destination / "report.json").write_text(json.dumps(receipt, indent=2) + "\n")
+        _source_scan._parallel_sources = parallel
+
+
+def run(label, n_rows, builder=False):
+
     if not label or any(c not in "abcdefghijklmnopqrstuvwxyz0123456789-_" for c in label):
         raise ValueError("Invalid experiment label")
     if not 1 <= n_rows <= 500000:
@@ -107,7 +153,9 @@ def run(label, n_rows):
     destination.mkdir(parents=True, exist_ok=False)
     receipt = {
         "status": "failed",
-        "scope": "independent source processes; excludes production cross-source graph/partition merge",
+        "scope": "production source ingestion including IPC, graph merge and cross-source dedup"
+        if builder
+        else "independent source processes; excludes production cross-source graph/partition merge",
         "n_rows_per_source_limit": n_rows,
         "order": ["serial", "parallel", "parallel", "serial"],
         "producer": digest(CONFIG / "producer.tar.gz"),
@@ -136,7 +184,7 @@ def run(label, n_rows):
                 output.mkdir()
                 commands, outputs = [], []
                 with contextlib.ExitStack() as stack:
-                    for source in ("iedb", "cedar"):
+                    for source in ("merged",) if builder else ("iedb", "cedar"):
                         target = output / source
                         target.mkdir()
                         cache = scratch / f"cache-{index}-{source}"
@@ -148,6 +196,7 @@ def run(label, n_rows):
                                 "HITLIST_DATA_DIR": str(cache),
                                 "XDG_CACHE_HOME": str(cache),
                                 "TMPDIR": str(cache),
+                                "HITLIST_SCAN_WORKERS": "1" if variant == "serial" else "2",
                                 "OMP_NUM_THREADS": "1",
                                 "OPENBLAS_NUM_THREADS": "1",
                                 "MKL_NUM_THREADS": "1",
@@ -160,10 +209,10 @@ def run(label, n_rows):
                                 [
                                     sys.executable,
                                     str(Path(__file__)),
-                                    "--child",
-                                    source,
+                                    "--builder-child" if builder else "--child",
+                                    *([] if builder else [source]),
                                     "--sample",
-                                    str(scratch / f"{source}.csv"),
+                                    str(scratch if builder else scratch / f"{source}.csv"),
                                     "--destination",
                                     str(target),
                                 ],
@@ -185,6 +234,11 @@ def run(label, n_rows):
                         report = json.loads((target / "report.json").read_text())
                         if report["status"] != "success":
                             raise ValueError("Incomplete source scan")
+                        if builder and (
+                            report["n_workers"] != (1 if variant == "serial" else 2)
+                            or report.get("serial_capacity_retry", False)
+                        ):
+                            raise ValueError("Requested source schedule was not admitted")
                         for name, pin in report["outputs"].items():
                             if digest(target / name) != pin:
                                 raise ValueError("Retained source output differs from its receipt")
@@ -217,10 +271,14 @@ if __name__ == "__main__":
     parser.add_argument("label", nargs="?")
     parser.add_argument("--rows", type=int, default=500000)
     parser.add_argument("--child", choices=("iedb", "cedar"))
+    parser.add_argument("--builder", action="store_true")
+    parser.add_argument("--builder-child", action="store_true")
     parser.add_argument("--sample")
     parser.add_argument("--destination")
     args = parser.parse_args()
-    if args.child:
+    if args.builder_child:
+        builder_child(args.sample, args.destination)
+    elif args.child:
         child(args.child, args.sample, args.destination)
     else:
-        run(args.label, args.rows)
+        run(args.label, args.rows, args.builder)
