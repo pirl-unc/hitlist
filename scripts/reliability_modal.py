@@ -86,6 +86,10 @@ if modal.is_local():
             "/opt/benchmark/paired_build_benchmark.py",
         )
         .add_local_file(
+            str(ROOT / "scripts/source_scan_benchmark.py"),
+            "/opt/benchmark/source_scan_benchmark.py",
+        )
+        .add_local_file(
             str(ROOT / "scripts/benchmark_site/sitecustomize.py"),
             "/opt/benchmark/network_guard/sitecustomize.py",
         )
@@ -127,6 +131,7 @@ def main(
     serialization_sample: bool = False,
     paired: bool = False,
     scan_pair: bool = False,
+    source_pair: bool = False,
     test_pair: bool = False,
     include_serial: bool = False,
     background: bool = False,
@@ -134,12 +139,12 @@ def main(
     compare_before: str = "",
     compare_after: str = "",
 ):
-    if paired or scan_pair or test_pair:
+    if paired or scan_pair or test_pair or source_pair:
         if background:
-            call = execute_pair.spawn(label, scan_pair, test_pair, include_serial)
+            call = execute_pair.spawn(label, scan_pair, test_pair, include_serial, source_pair)
             print(f"Submitted benchmark function call: {call.object_id}", flush=True)
         else:
-            execute_pair.remote(label, scan_pair, test_pair, include_serial)
+            execute_pair.remote(label, scan_pair, test_pair, include_serial, source_pair)
     elif compare_before or compare_after:
         compare_outputs.remote(label, compare_before, compare_after)
     elif test_suite:
@@ -162,7 +167,11 @@ def main(
     nonpreemptible=True,
 )
 def execute_pair(
-    label: str, scan_only: bool, tests_only: bool = False, include_serial: bool = False
+    label: str,
+    scan_only: bool,
+    tests_only: bool = False,
+    include_serial: bool = False,
+    source_only: bool = False,
 ):
     """Alternate variants in fresh processes on one allocation, with a finite deadline."""
     import contextlib
@@ -170,7 +179,10 @@ def execute_pair(
     import subprocess
     import sys
 
-    command = [sys.executable, "/opt/benchmark/paired_build_benchmark.py", label]
+    if source_only and (scan_only or tests_only or include_serial):
+        raise ValueError("Choose one source-scheduling diagnostic scope")
+    recipe = "source_scan_benchmark.py" if source_only else "paired_build_benchmark.py"
+    command = [sys.executable, f"/opt/benchmark/{recipe}", label]
     if scan_only:
         command.append("--scan-pair")
     if tests_only:

@@ -54,3 +54,22 @@ construction) and 13.88 s contributor publication. Local bounded diagnostics
 support testing consecutive-cell JSON reuse and WITHOUT ROWID record storage;
 the wider covering edge index used more scratch and had no clear gain. Keep the
 existing edge index. Tuple buffering is a memory reduction hypothesis to measure.
+
+## Independent-source diagnostic before architectural changes
+
+The first same-allocation 500,000-row ABBA comparison passed exact byte checks:
+58.96 s baseline versus 54.77 s candidate mean, with parent peak RSS 2.77 versus
+2.26 GiB. This is a prefix result, not a full-build ratio. The lower row-buffer
+memory makes independent source scans worth evaluating before adding concurrency.
+
+Run a separate, bounded diagnostic over pinned IEDB and CEDAR prefixes. Each
+source has its own fresh Python process, capped collector and output files;
+compare serial source scheduling with two simultaneous children in alternating
+order. Include subprocess startup, capture, publication and output writes in the
+clock. Retain dependency/input pins, CPU and sampled tree memory, network-audit
+markers, child completion, and actual output hashes. No production concurrency
+until this proves useful; the diagnostic deliberately excludes the additional
+cross-source graph/partition merge a production implementation would require.
+If selected, write a separate resource/merge design before implementation: preserve
+one total scratch budget, per-source duplicate identity, deterministic partitions,
+source snapshots, worker cancellation, and atomic failure of the whole build.

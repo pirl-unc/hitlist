@@ -146,3 +146,46 @@ def test_scan_diagnostic_uses_builder_pmid_projection_and_keeps_originals(tmp_pa
         "reported-reference",
     ]
     assert json.loads((output / "report.json").read_text())["status"] == "success"
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX process-group signal cleanup")
+@pytest.mark.parametrize("failure", ["sibling", "timeout"])
+def test_source_diagnostic_reaps_all_children_on_failure(tmp_path, monkeypatch, benchmark, failure):
+    source_benchmark = importlib.import_module("source_scan_benchmark")
+    processes = []
+    launch = subprocess.Popen
+
+    def tracked(*args, **kwargs):
+        process = launch(*args, **kwargs)
+        processes.append(process)
+        return process
+
+    monkeypatch.setattr(source_benchmark.subprocess, "Popen", tracked)
+    with (tmp_path / "children.log").open("w") as log:
+        commands = [([sys.executable, "-c", "import time; time.sleep(30)"], os.environ.copy(), log)]
+        if failure == "sibling":
+            commands.append(([sys.executable, "-c", "raise SystemExit(7)"], os.environ.copy(), log))
+        with pytest.raises(subprocess.CalledProcessError if failure == "sibling" else TimeoutError):
+            source_benchmark.run_children(commands, concurrent=True, timeout=0.5)
+    assert processes
+    assert all(process.poll() is not None for process in processes)
+
+
+def test_source_diagnostic_preserves_cedar_identity(tmp_path, benchmark):
+    import json
+
+    import pandas as pd
+
+    from tests.test_provenance import _row
+    from tests.test_scanner import _write_tiny_iedb_csv
+
+    source_benchmark = importlib.import_module("source_scan_benchmark")
+    source = tmp_path / "cedar.csv"
+    _write_tiny_iedb_csv(source, [_row("cedar:1")])
+    output = tmp_path / "output"
+    output.mkdir()
+    source_benchmark.child("cedar", source, output)
+    links = pd.read_parquet(output / "contributors.parquet")
+    assert links.source_dataset.tolist() == ["cedar"]
+    assert links.source_record_id.tolist() == ["record:cedar:row:1"]
+    assert json.loads((output / "report.json").read_text())["status"] == "success"
