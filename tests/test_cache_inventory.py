@@ -8,7 +8,7 @@ from pathlib import Path
 import datacache
 import pytest
 
-from hitlist import cli, downloads, proteome
+from hitlist import cli_data, downloads, proteome
 
 
 @pytest.fixture
@@ -112,9 +112,9 @@ def test_inventory_reports_provenance_without_claiming_verification(locations, t
 
 def test_inventory_cli_json_parses_and_dispatches(locations, capsys):
     parser = argparse.ArgumentParser()
-    cli._build_data_parser(parser.add_subparsers(dest="command"))
+    cli_data._build_data_parser(parser.add_subparsers(dest="command"))
     args = parser.parse_args(["data", "list", "--all", "--json", "--verify"])
-    cli._handle_data(args)
+    cli_data._handle_data(args)
     rows = json.loads(capsys.readouterr().out)
     assert rows[0]["status"] == "missing"
     assert rows[0]["verified"] is False

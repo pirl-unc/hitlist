@@ -8,7 +8,7 @@ import pandas as pd
 
 
 def test_split_allele_tokens_passes_through_already_separate_tokens():
-    from hitlist.cli import _split_allele_tokens
+    from hitlist.cli_pmhc import _split_allele_tokens
 
     assert _split_allele_tokens(["HLA-A*02:01", "HLA-B*07:02"]) == [
         "HLA-A*02:01",
@@ -19,7 +19,7 @@ def test_split_allele_tokens_passes_through_already_separate_tokens():
 def test_split_allele_tokens_splits_a_single_space_joined_token():
     """The exact failure mode from #491: one quoted shell argument holding
     a whole pasted genotype string."""
-    from hitlist.cli import _split_allele_tokens
+    from hitlist.cli_pmhc import _split_allele_tokens
 
     assert _split_allele_tokens(["HLA-A*02:01 HLA-B*07:02 HLA-C*05:01"]) == [
         "HLA-A*02:01",
@@ -29,7 +29,7 @@ def test_split_allele_tokens_splits_a_single_space_joined_token():
 
 
 def test_split_allele_tokens_splits_a_single_comma_joined_token():
-    from hitlist.cli import _split_allele_tokens
+    from hitlist.cli_pmhc import _split_allele_tokens
 
     assert _split_allele_tokens(["HLA-A*02:01,HLA-B*07:02,HLA-C*05:01"]) == [
         "HLA-A*02:01",
@@ -39,7 +39,7 @@ def test_split_allele_tokens_splits_a_single_comma_joined_token():
 
 
 def test_split_allele_tokens_handles_mixed_commas_spaces_and_repeats():
-    from hitlist.cli import _split_allele_tokens
+    from hitlist.cli_pmhc import _split_allele_tokens
 
     assert _split_allele_tokens(
         ["HLA-A*02:01, HLA-B*07:02", "HLA-C*05:01", "HLA-A*03:01 , HLA-B*44:02"]
@@ -53,7 +53,7 @@ def test_split_allele_tokens_handles_mixed_commas_spaces_and_repeats():
 
 
 def test_split_allele_tokens_empty_input():
-    from hitlist.cli import _split_allele_tokens
+    from hitlist.cli_pmhc import _split_allele_tokens
 
     assert _split_allele_tokens([]) == []
 

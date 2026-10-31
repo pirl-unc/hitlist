@@ -27,7 +27,7 @@ from pathlib import Path
 
 import pytest
 
-from hitlist import cli, downloads
+from hitlist import cli, cli_data, downloads
 
 
 @pytest.fixture
@@ -39,7 +39,7 @@ def _split_locations(tmp_path, monkeypatch):
     assets.mkdir()
     monkeypatch.setattr(downloads, "_override_data_dir", built)
     monkeypatch.setattr(downloads, "_data_dir_cache", {})
-    monkeypatch.setattr(cli, "data_asset_dir", lambda: assets)
+    monkeypatch.setattr(cli_data, "data_asset_dir", lambda: assets)
     monkeypatch.setattr(downloads, "data_asset_dir", lambda: assets)
     monkeypatch.setattr("hitlist.proteome._PROTEOME_INDEX_DISK_CACHE_DIR", tmp_path / "index-cache")
     return built, assets
@@ -47,7 +47,7 @@ def _split_locations(tmp_path, monkeypatch):
 
 def test_data_dirs_reports_both_locations(_split_locations, capsys):
     built, assets = _split_locations
-    cli._data_dirs(argparse.Namespace())
+    cli_data._data_dirs(argparse.Namespace())
     out = capsys.readouterr().out
     assert str(built) in out
     assert str(assets) in out
@@ -56,13 +56,13 @@ def test_data_dirs_reports_both_locations(_split_locations, capsys):
 
 
 def test_data_dirs_names_the_rule_that_chose_the_directory(_split_locations, capsys):
-    cli._data_dirs(argparse.Namespace())
+    cli_data._data_dirs(argparse.Namespace())
     assert "set_data_dir()" in capsys.readouterr().out
 
 
 def test_data_dirs_reports_the_proteome_index_cache(_split_locations, capsys, tmp_path):
     """A third location, thousands of files, and not moved by any override."""
-    cli._data_dirs(argparse.Namespace())
+    cli_data._data_dirs(argparse.Namespace())
     out = capsys.readouterr().out
     assert str(tmp_path / "index-cache") in out
     assert "proteome index cache" in out
@@ -72,7 +72,7 @@ def test_data_list_footer_reports_the_asset_dir(_split_locations, monkeypatch, c
     """The #291 gap itself: ``data list`` used to print only ``data_dir()``."""
     _, assets = _split_locations
     monkeypatch.setattr(downloads, "list_datasets", dict)
-    cli._data_list(argparse.Namespace())
+    cli_data._data_list(argparse.Namespace())
     assert str(assets) in capsys.readouterr().out
 
 
@@ -92,7 +92,7 @@ def test_data_list_footer_reports_the_asset_dir_with_datasets(
             }
         },
     )
-    out_dir_line = cli._data_list(argparse.Namespace())
+    out_dir_line = cli_data._data_list(argparse.Namespace())
     assert out_dir_line is None
     out = capsys.readouterr().out
     assert str(built) in out
@@ -102,8 +102,8 @@ def test_data_list_footer_reports_the_asset_dir_with_datasets(
 def test_data_available_footer_reports_both(_split_locations, monkeypatch, capsys):
     built, assets = _split_locations
     monkeypatch.setattr(downloads, "list_datasets", dict)
-    monkeypatch.setattr(cli, "available_datasets", lambda: {"iedb": "IEDB"})
-    cli._data_available(argparse.Namespace())
+    monkeypatch.setattr(cli_data, "available_datasets", lambda: {"iedb": "IEDB"})
+    cli_data._data_available(argparse.Namespace())
     out = capsys.readouterr().out
     assert str(built) in out
     assert str(assets) in out
@@ -114,9 +114,9 @@ def test_one_line_when_the_two_locations_coincide(tmp_path, monkeypatch, capsys)
     shared = tmp_path / "shared"
     monkeypatch.setattr(downloads, "_override_data_dir", shared)
     monkeypatch.setattr(downloads, "_data_dir_cache", {})
-    monkeypatch.setattr(cli, "data_asset_dir", lambda: shared)
+    monkeypatch.setattr(cli_data, "data_asset_dir", lambda: shared)
     monkeypatch.setattr("hitlist.proteome._PROTEOME_INDEX_DISK_CACHE_DIR", tmp_path / "index-cache")
-    lines = cli._data_location_lines()
+    lines = cli_data._data_location_lines()
     assert sum(str(shared) in line for line in lines) == 2
     assert "built indexes + assets" in lines[0]
     assert any("UniProt references" in line and str(shared / "uniprot") in line for line in lines)
@@ -125,41 +125,41 @@ def test_one_line_when_the_two_locations_coincide(tmp_path, monkeypatch, capsys)
 def test_dirs_subcommand_parses_and_dispatches(monkeypatch):
     parser = argparse.ArgumentParser(prog="hitlist")
     sub = parser.add_subparsers(dest="command")
-    cli._build_data_parser(sub)
+    cli_data._build_data_parser(sub)
     args = parser.parse_args(["data", "dirs"])
     assert args.data_command == "dirs"
 
     called = []
-    monkeypatch.setattr(cli, "_data_dirs", lambda a: called.append(a))
-    cli._handle_data(args)
+    monkeypatch.setattr(cli_data, "_data_dirs", lambda a: called.append(a))
+    cli_data._handle_data(args)
     assert len(called) == 1
 
 
 def test_dir_summary_does_not_create_or_stat_a_missing_dir(tmp_path):
     missing = tmp_path / "nope"
-    assert cli._dir_summary(missing) == "not created yet"
+    assert cli_data._dir_summary(missing) == "not created yet"
     assert not missing.exists()
 
 
 def test_dir_summary_distinguishes_empty_from_populated(tmp_path):
     empty = tmp_path / "empty"
     empty.mkdir()
-    assert cli._dir_summary(empty) == "empty"
+    assert cli_data._dir_summary(empty) == "empty"
     (empty / "a.parquet").write_bytes(b"x" * 2048)
     (empty / "sub").mkdir()
-    summary = cli._dir_summary(empty)
+    summary = cli_data._dir_summary(empty)
     assert "2.0 KB in 1 files" in summary
     assert "1 subdirectories" in summary
 
 
 def test_dir_summary_skips_sizing_a_huge_directory(tmp_path, monkeypatch):
     """The proteome index cache holds thousands of files; do not stat them all."""
-    monkeypatch.setattr(cli, "_DIR_SUMMARY_STAT_LIMIT", 3)
+    monkeypatch.setattr(cli_data, "_DIR_SUMMARY_STAT_LIMIT", 3)
     big = tmp_path / "big"
     big.mkdir()
     for i in range(4):
         (big / f"{i}.pkl").write_bytes(b"x")
-    assert cli._dir_summary(big) == "4 files (size not measured)"
+    assert cli_data._dir_summary(big) == "4 files (size not measured)"
 
 
 # ── #291 review fixes ────────────────────────────────────────────────────────
@@ -168,13 +168,13 @@ def test_dir_summary_skips_sizing_a_huge_directory(tmp_path, monkeypatch):
 def test_every_origin_has_a_label():
     """Drift guard: a fifth resolution rule must not print a bare token, and
     `_DATA_DIR_ORIGIN_LABELS[...]` used to raise KeyError on three commands."""
-    assert set(cli._DATA_DIR_ORIGIN_LABELS) == set(downloads.DATA_DIR_ORIGINS)
+    assert set(cli_data._DATA_DIR_ORIGIN_LABELS) == set(downloads.DATA_DIR_ORIGINS)
 
 
 def test_an_unlabelled_origin_degrades_to_the_token(_split_locations, monkeypatch, capsys):
     monkeypatch.setattr(downloads, "resolve_data_dir", lambda: (Path("/x"), "future-rule"))
-    monkeypatch.setattr(cli, "resolve_data_dir", lambda: (Path("/x"), "future-rule"))
-    cli._data_dirs(argparse.Namespace())
+    monkeypatch.setattr(cli_data, "resolve_data_dir", lambda: (Path("/x"), "future-rule"))
+    cli_data._data_dirs(argparse.Namespace())
     assert "future-rule" in capsys.readouterr().out
 
 
@@ -182,8 +182,8 @@ def test_locations_resolve_the_data_dir_exactly_once(_split_locations, monkeypat
     """Two resolutions could print a path that disagrees with its explanation."""
     calls = []
     real = downloads.resolve_data_dir
-    monkeypatch.setattr(cli, "resolve_data_dir", lambda: (calls.append(1), real())[1])
-    cli._data_location_lines()
+    monkeypatch.setattr(cli_data, "resolve_data_dir", lambda: (calls.append(1), real())[1])
+    cli_data._data_location_lines()
     assert len(calls) == 1
 
 
@@ -193,14 +193,14 @@ def test_index_cache_label_follows_set_disk_cache_dir(tmp_path, monkeypatch, cap
 
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path / "built")
     monkeypatch.setattr(downloads, "_data_dir_cache", {})
-    monkeypatch.setattr(cli, "data_asset_dir", lambda: tmp_path / "assets")
+    monkeypatch.setattr(cli_data, "data_asset_dir", lambda: tmp_path / "assets")
     monkeypatch.setattr(proteome, "_PROTEOME_INDEX_DISK_CACHE_DIR", tmp_path / "moved-cache")
-    moved = [ln for ln in cli._data_location_lines() if "proteome index cache" in ln]
+    moved = [ln for ln in cli_data._data_location_lines() if "proteome index cache" in ln]
     assert "set_disk_cache_dir()" in moved[0]
     assert "always ~/.hitlist" not in moved[0]
 
     proteome.set_disk_cache_dir(None)
-    default = [ln for ln in cli._data_location_lines() if "proteome index cache" in ln]
+    default = [ln for ln in cli_data._data_location_lines() if "proteome index cache" in ln]
     assert "data directory" in default[0]
     assert str(tmp_path / "built" / "proteome_index_cache") in default[0]
 
@@ -208,7 +208,7 @@ def test_index_cache_label_follows_set_disk_cache_dir(tmp_path, monkeypatch, cap
 def test_dir_summary_does_not_stat_entries_past_the_limit(tmp_path, monkeypatch):
     """The guard exists to avoid the stats; `Path.iterdir()` + `is_file()` paid
     them before it could apply (~90 ms on a 7.5k-file index cache)."""
-    monkeypatch.setattr(cli, "_DIR_SUMMARY_STAT_LIMIT", 3)
+    monkeypatch.setattr(cli_data, "_DIR_SUMMARY_STAT_LIMIT", 3)
     big = tmp_path / "big"
     big.mkdir()
     for i in range(6):
@@ -221,7 +221,7 @@ def test_dir_summary_does_not_stat_entries_past_the_limit(tmp_path, monkeypatch)
         return original(path, *a, **k)
 
     monkeypatch.setattr(os, "stat", counting_stat)
-    assert cli._dir_summary(big) == "6 files (size not measured)"
+    assert cli_data._dir_summary(big) == "6 files (size not measured)"
     assert not [p for p in stats if str(p).endswith(".pkl")]
 
 
@@ -230,7 +230,7 @@ def test_dir_summary_does_not_call_a_directory_with_a_fifo_empty(tmp_path):
     d = tmp_path / "odd"
     d.mkdir()
     os.mkfifo(d / "pipe")
-    summary = cli._dir_summary(d)
+    summary = cli_data._dir_summary(d)
     assert summary != "empty"
     assert "1 other entries" in summary
 
@@ -239,7 +239,7 @@ def test_dir_summary_does_not_call_a_directory_with_a_dangling_symlink_empty(tmp
     d = tmp_path / "odd"
     d.mkdir()
     (d / "link").symlink_to(tmp_path / "gone")
-    summary = cli._dir_summary(d)
+    summary = cli_data._dir_summary(d)
     assert summary != "empty"
     assert "1 other entries" in summary
 
@@ -248,7 +248,7 @@ def test_main_prints_the_legacy_notice_once(monkeypatch, capsys):
     """The notice moved out of `data_dir()` to the CLI entry point."""
     monkeypatch.setattr(cli, "legacy_data_dir_notice", lambda: "[hitlist] legacy!")
     monkeypatch.setattr(sys, "argv", ["hitlist", "data", "dirs"])
-    monkeypatch.setattr(cli, "_handle_data", lambda args: None)
+    monkeypatch.setattr(cli_data, "_handle_data", lambda args: None)
     cli.main()
     assert capsys.readouterr().err.count("[hitlist] legacy!") == 1
 
@@ -256,7 +256,7 @@ def test_main_prints_the_legacy_notice_once(monkeypatch, capsys):
 def test_main_prints_nothing_when_not_on_the_legacy_dir(monkeypatch, capsys):
     monkeypatch.setattr(cli, "legacy_data_dir_notice", lambda: None)
     monkeypatch.setattr(sys, "argv", ["hitlist", "data", "dirs"])
-    monkeypatch.setattr(cli, "_handle_data", lambda args: None)
+    monkeypatch.setattr(cli_data, "_handle_data", lambda args: None)
     cli.main()
     assert capsys.readouterr().err == ""
 
@@ -269,7 +269,7 @@ def test_main_reports_hitlist_error_once_and_exits_1(monkeypatch, capsys):
 
     monkeypatch.setattr(cli, "legacy_data_dir_notice", lambda: None)
     monkeypatch.setattr(sys, "argv", ["hitlist", "data", "dirs"])
-    monkeypatch.setattr(cli, "_handle_data", fail)
+    monkeypatch.setattr(cli_data, "_handle_data", fail)
     with pytest.raises(SystemExit) as raised:
         cli.main()
     assert raised.value.code == 1
@@ -282,6 +282,6 @@ def test_main_leaves_unexpected_exceptions_as_tracebacks(monkeypatch):
 
     monkeypatch.setattr(cli, "legacy_data_dir_notice", lambda: None)
     monkeypatch.setattr(sys, "argv", ["hitlist", "data", "dirs"])
-    monkeypatch.setattr(cli, "_handle_data", bug)
+    monkeypatch.setattr(cli_data, "_handle_data", bug)
     with pytest.raises(RuntimeError, match="bug"):
         cli.main()

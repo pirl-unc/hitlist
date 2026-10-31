@@ -2451,7 +2451,7 @@ def test_export_training_cli_helper(monkeypatch):
 
     import pandas as pd
 
-    from hitlist.cli import _export_training
+    from hitlist.cli_export import _export_training
 
     captured = {}
 
@@ -3126,7 +3126,7 @@ def test_generate_ms_peptide_summary_empty_when_no_observations(monkeypatch):
 def test_export_ms_cli_helper(monkeypatch):
     import argparse
 
-    from hitlist.cli import _export_ms
+    from hitlist.cli_export import _export_ms
 
     captured = {}
 
@@ -3166,10 +3166,10 @@ def test_export_ms_cli_helper(monkeypatch):
 def test_cli_parses_restriction_evidence_filter(monkeypatch, subcommand):
     import sys
 
-    from hitlist import cli
+    from hitlist import cli, cli_export
 
     captured = {}
-    monkeypatch.setattr(cli, "_export", lambda args: captured.update(vars(args)))
+    monkeypatch.setattr(cli_export, "_export", lambda args: captured.update(vars(args)))
     monkeypatch.setattr(
         sys,
         "argv",
@@ -3191,7 +3191,7 @@ def test_cli_parses_restriction_evidence_filter(monkeypatch, subcommand):
 def test_export_peptide_summary_cli_helper(monkeypatch):
     import argparse
 
-    from hitlist.cli import _export_peptide_summary
+    from hitlist.cli_export import _export_peptide_summary
 
     captured = {}
 
@@ -4180,10 +4180,10 @@ def test_cli_parses_serotype_source_filter(monkeypatch, subcommand):
     """#458: every evidence export can restrict a serotype query by provenance."""
     import sys
 
-    from hitlist import cli
+    from hitlist import cli, cli_export
 
     captured = {}
-    monkeypatch.setattr(cli, "_export", lambda args: captured.update(vars(args)))
+    monkeypatch.setattr(cli_export, "_export", lambda args: captured.update(vars(args)))
     monkeypatch.setattr(
         sys,
         "argv",

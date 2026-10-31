@@ -8,7 +8,7 @@ import pytest
 from hitlist import bulk_proteomics as bp
 from hitlist import downloads
 from hitlist.builder import build_bulk_proteomics
-from hitlist.cli import _export_bulk
+from hitlist.cli_export import _export_bulk
 
 
 @pytest.fixture

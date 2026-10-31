@@ -25,10 +25,8 @@ import argparse
 def _build_full_parser() -> argparse.ArgumentParser:
     """Construct the same parser ``main()`` constructs, so we can drive
     argparse end-to-end without invoking subcommand handlers."""
-    from hitlist.cli import (
-        _build_data_parser,
-        _build_top_level_build_parser,
-    )
+    from hitlist.cli_build import _build_top_level_build_parser
+    from hitlist.cli_data import _build_data_parser
 
     parser = argparse.ArgumentParser(prog="hitlist")
     sub = parser.add_subparsers(dest="command")
@@ -83,14 +81,14 @@ def test_legacy_data_subcommands_still_parse():
 def test_legacy_data_build_emits_deprecation_notice(monkeypatch, capsys):
     """``hitlist data build`` must still work but print a stderr notice
     pointing at the new path."""
-    from hitlist.cli import _handle_data
+    from hitlist.cli_data import _handle_data
 
     called = {}
 
     def fake_data_build(_args):
         called["data_build"] = True
 
-    monkeypatch.setattr("hitlist.cli._data_build", fake_data_build)
+    monkeypatch.setattr("hitlist.cli_data._data_build", fake_data_build)
 
     args = argparse.Namespace(
         command="data",
@@ -108,14 +106,14 @@ def test_build_dispatcher_calls_same_handlers(monkeypatch):
     """``hitlist build observations`` must reach the same handler as
     ``hitlist data build`` so behaviour stays identical during the
     deprecation window."""
-    from hitlist.cli import _handle_build
+    from hitlist.cli_build import _handle_build
 
     called = {}
 
     def fake_data_build(_args):
         called["target"] = "data_build"
 
-    monkeypatch.setattr("hitlist.cli._data_build", fake_data_build)
+    monkeypatch.setattr("hitlist.cli_build._data_build", fake_data_build)
 
     args = argparse.Namespace(
         command="build",
