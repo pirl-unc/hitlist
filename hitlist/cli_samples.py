@@ -26,17 +26,17 @@ from .cli_export import (
 def _handle_samples(args: argparse.Namespace) -> None:
     """Run ``hitlist samples`` — same backing logic as the legacy
     ``hitlist export samples``."""
-    run_export(args, "samples")
+    run_export(args, "samples", via_legacy_export=False)
 
 
 def _handle_proteomics(args: argparse.Namespace) -> None:
     """Run ``hitlist proteomics`` — same backing logic as ``hitlist export bulk-proteomics``."""
-    run_export(args, "bulk-proteomics")
+    run_export(args, "bulk-proteomics", via_legacy_export=False)
 
 
 def _handle_expression(args: argparse.Namespace) -> None:
     """Run ``hitlist expression`` — same backing logic as ``hitlist export line-expression``."""
-    run_export(args, "line-expression")
+    run_export(args, "line-expression", via_legacy_export=False)
 
 
 def register(sub: argparse._SubParsersAction) -> None:
