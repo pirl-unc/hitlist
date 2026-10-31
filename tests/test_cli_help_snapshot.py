@@ -21,6 +21,7 @@ import argparse
 import contextlib
 import io
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -85,10 +86,23 @@ def render_snapshot() -> str:
     return "\n".join(sections)
 
 
+# Python 3.13 prints "--output, -o OUTPUT" where earlier versions print
+# "--output OUTPUT, -o OUTPUT"; fold the older spelling into the newer one.
+_METAVAR = r"[A-Z][A-Z0-9_]*(?: \[[A-Z0-9_]+ \.\.\.\])?"
+_REPEATED_METAVAR = re.compile(rf"(-{{1,2}}[\w-]+) ({_METAVAR}), (-{{1,2}}[\w-]+) \2")
+
+
+def _fold(text: str) -> str:
+    folded = (" ".join(section.split()) for section in text.split("===== "))
+    return "\n".join(_REPEATED_METAVAR.sub(r"\1, \3 \2", section) for section in folded)
+
+
 def test_cli_help_matches_snapshot(monkeypatch):
     monkeypatch.setenv("NO_COLOR", "1")
     monkeypatch.setenv("COLUMNS", "100")
-    assert render_snapshot() == SNAPSHOT_PATH.read_text()
+    # argparse re-wraps usage lines differently across Python versions (3.13 moves the
+    # trailing "..." of a subcommand usage), so compare content with whitespace and option spelling folded.
+    assert _fold(render_snapshot()) == _fold(SNAPSHOT_PATH.read_text())
 
 
 if __name__ == "__main__":
