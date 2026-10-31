@@ -55,6 +55,7 @@ CLI::
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import json
 import os
 import sys
@@ -474,61 +475,72 @@ def manifest_transaction() -> Iterator[dict]:
 
 # ── Known datasets ──────────────────────────────────────────────────────────
 
-FETCHABLE_DATASETS: dict[str, dict[str, str]] = {
+# ``min_size_bytes`` is a floor well below the real artifact, there to reject the
+# empty/error bodies upstreams answer with HTTP 200 (#350, #882), not to pin a size.
+FETCHABLE_DATASETS: dict[str, dict[str, str | int]] = {
     # Viral proteomes (auto-downloadable from UniProt REST API)
     "hpv16": {
         "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000006729&format=fasta",
         "filename": "hpv16.fasta",
         "description": "HPV-16 proteome (UniProt UP000006729)",
         "usage": "Peptide generation for cervical/oropharyngeal cancer viral targets",
+        "min_size_bytes": 500,
     },
     "hpv18": {
         "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000006728&format=fasta",
         "filename": "hpv18.fasta",
         "description": "HPV-18 proteome (UniProt UP000006728)",
         "usage": "Peptide generation for cervical cancer viral targets",
+        "min_size_bytes": 500,
     },
     "ebv": {
         "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000153037&format=fasta",
         "filename": "ebv.fasta",
         "description": "EBV/HHV-4 proteome (UniProt UP000153037)",
         "usage": "Peptide generation for Burkitt lymphoma, NPC, Hodgkin lymphoma",
+        "min_size_bytes": 500,
     },
     "htlv1": {
         "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000002063&format=fasta",
         "filename": "htlv1.fasta",
         "description": "HTLV-1 proteome (UniProt UP000002063)",
         "usage": "Peptide generation for adult T-cell leukemia/lymphoma",
+        "min_size_bytes": 500,
     },
     "hbv": {
         "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000126453&format=fasta",
         "filename": "hbv.fasta",
         "description": "HBV proteome (UniProt UP000126453)",
         "usage": "Peptide generation for hepatocellular carcinoma",
+        "min_size_bytes": 500,
     },
     "hcv": {
         "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000000518&format=fasta",
         "filename": "hcv.fasta",
         "description": "HCV proteome (UniProt UP000000518)",
         "usage": "Peptide generation for hepatocellular carcinoma, B-cell lymphoma",
+        "min_size_bytes": 500,
     },
     "kshv": {
         "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000009113&format=fasta",
         "filename": "kshv.fasta",
         "description": "KSHV/HHV-8 proteome (UniProt UP000009113)",
         "usage": "Peptide generation for Kaposi sarcoma",
+        "min_size_bytes": 500,
     },
     "mcpyv": {
         "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000116695&format=fasta",
         "filename": "mcpyv.fasta",
         "description": "MCPyV proteome (UniProt UP000116695)",
         "usage": "Peptide generation for Merkel cell carcinoma",
+        "min_size_bytes": 500,
     },
     "hiv1": {
         "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000002241&format=fasta",
         "filename": "hiv1.fasta",
         "description": "HIV-1 proteome (UniProt UP000002241)",
         "usage": "Peptide generation for Kaposi sarcoma, lymphoma (indirect)",
+        "min_size_bytes": 500,
     },
     # IEDB / CEDAR MHC-ligand exports. The downloader.php endpoints serve the
     # zip directly (no enforced login), so fetch() streams + unzips them like
@@ -540,6 +552,7 @@ FETCHABLE_DATASETS: dict[str, dict[str, str]] = {
         "description": "IEDB MHC ligand full export",
         "usage": "Mass spec evidence for peptide-MHC presentation.",
         "terms": "https://www.iedb.org/",
+        "min_size_bytes": 50_000_000,
     },
     "cedar": {
         # CEDAR serves the export under the same member name IEDB uses,
@@ -553,6 +566,7 @@ FETCHABLE_DATASETS: dict[str, dict[str, str]] = {
         "description": "CEDAR MHC ligand full export",
         "usage": "Additional mass spec evidence (companion to IEDB).",
         "terms": "https://cedar.iedb.org/",
+        "min_size_bytes": 10_000_000,
     },
 }
 
@@ -572,6 +586,7 @@ FETCHABLE_DATASETS.update(
             "description": f"DepMap 24Q4 {filename}",
             "usage": "Optional line RNA expression; fetch depmap downloads companions and builds the index.",
             "terms": "https://doi.org/10.25452/figshare.plus.27993248.v1",
+            "min_size_bytes": 100_000,
         }
         for key, (file_id, filename) in _DEPMAP_FILES.items()
     }
@@ -1396,18 +1411,36 @@ def fetch(name: str, force: bool = False) -> Path:
 
     ds = FETCHABLE_DATASETS[name]
     dest = data_dir() / ds["filename"]
+    entry = load_manifest().get("datasets", {}).get(name)
 
     if dest.exists() and not force:
-        manifest = load_manifest()
-        if name not in manifest.get("datasets", {}):
-            register(name, dest, ds["description"])
-        return dest
+        problem = _cached_file_problem(name, dest, entry)
+        if problem is None:
+            if entry is None:
+                print(
+                    f"  [{name}] adopting existing {dest} (no recorded checksum); "
+                    f"re-run with --force to re-download and record one",
+                    file=sys.stderr,
+                )
+                register(name, dest, ds["description"])
+            return dest
+        print(f"  [{name}] cached file rejected ({problem}); re-downloading", file=sys.stderr)
+        force = True
 
     print(f"Downloading {ds['description']}...", file=sys.stderr)
     # decompress=True unzips/gunzips the IEDB/CEDAR archives into their CSV; it
     # is a no-op for the plain-FASTA viral proteomes (download_to_file only
     # decompresses when the URL is a .zip/.gz the dest filename doesn't carry).
     download_to_file(ds["url"], dest, label=name, force=force, decompress=True)
+    size = dest.stat().st_size
+    if size < ds["min_size_bytes"]:
+        # Drop it so a later cache hit cannot mistake the empty body for good data.
+        dest.unlink()
+        raise RuntimeError(
+            f"Downloaded '{name}' from {ds['url']} is only {size:,} bytes "
+            f"(expected at least {ds['min_size_bytes']:,}); the server likely returned "
+            f"an empty or error body"
+        )
     if ds.get("terms"):
         print(
             f"  [{name}] from a terms-of-use-governed source — please review "
@@ -1419,12 +1452,36 @@ def fetch(name: str, force: bool = False) -> Path:
         manifest["datasets"][name] = {
             "path": str(dest),
             "registered": datetime.now(timezone.utc).isoformat(),
-            "size_bytes": dest.stat().st_size,
+            "size_bytes": size,
+            "sha256": _file_sha256(dest),
             "description": ds["description"],
             "source": ds["url"],
         }
-    print(f"  Saved to {dest} ({dest.stat().st_size:,} bytes)", file=sys.stderr)
+    print(f"  Saved to {dest} ({size:,} bytes)", file=sys.stderr)
     return dest
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _cached_file_problem(name: str, dest: Path, entry: dict | None) -> str | None:
+    """Why the cached file can't be reused, or None; checks the recorded size and sha256."""
+    size = dest.stat().st_size
+    floor = FETCHABLE_DATASETS[name]["min_size_bytes"]
+    if size < floor:
+        return f"{size:,} bytes, below the {floor:,}-byte minimum"
+    if entry is None or Path(entry["path"]) != dest:
+        return None
+    if "size_bytes" in entry and entry["size_bytes"] != size:
+        return f"{size:,} bytes on disk, {entry['size_bytes']:,} recorded"
+    if "sha256" in entry and entry["sha256"] != _file_sha256(dest):
+        return "sha256 differs from the recorded value"
+    return None
 
 
 def get_path(name: str) -> Path:

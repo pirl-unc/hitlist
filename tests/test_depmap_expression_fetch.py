@@ -134,6 +134,9 @@ def test_depmap_fetch_bundle_reaches_peptide_origin(tmp_path, monkeypatch):
         return dest
 
     monkeypatch.setattr(downloads, "download_to_file", fake_download)
+    for label in fixtures:
+        # The fixtures are a few bytes; the real files are far above the floor.
+        monkeypatch.setitem(downloads.FETCHABLE_DATASETS[label], "min_size_bytes", 0)
     result = downloads.fetch("depmap")
     assert result == cache_dir / "line_expression.parquet"
     assert set(downloaded) == set(fixtures)
