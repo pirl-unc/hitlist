@@ -166,12 +166,11 @@ def _isolated_cache(monkeypatch):
     saves: list = []
     monkeypatch.setattr(genes, "_load_cache", lambda: dict(store))
 
-    def save(cache):
-        saves.append(dict(cache))
-        store.clear()
-        store.update(cache)
+    def record(query, entry):
+        saves.append({query: entry})
+        store[query] = entry
 
-    monkeypatch.setattr(genes, "_save_cache", save)
+    monkeypatch.setattr(genes, "_record_resolution", record)
     return genes, store, saves
 
 
