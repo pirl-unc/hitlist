@@ -127,3 +127,33 @@ def test_legacy_export_subcommands_emit_deprecation_notices(monkeypatch, capsys)
         captured = capsys.readouterr()
         assert "deprecated" in captured.err
         assert hint in captured.err
+
+
+@pytest.mark.parametrize(
+    ("promoted", "legacy", "hint"),
+    [
+        ("samples", "samples", "hitlist samples"),
+        ("proteomics", "bulk-proteomics", "hitlist proteomics"),
+        ("expression", "line-expression", "hitlist expression"),
+    ],
+)
+def test_promoted_commands_do_not_print_the_export_deprecation_note(
+    monkeypatch, capsys, promoted, legacy, hint
+):
+    """#893: only ``hitlist export <cmd>`` is deprecated, not its promoted replacement."""
+    import pandas as pd
+
+    from hitlist import cli, cli_export
+
+    monkeypatch.setattr(cli, "legacy_data_dir_notice", lambda: None)
+    monkeypatch.setattr("hitlist.export.generate_ms_samples_table", lambda **kw: pd.DataFrame())
+    monkeypatch.setattr(cli_export, "_export_bulk", lambda args: pd.DataFrame())
+    monkeypatch.setattr("hitlist.line_expression.load_line_expression", lambda **kw: pd.DataFrame())
+
+    monkeypatch.setattr(sys, "argv", ["hitlist", promoted])
+    cli.main()
+    assert "deprecated" not in capsys.readouterr().err
+
+    monkeypatch.setattr(sys, "argv", ["hitlist", "export", legacy])
+    cli.main()
+    assert f"deprecated; use `{hint}`" in capsys.readouterr().err
