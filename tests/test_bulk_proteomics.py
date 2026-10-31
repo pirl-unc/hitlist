@@ -747,7 +747,7 @@ def test_export_bulk_cli_peptide_granularity():
     """_export_bulk returns a peptide frame filtered by the CLI kwargs."""
     import argparse
 
-    from hitlist.cli import _export_bulk
+    from hitlist.cli_export import _export_bulk
 
     args = argparse.Namespace(
         granularity="peptide",
@@ -776,7 +776,7 @@ def test_export_bulk_cli_enrichment_both():
     """--enrichment both returns TiO2 + baseline rows."""
     import argparse
 
-    from hitlist.cli import _export_bulk
+    from hitlist.cli_export import _export_bulk
 
     args = argparse.Namespace(
         granularity="peptide",
@@ -802,7 +802,7 @@ def test_export_bulk_cli_both_granularity_tagged():
     """--granularity both yields peptide + protein rows tagged by column."""
     import argparse
 
-    from hitlist.cli import _export_bulk
+    from hitlist.cli_export import _export_bulk
 
     args = argparse.Namespace(
         granularity="both",
@@ -830,7 +830,7 @@ def test_export_bulk_cli_bounds():
     """--length-min/max and --abundance-percentile-min are plumbed through."""
     import argparse
 
-    from hitlist.cli import _export_bulk
+    from hitlist.cli_export import _export_bulk
 
     args = argparse.Namespace(
         granularity="peptide",

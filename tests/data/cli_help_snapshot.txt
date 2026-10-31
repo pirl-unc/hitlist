@@ -1,0 +1,1349 @@
+===== hitlist --help =====
+usage: hitlist [-h] [--version]
+               {data,build,evidence,report,export,audit-splits,verify-evidence-bundle,reassign-alleles,qc,pmhc,samples,proteomics,expression}
+               ...
+
+hitlist: verified immune and nonimmune evidence for model training
+
+positional arguments:
+  {data,build,evidence,report,export,audit-splits,verify-evidence-bundle,reassign-alleles,qc,pmhc,samples,proteomics,expression}
+    data                Manage external datasets
+    build               Build canonical artifacts: observations.parquet (from IEDB/CEDAR), cached
+                        scan index, reference proteomes.
+    evidence            Query a verified multi-modality evidence package
+    report              Data quality report. Reads observations.parquet by default (instant); pass
+                        --from-csv to fall back to a live raw-CSV scan.
+    export              Export curated study metadata as CSV
+    audit-splits        Audit partitions supplied as verified training bundles
+    verify-evidence-bundle
+                        Verify hashes and scientific relationships in an evidence bundle
+    reassign-alleles    Reassign class-only peptides (mhc_restriction='HLA class I') to their
+                        best-scoring allele via MHCflurry / NetMHCpan
+    qc                  Audit corpus + curation: allele-resolution histogram, normalization drift
+                        in pmid_overrides, YAML/data allele cross-reference.
+    pmhc                Per-protein x allele pMHC evidence: MS-attested peptides grouped by (gene,
+                        allele), with optional NetMHCpan/MHCflurry scoring.
+    samples             Per-sample MS conditions table (cell line, donor, instrument,
+                        perturbation, etc.). Replaces `export samples`.
+    proteomics          Bulk (non-MHC) proteomics index: shotgun MS peptides + protein abundances
+                        from CCLE and Bekker-Jensen 2017. Replaces `export bulk-proteomics`.
+    expression          Per-line RNA / transcript TPM with provenance. Replaces `export line-
+                        expression`.
+
+options:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+
+===== hitlist data --help =====
+usage: hitlist data [-h]
+                    {uniprot,list,available,dirs,register,fetch,fetch-all,refresh,info,path,remove,build,fetch-proteomes,list-proteomes}
+                    ...
+
+positional arguments:
+  {uniprot,list,available,dirs,register,fetch,fetch-all,refresh,info,path,remove,build,fetch-proteomes,list-proteomes}
+    uniprot             Manage release-pinned UniProt references
+    list                Show registered datasets or the complete cache inventory
+    available           Show all known datasets
+    dirs                Show every directory hitlist reads/writes, and why it resolved there
+    register            Register a local file
+    fetch               Download a fetchable dataset
+    fetch-all           Fetch ALL mirrored data-asset CSVs (paper-derived) into the cache dir
+    refresh             Re-download a fetchable dataset
+    info                Detailed metadata for a dataset
+    path                Print path to a dataset
+    remove              Unregister a dataset
+    build               DEPRECATED — use `hitlist build observations`. Builds
+                        observations.parquet.
+    fetch-proteomes     DEPRECATED — use `hitlist build proteomes`. Auto-fetch reference
+                        proteomes.
+    list-proteomes      List downloaded reference proteomes
+
+options:
+  -h, --help            show this help message and exit
+
+===== hitlist data uniprot --help =====
+usage: hitlist data uniprot [-h] {list,fetch,path,info,remove} ...
+
+positional arguments:
+  {list,fetch,path,info,remove}
+
+options:
+  -h, --help            show this help message and exit
+
+===== hitlist data uniprot list --help =====
+usage: hitlist data uniprot list [-h] [--collection COLLECTION] [--verify] [--json]
+
+options:
+  -h, --help            show this help message and exit
+  --collection COLLECTION
+  --verify              Check cached SHA256 hashes
+  --json                Print JSON
+
+===== hitlist data uniprot fetch --help =====
+usage: hitlist data uniprot fetch [-h] [--collection COLLECTION] [--release RELEASE] [--json]
+                                  [--force] [--max-asset-bytes MAX_ASSET_BYTES]
+                                  [--max-cache-bytes MAX_CACHE_BYTES]
+
+options:
+  -h, --help            show this help message and exit
+  --collection COLLECTION
+  --release RELEASE
+  --json                Print JSON
+  --force               Replace/repair cached bytes
+  --max-asset-bytes MAX_ASSET_BYTES
+  --max-cache-bytes MAX_CACHE_BYTES
+
+===== hitlist data uniprot path --help =====
+usage: hitlist data uniprot path [-h] [--collection COLLECTION] [--release RELEASE] [--json]
+
+options:
+  -h, --help            show this help message and exit
+  --collection COLLECTION
+  --release RELEASE
+  --json                Print JSON
+
+===== hitlist data uniprot info --help =====
+usage: hitlist data uniprot info [-h] [--collection COLLECTION] [--release RELEASE] [--verify]
+                                 [--json]
+
+options:
+  -h, --help            show this help message and exit
+  --collection COLLECTION
+  --release RELEASE
+  --verify              Check cached SHA256 hashes
+  --json                Print JSON
+
+===== hitlist data uniprot remove --help =====
+usage: hitlist data uniprot remove [-h] [--collection COLLECTION] --release RELEASE [--json]
+
+options:
+  -h, --help            show this help message and exit
+  --collection COLLECTION
+  --release RELEASE
+  --json                Print JSON
+
+===== hitlist data list --help =====
+usage: hitlist data list [-h] [--all] [--verify] [--json]
+
+options:
+  -h, --help  show this help message and exit
+  --all       Inspect files across all cache locations
+  --verify    Verify trusted mirrored-asset hashes
+  --json      Print the complete inventory as JSON
+
+===== hitlist data available --help =====
+usage: hitlist data available [-h]
+
+options:
+  -h, --help  show this help message and exit
+
+===== hitlist data dirs --help =====
+usage: hitlist data dirs [-h]
+
+options:
+  -h, --help  show this help message and exit
+
+===== hitlist data register --help =====
+usage: hitlist data register [-h] [--description DESCRIPTION] name path
+
+positional arguments:
+  name                  Dataset name
+  path                  Path to the file
+
+options:
+  -h, --help            show this help message and exit
+  --description DESCRIPTION, -d DESCRIPTION
+                        Optional description
+
+===== hitlist data fetch --help =====
+usage: hitlist data fetch [-h] [--force] name
+
+positional arguments:
+  name         Dataset name
+
+options:
+  -h, --help   show this help message and exit
+  --force, -f  Re-download
+
+===== hitlist data fetch-all --help =====
+usage: hitlist data fetch-all [-h] [--force]
+
+options:
+  -h, --help   show this help message and exit
+  --force, -f  Re-download even if cached
+
+===== hitlist data refresh --help =====
+usage: hitlist data refresh [-h] name
+
+positional arguments:
+  name        Dataset name
+
+options:
+  -h, --help  show this help message and exit
+
+===== hitlist data info --help =====
+usage: hitlist data info [-h] name
+
+positional arguments:
+  name        Dataset name
+
+options:
+  -h, --help  show this help message and exit
+
+===== hitlist data path --help =====
+usage: hitlist data path [-h] name
+
+positional arguments:
+  name        Dataset name
+
+options:
+  -h, --help  show this help message and exit
+
+===== hitlist data remove --help =====
+usage: hitlist data remove [-h] [--delete] name
+
+positional arguments:
+  name        Dataset name
+
+options:
+  -h, --help  show this help message and exit
+  --delete    Also delete the file
+
+===== hitlist data build --help =====
+usage: hitlist data build [-h] [--no-mappings] [--with-flanking]
+                          [--proteome-release PROTEOME_RELEASE] [--no-fetch-proteomes]
+                          [--use-uniprot] [--force]
+
+options:
+  -h, --help            show this help message and exit
+  --no-mappings         Skip building the peptide_mappings sidecar. By default, every build
+                        produces multi-mapping peptide→protein attribution and annotates
+                        observations with semicolon-joined gene_names/gene_ids/protein_ids
+                        columns.
+  --with-flanking       Deprecated — flanks are always stored in peptide_mappings.parquet.
+  --proteome-release PROTEOME_RELEASE
+                        Ensembl release (default 112)
+  --no-fetch-proteomes  Do not auto-fetch missing proteomes when --with-flanking is set
+  --use-uniprot         Query UniProt REST for organisms not in the curated registry. Required to
+                        map peptides from rare/pathogen source proteomes.
+  --force, -f           Rebuild even if cached
+
+===== hitlist data fetch-proteomes --help =====
+usage: hitlist data fetch-proteomes [-h] [--min-observations MIN_OBSERVATIONS] [--use-uniprot]
+                                    [--force]
+
+options:
+  -h, --help            show this help message and exit
+  --min-observations MIN_OBSERVATIONS
+                        Only fetch proteomes for species with >= N observations (default 100)
+  --use-uniprot         Query UniProt REST for organisms not in the curated registry. Resolved
+                        mappings are cached in the manifest.
+  --force, -f           Re-download cached proteomes
+
+===== hitlist data list-proteomes --help =====
+usage: hitlist data list-proteomes [-h]
+
+options:
+  -h, --help  show this help message and exit
+
+===== hitlist build --help =====
+usage: hitlist build [-h] {observations,proteomes} ...
+
+positional arguments:
+  {observations,proteomes}
+    observations        Build unified observations table from IEDB/CEDAR
+    proteomes           Auto-fetch reference proteomes for species present in observations
+
+options:
+  -h, --help            show this help message and exit
+
+===== hitlist build observations --help =====
+usage: hitlist build observations [-h] [--no-mappings] [--with-flanking]
+                                  [--proteome-release PROTEOME_RELEASE] [--no-fetch-proteomes]
+                                  [--use-uniprot] [--force]
+
+options:
+  -h, --help            show this help message and exit
+  --no-mappings         Skip building the peptide_mappings sidecar. By default, every build
+                        produces multi-mapping peptide→protein attribution and annotates
+                        observations with semicolon-joined gene_names/gene_ids/protein_ids
+                        columns.
+  --with-flanking       Deprecated — flanks are always stored in peptide_mappings.parquet.
+  --proteome-release PROTEOME_RELEASE
+                        Ensembl release (default 112)
+  --no-fetch-proteomes  Do not auto-fetch missing proteomes when --with-flanking is set
+  --use-uniprot         Query UniProt REST for organisms not in the curated registry. Required to
+                        map peptides from rare/pathogen source proteomes.
+  --force, -f           Rebuild even if cached
+
+===== hitlist build proteomes --help =====
+usage: hitlist build proteomes [-h] [--min-observations MIN_OBSERVATIONS] [--use-uniprot]
+                               [--force]
+
+options:
+  -h, --help            show this help message and exit
+  --min-observations MIN_OBSERVATIONS
+                        Only fetch proteomes for species with >= N observations (default 100)
+  --use-uniprot         Query UniProt REST for organisms not in the curated registry. Resolved
+                        mappings are cached in the manifest.
+  --force, -f           Re-download cached proteomes
+
+===== hitlist evidence --help =====
+usage: hitlist evidence [-h]
+                        {catalog,audit,query,materialize,verify,verify-recipe,build-reference,append-sources}
+                        ...
+
+positional arguments:
+  {catalog,audit,query,materialize,verify,verify-recipe,build-reference,append-sources}
+    catalog             Describe evidence types and field readiness
+    audit               Reconcile source counts and field readiness
+    query               Query one evidence grain with logical field names
+    materialize         Apply a versioned training recipe
+    verify              Verify the package manifest chain
+    verify-recipe       Verify a training output
+    build-reference     Append the pinned mouse reference to a numeric package
+    append-sources      Append sources to a reference or adjudication package
+
+options:
+  -h, --help            show this help message and exit
+
+===== hitlist evidence catalog --help =====
+usage: hitlist evidence catalog [-h] [--type EVIDENCE_TYPE] [--output OUTPUT] package
+
+positional arguments:
+  package
+
+options:
+  -h, --help            show this help message and exit
+  --type EVIDENCE_TYPE
+  --output OUTPUT
+
+===== hitlist evidence audit --help =====
+usage: hitlist evidence audit [-h] [--output OUTPUT] package
+
+positional arguments:
+  package
+
+options:
+  -h, --help       show this help message and exit
+  --output OUTPUT
+
+===== hitlist evidence query --help =====
+usage: hitlist evidence query [-h] [--select SELECT] [--where WHERE] [--join JOIN] [--limit LIMIT]
+                              [--all] [--output OUTPUT]
+                              package evidence_type
+
+positional arguments:
+  package
+  evidence_type
+
+options:
+  -h, --help       show this help message and exit
+  --select SELECT
+  --where WHERE    JSON object of field predicates
+  --join JOIN
+  --limit LIMIT
+  --all            Stream every matching row
+  --output OUTPUT  .parquet or .jsonl; required with --all
+
+===== hitlist evidence materialize --help =====
+usage: hitlist evidence materialize [-h] package recipe output
+
+positional arguments:
+  package
+  recipe
+  output
+
+options:
+  -h, --help  show this help message and exit
+
+===== hitlist evidence verify --help =====
+usage: hitlist evidence verify [-h] package
+
+positional arguments:
+  package
+
+options:
+  -h, --help  show this help message and exit
+
+===== hitlist evidence verify-recipe --help =====
+usage: hitlist evidence verify-recipe [-h] [--source-package SOURCE_PACKAGE] output
+
+positional arguments:
+  output
+
+options:
+  -h, --help            show this help message and exit
+  --source-package SOURCE_PACKAGE
+
+===== hitlist evidence build-reference --help =====
+usage: hitlist evidence build-reference [-h] numeric_package results_dir reference_fasta output
+
+positional arguments:
+  numeric_package
+  results_dir
+  reference_fasta
+  output
+
+options:
+  -h, --help       show this help message and exit
+
+===== hitlist evidence append-sources --help =====
+usage: hitlist evidence append-sources [-h] --source-root SOURCE_ID=PATH
+                                       predecessor_package output
+
+positional arguments:
+  predecessor_package
+  output
+
+options:
+  -h, --help            show this help message and exit
+  --source-root SOURCE_ID=PATH
+
+===== hitlist report --help =====
+usage: hitlist report [-h] [--class MHC_CLASS] [--from-csv] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --class MHC_CLASS     MHC class filter (I, II, or non-classical)
+  --from-csv            Scan the raw IEDB/CEDAR CSVs instead of reading observations.parquet. Slow
+                        (minutes); useful before `hitlist build observations` has run.
+  --output OUTPUT, -o OUTPUT
+                        Save report to file
+
+===== hitlist export --help =====
+usage: hitlist export [-h]
+                      {samples,peptide-counts,summary,alleles,data-alleles,ms,observations,peptide-summary,binding,cta-evidence,tissue-blacklist,bulk-proteomics,bulk,line-expression,counts}
+                      ...
+
+positional arguments:
+  {samples,peptide-counts,summary,alleles,data-alleles,ms,observations,peptide-summary,binding,cta-evidence,tissue-blacklist,bulk-proteomics,bulk,line-expression,counts}
+    samples             DEPRECATED — use `hitlist samples`. Per-sample MS conditions table.
+    peptide-counts      Count peptides per (species x class) or per (study x class x species).
+    summary             DEPRECATED — use `hitlist export peptide-counts --by class`.
+    alleles             DEPRECATED — use `hitlist qc normalization` for actionable allele drift.
+    data-alleles        DEPRECATED — use `hitlist qc resolution` for an actionable allele
+                        histogram.
+    ms (observations)   MS observations table: peptides + sample metadata
+    peptide-summary     Per-peptide MS support summary for one target allele or serotype
+    binding             Binding-assay index (peptide microarray, refolding, MEDi, quantitative
+                        tiers). Separate from MS observations.
+    cta-evidence        Export expression-selected CTA evidence, mappings and tissue exclusions
+    tissue-blacklist    Export sequences observed in nonmalignant heart/brain/lung in at least two
+                        donors
+    bulk-proteomics     Bulk (non-MHC) proteomics index: shotgun MS peptides + protein abundances
+                        from CCLE and Bekker-Jensen 2017. NOT MHC-ligand data — see 'observations'
+                        / 'binding' for those.
+    bulk                DEPRECATED — use `hitlist export bulk-proteomics`.
+    line-expression     DEPRECATED — use `hitlist expression`. Per-line RNA/transcript TPM.
+    counts              DEPRECATED — use `hitlist export peptide-counts --by study`.
+
+options:
+  -h, --help            show this help message and exit
+
+===== hitlist export samples --help =====
+usage: hitlist export samples [-h] [--class MHC_CLASS] [--with-expression-anchors] [--apm-only]
+                              [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --class MHC_CLASS     Filter to MHC class (I, II, or non-classical)
+  --with-expression-anchors
+                        Emit the line-expression anchor resolution for every sample
+                        (expression_backend, expression_key, expression_match_tier,
+                        expression_parent_key; issue #140). Replaces the default acquisition-
+                        metadata sample table.
+  --apm-only            Filter to samples where any antigen-processing-machinery gene was
+                        perturbed (B2M, TAP1, TAP2, TAPBP, ERAP1/2, PDIA3, CALR, CANX, IRF2,
+                        GANAB, SPPL3, NLRC5, CIITA, HLA-DM, HLA-DO, CD74, cathepsin, RFX, bare-
+                        lymphocyte-syndrome). See apm_perturbed and apm_genes_perturbed output
+                        columns.
+  --output OUTPUT, -o OUTPUT
+                        Write CSV to file
+
+===== hitlist export peptide-counts --help =====
+usage: hitlist export peptide-counts [-h] [--by {class,study}] [--class MHC_CLASS]
+                                     [--source {iedb,cedar,merged,all}] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --by {class,study}    Aggregation level: 'class' (one row per species x mhc_class, default — was
+                        `export summary`), 'study' (one row per PMID x class x species — was
+                        `export counts`).
+  --class MHC_CLASS     Filter to MHC class (I, II, or non-classical). Applies to --by class.
+  --source {iedb,cedar,merged,all}
+                        Data source for --by study (default: merged).
+  --output OUTPUT, -o OUTPUT
+                        Write CSV to file
+
+===== hitlist export summary --help =====
+usage: hitlist export summary [-h] [--class MHC_CLASS] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --class MHC_CLASS     Filter to MHC class (I, II, or non-classical)
+  --output OUTPUT, -o OUTPUT
+                        Write CSV to file
+
+===== hitlist export alleles --help =====
+usage: hitlist export alleles [-h] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --output OUTPUT, -o OUTPUT
+                        Write CSV to file
+
+===== hitlist export data-alleles --help =====
+usage: hitlist export data-alleles [-h] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --output OUTPUT, -o OUTPUT
+                        Write CSV to file
+
+===== hitlist export ms --help =====
+usage: hitlist export ms [-h] [--class MHC_CLASS] [--species SPECIES]
+                         [--source-species SOURCE_SPECIES [SOURCE_SPECIES ...]]
+                         [--host-species HOST_SPECIES [HOST_SPECIES ...]] [--exclude-chimeric]
+                         [--instrument-type INSTRUMENT_TYPE] [--acquisition-mode ACQUISITION_MODE]
+                         [--mono-allelic] [--multi-allelic]
+                         [--min-allele-resolution {four_digit,donor_set,two_digit,serological,class_only}]
+                         [--mhc-allele MHC_ALLELE [MHC_ALLELE ...]]
+                         [--mhc-allele-in-set MHC_ALLELE_IN_SET [MHC_ALLELE_IN_SET ...]]
+                         [--mhc-allele-provenance {exact,peptide_attribution,sample_allele_match,pmid_class_pool,peptide_locus_match,sample_locus_match,pmid_locus_pool,peptide_serotype_match,sample_serotype_match,pmid_serotype_pool,haplotype_roster,unmatched} [{exact,peptide_attribution,sample_allele_match,pmid_class_pool,peptide_locus_match,sample_locus_match,pmid_locus_pool,peptide_serotype_match,sample_serotype_match,pmid_serotype_pool,haplotype_roster,unmatched} ...]]
+                         [--restriction-evidence {experimental,monoallelic,predicted,unknown} [{experimental,monoallelic,predicted,unknown} ...]]
+                         [--serotype-source {reported,derived,donor_set} [{reported,derived,donor_set} ...]]
+                         [--gene GENE [GENE ...]] [--gene-name GENE_NAME [GENE_NAME ...]]
+                         [--gene-id GENE_ID [GENE_ID ...]] [--serotype SEROTYPE [SEROTYPE ...]]
+                         [--exclude-class-label-suspect] [--exclude-class-label-implausible]
+                         [--apm-only] [--peptide PEPTIDE [PEPTIDE ...]] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --class MHC_CLASS     MHC class (I, II, or non-classical)
+  --species SPECIES     Filter by MHC species
+  --source-species SOURCE_SPECIES [SOURCE_SPECIES ...]
+                        Filter by peptide-source proteome species (names or aliases)
+  --host-species HOST_SPECIES [HOST_SPECIES ...]
+                        Filter by host-cell species (names or aliases)
+  --exclude-chimeric    Exclude observations flagged as chimeric
+  --instrument-type INSTRUMENT_TYPE
+                        Instrument type (Orbitrap, timsTOF)
+  --acquisition-mode ACQUISITION_MODE
+                        Acquisition mode (DDA, DIA, PRM)
+  --mono-allelic        Only mono-allelic samples
+  --multi-allelic       Only multi-allelic samples
+  --min-allele-resolution {four_digit,donor_set,two_digit,serological,class_only}
+                        Minimum allele resolution
+  --mhc-allele MHC_ALLELE [MHC_ALLELE ...]
+                        Filter to peptides whose mhc_restriction matches (after allele
+                        normalization). Space-separated, comma-separated, or repeated, e.g. '--
+                        mhc-allele HLA-A*02:01 --mhc-allele HLA-B*07:02'.
+  --mhc-allele-in-set MHC_ALLELE_IN_SET [MHC_ALLELE_IN_SET ...]
+                        Filter to rows whose mhc_allele_set (issue #137 expanded candidate-allele
+                        set) contains any of the listed alleles. Captures both 4-digit rows AND
+                        multi-allele class-only rows whose donor genotype includes the allele.
+                        Repeatable.
+  --mhc-allele-provenance {exact,peptide_attribution,sample_allele_match,pmid_class_pool,peptide_locus_match,sample_locus_match,pmid_locus_pool,peptide_serotype_match,sample_serotype_match,pmid_serotype_pool,haplotype_roster,unmatched} [{exact,peptide_attribution,sample_allele_match,pmid_class_pool,peptide_locus_match,sample_locus_match,pmid_locus_pool,peptide_serotype_match,sample_serotype_match,pmid_serotype_pool,haplotype_roster,unmatched} ...]
+                        Filter by how the allele set was obtained. Use 'exact' for strict-
+                        resolution training; ['exact', 'sample_allele_match'] for MIL / noisy-OR
+                        over small trusted sets.
+  --restriction-evidence {experimental,monoallelic,predicted,unknown} [{experimental,monoallelic,predicted,unknown} ...]
+                        Filter by how the named peptide-to-MHC restriction was established.
+  --serotype-source {reported,derived,donor_set} [{reported,derived,donor_set} ...]
+                        Filter by whether the serotype is primary data (reported), a projection of
+                        a named molecule (derived), or a union over a donor's typed alleles
+                        (donor_set).
+  --gene GENE [GENE ...]
+                        Filter to peptides from these genes. Accepts current symbols, Ensembl gene
+                        IDs (ENSG...), and old/alias symbols (resolved via HGNC). Space-separated,
+                        comma-separated, or repeated. Requires a flanking-built observations
+                        table.
+  --gene-name GENE_NAME [GENE_NAME ...]
+                        Exact match on gene_name column (no HGNC synonym lookup).
+  --gene-id GENE_ID [GENE_ID ...]
+                        Exact match on gene_id column (Ensembl ENSG ID).
+  --serotype SEROTYPE [SEROTYPE ...]
+                        Filter by MHC serotype. Use a species prefix for non-human names
+                        (BoLA-A18). Accepts locus-specific names (A2, A24, B57, DR15) or public
+                        epitopes (Bw4, Bw6, C1, C2). Matches any serotype an allele belongs to, so
+                        --serotype Bw4 returns A*24:02, B*27:05, B*57:01, etc. Space-separated,
+                        comma-separated, or repeated.
+  --exclude-class-label-suspect
+                        Drop rows where the curated MHC class disagrees with peptide length
+                        severely enough to be flagged 'suspect' or 'implausible' by
+                        mhc_class_label_severity (#182, #201). The strict variant — drops bulged
+                        class-I peptides 15-17aa as well.
+  --exclude-class-label-implausible
+                        Drop only rows flagged 'implausible' by mhc_class_label_severity (class-I
+                        ≥18aa or ≤7aa, class-II ≤4 or ≥31aa). Keeps borderline (13-14aa class-I,
+                        8-10aa class-II) and suspect (15-17aa class-I, 5-7aa class-II) rows.
+                        Useful when bulged class-I peptides should be retained (#201).
+  --apm-only            Filter to peptide rows from samples where any APM gene was perturbed
+                        (#202). Joins on pmid + sample condition.
+  --peptide PEPTIDE [PEPTIDE ...]
+                        Filter to one or more peptide sequences. Space-separated, comma-separated,
+                        or repeated.
+  --output OUTPUT, -o OUTPUT
+                        Write to file (.csv or .parquet)
+
+===== hitlist export observations --help =====
+usage: hitlist export ms [-h] [--class MHC_CLASS] [--species SPECIES]
+                         [--source-species SOURCE_SPECIES [SOURCE_SPECIES ...]]
+                         [--host-species HOST_SPECIES [HOST_SPECIES ...]] [--exclude-chimeric]
+                         [--instrument-type INSTRUMENT_TYPE] [--acquisition-mode ACQUISITION_MODE]
+                         [--mono-allelic] [--multi-allelic]
+                         [--min-allele-resolution {four_digit,donor_set,two_digit,serological,class_only}]
+                         [--mhc-allele MHC_ALLELE [MHC_ALLELE ...]]
+                         [--mhc-allele-in-set MHC_ALLELE_IN_SET [MHC_ALLELE_IN_SET ...]]
+                         [--mhc-allele-provenance {exact,peptide_attribution,sample_allele_match,pmid_class_pool,peptide_locus_match,sample_locus_match,pmid_locus_pool,peptide_serotype_match,sample_serotype_match,pmid_serotype_pool,haplotype_roster,unmatched} [{exact,peptide_attribution,sample_allele_match,pmid_class_pool,peptide_locus_match,sample_locus_match,pmid_locus_pool,peptide_serotype_match,sample_serotype_match,pmid_serotype_pool,haplotype_roster,unmatched} ...]]
+                         [--restriction-evidence {experimental,monoallelic,predicted,unknown} [{experimental,monoallelic,predicted,unknown} ...]]
+                         [--serotype-source {reported,derived,donor_set} [{reported,derived,donor_set} ...]]
+                         [--gene GENE [GENE ...]] [--gene-name GENE_NAME [GENE_NAME ...]]
+                         [--gene-id GENE_ID [GENE_ID ...]] [--serotype SEROTYPE [SEROTYPE ...]]
+                         [--exclude-class-label-suspect] [--exclude-class-label-implausible]
+                         [--apm-only] [--peptide PEPTIDE [PEPTIDE ...]] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --class MHC_CLASS     MHC class (I, II, or non-classical)
+  --species SPECIES     Filter by MHC species
+  --source-species SOURCE_SPECIES [SOURCE_SPECIES ...]
+                        Filter by peptide-source proteome species (names or aliases)
+  --host-species HOST_SPECIES [HOST_SPECIES ...]
+                        Filter by host-cell species (names or aliases)
+  --exclude-chimeric    Exclude observations flagged as chimeric
+  --instrument-type INSTRUMENT_TYPE
+                        Instrument type (Orbitrap, timsTOF)
+  --acquisition-mode ACQUISITION_MODE
+                        Acquisition mode (DDA, DIA, PRM)
+  --mono-allelic        Only mono-allelic samples
+  --multi-allelic       Only multi-allelic samples
+  --min-allele-resolution {four_digit,donor_set,two_digit,serological,class_only}
+                        Minimum allele resolution
+  --mhc-allele MHC_ALLELE [MHC_ALLELE ...]
+                        Filter to peptides whose mhc_restriction matches (after allele
+                        normalization). Space-separated, comma-separated, or repeated, e.g. '--
+                        mhc-allele HLA-A*02:01 --mhc-allele HLA-B*07:02'.
+  --mhc-allele-in-set MHC_ALLELE_IN_SET [MHC_ALLELE_IN_SET ...]
+                        Filter to rows whose mhc_allele_set (issue #137 expanded candidate-allele
+                        set) contains any of the listed alleles. Captures both 4-digit rows AND
+                        multi-allele class-only rows whose donor genotype includes the allele.
+                        Repeatable.
+  --mhc-allele-provenance {exact,peptide_attribution,sample_allele_match,pmid_class_pool,peptide_locus_match,sample_locus_match,pmid_locus_pool,peptide_serotype_match,sample_serotype_match,pmid_serotype_pool,haplotype_roster,unmatched} [{exact,peptide_attribution,sample_allele_match,pmid_class_pool,peptide_locus_match,sample_locus_match,pmid_locus_pool,peptide_serotype_match,sample_serotype_match,pmid_serotype_pool,haplotype_roster,unmatched} ...]
+                        Filter by how the allele set was obtained. Use 'exact' for strict-
+                        resolution training; ['exact', 'sample_allele_match'] for MIL / noisy-OR
+                        over small trusted sets.
+  --restriction-evidence {experimental,monoallelic,predicted,unknown} [{experimental,monoallelic,predicted,unknown} ...]
+                        Filter by how the named peptide-to-MHC restriction was established.
+  --serotype-source {reported,derived,donor_set} [{reported,derived,donor_set} ...]
+                        Filter by whether the serotype is primary data (reported), a projection of
+                        a named molecule (derived), or a union over a donor's typed alleles
+                        (donor_set).
+  --gene GENE [GENE ...]
+                        Filter to peptides from these genes. Accepts current symbols, Ensembl gene
+                        IDs (ENSG...), and old/alias symbols (resolved via HGNC). Space-separated,
+                        comma-separated, or repeated. Requires a flanking-built observations
+                        table.
+  --gene-name GENE_NAME [GENE_NAME ...]
+                        Exact match on gene_name column (no HGNC synonym lookup).
+  --gene-id GENE_ID [GENE_ID ...]
+                        Exact match on gene_id column (Ensembl ENSG ID).
+  --serotype SEROTYPE [SEROTYPE ...]
+                        Filter by MHC serotype. Use a species prefix for non-human names
+                        (BoLA-A18). Accepts locus-specific names (A2, A24, B57, DR15) or public
+                        epitopes (Bw4, Bw6, C1, C2). Matches any serotype an allele belongs to, so
+                        --serotype Bw4 returns A*24:02, B*27:05, B*57:01, etc. Space-separated,
+                        comma-separated, or repeated.
+  --exclude-class-label-suspect
+                        Drop rows where the curated MHC class disagrees with peptide length
+                        severely enough to be flagged 'suspect' or 'implausible' by
+                        mhc_class_label_severity (#182, #201). The strict variant — drops bulged
+                        class-I peptides 15-17aa as well.
+  --exclude-class-label-implausible
+                        Drop only rows flagged 'implausible' by mhc_class_label_severity (class-I
+                        ≥18aa or ≤7aa, class-II ≤4 or ≥31aa). Keeps borderline (13-14aa class-I,
+                        8-10aa class-II) and suspect (15-17aa class-I, 5-7aa class-II) rows.
+                        Useful when bulged class-I peptides should be retained (#201).
+  --apm-only            Filter to peptide rows from samples where any APM gene was perturbed
+                        (#202). Joins on pmid + sample condition.
+  --peptide PEPTIDE [PEPTIDE ...]
+                        Filter to one or more peptide sequences. Space-separated, comma-separated,
+                        or repeated.
+  --output OUTPUT, -o OUTPUT
+                        Write to file (.csv or .parquet)
+
+===== hitlist export peptide-summary --help =====
+usage: hitlist export peptide-summary [-h] [--class MHC_CLASS] [--species SPECIES]
+                                      [--source-species SOURCE_SPECIES [SOURCE_SPECIES ...]]
+                                      [--host-species HOST_SPECIES [HOST_SPECIES ...]]
+                                      [--exclude-chimeric] [--source {iedb,cedar,supplement}]
+                                      [--mhc-allele MHC_ALLELE [MHC_ALLELE ...]]
+                                      [--serotype SEROTYPE [SEROTYPE ...]]
+                                      [--gene GENE [GENE ...]]
+                                      [--gene-name GENE_NAME [GENE_NAME ...]]
+                                      [--gene-id GENE_ID [GENE_ID ...]]
+                                      [--peptide PEPTIDE [PEPTIDE ...]] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --class MHC_CLASS     MHC class (I, II, or non-classical)
+  --species SPECIES     Filter by MHC species
+  --source-species SOURCE_SPECIES [SOURCE_SPECIES ...]
+                        Filter by peptide-source proteome species (names or aliases)
+  --host-species HOST_SPECIES [HOST_SPECIES ...]
+                        Filter by host-cell species (names or aliases)
+  --exclude-chimeric    Exclude observations flagged as chimeric
+  --source {iedb,cedar,supplement}
+                        Filter by data source
+  --mhc-allele MHC_ALLELE [MHC_ALLELE ...]
+                        Exactly one target allele, e.g. HLA-A*24:02.
+  --serotype SEROTYPE [SEROTYPE ...]
+                        Exactly one target serotype, e.g. A24 or Bw4.
+  --gene GENE [GENE ...]
+                        Filter by gene (HGNC symbol, Ensembl ID, or old alias). Space-separated,
+                        comma-separated, or repeated.
+  --gene-name GENE_NAME [GENE_NAME ...]
+                        Exact match on gene_name.
+  --gene-id GENE_ID [GENE_ID ...]
+                        Exact match on gene_id.
+  --peptide PEPTIDE [PEPTIDE ...]
+                        Restrict to one or more peptides. Space-separated, comma-separated, or
+                        repeated.
+  --output OUTPUT, -o OUTPUT
+                        Write to file (.csv or .parquet)
+
+===== hitlist export binding --help =====
+usage: hitlist export binding [-h] [--class MHC_CLASS] [--species SPECIES]
+                              [--source-species SOURCE_SPECIES [SOURCE_SPECIES ...]]
+                              [--host-species HOST_SPECIES [HOST_SPECIES ...]]
+                              [--exclude-chimeric] [--source {iedb,cedar}]
+                              [--min-allele-resolution {four_digit,donor_set,two_digit,serological,class_only}]
+                              [--mhc-allele MHC_ALLELE [MHC_ALLELE ...]]
+                              [--mhc-allele-in-set MHC_ALLELE_IN_SET [MHC_ALLELE_IN_SET ...]]
+                              [--mhc-allele-provenance {exact,peptide_attribution,sample_allele_match,pmid_class_pool,peptide_locus_match,sample_locus_match,pmid_locus_pool,peptide_serotype_match,sample_serotype_match,pmid_serotype_pool,haplotype_roster,unmatched} [{exact,peptide_attribution,sample_allele_match,pmid_class_pool,peptide_locus_match,sample_locus_match,pmid_locus_pool,peptide_serotype_match,sample_serotype_match,pmid_serotype_pool,haplotype_roster,unmatched} ...]]
+                              [--restriction-evidence {experimental,monoallelic,predicted,unknown} [{experimental,monoallelic,predicted,unknown} ...]]
+                              [--serotype-source {reported,derived,donor_set} [{reported,derived,donor_set} ...]]
+                              [--gene GENE [GENE ...]] [--gene-name GENE_NAME [GENE_NAME ...]]
+                              [--gene-id GENE_ID [GENE_ID ...]]
+                              [--serotype SEROTYPE [SEROTYPE ...]]
+                              [--assay-method ASSAY_METHOD [ASSAY_METHOD ...]]
+                              [--response-measured RESPONSE_MEASURED [RESPONSE_MEASURED ...]]
+                              [--measurement-units MEASUREMENT_UNITS [MEASUREMENT_UNITS ...]]
+                              [--quantitative-value-min QUANTITATIVE_VALUE_MIN]
+                              [--quantitative-value-max QUANTITATIVE_VALUE_MAX]
+                              [--has-quantitative-value] [--qualitative-only] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --class MHC_CLASS     MHC class (I, II, or non-classical)
+  --species SPECIES     Filter by MHC species
+  --source-species SOURCE_SPECIES [SOURCE_SPECIES ...]
+                        Filter by peptide-source proteome species (names or aliases)
+  --host-species HOST_SPECIES [HOST_SPECIES ...]
+                        Filter by host-cell species (names or aliases)
+  --exclude-chimeric    Exclude observations flagged as chimeric
+  --source {iedb,cedar}
+                        Filter by data source (supplementary data is MS-only and never appears
+                        here)
+  --min-allele-resolution {four_digit,donor_set,two_digit,serological,class_only}
+                        Minimum allele resolution
+  --mhc-allele MHC_ALLELE [MHC_ALLELE ...]
+                        Filter to rows whose mhc_restriction matches (after allele normalization).
+                        Space-separated, comma-separated, or repeated.
+  --mhc-allele-in-set MHC_ALLELE_IN_SET [MHC_ALLELE_IN_SET ...]
+                        Filter to rows whose mhc_allele_set (issue #137 candidate-allele set)
+                        contains any of the listed alleles. Repeatable.
+  --mhc-allele-provenance {exact,peptide_attribution,sample_allele_match,pmid_class_pool,peptide_locus_match,sample_locus_match,pmid_locus_pool,peptide_serotype_match,sample_serotype_match,pmid_serotype_pool,haplotype_roster,unmatched} [{exact,peptide_attribution,sample_allele_match,pmid_class_pool,peptide_locus_match,sample_locus_match,pmid_locus_pool,peptide_serotype_match,sample_serotype_match,pmid_serotype_pool,haplotype_roster,unmatched} ...]
+                        Filter by how the allele set was obtained (issue #137).
+  --restriction-evidence {experimental,monoallelic,predicted,unknown} [{experimental,monoallelic,predicted,unknown} ...]
+                        Filter by how the named peptide-to-MHC restriction was established.
+  --serotype-source {reported,derived,donor_set} [{reported,derived,donor_set} ...]
+                        Filter by whether the serotype is primary data (reported), a projection of
+                        a named molecule (derived), or a union over a donor's typed alleles
+                        (donor_set).
+  --gene GENE [GENE ...]
+                        Filter by gene (HGNC symbol, Ensembl ID, or old alias). Space-separated,
+                        comma-separated, or repeated. Requires a mappings-built index.
+  --gene-name GENE_NAME [GENE_NAME ...]
+                        Exact match on gene_name column.
+  --gene-id GENE_ID [GENE_ID ...]
+                        Exact match on gene_id column.
+  --serotype SEROTYPE [SEROTYPE ...]
+                        Filter by MHC serotype (species-prefixed BoLA-A18, locus-specific
+                        A24/B57/DR15 or public epitopes Bw4/Bw6/C1/C2). Space-separated, comma-
+                        separated, or repeated.
+  --assay-method ASSAY_METHOD [ASSAY_METHOD ...]
+                        Filter binding rows whose IEDB/CEDAR assay_method matches (case-
+                        insensitive substring). Examples: 'purified MHC/direct/fluorescence',
+                        'cellular MHC/direct'. Repeatable.
+  --response-measured RESPONSE_MEASURED [RESPONSE_MEASURED ...]
+                        Filter binding rows whose IEDB/CEDAR Response-measured matches (case-
+                        insensitive exact match). Examples: 'qualitative binding', 'dissociation
+                        constant KD', 'half life', 'ligand presentation'. Combine with --assay-
+                        method and --measurement-units to disambiguate IC50 vs Kd vs t_half.
+                        Repeatable.
+  --measurement-units MEASUREMENT_UNITS [MEASUREMENT_UNITS ...]
+                        Filter binding rows reporting in these units (case-insensitive exact
+                        match). Pair with --quantitative-value-{min,max} to avoid mixing unit
+                        systems (e.g. nM vs log10(nM)).
+  --quantitative-value-min QUANTITATIVE_VALUE_MIN
+                        Binding-only inclusive lower bound on the reported value; excludes NaN,
+                        preserves inequalities.
+  --quantitative-value-max QUANTITATIVE_VALUE_MAX
+                        Binding-only inclusive upper bound on the reported value; excludes NaN,
+                        preserves inequalities.
+  --has-quantitative-value
+                        Keep binding rows with a numeric value, regardless of endpoint or units.
+  --qualitative-only    Keep binding rows with no numeric value reported.
+  --output OUTPUT, -o OUTPUT
+                        Write to file (.csv or .parquet)
+
+===== hitlist export cta-evidence --help =====
+usage: hitlist export cta-evidence [-h] [--expression EXPRESSION] [--id-column ID_COLUMN]
+                                   [--tpm-column TPM_COLUMN]
+                                   [--expression-level {auto,gene,transcript}] [--min-tpm MIN_TPM]
+                                   [--cta-definition {strict,extended}]
+                                   [--ensembl-release ENSEMBL_RELEASE]
+                                   [--exclude-gene-pattern EXCLUDE_GENE_PATTERN | --no-gene-exclusions]
+                                   [--allow-gene ALLOW_GENE] --atlas-dir ATLAS_DIR --bundle BUNDLE
+
+options:
+  -h, --help            show this help message and exit
+  --expression EXPRESSION
+                        TPM table or directory; default: one conventional expression/quantifier
+                        file in the current directory
+  --id-column ID_COLUMN
+                        Override automatic identifier-column detection
+  --tpm-column TPM_COLUMN
+                        Override automatic TPM-column detection or choose a sample
+  --expression-level {auto,gene,transcript}
+                        Default: infer from identifier headers, values or quantifier format
+  --min-tpm MIN_TPM
+  --cta-definition {strict,extended}
+  --ensembl-release ENSEMBL_RELEASE
+  --exclude-gene-pattern EXCLUDE_GENE_PATTERN
+                        Replace default MAGE* exclusions with repeatable gene-symbol globs
+  --no-gene-exclusions
+  --allow-gene ALLOW_GENE
+                        Replace default MAGEA4 exception with repeatable exact symbols
+  --atlas-dir ATLAS_DIR
+                        HLA Ligand Atlas 2020.12 peptides, sample_hits and donors TSV/GZ tables
+  --bundle BUNDLE       New evidence bundle directory; existing paths are never overwritten
+
+===== hitlist export tissue-blacklist --help =====
+usage: hitlist export tissue-blacklist [-h] --atlas-dir ATLAS_DIR --bundle BUNDLE
+
+options:
+  -h, --help            show this help message and exit
+  --atlas-dir ATLAS_DIR
+                        HLA Ligand Atlas 2020.12 peptides, sample_hits and donors TSV/GZ tables
+  --bundle BUNDLE       New evidence bundle directory; existing paths are never overwritten
+
+===== hitlist export bulk-proteomics --help =====
+usage: hitlist export bulk-proteomics [-h] [--granularity {peptide,protein,both}]
+                                      [--cell-line CELL_LINE [CELL_LINE ...]]
+                                      [--gene-name GENE_NAME [GENE_NAME ...]]
+                                      [--uniprot-acc UNIPROT_ACC [UNIPROT_ACC ...]]
+                                      [--source {CCLE_Nusinow_2020,Bekker-Jensen_2017}]
+                                      [--digestion-enzyme DIGESTION_ENZYME [DIGESTION_ENZYME ...]]
+                                      [--n-fractions N_FRACTIONS [N_FRACTIONS ...]]
+                                      [--enrichment {none,TiO2,both}]
+                                      [--fractionation-ph FRACTIONATION_PH [FRACTIONATION_PH ...]]
+                                      [--length-min LENGTH_MIN] [--length-max LENGTH_MAX]
+                                      [--abundance-percentile-min ABUNDANCE_PERCENTILE_MIN]
+                                      [--abundance-percentile-max ABUNDANCE_PERCENTILE_MAX]
+                                      [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --granularity {peptide,protein,both}
+                        Rows to export (default: both).
+  --cell-line CELL_LINE [CELL_LINE ...]
+                        Filter to one or more cell lines.
+  --gene-name GENE_NAME [GENE_NAME ...]
+                        Filter to one or more HGNC gene symbols (exact match).
+  --uniprot-acc UNIPROT_ACC [UNIPROT_ACC ...]
+                        Filter peptide rows to one or more UniProt accessions (exact match).
+  --source {CCLE_Nusinow_2020,Bekker-Jensen_2017}
+                        Restrict to one bulk proteomics source.
+  --digestion-enzyme DIGESTION_ENZYME [DIGESTION_ENZYME ...]
+                        Filter to one or more enzymes: 'Trypsin/P (cleaves K/R except before P)',
+                        'Chymotrypsin', 'GluC', 'LysC'.
+  --n-fractions N_FRACTIONS [N_FRACTIONS ...]
+                        Filter to one or more fractionation depths (12/14/39/46/50/70).
+  --enrichment {none,TiO2,both}
+                        Enrichment filter: 'none' (baseline, default), 'TiO2' (phospho only), or
+                        'both' (include both populations).
+  --fractionation-ph FRACTIONATION_PH [FRACTIONATION_PH ...]
+                        Filter by reviewed fractionation pH; unknown values are excluded.
+  --length-min LENGTH_MIN
+                        Minimum peptide length (inclusive; peptide rows only).
+  --length-max LENGTH_MAX
+                        Maximum peptide length (inclusive; peptide rows only).
+  --abundance-percentile-min ABUNDANCE_PERCENTILE_MIN
+                        Minimum abundance percentile (0.0-1.0; protein rows only).
+  --abundance-percentile-max ABUNDANCE_PERCENTILE_MAX
+                        Maximum abundance percentile (0.0-1.0; protein rows only).
+  --output OUTPUT, -o OUTPUT
+                        Write to file (.csv or .parquet)
+
+===== hitlist export bulk --help =====
+usage: hitlist export bulk [-h] [--granularity {peptide,protein,both}]
+                           [--cell-line CELL_LINE [CELL_LINE ...]]
+                           [--gene-name GENE_NAME [GENE_NAME ...]]
+                           [--uniprot-acc UNIPROT_ACC [UNIPROT_ACC ...]]
+                           [--source {CCLE_Nusinow_2020,Bekker-Jensen_2017}]
+                           [--digestion-enzyme DIGESTION_ENZYME [DIGESTION_ENZYME ...]]
+                           [--n-fractions N_FRACTIONS [N_FRACTIONS ...]]
+                           [--enrichment {none,TiO2,both}]
+                           [--fractionation-ph FRACTIONATION_PH [FRACTIONATION_PH ...]]
+                           [--length-min LENGTH_MIN] [--length-max LENGTH_MAX]
+                           [--abundance-percentile-min ABUNDANCE_PERCENTILE_MIN]
+                           [--abundance-percentile-max ABUNDANCE_PERCENTILE_MAX] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --granularity {peptide,protein,both}
+                        Rows to export (default: both).
+  --cell-line CELL_LINE [CELL_LINE ...]
+                        Filter to one or more cell lines.
+  --gene-name GENE_NAME [GENE_NAME ...]
+                        Filter to one or more HGNC gene symbols (exact match).
+  --uniprot-acc UNIPROT_ACC [UNIPROT_ACC ...]
+                        Filter peptide rows to one or more UniProt accessions (exact match).
+  --source {CCLE_Nusinow_2020,Bekker-Jensen_2017}
+                        Restrict to one bulk proteomics source.
+  --digestion-enzyme DIGESTION_ENZYME [DIGESTION_ENZYME ...]
+                        Filter to one or more enzymes: 'Trypsin/P (cleaves K/R except before P)',
+                        'Chymotrypsin', 'GluC', 'LysC'.
+  --n-fractions N_FRACTIONS [N_FRACTIONS ...]
+                        Filter to one or more fractionation depths (12/14/39/46/50/70).
+  --enrichment {none,TiO2,both}
+                        Enrichment filter: 'none' (baseline, default), 'TiO2' (phospho only), or
+                        'both' (include both populations).
+  --fractionation-ph FRACTIONATION_PH [FRACTIONATION_PH ...]
+                        Filter by reviewed fractionation pH; unknown values are excluded.
+  --length-min LENGTH_MIN
+                        Minimum peptide length (inclusive; peptide rows only).
+  --length-max LENGTH_MAX
+                        Maximum peptide length (inclusive; peptide rows only).
+  --abundance-percentile-min ABUNDANCE_PERCENTILE_MIN
+                        Minimum abundance percentile (0.0-1.0; protein rows only).
+  --abundance-percentile-max ABUNDANCE_PERCENTILE_MAX
+                        Maximum abundance percentile (0.0-1.0; protein rows only).
+  --output OUTPUT, -o OUTPUT
+                        Write to file (.csv or .parquet)
+
+===== hitlist export line-expression --help =====
+usage: hitlist export line-expression [-h] [--line-key LINE_KEY [LINE_KEY ...]]
+                                      [--gene-name GENE_NAME [GENE_NAME ...]]
+                                      [--gene-id GENE_ID [GENE_ID ...]]
+                                      [--granularity {gene,transcript}]
+                                      [--source-id SOURCE_ID [SOURCE_ID ...]] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --line-key LINE_KEY [LINE_KEY ...]
+                        Filter to one or more line_key values (e.g. GM12878, HeLa).
+  --gene-name GENE_NAME [GENE_NAME ...]
+                        Filter to one or more HGNC gene symbols.
+  --gene-id GENE_ID [GENE_ID ...]
+                        Filter to one or more Ensembl gene IDs (unversioned).
+  --granularity {gene,transcript}
+                        Restrict to one granularity.
+  --source-id SOURCE_ID [SOURCE_ID ...]
+                        Restrict to one or more source_ids from sources.yaml.
+  --output OUTPUT, -o OUTPUT
+                        Write to file (.csv or .parquet)
+
+===== hitlist export counts --help =====
+usage: hitlist export counts [-h] [--source {iedb,cedar,merged,all}] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --source {iedb,cedar,merged,all}
+                        Data source: iedb, cedar, merged (deduped, default), or all (side-by-side)
+  --output OUTPUT, -o OUTPUT
+                        Write CSV to file
+
+===== hitlist audit-splits --help =====
+usage: hitlist audit-splits [-h] --partition NAME=DIRECTORY
+                            [--policy {donor_disjoint,independent_experiments,peptide_disjoint,pmhc_disjoint,report_only,specimen_disjoint,whole_study}]
+                            [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --partition NAME=DIRECTORY
+  --policy {donor_disjoint,independent_experiments,peptide_disjoint,pmhc_disjoint,report_only,specimen_disjoint,whole_study}
+  --output OUTPUT, -o OUTPUT
+                        Write the JSON audit report
+
+===== hitlist verify-evidence-bundle --help =====
+usage: hitlist verify-evidence-bundle [-h] directory
+
+positional arguments:
+  directory
+
+options:
+  -h, --help  show this help message and exit
+
+===== hitlist reassign-alleles --help =====
+usage: hitlist reassign-alleles [-h] [--method {mhcflurry,netmhcpan}] [--class {I}]
+                                [--max-alleles-per-sample MAX_ALLELES_PER_SAMPLE]
+                                [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --method {mhcflurry,netmhcpan}
+                        Binding predictor (default: mhcflurry)
+  --class {I}           MHC class (only I supported in v1.8.0)
+  --max-alleles-per-sample MAX_ALLELES_PER_SAMPLE
+                        Skip samples with more alleles than this — likely pooled-donor curation
+                        artifacts whose 'best allele' is meaningless (default: 6)
+  --output OUTPUT, -o OUTPUT
+                        Write CSV to file
+
+===== hitlist qc --help =====
+usage: hitlist qc [-h]
+                  {resolution,normalization,mhc-tokens,cross-reference,discrepancies,plan,proteome-coverage,sample-attribution,engineering-drift}
+                  ...
+
+positional arguments:
+  {resolution,normalization,mhc-tokens,cross-reference,discrepancies,plan,proteome-coverage,sample-attribution,engineering-drift}
+    resolution          Histogram of (mhc_class, source, allele_resolution) buckets
+    normalization       Alleles in pmid_overrides whose normalize_allele() output differs from
+                        input
+    mhc-tokens          Audit unparseable MHC restrictions, host typings, serotypes, and curated
+                        sample MHC across MS and binding modalities
+    cross-reference     Alleles listed in YAML samples but absent from observation rows
+                        (yaml_only), or vice versa (data_only)
+    discrepancies       Per-PMID rate of biologically suspicious patterns (class-label/length
+                        mismatches, mono-allelic class-only rows, class-pool fallback, non-
+                        standard amino acids). Triage list for curation work — sorted by total
+                        suspect count, descending.
+    plan                Curation roadmap: per-PMID priority queue combining discrepancies,
+                        cross_reference, and normalization_drift into one ranked table — answers
+                        'which study should I curate next?' without bouncing between three
+                        reports.
+    proteome-coverage   Per-source-organism proteome registry coverage. Surfaces the species gap
+                        that blocks downstream features needing a per-organism proteome (flank
+                        extraction, gene-name lookup, source-protein audits) without fetching
+                        anything (#39).
+    sample-attribution  Curated ms_samples arms that were profiled but reach zero observation
+                        rows. A curator adding an arm otherwise gets no signal about whether it
+                        landed (#442). Builds the full enriched table, so this is slower than the
+                        other checks.
+    engineering-drift   Curated arms silent on an engineering column that a same-material sibling
+                        asserts (#586). A blank reads as 'not established', so the arm stops
+                        counting as engineered material and takes its reference line's RNA at tier
+                        1 while the sibling takes it at tier 2.
+
+options:
+  -h, --help            show this help message and exit
+
+===== hitlist qc resolution --help =====
+usage: hitlist qc resolution [-h] [--class MHC_CLASS] [--species SPECIES]
+                             [--source {iedb,cedar,supplement}] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --class MHC_CLASS     MHC class (I, II, or non-classical)
+  --species SPECIES     Filter by MHC species
+  --source {iedb,cedar,supplement}
+                        Filter by data source
+  --output OUTPUT, -o OUTPUT
+                        Write CSV to file
+
+===== hitlist qc normalization --help =====
+usage: hitlist qc normalization [-h] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --output OUTPUT, -o OUTPUT
+                        Write CSV to file
+
+===== hitlist qc mhc-tokens --help =====
+usage: hitlist qc mhc-tokens [-h] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --output OUTPUT, -o OUTPUT
+                        Write CSV to file
+
+===== hitlist qc cross-reference --help =====
+usage: hitlist qc cross-reference [-h] [--class MHC_CLASS]
+                                  [--direction {yaml_only,data_only,both}] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --class MHC_CLASS     MHC class (I, II, or non-classical)
+  --direction {yaml_only,data_only,both}
+                        Which divergence to report (default: both)
+  --output OUTPUT, -o OUTPUT
+                        Write CSV to file
+
+===== hitlist qc discrepancies --help =====
+usage: hitlist qc discrepancies [-h] [--class MHC_CLASS] [--min-rows MIN_ROWS] [--top TOP]
+                                [--by {pmid,sample}] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --class MHC_CLASS     MHC class (I, II, or non-classical)
+  --min-rows MIN_ROWS   Drop PMID buckets with fewer than this many rows; small buckets give noisy
+                        length percentiles. Default 50.
+  --top TOP             Show only the top N buckets by suspect score (default: all).
+  --by {pmid,sample}    Aggregation level: 'pmid' (default) groups per study/class; 'sample'
+                        groups per (pmid, mhc_class, cell_name) so a curator can spot per-sample
+                        issues like 'this transfectant has 30% suspect rows but its sibling has
+                        0%'.
+  --output OUTPUT, -o OUTPUT
+                        Write CSV to file
+
+===== hitlist qc plan --help =====
+usage: hitlist qc plan [-h] [--class MHC_CLASS] [--min-rows MIN_ROWS] [--top TOP]
+                       [--severity {info,warn}] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --class MHC_CLASS     MHC class (I, II, or non-classical)
+  --min-rows MIN_ROWS   Drop PMID buckets with fewer than this many rows (default 50).
+  --top TOP             Show only the top N PMIDs by priority score (default: all).
+  --severity {info,warn}
+                        Filter to one severity level (default: all).
+  --output OUTPUT, -o OUTPUT
+                        Write CSV to file
+
+===== hitlist qc proteome-coverage --help =====
+usage: hitlist qc proteome-coverage [-h] [--min-rows MIN_ROWS] [--missing-only]
+                                    [--severity {info,warn}] [--use-uniprot] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --min-rows MIN_ROWS   Drop organism buckets with fewer than this many rows (default 1).
+  --missing-only        Show only organisms WITHOUT a registered proteome.
+  --severity {info,warn}
+                        Filter to one severity level (default: all).
+  --use-uniprot         Fall back to the UniProt REST endpoint for organisms not in the curated
+                        registry. Slower (network) and offline runs should leave this off.
+  --output OUTPUT, -o OUTPUT
+                        Write CSV to file
+
+===== hitlist qc sample-attribution --help =====
+usage: hitlist qc sample-attribution [-h] [--bucket {label_mismatch_candidate,study_unattributed}]
+                                     [--severity {info,warn}] [--actionable-only]
+                                     [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --bucket {label_mismatch_candidate,study_unattributed}
+                        Filter to one finding shape. 'label_mismatch_candidate' means other arms
+                        of the same study do attribute, so the label is the suspect;
+                        'study_unattributed' means no arm of the study attributes at all (default:
+                        both).
+  --severity {info,warn}
+                        Filter to one severity level (default: all).
+  --actionable-only     Hide findings in studies already recorded as unresolvable (arm_resolution
+                        axis_mismatch / no_row_discriminator / multi_arm_evidence), leaving only
+                        what more curation could fix.
+  --output OUTPUT, -o OUTPUT
+                        Write CSV to file
+
+===== hitlist qc engineering-drift --help =====
+usage: hitlist qc engineering-drift [-h] [--severity {warn,error}] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --severity {warn,error}
+                        Filter to one severity level. 'error' is an arm nothing else engineers, so
+                        an expression tier really differs (default: all).
+  --output OUTPUT, -o OUTPUT
+                        Write CSV to file
+
+===== hitlist pmhc --help =====
+usage: hitlist pmhc [-h] [--protein PROTEIN [PROTEIN ...]]
+                    [--mhc-allele MHC_ALLELE [MHC_ALLELE ...]] [--sample NAME:ALLELE[,ALLELE,...]]
+                    [--samples PATH.tsv] [--species SPECIES] [--source-species SOURCE_SPECIES]
+                    [--host-species HOST_SPECIES]
+                    [--source-context {activated_apc,adjacent,cancer,cell_line,ebv_lcl,ex_vivo,healthy}]
+                    [--list-source-contexts] [--by-tissue] [--show-zeros] [--by-gene]
+                    [--gene-set GENE_SET] [--list-gene-sets] [--expand-lines] [--expand-tissues]
+                    [--predictor {mhcflurry,netmhcpan}] [--min-binder-class {strong,medium,weak}]
+                    [--min-references N] [--min-samples N] [--cell-type TYPE]
+                    [--format {table,csv,json}] [--output OUTPUT]
+
+Per-protein x allele pMHC evidence query. Both --protein and --mhc-allele are optional; pass
+neither to scan the whole corpus, just one to fix that axis. Pass --predictor
+{mhcflurry,netmhcpan} to add binding-affinity scoring.
+
+options:
+  -h, --help            show this help message and exit
+  --protein PROTEIN [PROTEIN ...], --gene PROTEIN [PROTEIN ...]
+                        One or more proteins: HGNC symbol, Ensembl ENSG, or alias. Omit to scan
+                        all genes.
+  --mhc-allele MHC_ALLELE [MHC_ALLELE ...], --mhc-alleles MHC_ALLELE [MHC_ALLELE ...]
+                        One or more 4-digit MHC alleles (HLA-A*02:01, HLA-B*07:02, ...). Space-
+                        separated, comma-separated, or repeated -- a whole pasted genotype string
+                        works as one argument, e.g. --mhc-allele "HLA-A*02:01 HLA-B*07:02" or
+                        --mhc-allele HLA-A*02:01,HLA-B*07:02. Omit to scan all alleles. Mutually
+                        exclusive with --sample / --samples — use those when each sample has its
+                        own allele set instead of a cross-product across all of them.
+  --sample NAME:ALLELE[,ALLELE,...]
+                        Per-sample paired (name, allele set). Repeatable; alleles are comma-
+                        separated after the colon. Example: --sample
+                        patient1:HLA-A*02:01,HLA-A*24:02 --sample
+                        patient2:HLA-A*01:01,HLA-A*24:02. Each sample is queried independently
+                        against the protein list — results are sectioned by sample in the output.
+  --samples PATH.tsv    Batch form of --sample: path to a TSV with one row per sample, two columns
+                        'name' and 'alleles' (alleles comma-separated). Header row optional.
+                        Mutually exclusive with --mhc-allele.
+  --species SPECIES, --mhc-species SPECIES
+                        Filter by MHC species (the species of the HLA/MHC molecule, e.g. 'human' /
+                        'Homo sapiens'). Without it, results include every species the peptides
+                        were observed on, sectioned with human first. The three species axes are
+                        independent — see --source-species / --host-species.
+  --source-species SOURCE_SPECIES
+                        Filter by SOURCE species — the organism whose proteome the peptide comes
+                        from (e.g. 'human' drops a SARS-CoV-2 viral epitope even though its MHC
+                        and host cell are human).
+  --host-species HOST_SPECIES
+                        Filter by HOST species — the organism of the cell the peptide was
+                        expressed/eluted in (e.g. a human gene presented in a mouse line).
+  --source-context {activated_apc,adjacent,cancer,cell_line,ebv_lcl,ex_vivo,healthy}
+                        Keep only observations from this curated source context: healthy, cancer,
+                        cell_line, ebv_lcl, adjacent, activated_apc, ex_vivo. Run --list-source-
+                        contexts to see what each means.
+  --list-source-contexts
+                        Print the available --source-context values (with descriptions) and exit.
+  --by-tissue           Summarize WHERE the gene's peptides come from, in four sections: healthy
+                        tissues / cancer tissues (by source tissue) and cancer / non-cancer cell
+                        lines (by cell line). Each section shows observations, unique peptides,
+                        references; sorted by observations. Combine with --source-context and
+                        --species. Ignores --mhc-allele / --sample / --predictor.
+  --show-zeros          With --by-tissue, show empty sections (as '(none)') instead of eliding
+                        them.
+  --by-gene             Per-GENE rollup: one row per gene with n_observations / n_unique_peptides
+                        / n_references / n_samples, sorted by observations. Pair with --gene-set
+                        CTA (or --gene) to summarize a panel. Honors --source-context and
+                        --species; ignores --mhc-allele / --predictor.
+  --gene-set GENE_SET   Expand a named gene set into the --gene filter (e.g. 'CTA' for the cancer-
+                        testis-antigen panel). See --list-gene-sets.
+  --list-gene-sets      Print the available --gene-set names (with descriptions) and exit.
+  --expand-lines        With --by-tissue, group the cell-line sections by individual line name
+                        (THP-1, HeLa, ...) instead of the default cell TYPE of origin (Monocyte,
+                        Melanocyte, B cell, ..., EBV-LCL).
+  --expand-tissues      With --by-tissue, split anatomical roll-up groups into their specific
+                        organs (GI tract -> Esophagus/Stomach/Colon/...; CNS ->
+                        Brain/Cerebellum/Spinal Cord). Rows a study labelled only with the
+                        umbrella term show as '<group> (region unspecified)'. Default rolls them
+                        up.
+  --predictor {mhcflurry,netmhcpan}
+                        Optional binding-affinity predictor. If omitted, only MS evidence is
+                        reported (no affinity column).
+  --min-binder-class {strong,medium,weak}
+                        Drop rows whose predicted binder tier is below this threshold. 'strong'
+                        keeps only strong; 'medium' keeps strong+medium; 'weak' drops only non-
+                        binders. Requires --predictor.
+  --min-references N    Drop rows backed by fewer than N distinct PMIDs. Default 1 (no filter).
+                        Use 2+ to require independently re-observed peptides.
+  --min-samples N       Drop rows backed by fewer than N distinct samples (donors / cell lines /
+                        runs). Default 1 (no filter). A single PMID often contributes many samples
+                        — --min-samples is usually a stronger evidence signal than --min-
+                        references.
+  --cell-type TYPE      Keep only observations from this cell type (the tissue/cell-type half of
+                        IEDB's Cell Name, e.g. "Melanocyte", "B cell"). Case-insensitive; repeat
+                        the flag to allow several types. Requires a corpus built with hitlist >=
+                        1.30.57.
+  --format {table,csv,json}
+                        Output shape (default: table — protein > allele section headers with
+                        peptide rows in an aligned table beneath each allele).
+  --output OUTPUT, -o OUTPUT
+                        Write to file (.csv / .json / .txt)
+
+===== hitlist samples --help =====
+usage: hitlist samples [-h] [--class MHC_CLASS] [--with-expression-anchors] [--apm-only]
+                       [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --class MHC_CLASS     Filter to MHC class (I, II, or non-classical)
+  --with-expression-anchors
+                        Emit the line-expression anchor resolution for every sample
+                        (expression_backend, expression_key, expression_match_tier,
+                        expression_parent_key; issue #140). Replaces the default acquisition-
+                        metadata sample table.
+  --apm-only            Filter to samples where any antigen-processing-machinery gene was
+                        perturbed (B2M, TAP1, TAP2, TAPBP, ERAP1/2, PDIA3, CALR, CANX, IRF2,
+                        GANAB, SPPL3, NLRC5, CIITA, HLA-DM, HLA-DO, CD74, cathepsin, RFX, bare-
+                        lymphocyte-syndrome). See apm_perturbed and apm_genes_perturbed output
+                        columns.
+  --output OUTPUT, -o OUTPUT
+                        Write CSV to file
+
+===== hitlist proteomics --help =====
+usage: hitlist proteomics [-h] [--granularity {peptide,protein,both}]
+                          [--cell-line CELL_LINE [CELL_LINE ...]]
+                          [--gene-name GENE_NAME [GENE_NAME ...]]
+                          [--uniprot-acc UNIPROT_ACC [UNIPROT_ACC ...]]
+                          [--source {CCLE_Nusinow_2020,Bekker-Jensen_2017}]
+                          [--digestion-enzyme DIGESTION_ENZYME [DIGESTION_ENZYME ...]]
+                          [--n-fractions N_FRACTIONS [N_FRACTIONS ...]]
+                          [--enrichment {none,TiO2,both}]
+                          [--fractionation-ph FRACTIONATION_PH [FRACTIONATION_PH ...]]
+                          [--length-min LENGTH_MIN] [--length-max LENGTH_MAX]
+                          [--abundance-percentile-min ABUNDANCE_PERCENTILE_MIN]
+                          [--abundance-percentile-max ABUNDANCE_PERCENTILE_MAX] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --granularity {peptide,protein,both}
+                        Rows to export (default: both).
+  --cell-line CELL_LINE [CELL_LINE ...]
+                        Filter to one or more cell lines.
+  --gene-name GENE_NAME [GENE_NAME ...]
+                        Filter to one or more HGNC gene symbols (exact match).
+  --uniprot-acc UNIPROT_ACC [UNIPROT_ACC ...]
+                        Filter peptide rows to one or more UniProt accessions (exact match).
+  --source {CCLE_Nusinow_2020,Bekker-Jensen_2017}
+                        Restrict to one bulk proteomics source.
+  --digestion-enzyme DIGESTION_ENZYME [DIGESTION_ENZYME ...]
+                        Filter to one or more enzymes: 'Trypsin/P (cleaves K/R except before P)',
+                        'Chymotrypsin', 'GluC', 'LysC'.
+  --n-fractions N_FRACTIONS [N_FRACTIONS ...]
+                        Filter to one or more fractionation depths (12/14/39/46/50/70).
+  --enrichment {none,TiO2,both}
+                        Enrichment filter: 'none' (baseline, default), 'TiO2' (phospho only), or
+                        'both' (include both populations).
+  --fractionation-ph FRACTIONATION_PH [FRACTIONATION_PH ...]
+                        Filter by reviewed fractionation pH; unknown values are excluded.
+  --length-min LENGTH_MIN
+                        Minimum peptide length (inclusive; peptide rows only).
+  --length-max LENGTH_MAX
+                        Maximum peptide length (inclusive; peptide rows only).
+  --abundance-percentile-min ABUNDANCE_PERCENTILE_MIN
+                        Minimum abundance percentile (0.0-1.0; protein rows only).
+  --abundance-percentile-max ABUNDANCE_PERCENTILE_MAX
+                        Maximum abundance percentile (0.0-1.0; protein rows only).
+  --output OUTPUT, -o OUTPUT
+                        Write to file (.csv or .parquet)
+
+===== hitlist expression --help =====
+usage: hitlist expression [-h] [--line-key LINE_KEY [LINE_KEY ...]]
+                          [--gene-name GENE_NAME [GENE_NAME ...]]
+                          [--gene-id GENE_ID [GENE_ID ...]] [--granularity {gene,transcript}]
+                          [--source-id SOURCE_ID [SOURCE_ID ...]] [--output OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  --line-key LINE_KEY [LINE_KEY ...]
+                        Filter to one or more line_key values (e.g. GM12878, HeLa).
+  --gene-name GENE_NAME [GENE_NAME ...]
+                        Filter to one or more HGNC gene symbols.
+  --gene-id GENE_ID [GENE_ID ...]
+                        Filter to one or more Ensembl gene IDs (unversioned).
+  --granularity {gene,transcript}
+                        Restrict to one granularity.
+  --source-id SOURCE_ID [SOURCE_ID ...]
+                        Restrict to one or more source_ids from sources.yaml.
+  --output OUTPUT, -o OUTPUT
+                        Write to file (.csv or .parquet)

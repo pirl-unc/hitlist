@@ -1337,7 +1337,7 @@ def test_cli_export_samples_with_expression_anchors_calls_new_function(
     """
     import argparse
 
-    import hitlist.cli as cli
+    import hitlist.cli_export as cli_export
     import hitlist.export as export
 
     called: dict[str, bool] = {"anchor": False, "plain": False}
@@ -1363,7 +1363,7 @@ def test_cli_export_samples_with_expression_anchors_calls_new_function(
         with_expression_anchors=True,
         output=str(tmp_path / "out.csv"),
     )
-    cli._export(args)
+    cli_export._export(args)
     assert called == {"anchor": True, "plain": False}
     assert (tmp_path / "out.csv").exists()
 
@@ -1374,7 +1374,7 @@ def test_cli_export_samples_default_routes_to_ms_samples_table(monkeypatch, tmp_
     """
     import argparse
 
-    import hitlist.cli as cli
+    import hitlist.cli_export as cli_export
     import hitlist.export as export
 
     called: dict[str, bool] = {"anchor": False, "plain": False}
@@ -1397,7 +1397,7 @@ def test_cli_export_samples_default_routes_to_ms_samples_table(monkeypatch, tmp_
         with_expression_anchors=False,
         output=str(tmp_path / "out.csv"),
     )
-    cli._export(args)
+    cli_export._export(args)
     assert called == {"anchor": False, "plain": True}
 
 
@@ -1407,7 +1407,7 @@ def test_cli_export_line_expression_passes_filters_through(monkeypatch, tmp_path
     """
     import argparse
 
-    import hitlist.cli as cli
+    import hitlist.cli_export as cli_export
     import hitlist.line_expression as le
 
     captured: dict = {}
@@ -1442,7 +1442,7 @@ def test_cli_export_line_expression_passes_filters_through(monkeypatch, tmp_path
         source_id=None,
         output=str(tmp_path / "out.csv"),
     )
-    cli._export(args)
+    cli_export._export(args)
     assert captured == {
         "line_key": ["HeLa"],
         "gene_name": ["TP53"],
@@ -1459,7 +1459,7 @@ def test_cli_export_training_with_peptide_origin_flag_threads_through(monkeypatc
     """
     import argparse
 
-    from hitlist.cli import _export_training
+    from hitlist.cli_export import _export_training
 
     captured: dict = {}
 

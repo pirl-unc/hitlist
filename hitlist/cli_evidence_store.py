@@ -15,7 +15,7 @@ from .reference_evidence import write_reference_evidence_package
 
 def register_evidence_cli(sub):
     parser = sub.add_parser("evidence", help="Query a verified multi-modality evidence package")
-    parser.set_defaults(_subgroup_parser=parser)
+    parser.set_defaults(_subgroup_parser=parser, func=handle_evidence_cli)
     commands = parser.add_subparsers(dest="evidence_command")
 
     catalog = commands.add_parser("catalog", help="Describe evidence types and field readiness")

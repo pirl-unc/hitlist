@@ -24,7 +24,7 @@ def test_export_cli_accepts_every_mhc_allele_provenance(export_command, monkeypa
     from hitlist.curation import MHC_ALLELE_PROVENANCE_VALUES
 
     parsed = []
-    monkeypatch.setattr("hitlist.cli._export", lambda args: parsed.append(args))
+    monkeypatch.setattr("hitlist.cli_export._export", lambda args: parsed.append(args))
 
     for provenance in MHC_ALLELE_PROVENANCE_VALUES:
         monkeypatch.setattr(

@@ -58,6 +58,7 @@ def add_evidence_parsers(sub, export_sub):
         help="Verify hashes and scientific relationships in an evidence bundle",
     )
     verify.add_argument("directory")
+    verify.set_defaults(func=handle_evidence)
 
 
 def handle_evidence(args):

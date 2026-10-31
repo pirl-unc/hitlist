@@ -14,7 +14,7 @@ import pytest
 import requests
 import yaml
 
-from hitlist import cli, downloads, uniprot
+from hitlist import cli_data, downloads, uniprot
 
 
 def test_packaged_historical_catalog_preserves_default_and_archive_provenance():
@@ -309,7 +309,7 @@ def test_inventory_knows_versioned_hashes(references, monkeypatch):
 
 def test_cli_matches_api_and_requires_release_for_remove(references, capsys):
     parser = argparse.ArgumentParser()
-    cli._build_data_parser(parser.add_subparsers(dest="command"))
+    cli_data._build_data_parser(parser.add_subparsers(dest="command"))
     for command in ("fetch", "path", "info", "list", "remove"):
         args = parser.parse_args(
             [
@@ -320,7 +320,7 @@ def test_cli_matches_api_and_requires_release_for_remove(references, capsys):
                 *(["--release", "2015_10"] if command != "list" else []),
             ]
         )
-        cli._handle_data(args)
+        cli_data._handle_data(args)
         result = json.loads(capsys.readouterr().out)
         if command == "info":
             assert result["release"] == "2015_10"

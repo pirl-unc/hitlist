@@ -40,7 +40,8 @@ def test_v2_training_cli_uses_evidence_recipe(monkeypatch, capsys):
 def _build_full_parser() -> argparse.ArgumentParser:
     """Reconstruct the full CLI parser the way ``main()`` does, so we can
     drive argparse end-to-end without calling subcommand handlers."""
-    from hitlist.cli import _build_data_parser, _build_top_level_build_parser
+    from hitlist.cli_build import _build_top_level_build_parser
+    from hitlist.cli_data import _build_data_parser
 
     parser = argparse.ArgumentParser(prog="hitlist")
     sub = parser.add_subparsers(dest="command")
@@ -51,7 +52,7 @@ def _build_full_parser() -> argparse.ArgumentParser:
     export_sub = p_export.add_subparsers(dest="export_command")
     # We only register the parsers this PR touches.  The module-level
     # main() registration is the source of truth; this is a focused subset.
-    from hitlist.cli import _add_export_bulk_proteomics_args, _add_peptide_counts_args
+    from hitlist.cli_export import _add_export_bulk_proteomics_args, _add_peptide_counts_args
 
     p_pc = export_sub.add_parser("peptide-counts")
     _add_peptide_counts_args(p_pc)
@@ -100,10 +101,10 @@ def test_legacy_export_subcommands_emit_deprecation_notices(monkeypatch, capsys)
     print a stderr notice on every invocation."""
     import pandas as pd
 
-    from hitlist import cli
+    from hitlist import cli_export
 
     # The dispatch helpers are imported lazily inside ``_export`` from
-    # ``hitlist.export``, so we patch the source module not ``hitlist.cli``.
+    # ``hitlist.export``, so we patch the source module not ``hitlist.cli_export``.
     monkeypatch.setattr("hitlist.export.generate_species_summary", lambda **kw: pd.DataFrame())
     monkeypatch.setattr("hitlist.export.validate_mhc_alleles", lambda: pd.DataFrame())
     monkeypatch.setattr("hitlist.export.collect_alleles_from_data", lambda **kw: pd.DataFrame())
@@ -122,7 +123,7 @@ def test_legacy_export_subcommands_emit_deprecation_notices(monkeypatch, capsys)
             source="merged",
             output=None,
         )
-        cli._export(args)
+        cli_export._export(args)
         captured = capsys.readouterr()
         assert "deprecated" in captured.err
         assert hint in captured.err
