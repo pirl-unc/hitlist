@@ -35,6 +35,7 @@ from .downloads import (
     get_path,
     info,
     list_cache_files,
+    preflight,
     refresh,
     remove,
     resolve_data_dir,
@@ -217,12 +218,10 @@ def _data_register(args: argparse.Namespace) -> None:
 
 
 def _data_fetch(args: argparse.Namespace) -> None:
-    try:
-        p = fetch(args.name, force=args.force)
-        print(f"Ready: {p}")
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
+    if args.dry_run:
+        print(json.dumps(preflight(args.name), indent=2))
+        return
+    print(f"Ready: {fetch(args.name, force=args.force)}")
 
 
 def _data_fetch_all(args: argparse.Namespace) -> None:
@@ -232,12 +231,7 @@ def _data_fetch_all(args: argparse.Namespace) -> None:
 
 
 def _data_refresh(args: argparse.Namespace) -> None:
-    try:
-        p = refresh(args.name)
-        print(f"Refreshed: {p}")
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
+    print(f"Refreshed: {refresh(args.name)}")
 
 
 def _data_info(args: argparse.Namespace) -> None:
@@ -313,6 +307,11 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     p = ds.add_parser("fetch", help="Download a fetchable dataset")
     p.add_argument("name", help="Dataset name")
     p.add_argument("--force", "-f", action="store_true", help="Re-download")
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print where the file would land, its expected size and free space; download nothing",
+    )
 
     p = ds.add_parser(
         "fetch-all",

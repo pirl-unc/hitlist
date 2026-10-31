@@ -14,12 +14,12 @@
 
 ``hitlist.cli.main`` catches :class:`HitlistError` once, prints ``Error: ...``
 to stderr and exits 1; any other exception is a bug and keeps its traceback.
-All classes subclass ``RuntimeError`` so pre-existing ``except RuntimeError``
-callers keep working. Raise these with ``raise ... from cause`` so the original
-exception type stays inspectable via ``__cause__``.
+All classes subclass ``RuntimeError`` (``DatasetError`` also ``ValueError``) so
+pre-existing ``except`` callers keep working. Raise these with ``raise ... from cause``
+so the original exception type stays inspectable via ``__cause__``.
 """
 
-__all__ = ["DownloadError", "HitlistError", "IntegrityError"]
+__all__ = ["DatasetError", "DownloadError", "HitlistError", "IntegrityError"]
 
 
 class HitlistError(RuntimeError):
@@ -32,3 +32,7 @@ class DownloadError(HitlistError):
 
 class IntegrityError(HitlistError):
     """Fetched or cached bytes failed validation (size, SHA-256, corrupt archive)."""
+
+
+class DatasetError(HitlistError, ValueError):
+    """A dataset name cannot be fetched as asked (unknown, or a manual download)."""

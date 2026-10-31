@@ -58,6 +58,7 @@ import contextlib
 import hashlib
 import json
 import os
+import shutil
 import sys
 import tempfile
 from collections.abc import Iterator
@@ -69,7 +70,7 @@ from pathlib import Path
 from datacache import FileValidationError, VersionedFileRegistry
 from filelock import FileLock
 
-from .errors import DownloadError, HitlistError, IntegrityError
+from .errors import DatasetError, DownloadError, HitlistError, IntegrityError
 
 # Socket inactivity bound; mapping prefetch separately enforces a wall-clock
 # deadline (#255/#402). Transfer, retry and publication belong to datacache.
@@ -553,6 +554,9 @@ FETCHABLE_DATASETS: dict[str, dict[str, str | int]] = {
         "usage": "Mass spec evidence for peptide-MHC presentation.",
         "terms": "https://www.iedb.org/",
         "min_size_bytes": 50_000_000,
+        # Approximate disk needed once extracted; a full-disk ENOSPC midway (#884) is
+        # worse than refusing to start.  Optional: omit when unknown.
+        "size_bytes": 7_800_000_000,
     },
     "cedar": {
         # CEDAR serves the export under the same member name IEDB uses,
@@ -1380,6 +1384,19 @@ def unregistered_depmap_files() -> list[str]:
     ]
 
 
+def _unfetchable(name: str) -> DatasetError:
+    """Why *name* cannot be fetched automatically: a manual download, or no such dataset."""
+    if name in MANUAL_DATASETS:
+        info = MANUAL_DATASETS[name]
+        return DatasetError(
+            f"'{name}' requires manual download from:\n"
+            f"  {info['download_url']}\n"
+            f"Then register the downloaded {info['expected_filename']} file "
+            f"under dataset name '{name}'."
+        )
+    return DatasetError(f"Unknown dataset '{name}'. Available: {sorted(available_datasets())}")
+
+
 def fetch(name: str, force: bool = False) -> Path:
     """Download a fetchable dataset."""
     if name == "depmap":
@@ -1398,16 +1415,7 @@ def fetch(name: str, force: bool = False) -> Path:
     if name not in FETCHABLE_DATASETS:
         if name in data_assets():
             return fetch_data_asset(name, force=force)
-        if name in MANUAL_DATASETS:
-            info = MANUAL_DATASETS[name]
-            raise ValueError(
-                f"'{name}' requires manual download from:\n"
-                f"  {info['download_url']}\n"
-                f"Then register the downloaded {info['expected_filename']} file "
-                f"under dataset name '{name}'."
-            )
-        available = sorted(available_datasets())
-        raise ValueError(f"Unknown dataset '{name}'. Available: {available}")
+        raise _unfetchable(name)
 
     ds = FETCHABLE_DATASETS[name]
     dest = data_dir() / ds["filename"]
@@ -1427,6 +1435,24 @@ def fetch(name: str, force: bool = False) -> Path:
         print(f"  [{name}] cached file rejected ({problem}); re-downloading", file=sys.stderr)
         force = True
 
+    if entry is not None and not Path(entry["path"]).exists():
+        print(
+            f"  [{name}] registered file {entry['path']} is missing; downloading again",
+            file=sys.stderr,
+        )
+    plan = preflight(name)
+    if plan["enough_space"] is False:
+        raise DownloadError(
+            f"Not enough free space for '{name}': needs about "
+            f"{plan['expected_size_bytes'] / 1e9:.1f} GB, {plan['free_bytes'] / 1e9:.1f} GB "
+            f"free under {Path(plan['path']).parent}"
+        )
+    if ds.get("terms"):
+        print(
+            f"  [{name}] from a terms-of-use-governed source — please review "
+            f"usage/citation terms: {ds['terms']}",
+            file=sys.stderr,
+        )
     print(f"Downloading {ds['description']}...", file=sys.stderr)
     # decompress=True unzips/gunzips the IEDB/CEDAR archives into their CSV; it
     # is a no-op for the plain-FASTA viral proteomes (download_to_file only
@@ -1440,12 +1466,6 @@ def fetch(name: str, force: bool = False) -> Path:
             f"Downloaded '{name}' from {ds['url']} is only {size:,} bytes "
             f"(expected at least {ds['min_size_bytes']:,}); the server likely returned "
             f"an empty or error body"
-        )
-    if ds.get("terms"):
-        print(
-            f"  [{name}] from a terms-of-use-governed source — please review "
-            f"usage/citation terms: {ds['terms']}",
-            file=sys.stderr,
         )
 
     with manifest_transaction() as manifest:
@@ -1467,6 +1487,47 @@ def _file_sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1 << 20), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def preflight(name: str) -> dict:
+    """Report what :func:`fetch` would do for *name* without touching the network.
+
+    Keys: ``name``; ``path`` (where the file lands); ``registered``; ``exists``;
+    ``stale`` (registered, but the registered file is gone); ``would_download``;
+    ``expected_size_bytes`` (``None`` when unknown); ``free_bytes`` on the target
+    filesystem; ``enough_space`` (``None`` when the size is unknown); ``terms``
+    (a terms-of-use URL, or ``None``).  ``hitlist data fetch --dry-run`` prints this.
+    """
+    if name in FETCHABLE_DATASETS:
+        ds = FETCHABLE_DATASETS[name]
+        dest = data_dir() / ds["filename"]
+        expected, terms = ds.get("size_bytes"), ds.get("terms")
+    elif name in data_assets():
+        dest = data_asset_dir() / name
+        expected, terms = data_assets()[name]["size_bytes"], None
+    elif name == "depmap":
+        raise DatasetError(
+            f"'depmap' is a multi-file bundle; run preflight on its files: {sorted(_DEPMAP_FILES)}"
+        )
+    else:
+        raise _unfetchable(name)
+    entry = load_manifest().get("datasets", {}).get(name)
+    probe = dest.parent
+    while not probe.exists():
+        probe = probe.parent
+    free = shutil.disk_usage(probe).free
+    return {
+        "name": name,
+        "path": str(dest),
+        "registered": entry is not None,
+        "exists": dest.exists(),
+        "stale": entry is not None and not Path(entry["path"]).exists(),
+        "would_download": not dest.exists(),
+        "expected_size_bytes": expected,
+        "free_bytes": free,
+        "enough_space": None if expected is None else free >= expected,
+        "terms": terms,
+    }
 
 
 def _cached_file_problem(name: str, dest: Path, entry: dict | None) -> str | None:
@@ -1531,6 +1592,7 @@ def info(name: str) -> dict:
             return {
                 **meta,
                 "type": "mirrored asset",
+                "exists": state.status != "missing",
                 "path": state.path,
                 "status": "installed" if state.status == "available" else state.status,
                 "cache_status": state.status,
@@ -1545,17 +1607,29 @@ def info(name: str) -> dict:
             return {
                 "description": "DepMap 24Q4 gene/transcript expression and index (~4.7 GB)",
                 "datasets": list(_DEPMAP_FILES),
+                "exists": False,
                 "status": "not installed",
                 "type": "bundle + build",
             }
         if name in FETCHABLE_DATASETS:
-            return {**FETCHABLE_DATASETS[name], "status": "not installed", "type": "auto-fetch"}
+            return {
+                **FETCHABLE_DATASETS[name],
+                "exists": False,
+                "status": "not installed",
+                "type": "auto-fetch",
+            }
         if name in MANUAL_DATASETS:
-            return {**MANUAL_DATASETS[name], "status": "not installed", "type": "manual download"}
+            return {
+                **MANUAL_DATASETS[name],
+                "exists": False,
+                "status": "not installed",
+                "type": "manual download",
+            }
         raise KeyError(f"Unknown dataset '{name}'")
     result = dict(entry)
     state = datacache.inspect_file(entry["path"])
     result.update(
+        exists=state.status != "missing",
         status="installed" if state.status == "available" else state.status,
         cache_status=state.status,
         verified=state.verified,
@@ -1574,8 +1648,11 @@ def info(name: str) -> dict:
 
 
 def list_datasets() -> dict[str, dict]:
-    """Return all registered/fetched datasets."""
-    return dict(load_manifest().get("datasets", {}))
+    """Return all registered/fetched datasets; ``exists`` says whether the file is still there."""
+    return {
+        name: {**entry, "exists": Path(entry["path"]).exists()}
+        for name, entry in load_manifest().get("datasets", {}).items()
+    }
 
 
 def list_cache_files(*, verify: bool = False, include_unregistered: bool = True) -> list[dict]:
