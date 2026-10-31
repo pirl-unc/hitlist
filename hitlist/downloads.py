@@ -59,12 +59,14 @@ import json
 import os
 import sys
 import tempfile
+from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 
 from datacache import FileValidationError, VersionedFileRegistry
+from filelock import FileLock
 
 from .errors import DownloadError, HitlistError, IntegrityError
 
@@ -414,7 +416,7 @@ def _manifest_path() -> Path:
     return data_dir() / "manifest.json"
 
 
-def _load_manifest() -> dict:
+def load_manifest() -> dict:
     p = _manifest_path()
     if not p.exists():
         return {"datasets": {}}
@@ -431,7 +433,7 @@ def _load_manifest() -> dict:
 def _save_manifest(manifest: dict) -> None:
     # Atomic write: serialize to a unique temp file in the same dir, then
     # os.replace() into place.  os.replace is atomic on POSIX/Windows, so a
-    # concurrent _load_manifest() reader always sees a COMPLETE file (old or new),
+    # concurrent load_manifest() reader always sees a COMPLETE file (old or new),
     # never a half-written/empty one — fixes the parallel-build race (#331).
     p = _manifest_path()
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -444,6 +446,30 @@ def _save_manifest(manifest: dict) -> None:
         with contextlib.suppress(OSError):
             os.unlink(tmp)
         raise
+
+
+@contextlib.contextmanager
+def manifest_transaction() -> Iterator[dict]:
+    """Locked read-modify-write of ``manifest.json`` (#883).
+
+    Holds an exclusive ``filelock.FileLock`` on ``.manifest.json.lock`` (next to
+    the manifest) while it loads the manifest, yields the dict for the caller to
+    mutate in place, and atomically saves it on a clean exit.  If the body
+    raises, nothing is saved.  Concurrent processes/threads therefore never drop
+    each other's entries, which the atomic ``os.replace`` alone (#331) cannot
+    prevent.
+
+    Keep the body short: do downloads and other slow work *before* entering the
+    transaction.  The lock is not re-entrant across separate calls, so never nest
+    one ``manifest_transaction()`` inside another (``register`` included).
+    For pure reads use :func:`load_manifest`.
+    """
+    p = _manifest_path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with FileLock(str(p.with_name("." + p.name + ".lock"))):
+        manifest = load_manifest()
+        yield manifest
+        _save_manifest(manifest)
 
 
 # ── Known datasets ──────────────────────────────────────────────────────────
@@ -832,18 +858,17 @@ def _find_existing_proteome_by_upid(proteomes: dict, proteome_id: str) -> dict |
 
 def _uniprot_cache() -> dict:
     """Load the manifest's uniprot_resolutions section."""
-    manifest = _load_manifest()
+    manifest = load_manifest()
     return manifest.get("uniprot_resolutions", {})
 
 
 def _save_uniprot_cache_entry(organism: str, entry: dict | None) -> None:
-    manifest = _load_manifest()
-    cache = manifest.setdefault("uniprot_resolutions", {})
-    cache[organism] = {
-        "resolved_at": datetime.now(timezone.utc).isoformat(),
-        **(entry or {"not_found": True}),
-    }
-    _save_manifest(manifest)
+    with manifest_transaction() as manifest:
+        cache = manifest.setdefault("uniprot_resolutions", {})
+        cache[organism] = {
+            "resolved_at": datetime.now(timezone.utc).isoformat(),
+            **(entry or {"not_found": True}),
+        }
 
 
 def lookup_proteome(
@@ -976,18 +1001,17 @@ def fetch_species_proteome(
         return None
 
     canonical = entry.get("canonical_species", species)
-    manifest = _load_manifest()
-    proteomes = manifest.setdefault("proteomes", {})
+    proteomes = load_manifest().get("proteomes", {})
 
     # Ensembl species: pyensembl manages its own cache — no FASTA to download
     if entry["kind"] == "ensembl":
-        proteomes[canonical] = {
-            "kind": "ensembl",
-            "species": entry.get("species", canonical),
-            "release": entry.get("release", 112),
-            "registered": datetime.now(timezone.utc).isoformat(),
-        }
-        _save_manifest(manifest)
+        with manifest_transaction() as manifest:
+            manifest.setdefault("proteomes", {})[canonical] = {
+                "kind": "ensembl",
+                "species": entry.get("species", canonical),
+                "release": entry.get("release", 112),
+                "registered": datetime.now(timezone.utc).isoformat(),
+            }
         return None  # caller should use ProteomeIndex.from_ensembl()
 
     # UniProt species: download the FASTA (dedup by UPID — multiple strain
@@ -1003,16 +1027,16 @@ def fetch_species_proteome(
                 f"  [{canonical}] reusing cached FASTA from "
                 f"{existing.get('canonical_species', '?')} ({dest.stat().st_size:,} bytes)"
             )
-        proteomes[canonical] = {
-            "kind": "uniprot",
-            "proteome_id": proteome_id,
-            "path": str(dest),
-            "size_bytes": dest.stat().st_size,
-            "source_url": url,
-            "canonical_species": canonical,
-            "registered": datetime.now(timezone.utc).isoformat(),
-        }
-        _save_manifest(manifest)
+        with manifest_transaction() as manifest:
+            manifest.setdefault("proteomes", {})[canonical] = {
+                "kind": "uniprot",
+                "proteome_id": proteome_id,
+                "path": str(dest),
+                "size_bytes": dest.stat().st_size,
+                "source_url": url,
+                "canonical_species": canonical,
+                "registered": datetime.now(timezone.utc).isoformat(),
+            }
         return dest
 
     fname = _safe_filename(canonical)
@@ -1021,18 +1045,18 @@ def fetch_species_proteome(
     if dest.exists() and not force:
         if verbose:
             print(f"  [{canonical}] already cached ({dest.stat().st_size:,} bytes)")
-        proteomes[canonical] = {
-            "kind": "uniprot",
-            "proteome_id": proteome_id,
-            "path": str(dest),
-            "size_bytes": dest.stat().st_size,
-            "source_url": url,
-            "canonical_species": canonical,
-            "registered": proteomes.get(canonical, {}).get(
-                "registered", datetime.now(timezone.utc).isoformat()
-            ),
-        }
-        _save_manifest(manifest)
+        with manifest_transaction() as manifest:
+            manifest.setdefault("proteomes", {})[canonical] = {
+                "kind": "uniprot",
+                "proteome_id": proteome_id,
+                "path": str(dest),
+                "size_bytes": dest.stat().st_size,
+                "source_url": url,
+                "canonical_species": canonical,
+                "registered": proteomes.get(canonical, {}).get(
+                    "registered", datetime.now(timezone.utc).isoformat()
+                ),
+            }
         return dest
 
     if not fetch_missing:
@@ -1046,21 +1070,21 @@ def fetch_species_proteome(
     if verbose:
         print(f"  [{canonical}] downloaded {size:,} bytes → {dest}")
 
-    proteomes[canonical] = {
-        "kind": "uniprot",
-        "proteome_id": proteome_id,
-        "path": str(dest),
-        "size_bytes": size,
-        "source_url": url,
-        "registered": datetime.now(timezone.utc).isoformat(),
-    }
-    _save_manifest(manifest)
+    with manifest_transaction() as manifest:
+        manifest.setdefault("proteomes", {})[canonical] = {
+            "kind": "uniprot",
+            "proteome_id": proteome_id,
+            "path": str(dest),
+            "size_bytes": size,
+            "source_url": url,
+            "registered": datetime.now(timezone.utc).isoformat(),
+        }
     return dest
 
 
 def list_proteomes() -> dict:
     """Return the proteomes section of the manifest."""
-    return _load_manifest().get("proteomes", {})
+    return load_manifest().get("proteomes", {})
 
 
 def fetch_proteome_by_upid(
@@ -1094,8 +1118,7 @@ def fetch_proteome_by_upid(
     """
     if not upid:
         return None
-    manifest = _load_manifest()
-    proteomes = manifest.setdefault("proteomes", {})
+    proteomes = load_manifest().get("proteomes", {})
 
     # Dedup by UPID if we already have this proteome under another key
     existing = _find_existing_proteome_by_upid(proteomes, upid)
@@ -1122,16 +1145,16 @@ def fetch_proteome_by_upid(
         if verbose:
             print(f"  [{name}] downloaded {dest.stat().st_size:,} bytes → {dest}")
 
-    proteomes[name] = {
-        "kind": "uniprot",
-        "proteome_id": upid,
-        "path": str(dest),
-        "size_bytes": dest.stat().st_size,
-        "source_url": url,
-        "canonical_species": name,
-        "registered": datetime.now(timezone.utc).isoformat(),
-    }
-    _save_manifest(manifest)
+    with manifest_transaction() as manifest:
+        manifest.setdefault("proteomes", {})[name] = {
+            "kind": "uniprot",
+            "proteome_id": upid,
+            "path": str(dest),
+            "size_bytes": dest.stat().st_size,
+            "source_url": url,
+            "canonical_species": name,
+            "registered": datetime.now(timezone.utc).isoformat(),
+        }
     return dest
 
 
@@ -1305,26 +1328,25 @@ def register(name: str, path: str | Path, description: str | None = None) -> Pat
     if not p.exists():
         raise FileNotFoundError(f"File not found: {p}")
 
-    manifest = _load_manifest()
     desc = description
     if desc is None and name in MANUAL_DATASETS:
         desc = MANUAL_DATASETS[name]["description"]
     if desc is None and name in FETCHABLE_DATASETS:
         desc = FETCHABLE_DATASETS[name]["description"]
 
-    manifest["datasets"][name] = {
-        "path": str(p),
-        "registered": datetime.now(timezone.utc).isoformat(),
-        "size_bytes": p.stat().st_size,
-        "description": desc or "",
-        "source": "registered",
-    }
-    _save_manifest(manifest)
+    with manifest_transaction() as manifest:
+        manifest.setdefault("datasets", {})[name] = {
+            "path": str(p),
+            "registered": datetime.now(timezone.utc).isoformat(),
+            "size_bytes": p.stat().st_size,
+            "description": desc or "",
+            "source": "registered",
+        }
     return p
 
 
 def _depmap_file_is_registered(key: str) -> bool:
-    registered = _load_manifest().get("datasets", {}).get(key, {})
+    registered = load_manifest().get("datasets", {}).get(key, {})
     return bool(registered.get("path")) and Path(registered["path"]).exists()
 
 
@@ -1376,7 +1398,7 @@ def fetch(name: str, force: bool = False) -> Path:
     dest = data_dir() / ds["filename"]
 
     if dest.exists() and not force:
-        manifest = _load_manifest()
+        manifest = load_manifest()
         if name not in manifest.get("datasets", {}):
             register(name, dest, ds["description"])
         return dest
@@ -1393,22 +1415,21 @@ def fetch(name: str, force: bool = False) -> Path:
             file=sys.stderr,
         )
 
-    manifest = _load_manifest()
-    manifest["datasets"][name] = {
-        "path": str(dest),
-        "registered": datetime.now(timezone.utc).isoformat(),
-        "size_bytes": dest.stat().st_size,
-        "description": ds["description"],
-        "source": ds["url"],
-    }
-    _save_manifest(manifest)
+    with manifest_transaction() as manifest:
+        manifest["datasets"][name] = {
+            "path": str(dest),
+            "registered": datetime.now(timezone.utc).isoformat(),
+            "size_bytes": dest.stat().st_size,
+            "description": ds["description"],
+            "source": ds["url"],
+        }
     print(f"  Saved to {dest} ({dest.stat().st_size:,} bytes)", file=sys.stderr)
     return dest
 
 
 def get_path(name: str) -> Path:
     """Resolve a dataset name to its local file path."""
-    manifest = _load_manifest()
+    manifest = load_manifest()
     entry = manifest.get("datasets", {}).get(name)
     if entry is None and name in data_assets():
         path = data_asset_dir() / name
@@ -1442,7 +1463,7 @@ def info(name: str) -> dict:
     """Get detailed metadata for a registered dataset."""
     import datacache
 
-    manifest = _load_manifest()
+    manifest = load_manifest()
     entry = manifest.get("datasets", {}).get(name)
     if entry is None:
         if name in data_assets():
@@ -1497,7 +1518,7 @@ def info(name: str) -> dict:
 
 def list_datasets() -> dict[str, dict]:
     """Return all registered/fetched datasets."""
-    return dict(_load_manifest().get("datasets", {}))
+    return dict(load_manifest().get("datasets", {}))
 
 
 def list_cache_files(*, verify: bool = False, include_unregistered: bool = True) -> list[dict]:
@@ -1543,11 +1564,10 @@ def remove(name: str, delete_file: bool = False) -> bool:
         ``False`` if no such dataset existed (so callers can distinguish a real
         removal from a typo instead of silently reporting success).
     """
-    manifest = _load_manifest()
-    entry = manifest.get("datasets", {}).pop(name, None)
+    with manifest_transaction() as manifest:
+        entry = manifest.get("datasets", {}).pop(name, None)
     if entry is None:
         return False
-    _save_manifest(manifest)
     if delete_file:
         p = Path(entry["path"])
         if p.exists():
