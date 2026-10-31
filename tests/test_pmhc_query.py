@@ -265,7 +265,7 @@ def test_pmhc_query_other_genes_on_an_unfiltered_scan(tmp_path, monkeypatch):
     assert set(klvv["n_source_genes"]) == {2}
 
 
-def test_pmhc_forwards_source_and_host_species_filters(monkeypatch):
+def test_pmhc_forwards_source_and_host_species_filters(monkeypatch, tmp_path):
     """query / tissue_distribution / gene_distribution forward the source- and
     host-species axes to load_observations (so e.g. --source-species human drops
     a SARS-CoV-2 viral epitope whose MHC + host are human)."""
@@ -290,6 +290,10 @@ def test_pmhc_forwards_source_and_host_species_filters(monkeypatch):
         "hitlist.mappings.load_peptide_mappings",
         lambda **k: pd.DataFrame({"peptide": ["X"], "gene_name": ["G"], "gene_id": ["E"]}),
     )
+    # Offline and isolated: gene resolution must neither call the real HGNC service nor
+    # write into the developer's real gene cache.
+    monkeypatch.setattr("hitlist.downloads._override_data_dir", tmp_path)
+    monkeypatch.setattr("hitlist.genes._fetch_hgnc", lambda query, timeout=10: [])
 
     pmhc_query.query(alleles=["HLA-A*02:01"], source_species="human", host_species="mouse")
     pmhc_query.gene_distribution(proteins=["G"], source_species="human", host_species="mouse")

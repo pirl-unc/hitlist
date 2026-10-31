@@ -1437,6 +1437,8 @@ def test_generate_observations_gene_filter_matches(tmp_path, monkeypatch):
     from hitlist.export import generate_observations_table
 
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    # Offline: gene resolution must not call the real HGNC service.
+    monkeypatch.setattr("hitlist.genes._fetch_hgnc", lambda query, timeout=10: [])
 
     obs_data = pd.DataFrame(
         {
