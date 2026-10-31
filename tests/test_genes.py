@@ -117,7 +117,7 @@ def test_resolve_gene_query_uses_hgnc_synonyms(monkeypatch):
     from hitlist import genes
 
     # Clear the lru_cache from prior tests and force a fresh cache on disk
-    genes.resolve_hgnc_symbol.cache_clear()
+    genes._resolve_hgnc_symbol_cached.cache_clear()
 
     def fake_fetch(query, timeout=10):
         return [{"symbol": "MLANA"}] if query == "MART-1" else []
@@ -142,3 +142,76 @@ def test_cta_provider_matches_real_oncoref_default_panel():
     assert expected
     assert load_gene_set("CTA") == sorted(expected)
     assert not set(load_gene_set("CTA")) & cta.cta_warning_gene_names()
+
+
+class _FakeResponse:
+    def __init__(self, payload):
+        self._payload = payload
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def read(self, *args):
+        return self._payload
+
+
+def _isolated_cache(monkeypatch):
+    from hitlist import genes
+
+    genes._resolve_hgnc_symbol_cached.cache_clear()
+    store: dict = {}
+    saves: list = []
+    monkeypatch.setattr(genes, "_load_cache", lambda: dict(store))
+
+    def save(cache):
+        saves.append(dict(cache))
+        store.clear()
+        store.update(cache)
+
+    monkeypatch.setattr(genes, "_save_cache", save)
+    return genes, store, saves
+
+
+def test_hgnc_failure_not_cached_and_later_success_resolves(monkeypatch):
+    import urllib.error
+
+    genes, store, saves = _isolated_cache(monkeypatch)
+
+    def boom(req, timeout=None):
+        raise urllib.error.URLError("offline")
+
+    monkeypatch.setattr(genes.urllib.request, "urlopen", boom)
+    with pytest.warns(RuntimeWarning, match="HGNC lookup"):
+        assert genes.resolve_hgnc_symbol("MART-1") == ()
+    assert saves == [] and store == {}
+
+    payload = b'{"response": {"docs": [{"symbol": "MLANA"}]}}'
+    monkeypatch.setattr(
+        genes.urllib.request, "urlopen", lambda req, timeout=None: _FakeResponse(payload)
+    )
+    assert genes.resolve_hgnc_symbol("MART-1") == ("MLANA",)
+    assert store["MART-1"]["symbols"] == ["MLANA"]
+
+
+def test_hgnc_bad_json_is_failure_not_cached(monkeypatch):
+    genes, _store, saves = _isolated_cache(monkeypatch)
+    monkeypatch.setattr(
+        genes.urllib.request, "urlopen", lambda req, timeout=None: _FakeResponse(b"<html>")
+    )
+    with pytest.warns(RuntimeWarning):
+        assert genes.resolve_hgnc_symbol("FOO") == ()
+    assert saves == []
+
+
+def test_hgnc_true_empty_result_is_cached(monkeypatch):
+    genes, store, _saves = _isolated_cache(monkeypatch)
+    monkeypatch.setattr(
+        genes.urllib.request,
+        "urlopen",
+        lambda req, timeout=None: _FakeResponse(b'{"response": {"docs": []}}'),
+    )
+    assert genes.resolve_hgnc_symbol("NOSUCHGENE") == ()
+    assert store["NOSUCHGENE"]["symbols"] == []
