@@ -55,6 +55,7 @@ from .downloads import (
     remove,
     resolve_data_dir,
 )
+from .errors import HitlistError
 
 
 def _fmt_size(size: int) -> str:
@@ -273,11 +274,7 @@ def _data_fetch(args: argparse.Namespace) -> None:
 def _data_fetch_all(args: argparse.Namespace) -> None:
     from .downloads import fetch_all_data_assets
 
-    try:
-        fetch_all_data_assets(force=args.force)
-    except (RuntimeError, OSError) as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
+    fetch_all_data_assets(force=args.force)
 
 
 def _data_refresh(args: argparse.Namespace) -> None:
@@ -819,6 +816,15 @@ def _report(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
+    """Console entry point: expected failures (``HitlistError``) exit 1 without a traceback."""
+    try:
+        _main()
+    except HitlistError as error:
+        print(f"Error: {error}", file=sys.stderr)
+        sys.exit(1)
+
+
+def _main() -> None:
     from .version import __version__
 
     parser = ColorArgumentParser(
