@@ -70,7 +70,7 @@ def _record_resolution(query: str, entry: dict) -> None:
     half-written cache.
     """
     p = _cache_path()
-    with FileLock(str(p) + ".lock"):
+    with FileLock(str(p.with_name("." + p.name + ".lock"))):
         cache = _load_cache()
         cache[query] = entry
         fd, tmp = tempfile.mkstemp(dir=str(p.parent), prefix=".hgnc-", suffix=".tmp")

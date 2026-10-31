@@ -452,7 +452,7 @@ def _save_manifest(manifest: dict) -> None:
 def manifest_transaction() -> Iterator[dict]:
     """Locked read-modify-write of ``manifest.json`` (#883).
 
-    Holds an exclusive ``filelock.FileLock`` on ``manifest.json.lock`` (next to
+    Holds an exclusive ``filelock.FileLock`` on ``.manifest.json.lock`` (next to
     the manifest) while it loads the manifest, yields the dict for the caller to
     mutate in place, and atomically saves it on a clean exit.  If the body
     raises, nothing is saved.  Concurrent processes/threads therefore never drop
@@ -466,7 +466,7 @@ def manifest_transaction() -> Iterator[dict]:
     """
     p = _manifest_path()
     p.parent.mkdir(parents=True, exist_ok=True)
-    with FileLock(str(p) + ".lock"):
+    with FileLock(str(p.with_name("." + p.name + ".lock"))):
         manifest = load_manifest()
         yield manifest
         _save_manifest(manifest)
