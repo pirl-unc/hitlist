@@ -110,6 +110,7 @@ hitlist = [
     "data/evidence_revisions/*.json",
     "data/supplementary/*.yaml",
     "data/supplementary/*.csv",
+    "data/supplementary/*.csv.gz",
     "data/bulk_proteomics/*.csv.gz",
     "data/bulk_proteomics/*.yaml",
     "data/line_expression/*.yaml",
@@ -192,6 +193,7 @@ include = [
     "scripts/verify_binding_assay_context.py",
     "scripts/verify_canine_peptide_evidence.py",
     "scripts/verify_gomez_source_lineage.py",
+    "scripts/curate_meurer_dp_dm.py",
 ]
 
 [tool.ruff.lint]

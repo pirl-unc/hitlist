@@ -1,0 +1,17 @@
+{
+  "format": "passed",
+  "lint": "passed",
+  "isolated_pip_check": "passed",
+  "full_default_suite_before_integration_marker_fix": {
+    "passed": 3729,
+    "failed": 91
+  },
+  "clean_baseline_selected_suite": {
+    "passed": 3,
+    "failed": 9
+  },
+  "isolated_post_fix_pytest": "not started: normal host memory guard refused at 0.18 GiB and 0.14 GiB",
+  "integration_phase": "not run",
+  "compatibility_issue": "https://github.com/pirl-unc/hitlist/issues/897",
+  "shared_environment_modified": false
+}

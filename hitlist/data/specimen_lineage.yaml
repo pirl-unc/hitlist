@@ -251,6 +251,14 @@ entities:
   evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Data S1-S6"
   evidence_note: Distinct reported immunoprecipitation dataset. Worksheet identity does not establish
     a raw acquisition or donor identity.
+- identity_id: origin:PXD017154
+  kind: experimental_origin
+  namespace: PRIDE
+  reported_id: PXD017154
+  evidence_reference: https://proteomecentral.proteomexchange.org/cgi/GetDataset?ID=PXD017154
+  evidence_note: Original native MSF and mzIdentML acquisition archive for PMID33025005; shared experimental
+    origin across the DP/DM biological-source labels. Labels alone do not prove independent physical specimens
+    or donors. Row-specific acquisition support remains in supplementary native_psm_support/source_acquisitions.
 aliases: []
 contexts:
 - pmid: 28228285
@@ -596,3 +604,74 @@ contexts:
     status: resolved
     ids:
     - specimen:pmid:42199926:bogey
+
+- pmid: 33025005
+  condition_id: dp10_a
+  evidence_reference: https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+  experimental_origin:
+    status: resolved
+    ids:
+    - origin:PXD017154
+- pmid: 33025005
+  condition_id: dp10_b
+  evidence_reference: https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+  experimental_origin:
+    status: resolved
+    ids:
+    - origin:PXD017154
+- pmid: 33025005
+  condition_id: dp10_dm_a
+  evidence_reference: https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+  experimental_origin:
+    status: resolved
+    ids:
+    - origin:PXD017154
+- pmid: 33025005
+  condition_id: dp10_dm_b
+  evidence_reference: https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+  experimental_origin:
+    status: resolved
+    ids:
+    - origin:PXD017154
+- pmid: 33025005
+  condition_id: dp401_dm_a
+  evidence_reference: https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+  experimental_origin:
+    status: resolved
+    ids:
+    - origin:PXD017154
+- pmid: 33025005
+  condition_id: dp401_dm_b
+  evidence_reference: https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+  experimental_origin:
+    status: resolved
+    ids:
+    - origin:PXD017154
+- pmid: 33025005
+  condition_id: dp402_a
+  evidence_reference: https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+  experimental_origin:
+    status: resolved
+    ids:
+    - origin:PXD017154
+- pmid: 33025005
+  condition_id: dp402_b
+  evidence_reference: https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+  experimental_origin:
+    status: resolved
+    ids:
+    - origin:PXD017154
+- pmid: 33025005
+  condition_id: dp402_dm_a
+  evidence_reference: https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+  experimental_origin:
+    status: resolved
+    ids:
+    - origin:PXD017154
+- pmid: 33025005
+  condition_id: dp402_dm_b
+  evidence_reference: https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+  experimental_origin:
+    status: resolved
+    ids:
+    - origin:PXD017154
