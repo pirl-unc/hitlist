@@ -14961,3 +14961,280 @@
       leukemia*, not multiple myeloma.  Per-row split between the two lines is
       not recoverable, so cell_name is left unset (groups as an unspecified-type
       cancer cell line).  #314.
+
+  # Meurer 2021 — paired HLA-DP/DM native source recovery (#895).
+  - pmid: 33025005
+    study_label: Meurer 2021 — paired HLA-DP/DM immunopeptidomes
+    title: Permissive HLA-DPB1 mismatches in HCT depend on immunopeptidome divergence and editing by HLA-DM
+    species: Homo sapiens
+    override: cell_line
+    restriction_evidence: monoallelic
+    arm_resolution: resolved
+    arm_resolution_note: Original source labels distinguish ten DP biological preparations across five allele/DM
+      arms. Supplementary CSVs carry exact attributed_sample_label; technical acquisitions are not additional
+      biological samples. No-DP control observations are separately retained outside the positive scanner
+      manifest.
+    ip_antibody: B7/21
+    search_engine: Mascot 2.5.1; Proteome Discoverer 1.4
+    fdr: native high-confidence PSMs; TargetFPRHigh=0.01
+    note: PXD017154 native processed MSF recovery. Primary supplemental Methods resolves DP401/DP402 alpha
+      as DPA1*01:03, DP10 alpha as DPA1*02:01. All share retroviral CD74/CD80/DP background; DM-present
+      cells received additional DM alpha/beta transduction. No DO MS arm or quantitative MS1 abundance is
+      claimed. Converted mzIdentML passThreshold includes low-confidence and decoy identifications and is
+      not used for admission. See supplementary/meurer_2021_dp_dm_source.yaml for hashes, original PSM lineage
+      and control companion.
+    ms_samples:
+    - sample_label: DP10_A
+      n_samples: 1
+      profiled: true
+      species: Homo sapiens
+      source: Engineered HeLa biological preparation DP10_A; original PXD017154 acquisition labels; technical
+        runs collapsed
+      mhc_class: II
+      mhc: HLA-DPA1*02:01/HLA-DPB1*10:01
+      mhc_basis: selected_restriction
+      condition_id: dp10_a
+      condition: unperturbed — CD74/CD80/HLA-DP-engineered HeLa comparator; no additional DM transduction
+      condition_status: annotated
+      condition_evidence: primary_source
+      condition_reference: https://ars.els-cdn.com/content/image/1-s2.0-S000649712100313X-mmc1.pdf — Supplemental
+        Methods pp2–3, HeLa constructs and native MS identification; PXD017154 original mzIdentML Sample
+        labels and MSF confidence/modification tables
+      condition_material: cultured
+      condition_mhc_context: mhc_transfectant;monoallelic
+      condition_background: CD74_transduced;CD80_transduced;HLA-DP_transduced
+      condition_transduction: none
+      note: 3052 conservative native high-confidence unmodified peptide detections after no-DP control exclusion;
+        this is the recovered subset, not the published Progenesis quantitative set. Biological replicate
+        suffix does not establish a matched physical specimen across DM states. Protein abundance, DM concentration
+        and DO state are unreported for these MS observations.
+      condition_control: other
+      condition_control_for: dp10_dm_a;dp10_dm_b
+    - sample_label: DP10_B
+      n_samples: 1
+      profiled: true
+      species: Homo sapiens
+      source: Engineered HeLa biological preparation DP10_B; original PXD017154 acquisition labels; technical
+        runs collapsed
+      mhc_class: II
+      mhc: HLA-DPA1*02:01/HLA-DPB1*10:01
+      mhc_basis: selected_restriction
+      condition_id: dp10_b
+      condition: unperturbed — CD74/CD80/HLA-DP-engineered HeLa comparator; no additional DM transduction
+      condition_status: annotated
+      condition_evidence: primary_source
+      condition_reference: https://ars.els-cdn.com/content/image/1-s2.0-S000649712100313X-mmc1.pdf — Supplemental
+        Methods pp2–3, HeLa constructs and native MS identification; PXD017154 original mzIdentML Sample
+        labels and MSF confidence/modification tables
+      condition_material: cultured
+      condition_mhc_context: mhc_transfectant;monoallelic
+      condition_background: CD74_transduced;CD80_transduced;HLA-DP_transduced
+      condition_transduction: none
+      note: 3552 conservative native high-confidence unmodified peptide detections after no-DP control exclusion;
+        this is the recovered subset, not the published Progenesis quantitative set. Biological replicate
+        suffix does not establish a matched physical specimen across DM states. Protein abundance, DM concentration
+        and DO state are unreported for these MS observations.
+      condition_control: other
+      condition_control_for: dp10_dm_a;dp10_dm_b
+    - sample_label: DP10_DM_A
+      n_samples: 1
+      profiled: true
+      species: Homo sapiens
+      source: Engineered HeLa biological preparation DP10_DM_A; original PXD017154 acquisition labels; technical
+        runs collapsed
+      mhc_class: II
+      mhc: HLA-DPA1*02:01/HLA-DPB1*10:01
+      mhc_basis: selected_restriction
+      condition_id: dp10_dm_a
+      condition: HLA-DM alpha/beta transduction into CD74/CD80/HLA-DP-engineered HeLa
+      condition_status: annotated
+      condition_evidence: primary_source
+      condition_reference: https://ars.els-cdn.com/content/image/1-s2.0-S000649712100313X-mmc1.pdf — Supplemental
+        Methods pp2–3, HeLa constructs and native MS identification; PXD017154 original mzIdentML Sample
+        labels and MSF confidence/modification tables
+      condition_material: cultured
+      condition_mhc_context: mhc_transfectant;monoallelic
+      condition_background: CD74_transduced;CD80_transduced;HLA-DP_transduced
+      condition_transduction: HLA-DM
+      note: 1687 conservative native high-confidence unmodified peptide detections after no-DP control exclusion;
+        this is the recovered subset, not the published Progenesis quantitative set. Biological replicate
+        suffix does not establish a matched physical specimen across DM states. Protein abundance, DM concentration
+        and DO state are unreported for these MS observations.
+      condition_combination: single
+    - sample_label: DP10_DM_B
+      n_samples: 1
+      profiled: true
+      species: Homo sapiens
+      source: Engineered HeLa biological preparation DP10_DM_B; original PXD017154 acquisition labels; technical
+        runs collapsed
+      mhc_class: II
+      mhc: HLA-DPA1*02:01/HLA-DPB1*10:01
+      mhc_basis: selected_restriction
+      condition_id: dp10_dm_b
+      condition: HLA-DM alpha/beta transduction into CD74/CD80/HLA-DP-engineered HeLa
+      condition_status: annotated
+      condition_evidence: primary_source
+      condition_reference: https://ars.els-cdn.com/content/image/1-s2.0-S000649712100313X-mmc1.pdf — Supplemental
+        Methods pp2–3, HeLa constructs and native MS identification; PXD017154 original mzIdentML Sample
+        labels and MSF confidence/modification tables
+      condition_material: cultured
+      condition_mhc_context: mhc_transfectant;monoallelic
+      condition_background: CD74_transduced;CD80_transduced;HLA-DP_transduced
+      condition_transduction: HLA-DM
+      note: 1728 conservative native high-confidence unmodified peptide detections after no-DP control exclusion;
+        this is the recovered subset, not the published Progenesis quantitative set. Biological replicate
+        suffix does not establish a matched physical specimen across DM states. Protein abundance, DM concentration
+        and DO state are unreported for these MS observations.
+      condition_combination: single
+    - sample_label: DP401_DM_A
+      n_samples: 1
+      profiled: true
+      species: Homo sapiens
+      source: Engineered HeLa biological preparation DP401_DM_A; original PXD017154 acquisition labels;
+        technical runs collapsed
+      mhc_class: II
+      mhc: HLA-DPA1*01:03/HLA-DPB1*04:01
+      mhc_basis: selected_restriction
+      condition_id: dp401_dm_a
+      condition: HLA-DM alpha/beta transduction into CD74/CD80/HLA-DP-engineered HeLa
+      condition_status: annotated
+      condition_evidence: primary_source
+      condition_reference: https://ars.els-cdn.com/content/image/1-s2.0-S000649712100313X-mmc1.pdf — Supplemental
+        Methods pp2–3, HeLa constructs and native MS identification; PXD017154 original mzIdentML Sample
+        labels and MSF confidence/modification tables
+      condition_material: cultured
+      condition_mhc_context: mhc_transfectant;monoallelic
+      condition_background: CD74_transduced;CD80_transduced;HLA-DP_transduced
+      condition_transduction: HLA-DM
+      note: 1602 conservative native high-confidence unmodified peptide detections after no-DP control exclusion;
+        this is the recovered subset, not the published Progenesis quantitative set. Biological replicate
+        suffix does not establish a matched physical specimen across DM states. Protein abundance, DM concentration
+        and DO state are unreported for these MS observations.
+      condition_combination: single
+    - sample_label: DP401_DM_B
+      n_samples: 1
+      profiled: true
+      species: Homo sapiens
+      source: Engineered HeLa biological preparation DP401_DM_B; original PXD017154 acquisition labels;
+        technical runs collapsed
+      mhc_class: II
+      mhc: HLA-DPA1*01:03/HLA-DPB1*04:01
+      mhc_basis: selected_restriction
+      condition_id: dp401_dm_b
+      condition: HLA-DM alpha/beta transduction into CD74/CD80/HLA-DP-engineered HeLa
+      condition_status: annotated
+      condition_evidence: primary_source
+      condition_reference: https://ars.els-cdn.com/content/image/1-s2.0-S000649712100313X-mmc1.pdf — Supplemental
+        Methods pp2–3, HeLa constructs and native MS identification; PXD017154 original mzIdentML Sample
+        labels and MSF confidence/modification tables
+      condition_material: cultured
+      condition_mhc_context: mhc_transfectant;monoallelic
+      condition_background: CD74_transduced;CD80_transduced;HLA-DP_transduced
+      condition_transduction: HLA-DM
+      note: 1597 conservative native high-confidence unmodified peptide detections after no-DP control exclusion;
+        this is the recovered subset, not the published Progenesis quantitative set. Biological replicate
+        suffix does not establish a matched physical specimen across DM states. Protein abundance, DM concentration
+        and DO state are unreported for these MS observations.
+      condition_combination: single
+    - sample_label: DP402_A
+      n_samples: 1
+      profiled: true
+      species: Homo sapiens
+      source: Engineered HeLa biological preparation DP402_A; original PXD017154 acquisition labels; technical
+        runs collapsed
+      mhc_class: II
+      mhc: HLA-DPA1*01:03/HLA-DPB1*04:02
+      mhc_basis: selected_restriction
+      condition_id: dp402_a
+      condition: unperturbed — CD74/CD80/HLA-DP-engineered HeLa comparator; no additional DM transduction
+      condition_status: annotated
+      condition_evidence: primary_source
+      condition_reference: https://ars.els-cdn.com/content/image/1-s2.0-S000649712100313X-mmc1.pdf — Supplemental
+        Methods pp2–3, HeLa constructs and native MS identification; PXD017154 original mzIdentML Sample
+        labels and MSF confidence/modification tables
+      condition_material: cultured
+      condition_mhc_context: mhc_transfectant;monoallelic
+      condition_background: CD74_transduced;CD80_transduced;HLA-DP_transduced
+      condition_transduction: none
+      note: 2956 conservative native high-confidence unmodified peptide detections after no-DP control exclusion;
+        this is the recovered subset, not the published Progenesis quantitative set. Biological replicate
+        suffix does not establish a matched physical specimen across DM states. Protein abundance, DM concentration
+        and DO state are unreported for these MS observations.
+      condition_control: other
+      condition_control_for: dp402_dm_a;dp402_dm_b
+    - sample_label: DP402_B
+      n_samples: 1
+      profiled: true
+      species: Homo sapiens
+      source: Engineered HeLa biological preparation DP402_B; original PXD017154 acquisition labels; technical
+        runs collapsed
+      mhc_class: II
+      mhc: HLA-DPA1*01:03/HLA-DPB1*04:02
+      mhc_basis: selected_restriction
+      condition_id: dp402_b
+      condition: unperturbed — CD74/CD80/HLA-DP-engineered HeLa comparator; no additional DM transduction
+      condition_status: annotated
+      condition_evidence: primary_source
+      condition_reference: https://ars.els-cdn.com/content/image/1-s2.0-S000649712100313X-mmc1.pdf — Supplemental
+        Methods pp2–3, HeLa constructs and native MS identification; PXD017154 original mzIdentML Sample
+        labels and MSF confidence/modification tables
+      condition_material: cultured
+      condition_mhc_context: mhc_transfectant;monoallelic
+      condition_background: CD74_transduced;CD80_transduced;HLA-DP_transduced
+      condition_transduction: none
+      note: 2815 conservative native high-confidence unmodified peptide detections after no-DP control exclusion;
+        this is the recovered subset, not the published Progenesis quantitative set. Biological replicate
+        suffix does not establish a matched physical specimen across DM states. Protein abundance, DM concentration
+        and DO state are unreported for these MS observations.
+      condition_control: other
+      condition_control_for: dp402_dm_a;dp402_dm_b
+    - sample_label: DP402_DM_A
+      n_samples: 1
+      profiled: true
+      species: Homo sapiens
+      source: Engineered HeLa biological preparation DP402_DM_A; original PXD017154 acquisition labels;
+        technical runs collapsed
+      mhc_class: II
+      mhc: HLA-DPA1*01:03/HLA-DPB1*04:02
+      mhc_basis: selected_restriction
+      condition_id: dp402_dm_a
+      condition: HLA-DM alpha/beta transduction into CD74/CD80/HLA-DP-engineered HeLa
+      condition_status: annotated
+      condition_evidence: primary_source
+      condition_reference: https://ars.els-cdn.com/content/image/1-s2.0-S000649712100313X-mmc1.pdf — Supplemental
+        Methods pp2–3, HeLa constructs and native MS identification; PXD017154 original mzIdentML Sample
+        labels and MSF confidence/modification tables
+      condition_material: cultured
+      condition_mhc_context: mhc_transfectant;monoallelic
+      condition_background: CD74_transduced;CD80_transduced;HLA-DP_transduced
+      condition_transduction: HLA-DM
+      note: 1446 conservative native high-confidence unmodified peptide detections after no-DP control exclusion;
+        this is the recovered subset, not the published Progenesis quantitative set. Biological replicate
+        suffix does not establish a matched physical specimen across DM states. Protein abundance, DM concentration
+        and DO state are unreported for these MS observations.
+      condition_combination: single
+    - sample_label: DP402_DM_B
+      n_samples: 1
+      profiled: true
+      species: Homo sapiens
+      source: Engineered HeLa biological preparation DP402_DM_B; original PXD017154 acquisition labels;
+        technical runs collapsed
+      mhc_class: II
+      mhc: HLA-DPA1*01:03/HLA-DPB1*04:02
+      mhc_basis: selected_restriction
+      condition_id: dp402_dm_b
+      condition: HLA-DM alpha/beta transduction into CD74/CD80/HLA-DP-engineered HeLa
+      condition_status: annotated
+      condition_evidence: primary_source
+      condition_reference: https://ars.els-cdn.com/content/image/1-s2.0-S000649712100313X-mmc1.pdf — Supplemental
+        Methods pp2–3, HeLa constructs and native MS identification; PXD017154 original mzIdentML Sample
+        labels and MSF confidence/modification tables
+      condition_material: cultured
+      condition_mhc_context: mhc_transfectant;monoallelic
+      condition_background: CD74_transduced;CD80_transduced;HLA-DP_transduced
+      condition_transduction: HLA-DM
+      note: 1112 conservative native high-confidence unmodified peptide detections after no-DP control exclusion;
+        this is the recovered subset, not the published Progenesis quantitative set. Biological replicate
+        suffix does not establish a matched physical specimen across DM states. Protein abundance, DM concentration
+        and DO state are unreported for these MS observations.
+      condition_combination: single
