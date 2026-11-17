@@ -26,6 +26,12 @@ refusals and qualify via hosted CI. uv lock --check and the editable-install
 audit also pass. No full local test pass is claimed. Existing independent work is preserved
 in the original checkout. Version candidate 2.1.12 avoids active 2.1.11 PRs.
 
+Hosted Python 3.13 run 44199238537 at f1215a6 passed all thirteen new migration
+cases, with 3,836 total passes and two failures. Both failures were the existing
+attribution-scope test expecting an HLA-G row with a stale HLA-A2 label to match
+the A2 query. Update that expectation to exclude the false match while retaining
+all donor-repair, projection and row-selection assertions; rerun the full gates.
+
 # Reconcile mhcgnomes >= 3.70.2 contract and map_peptides empty flank schema — #897, #868, 2026-11-17
 
 Specification: [mhcgnomes-370-and-flanks-spec.md](mhcgnomes-370-and-flanks-spec.md).
