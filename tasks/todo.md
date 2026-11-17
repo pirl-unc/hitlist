@@ -1,3 +1,24 @@
+# APC intervention, statement membership & engineered HLA-DP curation — #899, #900, #856, #593, 2026-11-17
+
+Specification: [apc-intervention-curation-spec.md](apc-intervention-curation-spec.md).
+
+- [x] Unlock `context_evidence` curation-count evolution while preserving historical `cohort_1_78` reconciliation and frozen-package verification.
+- [x] Extend `elution_condition_ids` / `StatementMap` for `detected` + `not_detected` memberships, fix negated-clause parsing in `_arms_in_elution_conditions`, and export `supported_condition_ids`, `excluded_condition_ids`, and `expand_condition_memberships`.
+- [x] Curate primary-source arms and exact statement maps for PMIDs `30484775` (#899), `31222486`, `23328677`, `32265295`, `29930882`, `30779550` (#900), `35251023` (#856), and `28514659`/`36796642` (#593).
+- [x] Replay against `ci-corpus-v4`, add regressions, bump to `2.1.11`, and pass `./format.sh`, `./lint.sh`, and `./test.sh`.
+- [ ] Open PR (`v2.1.11`), pass hosted CI, merge, and deploy to PyPI from clean `main`.
+
+## Review
+
+Replayed all 83,514 `ci-corpus-v4` rows across the 8 updated studies (`30484775`,
+`31222486`, `23328677`, `32265295`, `29930882`, `30779550`, `35251023`, `28514659`)
+and verified exact row-count conservation, single-arm vs shared (`supported_condition_ids`)
+vs explicit-nondetection (`excluded_condition_ids`) vs disjunctive (`"or"`) / blank
+preservation, `expand_condition_memberships()` provenance retention, and
+`engineering_drift_audit` (`55 -> 54` findings with `36796642` resolved). Passed
+`./format.sh`, `./lint.sh`, `scripts/check_dev_install.py`, and all 3,839 non-integration
+unit tests (`1` skip, `0` failures). Hosted CI and PyPI release `2.1.11` run next.
+
 # Reconcile mhcgnomes >= 3.70.2 contract and map_peptides empty flank schema — #897, #868, 2026-11-17
 
 Specification: [mhcgnomes-370-and-flanks-spec.md](mhcgnomes-370-and-flanks-spec.md).
@@ -7,7 +28,7 @@ Specification: [mhcgnomes-370-and-flanks-spec.md](mhcgnomes-370-and-flanks-spec.
 - [x] Restore split-before-broad serotype ordering via `mhcgnomes.data.serotype_splits`, `HLA-B*15:112` vs `HLA-B*15:11` distinction, load-time serotype refresh, conservative `host_mhc_types` slot parsing, and symmetric `(pmid, allele)` export join.
 - [x] Align `ProteomeIndex.map_peptides` empty/no-hit return columns (`unique_n_flank`, `unique_c_flank`) and docstring (#868).
 - [x] Add/update unit and corpus regressions; pass `./format.sh`, `./lint.sh`, and `./test.sh`.
-- [ ] Open PR (`v2.1.10`), pass hosted CI, merge, and deploy from clean `main`.
+- [x] Open PR (`v2.1.10`), pass hosted CI, merge, and deploy from clean `main`.
 
 ## Review
 
