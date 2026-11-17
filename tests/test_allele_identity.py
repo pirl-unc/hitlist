@@ -110,6 +110,82 @@ def test_stored_current_name_refreshes_retired_catalog_membership(tmp_path, monk
     assert set(result.columns) == {"peptide", "serotype", "serotypes"}
 
 
+@pytest.mark.parametrize("loader", [load_observations, load_binding])
+@pytest.mark.parametrize("dtype", ["string", "category"])
+@pytest.mark.parametrize("columns", [None, ["peptide", "serotype"], ["peptide"]])
+def test_stored_serotypes_follow_current_catalog(tmp_path, monkeypatch, loader, dtype, columns):
+    """Refresh removals and additions without losing reported or donor-set provenance (#907)."""
+    path = tmp_path / "index.parquet"
+    restrictions = [
+        "HLA-B*15:112",
+        "HLA-A*02:01",
+        "HLA-A2",
+        "HLA-B*15:112;HLA-A*02:01",
+    ]
+    frame = pd.DataFrame(
+        {
+            "peptide": ["REMOVED", "ADDED", "REPORTED", "DONOR"],
+            "mhc_restriction": restrictions,
+            "serotype": ["HLA-B75", "HLA-A2", "HLA-A2", "HLA-B75"],
+            "serotypes": ["HLA-B75;HLA-B15", "HLA-A2", "HLA-A2", "HLA-B75;HLA-B15;HLA-A2"],
+            "serotype_source": ["derived", "derived", "reported", "donor_set"],
+        }
+    )
+    annotation_columns = ["serotype", "serotypes", "serotype_source"]
+    for column in ["mhc_restriction", *annotation_columns]:
+        frame[column] = frame[column].astype(dtype)
+    frame.assign(
+        assay_method="binding assay" if loader is load_binding else "mass spectrometry",
+        qualitative_measurement="Positive",
+    ).to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+    monkeypatch.setattr("hitlist.observations.binding_path", lambda: path)
+
+    result = loader(columns=columns)
+    expected = [curation.resolve_mhc_annotation(value).as_record_fields() for value in restrictions]
+    for column in annotation_columns:
+        if column in result:
+            assert result[column].tolist() == [fields[column] for fields in expected]
+            if dtype == "category":
+                assert isinstance(result[column].dtype, pd.CategoricalDtype)
+    if columns is None:
+        assert result.mhc_restriction.tolist() == restrictions
+        assert result.serotype_source.tolist() == frame.serotype_source.tolist()
+    else:
+        assert result.columns.tolist() == columns
+
+    # Membership is refreshed before filtering, even if its inputs are not projected.
+    assert loader(serotype="HLA-B75", columns=columns).empty
+    assert loader(serotype="HLA-B15", columns=columns).peptide.tolist() == ["REMOVED", "DONOR"]
+    assert loader(serotype="HLA-A2.1", columns=columns).peptide.tolist() == ["ADDED", "DONOR"]
+    assert loader(serotype="HLA-A2", columns=columns).peptide.tolist() == [
+        "ADDED",
+        "REPORTED",
+        "DONOR",
+    ]
+
+
+def test_serotype_refresh_preserves_missing_restrictions_and_current_categories(
+    tmp_path, monkeypatch
+):
+    path = tmp_path / "index.parquet"
+    frame = pd.DataFrame(
+        {
+            "peptide": ["CURRENT", "BLANK", "MISSING"],
+            "mhc_restriction": pd.Categorical(["HLA-A*02:01", "", None]),
+            "serotype": pd.Categorical(["HLA-A2", "", None]),
+            "serotypes": pd.Categorical(["HLA-A2;HLA-A2.1", "", None]),
+            "serotype_source": pd.Categorical(["derived", "", None]),
+        }
+    )
+    frame.assign(assay_method="mass spectrometry", qualitative_measurement="Positive").to_parquet(
+        path, index=False
+    )
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+    result = load_observations(columns=frame.columns.tolist())
+    pd.testing.assert_frame_equal(result, frame)
+
+
 @pytest.mark.parametrize("columns", [None, ["peptide", "mhc_allele_set_size"]])
 def test_alias_duplicates_collapse_without_increasing_genotype(tmp_path, monkeypatch, columns):
     path = tmp_path / "index.parquet"

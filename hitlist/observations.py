@@ -947,8 +947,8 @@ def _load_peptide_index(
         # (the guard below is `... in df.columns`), returning the full table.
         if mhc_allele_in_set is not None and "mhc_allele_set" not in kept:
             kept.append("mhc_allele_set")
-        # Retired identities affect derived serotypes and candidate counts
-        # even when the caller does not request the original restriction.
+        # Catalog changes affect derived serotypes and candidate counts even
+        # when the caller does not request the original restriction.
         if (
             any(c in kept for c in ("serotype", "serotypes", "serotype_source"))
             and "mhc_restriction" not in kept
@@ -1038,13 +1038,16 @@ def _load_peptide_index(
     if "mhc_restriction" in df.columns and any(
         c in df.columns for c in ("serotype", "serotypes", "serotype_source")
     ):
-        from .curation import resolve_mhc_annotation, serotype_requires_alias_refresh
+        from .curation import resolve_mhc_annotation
 
+        # Current alias/split tables cannot enumerate historical changes:
+        # removed aliases and new IEF memberships also stale stored values
+        # (#907). Resolve the distinct vocabulary, then replace only changes.
         uniq_restrictions = df["mhc_restriction"].dropna().unique()
         annotations = {
             str(s): resolve_mhc_annotation(str(s)).as_record_fields()
             for s in uniq_restrictions
-            if str(s) and serotype_requires_alias_refresh(str(s))
+            if str(s).strip()
         }
         if annotations:
             restrictions = df["mhc_restriction"].astype("string").fillna("")

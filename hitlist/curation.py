@@ -1945,61 +1945,6 @@ def _build_allele_to_serotypes_map() -> dict[tuple[str, str], tuple[str, ...]]:
     return out
 
 
-@cache
-def _renamed_serotype_members() -> frozenset[str]:
-    from mhcgnomes.data import serotypes
-
-    return frozenset(
-        resolve_allele_identity(f"{prefix}-{allele}")
-        for prefix, table in serotypes.items()
-        for alleles in table.values()
-        for allele in alleles
-        if resolve_allele_identity(f"{prefix}-{allele}") != normalize_allele(f"{prefix}-{allele}")
-    )
-
-
-@cache
-def _split_expanded_serotype_members() -> frozenset[str]:
-    from mhcgnomes import data as mhcgnomes_data
-    from mhcgnomes.data import serotypes
-
-    raw_splits = getattr(mhcgnomes_data, "serotype_splits", {})
-    if not raw_splits:
-        return frozenset()
-    direct_tables = getattr(mhcgnomes_data, "direct_serotypes", serotypes)
-    try:
-        from mhcgnomes.serotype_hierarchy import serotype_descendants
-    except ImportError:
-        return frozenset()
-
-    expanded_members: set[str] = set()
-    for prefix, splits in raw_splits.items():
-        descendants = serotype_descendants(splits)
-        split_names = {child for children in descendants.values() for child in children}
-        direct = direct_tables.get(prefix, {})
-        for split_name in split_names:
-            for allele in direct.get(split_name, ()):
-                expanded_members.add(resolve_allele_identity(f"{prefix}-{allele}"))
-    return frozenset(expanded_members)
-
-
-@lru_cache(maxsize=8192)
-def serotype_requires_alias_refresh(mhc_restriction: str) -> bool:
-    """Whether a reported retirement or split-to-broad catalog expansion affects this annotation.
-
-    A stored current name can need refreshing when its catalog membership was
-    recorded under a retired alias (#456) or gained WMDA broad parent serotypes
-    in mhcgnomes >= 3.70.2 (e.g. B*15:11 gaining B15 alongside B75; #897).
-    """
-    refresh_members = _renamed_serotype_members() | _split_expanded_serotype_members()
-    return any(
-        resolve_allele_identity(part) != normalize_allele(part)
-        or resolve_allele_identity(part) in refresh_members
-        for part in (mhc_restriction or "").split(";")
-        if part.strip()
-    )
-
-
 @lru_cache(maxsize=8192)
 def allele_to_all_serotypes(mhc_restriction: str) -> tuple[str, ...]:
     """All serotypes an allele belongs to, most-specific first.
