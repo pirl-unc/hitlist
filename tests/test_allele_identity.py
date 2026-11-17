@@ -128,7 +128,7 @@ def test_stored_serotypes_follow_current_catalog(tmp_path, monkeypatch, loader, 
             "mhc_restriction": restrictions,
             "serotype": ["HLA-B75", "HLA-A2", "HLA-A2", "HLA-B75"],
             "serotypes": ["HLA-B75;HLA-B15", "HLA-A2", "HLA-A2", "HLA-B75;HLA-B15;HLA-A2"],
-            "serotype_source": ["derived", "derived", "reported", "donor_set"],
+            "serotype_source": ["", "", "reported", "donor_set"],
         }
     )
     annotation_columns = ["serotype", "serotypes", "serotype_source"]
@@ -150,7 +150,7 @@ def test_stored_serotypes_follow_current_catalog(tmp_path, monkeypatch, loader, 
                 assert isinstance(result[column].dtype, pd.CategoricalDtype)
     if columns is None:
         assert result.mhc_restriction.tolist() == restrictions
-        assert result.serotype_source.tolist() == frame.serotype_source.tolist()
+        assert result.serotype_source.tolist() == ["derived", "derived", "reported", "donor_set"]
     else:
         assert result.columns.tolist() == columns
 
@@ -163,6 +163,14 @@ def test_stored_serotypes_follow_current_catalog(tmp_path, monkeypatch, loader, 
         "REPORTED",
         "DONOR",
     ]
+    assert loader(serotype_source="derived", columns=columns).peptide.tolist() == [
+        "REMOVED",
+        "ADDED",
+    ]
+    assert loader(serotype_source="reported", columns=columns).peptide.tolist() == ["REPORTED"]
+    assert loader(
+        serotype="HLA-A2.1", serotype_source=["derived", "donor_set"], columns=columns
+    ).peptide.tolist() == ["ADDED", "DONOR"]
 
 
 def test_serotype_refresh_preserves_missing_restrictions_and_current_categories(

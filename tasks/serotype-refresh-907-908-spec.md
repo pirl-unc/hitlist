@@ -9,7 +9,9 @@ An old observation or binding parquet must expose the same derived serotype,
 serotypes and serotype_source as a fresh annotation under the installed,
 supported mhcgnomes version. Preserve reported mhc_restriction, row identity,
 categorical dtypes and caller column projections. Reconcile before applying
-serotype membership filters, including when the filter reads helper columns.
+serotype membership and serotype_source filters, including when the filter
+reads helper columns. Move serotype_source filtering out of parquet pushdown
+so stale provenance cannot discard rows before their annotations are refreshed.
 Do not infer an annotation for blank/null source restrictions.
 
 The current refresh predicate infers historical changes from the current

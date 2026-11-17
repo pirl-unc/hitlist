@@ -12,7 +12,8 @@ Specification: [serotype-refresh-907-908-spec.md](serotype-refresh-907-908-spec.
 ## Review
 
 The loader now resolves each distinct nonempty restriction and retains the
-existing changed-value assignments and category preservation. Thirteen new
+existing changed-value assignments and category preservation. Both serotype
+membership and serotype_source filtering run after the refresh. Thirteen new
 regression cases cover removed B75 membership, added A2.1 membership, both
 loaders, projections, filter-only inputs, reported/donor-set provenance, and
 unchanged/missing annotations. The obsolete refresh whitelist is removed.
