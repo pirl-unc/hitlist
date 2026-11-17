@@ -1181,11 +1181,27 @@ def test_allele_to_serotype_prefers_locus_specific_over_bw4():
 
 
 def test_allele_to_serotype_b57_prefers_b57():
-    """B*57:01 belongs to B57, B17, AND Bw4 — B57 must win."""
+    """B*57:01 belongs to B57, B17, B17.2, AND Bw4 — B57 must win."""
     assert allele_to_serotype("HLA-B*57:01") == "HLA-B57"
     all_sero = allele_to_all_serotypes("HLA-B*57:01")
-    assert all_sero[0] == "HLA-B57"
-    assert "HLA-Bw4" in all_sero
+    assert all_sero == ("HLA-B57", "HLA-B17", "HLA-B17.2", "HLA-Bw4")
+
+
+@pytest.mark.parametrize(
+    "allele, expected_prefix",
+    [
+        ("HLA-A*24:02", ("HLA-A24", "HLA-A9")),
+        ("HLA-B*44:02", ("HLA-B44", "HLA-B12")),
+        ("HLA-C*03:04", ("HLA-Cw10", "HLA-Cw3")),
+        ("HLA-DRB1*15:01", ("HLA-DR15", "HLA-DR2")),
+        ("HLA-DQB1*03:02", ("HLA-DQ8", "HLA-DQ3")),
+    ],
+)
+def test_allele_to_all_serotypes_orders_wmda_split_before_broad(allele, expected_prefix):
+    """WHO split specificity precedes its WMDA broad parent (#897)."""
+    all_sero = allele_to_all_serotypes(allele)
+    assert all_sero[: len(expected_prefix)] == expected_prefix
+    assert allele_to_serotype(allele) == expected_prefix[0]
 
 
 def test_allele_to_all_serotypes_a02_broader_first():
@@ -3706,5 +3722,6 @@ def test_serotype_source_is_persisted_with_the_annotation():
     from hitlist.curation import resolve_mhc_annotation
 
     fields = resolve_mhc_annotation("HLA-A*24:02").as_record_fields()
+    assert fields["serotype"] == "HLA-A24"
     assert fields["serotype_source"] == "derived"
-    assert fields["serotypes"] == "HLA-A24;HLA-Bw4"
+    assert fields["serotypes"] == "HLA-A24;HLA-A9;HLA-Bw4"
