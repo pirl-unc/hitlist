@@ -173,6 +173,42 @@ def test_stored_serotypes_follow_current_catalog(tmp_path, monkeypatch, loader, 
     ).peptide.tolist() == ["ADDED", "DONOR"]
 
 
+@pytest.mark.parametrize("loader", [load_observations, load_binding])
+@pytest.mark.parametrize("dtype", ["string", "category"])
+@pytest.mark.parametrize("columns", [None, ["peptide"], ["peptide", "serotypes"]])
+@pytest.mark.parametrize("empty_via", ["stored", "peptide", "serotype_source"])
+def test_empty_serotype_results_preserve_schema(
+    tmp_path, monkeypatch, loader, dtype, columns, empty_via
+):
+    """A no-hit membership query must keep its schema, including helper projections (#911)."""
+    path = tmp_path / "index.parquet"
+    frame = pd.DataFrame(
+        {
+            "peptide": ["ACDEFGHIK"],
+            "mhc_restriction": ["HLA-A*02:01"],
+            "serotypes": pd.Series(["HLA-A2;HLA-A2.1"], dtype=dtype),
+            "serotype_source": pd.Series(["derived"], dtype=dtype),
+            "assay_method": ["binding assay" if loader is load_binding else "mass spectrometry"],
+            "qualitative_measurement": ["Positive"],
+        }
+    )
+    if empty_via == "stored":
+        frame = frame.iloc[:0]
+    frame.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+    monkeypatch.setattr("hitlist.observations.binding_path", lambda: path)
+    filters = {"peptide": "MISSING"} if empty_via == "peptide" else {}
+    if empty_via == "serotype_source":
+        filters["serotype_source"] = "reported"
+    # The same empty selection without membership filtering defines the schema.
+    expected = loader(columns=columns, **filters)
+    assert expected.empty
+    actual = loader(serotype="HLA-A2", columns=columns, **filters)
+    pd.testing.assert_frame_equal(actual, expected)
+    if columns is not None:
+        assert actual.columns.tolist() == columns
+
+
 def test_serotype_refresh_preserves_missing_restrictions_and_current_categories(
     tmp_path, monkeypatch
 ):

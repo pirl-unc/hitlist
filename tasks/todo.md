@@ -1,4 +1,4 @@
-# Stored serotype migration and dependency lock — #907, #908, 2026-11-17
+# Stored serotype migration and dependency lock — #907, #908, #911, 2026-11-17
 
 Specification: [serotype-refresh-907-908-spec.md](serotype-refresh-907-908-spec.md).
 
@@ -8,6 +8,11 @@ Specification: [serotype-refresh-907-908-spec.md](serotype-refresh-907-908-spec.
 - [x] Refresh uv.lock, bump version and validate an isolated locked environment.
 - [ ] Run all required gates; format/lint pass, local test preflight refused.
 - [x] Open draft PR #910 linking #907 and #908 with validation evidence.
+- [x] Fix #911 with empty-result schema and dtype regressions.
+- [ ] Audit nearby bugs, API ambiguity and curation; split in-scope fixes from issues.
+- [ ] Review the final diff and pass exact-head hosted checks.
+- [ ] Merge, build on clean main, publish and verify both public PyPI files.
+- [ ] Give Presto concrete upgrade and regression-check instructions.
 
 ## Review
 

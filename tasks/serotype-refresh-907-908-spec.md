@@ -1,6 +1,6 @@
 # Complete stored serotype refresh and dependency lock consistency
 
-Issues: #907 and #908. Base: main at ccfe326 (2.1.10). Work in an isolated
+Issues: #907, #908 and #911. Base: main at ccfe326 (2.1.10). Work in an isolated
 feature worktree so the independent APC curation PR remains untouched.
 
 ## Contract
@@ -31,6 +31,18 @@ the number of observation rows.
 - Reported serological restrictions and donor-set provenance remain distinct;
   unchanged current annotations, blanks and null restrictions remain intact.
 - Retain the existing B*15:11 split/broad and retired-name tests.
+- Empty serotype results retain full/projected schemas and dtypes, including
+  after parquet pushdown, source filtering, and on an empty stored table.
+  The membership mask must remain boolean for both string and category storage.
+
+## Bounded follow-up audit
+
+Review filter normalization, empty selections, helper projections, and the
+serotype/provenance curation contract. Include reproducible serotype-loader
+defects in this PR; file unrelated API contracts and curation defects separately
+with evidence and acceptance criteria, searching existing issues first. Do not
+change scientific annotations without authoritative evidence. Inspect Presto's
+consumer path to give concrete upgrade and cache-regeneration instructions.
 
 ## Dependency and version work
 
@@ -47,5 +59,9 @@ Use version 2.1.12 because open PRs already reserve 2.1.11; recheck before landi
 First reproduce the new tests on the base, then verify the implementation.
 Run ./format.sh, ./lint.sh and the guarded ./test.sh. Check uv lock --check,
 package metadata, and the diff. Open a new PR linking both issues and describing
-observed results and any remaining hosted checks. This request is to start a
-new fixes PR; do not merge an unreviewed PR as part of that handoff.
+observed results and any remaining hosted checks. The user subsequently
+authorized final review, merge and deployment: review the complete final diff,
+require the exact-head hosted gates, merge, dispatch a clean-main release build,
+publish its verified artifacts and verify both public PyPI downloads. Recheck
+main/version before merging. Report included fixes and separate follow-up issues,
+then give Presto upgrade and regression-check instructions.

@@ -1083,7 +1083,9 @@ def _load_peptide_index(
         mask = df["serotypes"].map(
             lambda s: bool(wanted & set(s.split(";"))) if isinstance(s, str) and s else False
         )
-        df = df[mask]
+        # Empty string/category maps retain their input dtype. Force a row
+        # predicate so a zero-hit query cannot erase the schema (#911).
+        df = df.loc[mask.astype("boolean").fillna(False)]
         if columns is not None and "serotypes" not in columns:
             df = df.drop(columns=["serotypes"])
 
