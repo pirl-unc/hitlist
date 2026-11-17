@@ -1,3 +1,32 @@
+# Reconcile mhcgnomes >= 3.70.2 contract and map_peptides empty flank schema — #897, #868, 2026-11-17
+
+Specification: [mhcgnomes-370-and-flanks-spec.md](mhcgnomes-370-and-flanks-spec.md).
+
+- [x] Reproduce baseline failures in clean published-dependency environment (`mhcgnomes 3.70.3`, `pandas 3.1.1`) and audit `ci-corpus-v4` vocabulary impact.
+- [x] Replace deprecated `Allele.annotation_cystosolic` access and align `pyproject.toml` floor to `mhcgnomes>=3.70.2`.
+- [x] Restore split-before-broad serotype ordering via `mhcgnomes.data.serotype_splits`, `HLA-B*15:112` vs `HLA-B*15:11` distinction, load-time serotype refresh, conservative `host_mhc_types` slot parsing, and symmetric `(pmid, allele)` export join.
+- [x] Align `ProteomeIndex.map_peptides` empty/no-hit return columns (`unique_n_flank`, `unique_c_flank`) and docstring (#868).
+- [x] Add/update unit and corpus regressions; pass `./format.sh`, `./lint.sh`, and `./test.sh`.
+- [ ] Open PR (`v2.1.10`), pass hosted CI, merge, and deploy from clean `main`.
+
+## Review
+
+Clean published-dependency verification (`Python 3.12.10`, `mhcgnomes 3.70.3`,
+`pandas 3.1.1`, `ruff 0.16.10`) reproduced all 89 baseline failures across
+`test_curation.py`, `test_allele_identity.py`, `test_allele_candidates.py`,
+`test_export.py`, `test_predict.py`, `test_reassign_genotypes.py`, and
+`test_source_verification.py`. Whole-corpus replay across `ci-corpus-v4`
+confirmed zero unintended changes across all 881 distinct `host_mhc_types` values
+and verified IMGT/HLA colon-boundary semantics (`HLA-B*15:112` -> `HLA-B15` vs
+`HLA-B*15:11` -> `HLA-B75;HLA-B15`). After updating `_NON_SURFACE_ANNOTATION_ATTRS`,
+WMDA split-before-broad serotype ordering, `_split_expanded_serotype_members()`
+load-time refresh, `;`-slot `host_mhc_types` candidate admission, symmetric
+`(pmid, allele)` identity matching in `generate_observations_table`, and
+`_MAP_PEPTIDES_COLUMNS` in `ProteomeIndex.map_peptides`, `./format.sh`, `./lint.sh`,
+`scripts/check_dev_install.py`, wheel/sdist + license/twine checks, and all 3,826
+non-integration tests pass (`1` skip). Hosted `Tests` (5 Python/pandas matrix legs +
+`ci-corpus-v4` integration + `allele-candidate-audit`) and `Release build` run next.
+
 # Contributor storage and scanning — #63, second pass, 2026-10-29
 
 Specification: [contributor-storage-63-spec.md](contributor-storage-63-spec.md).

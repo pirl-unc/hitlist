@@ -83,14 +83,18 @@ def test_map_peptides_unique_flank():
     assert df.iloc[0]["n_sources"] == 1
 
 
-def test_map_peptides_empty():
+@pytest.mark.parametrize("peptides", [[], ["ZZZZZ"]])
+def test_map_peptides_empty(peptides):
     idx = _make_index()
-    df = idx.map_peptides([], verbose=False)
+    populated = idx.map_peptides(["ACDEF"], verbose=False)
+    df = idx.map_peptides(peptides, verbose=False)
     assert isinstance(df, pd.DataFrame)
     assert len(df) == 0
-    assert "peptide" in df.columns
-    # Empty df has base columns only
-    assert "peptide" in df.columns
+    assert list(df.columns) == list(populated.columns)
+    assert [col for col in df.columns if col.startswith("unique_")] == [
+        "unique_n_flank",
+        "unique_c_flank",
+    ]
 
 
 @pytest.mark.parametrize("flank", [0, 1, 4])

@@ -950,7 +950,7 @@ def _load_peptide_index(
         # Retired identities affect derived serotypes and candidate counts
         # even when the caller does not request the original restriction.
         if (
-            any(c in kept for c in ("serotypes", "serotype_source"))
+            any(c in kept for c in ("serotype", "serotypes", "serotype_source"))
             and "mhc_restriction" not in kept
         ):
             kept.append("mhc_restriction")
@@ -1036,23 +1036,40 @@ def _load_peptide_index(
                     sizes
                 )
     if "mhc_restriction" in df.columns and any(
-        c in df.columns for c in ("serotypes", "serotype_source")
+        c in df.columns for c in ("serotype", "serotypes", "serotype_source")
     ):
         from .curation import resolve_mhc_annotation, serotype_requires_alias_refresh
 
-        restrictions = df["mhc_restriction"].astype("string").fillna("")
-        renamed = {
-            s: resolve_mhc_annotation(s)
-            for s in restrictions.unique()
-            if serotype_requires_alias_refresh(s)
+        uniq_restrictions = df["mhc_restriction"].dropna().unique()
+        annotations = {
+            str(s): resolve_mhc_annotation(str(s)).as_record_fields()
+            for s in uniq_restrictions
+            if str(s) and serotype_requires_alias_refresh(str(s))
         }
-        if renamed:
-            changed = restrictions.isin(renamed)
-            for column in ("serotypes", "serotype_source"):
-                if column in df.columns:
-                    values = {s: a.as_record_fields()[column] for s, a in renamed.items()}
-                    df[column] = df[column].astype("string")
-                    df.loc[changed, column] = restrictions[changed].map(values)
+        if annotations:
+            restrictions = df["mhc_restriction"].astype("string").fillna("")
+            in_scope = restrictions.isin(annotations)
+            if in_scope.any():
+                for column in ("serotype", "serotypes", "serotype_source"):
+                    if column not in df.columns:
+                        continue
+                    values = {s: fields[column] for s, fields in annotations.items()}
+                    expected = restrictions.loc[in_scope].map(values).fillna("")
+                    current = df.loc[in_scope, column].astype("string").fillna("")
+                    changed_idx = expected.index[current.ne(expected)]
+                    if len(changed_idx) == 0:
+                        continue
+                    if isinstance(df[column].dtype, pd.CategoricalDtype):
+                        needed = [
+                            v
+                            for v in expected.loc[changed_idx].unique()
+                            if v not in df[column].cat.categories
+                        ]
+                        if needed:
+                            df[column] = df[column].cat.add_categories(needed)
+                    else:
+                        df[column] = df[column].astype("string")
+                    df.loc[changed_idx, column] = expected.loc[changed_idx]
 
     if post_serotypes:
         wanted = set(post_serotypes)

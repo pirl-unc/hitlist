@@ -1829,7 +1829,7 @@ def allele_resolution_rank(resolution: str) -> int:
     return _RESOLUTION_RANK.get(resolution, len(ALLELE_RESOLUTION_ORDER))
 
 
-_LOCUS_SEROTYPE_RE = re.compile(r"^(A|B|C|DR|DQ|DP|DM|DO)\d")
+_LOCUS_SEROTYPE_RE = re.compile(r"^(A|Aw|B|C|Cw|DR|DQ|DP|DPw|DM|DO)\d")
 _LOCUS_SEROTYPE_NAME_RE = re.compile(r"^(A|B|C|DR|DQ|DP|DM|DO)(\d+)$")
 
 
@@ -1883,17 +1883,31 @@ def _build_allele_to_serotypes_map() -> dict[tuple[str, str], tuple[str, ...]]:
 
     Returns a dict of ``{allele_key: (serotype1, serotype2, ...)}`` where
     the tuple is ordered by specificity:
-    1. Locus-specific serotypes first (A24, B57, DR15)
-    2. Public epitopes after (Bw4, Bw6)
-    3. Prefer memberships under a current designation over a retired alias
-    4. Break remaining ties by name length and spelling
+    1. Locus-specific serotypes first (A24, B57, Cw10, DR15)
+    2. Standard WHO serological names before IEF sub-specificities (A2 before A2.1)
+    3. WHO split serotypes before their broad parent antigens when both apply
+       (A24 before A9, B57 before B17, B44 before B12, B75 before B15, DR15 before DR2)
+    4. Prefer memberships under a current designation over a retired alias
+    5. Public epitopes after locus-specific serotypes (Bw4, Bw6)
+    6. Break remaining ties by name length and spelling
 
     Returns empty dict if mhcgnomes is unavailable.
     """
     try:
+        from mhcgnomes import data as mhcgnomes_data
         from mhcgnomes.data import serotypes
     except ImportError:
         return {}
+
+    raw_splits = getattr(mhcgnomes_data, "serotype_splits", {})
+    try:
+        from mhcgnomes.serotype_hierarchy import serotype_descendants
+
+        split_descendants = {
+            prefix: serotype_descendants(splits) for prefix, splits in raw_splits.items()
+        }
+    except ImportError:
+        split_descendants = {}
 
     reverse: dict[tuple[str, str], list[str]] = {}
     current_memberships: set[tuple[tuple[str, str], str]] = set()
@@ -1912,21 +1926,23 @@ def _build_allele_to_serotypes_map() -> dict[tuple[str, str], tuple[str, ...]]:
                 if resolve_allele_identity(reported) == reported:
                     current_memberships.update((key, name) for name in names_for_sero)
 
-    return {
-        (prefix, allele): tuple(
-            f"{prefix}-{s}"
-            for s in sorted(
-                set(names),
-                key=lambda n: (
-                    _serotype_specificity_rank(n),
-                    ((prefix, allele), n) not in current_memberships,
-                    len(n),
-                    n,
-                ),
-            )
+    out: dict[tuple[str, str], tuple[str, ...]] = {}
+    for (prefix, allele), names in reverse.items():
+        names_set = set(names)
+        descendants = split_descendants.get(prefix, {})
+        ordered = sorted(
+            names_set,
+            key=lambda n: (
+                _serotype_specificity_rank(n),
+                "." in n,
+                any(child in names_set for child in descendants.get(n, ())),
+                ((prefix, allele), n) not in current_memberships,
+                len(n),
+                n,
+            ),
         )
-        for (prefix, allele), names in reverse.items()
-    }
+        out[(prefix, allele)] = tuple(f"{prefix}-{s}" for s in ordered)
+    return out
 
 
 @cache
@@ -1942,16 +1958,43 @@ def _renamed_serotype_members() -> frozenset[str]:
     )
 
 
+@cache
+def _split_expanded_serotype_members() -> frozenset[str]:
+    from mhcgnomes import data as mhcgnomes_data
+    from mhcgnomes.data import serotypes
+
+    raw_splits = getattr(mhcgnomes_data, "serotype_splits", {})
+    if not raw_splits:
+        return frozenset()
+    direct_tables = getattr(mhcgnomes_data, "direct_serotypes", serotypes)
+    try:
+        from mhcgnomes.serotype_hierarchy import serotype_descendants
+    except ImportError:
+        return frozenset()
+
+    expanded_members: set[str] = set()
+    for prefix, splits in raw_splits.items():
+        descendants = serotype_descendants(splits)
+        split_names = {child for children in descendants.values() for child in children}
+        direct = direct_tables.get(prefix, {})
+        for split_name in split_names:
+            for allele in direct.get(split_name, ()):
+                expanded_members.add(resolve_allele_identity(f"{prefix}-{allele}"))
+    return frozenset(expanded_members)
+
+
 @lru_cache(maxsize=8192)
 def serotype_requires_alias_refresh(mhc_restriction: str) -> bool:
-    """Whether a reported or catalogued retirement can change this annotation.
+    """Whether a reported retirement or split-to-broad catalog expansion affects this annotation.
 
-    A stored current name can also need refreshing when its catalog membership
-    was recorded under a retired alias, e.g. B*15:112 -> B*15:11 (#456).
+    A stored current name can need refreshing when its catalog membership was
+    recorded under a retired alias (#456) or gained WMDA broad parent serotypes
+    in mhcgnomes >= 3.70.2 (e.g. B*15:11 gaining B15 alongside B75; #897).
     """
+    refresh_members = _renamed_serotype_members() | _split_expanded_serotype_members()
     return any(
         resolve_allele_identity(part) != normalize_allele(part)
-        or resolve_allele_identity(part) in _renamed_serotype_members()
+        or resolve_allele_identity(part) in refresh_members
         for part in (mhc_restriction or "").split(";")
         if part.strip()
     )
@@ -1973,9 +2016,9 @@ def allele_to_all_serotypes(mhc_restriction: str) -> tuple[str, ...]:
 
     Examples::
 
-        allele_to_all_serotypes("HLA-A*24:02")  # ("HLA-A24", "HLA-Bw4")
-        allele_to_all_serotypes("HLA-B*57:01")  # ("HLA-B57", "HLA-B17", "HLA-Bw4")
-        allele_to_all_serotypes("HLA-A*02:01")  # ("HLA-A2",)
+        allele_to_all_serotypes("HLA-A*24:02")  # ("HLA-A24", "HLA-A9", "HLA-Bw4")
+        allele_to_all_serotypes("HLA-B*57:01")  # ("HLA-B57", "HLA-B17", "HLA-B17.2", "HLA-Bw4")
+        allele_to_all_serotypes("HLA-A*02:01")  # ("HLA-A2", "HLA-A2.1")
 
     Returns an empty tuple when the allele cannot be mapped or input is empty.
     """
@@ -2500,7 +2543,7 @@ def sample_mhc_candidates(mhc_field) -> SampleMhcCandidates:
 _NON_SURFACE_ANNOTATION_ATTRS = (
     "annotation_null",
     "annotation_secreted",
-    "annotation_cystosolic",  # mhcgnomes' spelling
+    "annotation_cytosolic" if hasattr(Allele, "annotation_cytosolic") else "annotation_cystosolic",
 )
 
 
@@ -3218,11 +3261,25 @@ def _parse_host_mhc_types(host_mhc_types: str) -> frozenset[str]:
     """Parse IEDB ``Host | MHC Types Present`` into exact designations.
 
     IEDB uses ``;``-separated ``HLA-A*01:01;HLA-B*13:02;...`` strings.
-    Free-text or non-allele tokens are dropped.
+    Each ``;``-delimited slot must consist solely of exact allele/pair
+    designations; slots carrying trailing class sentinels (e.g.
+    ``"HLA-DRB1*12:01 class II"``), imprecise loci, or unrecognized modifiers
+    are dropped rather than narrowed to a partial exact claim.
     """
     if not host_mhc_types:
         return frozenset()
-    return _exact_typing_tokens(host_mhc_types)
+    out: set[str] = set()
+    for slot in host_mhc_types.split(";"):
+        slot = slot.strip()
+        if not slot:
+            continue
+        try:
+            spans, unparsed = _mhc_field_scan(slot)
+        except ValueError:
+            continue
+        if spans and not unparsed and all(_is_exact_allele_candidate(tok) for tok, _ in spans):
+            out.update(tok for tok, _ in spans)
+    return frozenset(out)
 
 
 def _filter_alleles_by_class(alleles, mhc_class: str) -> set[str]:

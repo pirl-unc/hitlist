@@ -777,6 +777,23 @@ class ProteinSource:
     c_flank: str
 
 
+_MAP_PEPTIDES_COLUMNS: tuple[str, ...] = (
+    "peptide",
+    "protein_id",
+    "gene_name",
+    "gene_id",
+    "gene_biotype",
+    "transcript_id",
+    "is_canonical_transcript",
+    "position",
+    "n_flank",
+    "c_flank",
+    "n_sources",
+    "unique_n_flank",
+    "unique_c_flank",
+)
+
+
 @dataclass
 class ProteomeIndex:
     """Inverted index mapping peptide sequences to source proteins.
@@ -1354,10 +1371,11 @@ class ProteomeIndex:
         pd.DataFrame
             One row per (peptide, source protein) occurrence. Columns:
             ``peptide``, ``protein_id``, ``gene_name``, ``gene_id``,
-            ``gene_biotype``, ``position`` (0-based), ``n_flank``, ``c_flank``,
+            ``gene_biotype``, ``transcript_id``, ``is_canonical_transcript``,
+            ``position`` (0-based), ``n_flank``, ``c_flank``,
             ``n_sources`` (total source count for this peptide),
-            ``unique_nflank`` (set if all sources have same n_flank, else ""),
-            ``unique_cflank`` (same for c_flank).
+            ``unique_n_flank`` (set if all sources have same n_flank, else ""),
+            ``unique_c_flank`` (same for c_flank).
         """
         peptide_list = list(set(peptides))
         pep_iter = (
@@ -1416,23 +1434,7 @@ class ProteomeIndex:
             )
 
         if not rows:
-            return pd.DataFrame(
-                columns=[
-                    "peptide",
-                    "protein_id",
-                    "gene_name",
-                    "gene_id",
-                    "gene_biotype",
-                    "transcript_id",
-                    "is_canonical_transcript",
-                    "position",
-                    "n_flank",
-                    "c_flank",
-                    "n_sources",
-                    "unique_nflank",
-                    "unique_cflank",
-                ]
-            )
+            return pd.DataFrame(columns=list(_MAP_PEPTIDES_COLUMNS))
 
         df = pd.DataFrame(rows)
 

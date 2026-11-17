@@ -54,6 +54,7 @@ from .curation import (
     normalize_mhc_class_token,
     normalize_species,
     reported_mhc_fields_overlap,
+    resolve_allele_identity,
     sample_mhc_candidates,
     sample_mhc_metadata,
     serotype_to_alleles,
@@ -1730,10 +1731,16 @@ def generate_observations_table(
     # molecules keep exact identity: two known pairs that merely share DQA1
     # or DPA1 are not the same molecule.
     _observed_pairs_by_component: dict[str, set[str]] = {}
+    _observed_restrictions_by_identity: dict[str, set[str]] = {}
     _pair_restrictions = set(_fillna_scalar_safe(obs["mhc_restriction"], "").astype(str).unique())
     if _study_context is not None:
         _pair_restrictions.update(_study_context["mhc_restriction"].unique())
     for _restriction in sorted(_pair_restrictions):
+        _resolved_restriction = resolve_allele_identity(_restriction)
+        if _resolved_restriction and _resolved_restriction != _restriction:
+            _observed_restrictions_by_identity.setdefault(_resolved_restriction, set()).add(
+                _restriction
+            )
         _restriction_components = _normalized_allele_components(_restriction)
         if len(_restriction_components) <= 1:
             continue
@@ -1760,6 +1767,8 @@ def generate_observations_table(
                 if from_serotype:
                     row["sample_attribution"] = "serotype_expansion"
                 allele_rows.append(row)
+                for reported_alias in sorted(_observed_restrictions_by_identity.get(component, ())):
+                    allele_rows.append({**row, "_allele": reported_alias})
 
                 # A serotype member can identify a full observed pair
                 # through that component. Exact molecules cannot: the full
