@@ -7,7 +7,7 @@ Specification: [serotype-refresh-907-908-spec.md](serotype-refresh-907-908-spec.
 - [x] Refresh derived annotations for each distinct nonempty restriction.
 - [x] Refresh uv.lock, bump version and validate an isolated locked environment.
 - [ ] Run all required gates; format/lint pass, local test preflight refused.
-- [ ] Open a new PR linking #907 and #908 with validation evidence.
+- [x] Open draft PR #910 linking #907 and #908 with validation evidence.
 
 ## Review
 
@@ -20,8 +20,9 @@ unchanged/missing annotations. The obsolete refresh whitelist is removed.
 uv.lock changes only mhcgnomes 3.64.6 -> 3.70.3 and its associated dependency
 metadata. A fresh isolated locked environment passes pip check. Format/lint
 pass. The local baseline and full-suite attempts were refused before pytest
-by the unchanged memory guard; preserve those refusals and qualify via hosted
-CI. No full local test pass is claimed. Existing independent work is preserved
+by the unchanged memory guard (1.53 GiB and 0.14 GiB available); preserve those
+refusals and qualify via hosted CI. uv lock --check and the editable-install
+audit also pass. No full local test pass is claimed. Existing independent work is preserved
 in the original checkout. Version candidate 2.1.12 avoids active 2.1.11 PRs.
 
 # Reconcile mhcgnomes >= 3.70.2 contract and map_peptides empty flank schema — #897, #868, 2026-11-17

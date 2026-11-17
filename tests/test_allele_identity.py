@@ -183,7 +183,11 @@ def test_serotype_refresh_preserves_missing_restrictions_and_current_categories(
     )
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
     result = load_observations(columns=frame.columns.tolist())
-    pd.testing.assert_frame_equal(result, frame)
+    annotation_columns = ["peptide", "serotype", "serotypes", "serotype_source"]
+    pd.testing.assert_frame_equal(result[annotation_columns], frame[annotation_columns])
+    # The loader's existing spelling normalization converts restriction dtype.
+    assert result.mhc_restriction.isna().tolist() == frame.mhc_restriction.isna().tolist()
+    assert result.mhc_restriction.fillna("").tolist() == ["HLA-A*02:01", "", ""]
 
 
 @pytest.mark.parametrize("columns", [None, ["peptide", "mhc_allele_set_size"]])
