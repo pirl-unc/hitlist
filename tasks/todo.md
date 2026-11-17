@@ -20,7 +20,8 @@ unchanged/missing annotations. The obsolete refresh whitelist is removed.
 
 uv.lock changes only mhcgnomes 3.64.6 -> 3.70.3 and its associated dependency
 metadata. A fresh isolated locked environment passes pip check. Format/lint
-pass. The local baseline and full-suite attempts were refused before pytest
+pass. Python 3.12 CI now installs with uv sync --locked and checks dependencies;
+the other matrix legs retain fresh pip resolution. The local baseline and full-suite attempts were refused before pytest
 by the unchanged memory guard (1.53 GiB and 0.14 GiB available); preserve those
 refusals and qualify via hosted CI. uv lock --check and the editable-install
 audit also pass. No full local test pass is claimed. Existing independent work is preserved

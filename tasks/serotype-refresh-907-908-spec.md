@@ -37,6 +37,9 @@ the number of observation rows.
 Refresh uv.lock against mhcgnomes>=3.70.2 with minimal necessary resolution
 changes. Create a separate environment from that lock, run pip check and the
 editable-install audit, and use it for verification. Preserve the shared venv.
+Use that committed resolution in the existing Python 3.12 CI matrix leg; keep
+freshly resolved dependencies in the other legs. This rejects stale locks and
+tests the locked environment even when local memory prevents a suite run.
 Use version 2.1.12 because open PRs already reserve 2.1.11; recheck before landing.
 
 ## Validation and handoff
