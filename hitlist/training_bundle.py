@@ -12,7 +12,15 @@ from pathlib import Path
 import pandas as pd
 
 from .dataset import dataset_path, dataset_snapshot
-from .lineage import AXES, LINEAGE_COLUMNS, lineage_path, load_lineage
+from .lineage import (
+    APPLICABILITY_COLUMNS,
+    APPLICABILITY_STATUSES,
+    ASSAY_PREPARATIONS,
+    AXES,
+    LINEAGE_COLUMNS,
+    lineage_path,
+    load_lineage,
+)
 from .provenance import (
     CONTRIBUTOR_COLUMNS,
     _contributor_contract,
@@ -28,7 +36,7 @@ FILES = {
     "contributors": "contributors.parquet",
     "lineage": "lineage.json",
 }
-IDENTITY_COLUMNS = [
+_BASE_IDENTITY_COLUMNS = [
     "evidence_kind",
     "evidence_row_id",
     "evidence_source_id",
@@ -44,6 +52,14 @@ IDENTITY_COLUMNS = [
     "assay_iri",
     "reference_iri",
     *LINEAGE_COLUMNS,
+]
+_APPLICABILITY_IDENTITY_COLUMNS = [
+    "assay_method",
+    *APPLICABILITY_COLUMNS,
+]
+IDENTITY_COLUMNS = [
+    *_BASE_IDENTITY_COLUMNS,
+    *_APPLICABILITY_IDENTITY_COLUMNS,
 ]
 _CONTRIBUTOR_SUMMARY_COLUMNS = [
     "provenance_id",
@@ -200,7 +216,7 @@ def _contributor_identities(identities, contributors):
 
 def _coverage(identities, contributors):
     captured = set(contributors.provenance_id)
-    return {
+    result = {
         "n_observations": len(identities),
         "n_observations_with_contributors": int(identities.provenance_id.isin(captured).sum()),
         "n_contributor_links": len(contributors),
@@ -225,6 +241,25 @@ def _coverage(identities, contributors):
             for axis in AXES
         },
     }
+    if "assay_preparation" in identities.columns:
+        preps = identities["assay_preparation"].astype("string").fillna("unknown")
+        result["applicability"] = {
+            "by_assay_preparation": {
+                prep: int(preps.eq(prep).sum())
+                for prep in ASSAY_PREPARATIONS
+                if int(preps.eq(prep).sum()) > 0
+            },
+            "axes": {
+                axis: {
+                    status: int(
+                        identities[f"{axis}_applicability"].astype("string").eq(status).sum()
+                    )
+                    for status in APPLICABILITY_STATUSES
+                }
+                for axis in AXES
+            },
+        }
+    return result
 
 
 def _input_validation(options, *, require_current_indexes):
@@ -427,10 +462,25 @@ def verify_training_bundle(directory) -> dict:
     required = {"evidence_row_id", "evidence_source_id", "evidence_kind", "provenance_id"}
     if not required <= available:
         raise ValueError("Training bundle lacks required identity columns")
-    training = pd.read_parquet(
-        training_path, columns=[c for c in IDENTITY_COLUMNS if c in available]
-    )
     identities = pd.read_parquet(directory / FILES["identities"])
+    has_applicability = bool(
+        (set(APPLICABILITY_COLUMNS) & set(identities.columns))
+        or (set(APPLICABILITY_COLUMNS) & available)
+        or ("applicability" in manifest.get("coverage", {}))
+    )
+    if has_applicability and not (set(APPLICABILITY_COLUMNS) <= set(identities.columns)):
+        raise ValueError("Incomplete applicability columns in bundle identities")
+    verified_identity_columns = IDENTITY_COLUMNS if has_applicability else _BASE_IDENTITY_COLUMNS
+    missing_identities = [
+        c for c in verified_identity_columns if c in available and c not in identities.columns
+    ]
+    if missing_identities:
+        raise ValueError(
+            f"Bundle identities missing columns present in training: {missing_identities}"
+        )
+    training = pd.read_parquet(
+        training_path, columns=[c for c in verified_identity_columns if c in available]
+    )
     contributors = pd.read_parquet(
         directory / FILES["contributors"], columns=_CONTRIBUTOR_SUMMARY_COLUMNS
     )

@@ -33,7 +33,7 @@ pip install hitlist
 # Register your IEDB/CEDAR downloads, then build the indexes
 hitlist data register iedb /path/to/mhc_ligand_full.csv
 hitlist data register cedar /path/to/cedar-mhc-ligand-full.csv
-hitlist data build                 # writes observations.parquet + binding.parquet (+ sidecars)
+hitlist build observations         # writes observations.parquet + binding.parquet (+ sidecars)
 
 # Data-quality report
 hitlist report --class I --output report.txt
@@ -170,4 +170,4 @@ directory to reuse those indexes.
 ./deploy.sh     # lint + test + build + upload to PyPI
 ```
 
-For Presto training, see [search-scoped bulk MS detectability datasets](detectability.md): occurrence-preserving digests, scoped observations, verified search references, and bounded evidence exports.
+For Presto and MHCflurry model training, see [Training Presto and MHCflurry](model-training.md) for task-specific affinity, stability, and MS presentation tables with retained lineage and flank disambiguation, and [search-scoped bulk MS detectability datasets](detectability.md) for occurrence-preserving digests, scoped observations, verified search references, and bounded evidence exports.

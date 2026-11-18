@@ -1,3 +1,38 @@
+# Presto & MHCflurry training usability and assay applicability — #706, #931, 2026-11-18
+
+Specification: [training-usability-presto-mhcflurry-spec.md](training-usability-presto-mhcflurry-spec.md).
+
+- [x] Audit `ci-corpus-v4` and `human-cohort-corrected-v1` binding/MS vocabularies, verify backward-compatibility constraints, and file `#931` for stale training docs.
+- [x] Implement `#706` assay-preparation and per-axis lineage applicability in `lineage.py`, `split_audit.py`, `training_bundle.py`, `export.py`, and `evidence_bundle.py` while preserving historical bundle verification.
+- [x] Implement `hitlist/model_training.py` (`qualify_binding_measurements`, `prepare_affinity_training_data`, `prepare_stability_training_data`, `prepare_ms_training_data`, `to_mhcflurry_presentation_inputs`) with lazy top-level exports and zero-drop row conservation.
+- [x] Fix `#931` in `docs/training-provenance.md` and `docs/index.md`, add `docs/model-training.md` to `mkdocs.yml`, and verify `mkdocs build --strict`.
+- [x] Add unit and `ci-corpus-v4` integration regressions; verify against `human-cohort-corrected-v1`; bump to `2.1.18`; pass `./format.sh`, `./lint.sh`, and `./test.sh`.
+- [ ] Open PR (`v2.1.18`), pass hosted CI + release gate, merge, and deploy to PyPI from clean `main`.
+
+## Implementation & real-corpus verification review
+
+- Offline verification of the frozen 4,071,463-row `human-cohort-corrected-v1`
+  schema-1 bundle (`2026-10-16T07-35-06Z`) exposed and resolved a backward-
+  compatibility edge case in `verify_training_bundle`: historical `training.parquet`
+  files contain `assay_method` while pre-`#706` `identities.parquet` files do not.
+  `verify_training_bundle` now enforces `_BASE_IDENTITY_COLUMNS` on pre-`#706`
+  bundles while requiring complete `APPLICABILITY_COLUMNS` + `assay_method` whenever
+  applicability metadata is present in `identities.parquet`, `training.parquet`, or
+  `manifest.json`.
+- Replayed `attach_lineage_applicability` over Presto's 2,614 `prior-ic50.tsv`
+  rows: exact match of `2,533` `purified_mhc` (`donor_applicability="not_applicable"`)
+  and `81` `cellular_mhc` (`donor_applicability="applicable_unresolved"`), `0`
+  `unknown`, while keeping `audit_splits(..., policy="donor_disjoint")` verdict
+  `inconclusive` rather than a false `pass`.
+- Verified `qualify_binding_measurements` (0.51s), `prepare_affinity_training_data`
+  (5.38s), and `prepare_stability_training_data` over all 814,268 rows of
+  `ci-corpus-v4/binding.parquet` with 100% row conservation (`135,252` accepted +
+  `679,016` excluded for MHCflurry human class-Ia affinity; `67,613` literal IC50
+  rows and `12,012` stability rows across all species for Presto).
+- Verified `mkdocs build --strict` cleanly builds `docs/model-training.md`,
+  `docs/training-provenance.md`, and `docs/index.md` with zero warnings or broken
+  links, and added an import/CLI regression test for `#931`.
+
 # Original perturbation quantities — #901 / #924, 2026-11-18
 
 Specification: [perturbation-quantities-spec.md](perturbation-quantities-spec.md).

@@ -65,6 +65,13 @@ on:
       - tests/test_uniprot.py
       - tests/test_build_uniprot_reference.py
       - scripts/build_uniprot_reference.py
+      - hitlist/model_training.py
+      - hitlist/lineage.py
+      - hitlist/split_audit.py
+      - hitlist/training_bundle.py
+      - tests/test_model_training.py
+      - tests/test_lineage_audit.py
+      - tests/test_training_bundle.py
 
 permissions:
   contents: read

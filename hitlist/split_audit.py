@@ -5,9 +5,18 @@ from __future__ import annotations
 import itertools
 import json
 
+import numpy as np
 import pandas as pd
 
-from .lineage import AXES, canonical_identities, load_lineage
+from .lineage import (
+    _CELLULAR_APPLICABLE_PREPARATIONS,
+    ASSAY_PREPARATIONS,
+    AXES,
+    CELLULAR_DEPENDENCY_AXES,
+    attach_lineage_applicability,
+    canonical_identities,
+    load_lineage,
+)
 
 SCHEMA_VERSION = 1
 POLICIES = {
@@ -44,6 +53,47 @@ def _partition_axes(frame, registry):
         pd.Series([f"unresolved-row:{i}" for i in range(len(frame))], index=frame.index),
     )
     n_observations = keys.nunique()
+    if "assay_preparation" in frame.columns:
+        prep_series = _strings(frame, "assay_preparation").replace("", "unknown")
+        invalid_preps = set(prep_series.unique()) - set(ASSAY_PREPARATIONS)
+        if invalid_preps:
+            raise ValueError(f"Unknown assay_preparation values: {sorted(invalid_preps)}")
+    elif {"assay_method", "evidence_kind", "is_ms_observation", "generated_id"} & set(
+        frame.columns
+    ):
+        prep_cols = [
+            c
+            for c in (
+                "assay_method",
+                "evidence_kind",
+                "is_ms_observation",
+                "generated_id",
+                "parent_assay_contexts",
+            )
+            if c in frame.columns
+        ]
+        prep_series = (
+            attach_lineage_applicability(frame[prep_cols], copy=True)["assay_preparation"]
+            .astype("string")
+            .fillna("unknown")
+        )
+    else:
+        prep_series = pd.Series("unknown", index=frame.index, dtype="string")
+
+    if n_observations:
+        prep_by_key = (
+            pd.DataFrame({"key": keys, "prep": prep_series})
+            .groupby("key", sort=False)["prep"]
+            .agg(lambda s: s.iloc[0] if s.nunique() == 1 else "unknown")
+        )
+    else:
+        prep_by_key = pd.Series(dtype="string")
+
+    by_assay_preparation = {
+        prep: int((prep_by_key == prep).sum())
+        for prep in ASSAY_PREPARATIONS
+        if int((prep_by_key == prep).sum()) > 0
+    }
     data = {}
 
     def collect(axis, values, resolved):
@@ -53,11 +103,41 @@ def _partition_axes(frame, registry):
                 members.setdefault(value, set()).add(key)
         # All mapping alternatives of one observation must agree on resolution.
         known = pd.DataFrame({"key": keys, "resolved": resolved}).groupby("key")["resolved"].all()
-        data[axis] = {
+        entry = {
             "members": members,
             "n_unresolved_observations": int((~known).sum()),
             "available": bool(n_observations == 0 or axis in available),
         }
+        if axis in AXES:
+            resolved_mask = known.to_numpy(dtype=bool)
+            n_app_resolved = int(resolved_mask.sum())
+            if axis not in CELLULAR_DEPENDENCY_AXES:
+                n_app_unresolved = int((~resolved_mask).sum())
+                n_not_app = 0
+                n_app_unknown = 0
+            else:
+                unresolved_mask = ~resolved_mask
+                aligned_preps = (
+                    prep_by_key.reindex(known.index).fillna("unknown").to_numpy(dtype=object)
+                )
+                n_not_app = int((unresolved_mask & (aligned_preps == "purified_mhc")).sum())
+                n_app_unresolved = int(
+                    (
+                        unresolved_mask
+                        & np.isin(aligned_preps, list(_CELLULAR_APPLICABLE_PREPARATIONS))
+                    ).sum()
+                )
+                n_app_unknown = int(n_observations - n_app_resolved - n_not_app - n_app_unresolved)
+            entry.update(
+                {
+                    "n_applicable_observations": n_app_resolved + n_app_unresolved,
+                    "n_applicable_resolved_observations": n_app_resolved,
+                    "n_applicable_unresolved_observations": n_app_unresolved,
+                    "n_not_applicable_observations": n_not_app,
+                    "n_applicability_unknown_observations": n_app_unknown,
+                }
+            )
+        data[axis] = entry
 
     available = set()
     peptide = _strings(frame, "peptide")
@@ -128,6 +208,7 @@ def _partition_axes(frame, registry):
         "n_observations": int(n_observations),
         "n_mapping_alternative_rows": int(len(frame) - n_observations),
         "n_missing_observation_ids": int(evidence.eq("").sum()),
+        "by_assay_preparation": by_assay_preparation,
     }
 
 
@@ -160,7 +241,7 @@ def audit_splits(
         for axis in axes[left]:
             a, b = axes[left][axis], axes[right][axis]
             common = sorted(a["members"].keys() & b["members"].keys())
-            overlaps[axis] = {
+            overlap_entry = {
                 "n_shared_values": len(common),
                 "shared_values": common,
                 "n_left_observations": len(set().union(*(a["members"][v] for v in common))),
@@ -171,6 +252,27 @@ def audit_splits(
                 and a["available"]
                 and b["available"],
             }
+            if axis in AXES:
+                if not (a["available"] and b["available"]):
+                    app_status = "unavailable"
+                elif common:
+                    app_status = "overlap_detected"
+                elif (
+                    a["n_applicability_unknown_observations"]
+                    or b["n_applicability_unknown_observations"]
+                ):
+                    app_status = "applicability_unknown"
+                elif (
+                    a["n_applicable_unresolved_observations"]
+                    or b["n_applicable_unresolved_observations"]
+                ):
+                    app_status = "applicable_unresolved"
+                elif (a["n_applicable_observations"] + b["n_applicable_observations"]) == 0:
+                    app_status = "all_not_applicable"
+                else:
+                    app_status = "disjoint_where_applicable"
+                overlap_entry["applicability_status"] = app_status
+            overlaps[axis] = overlap_entry
         required = POLICIES[policy]
         if any(overlaps[axis]["n_shared_values"] for axis in required):
             verdict = "fail"

@@ -343,7 +343,9 @@ def write_cta_evidence_bundle(
         if other_assays_path().exists():
             other = load_other_assays(species="Homo sapiens", peptide=peptides)
             other["evidence_kind"] = "other"
-            other = attach_lineage(_apply_training_defaults(other), copy=False)
+            other = attach_lineage(
+                _apply_training_defaults(other), copy=False, include_applicability=True
+            )
             if len(other):
                 complete = pd.concat([complete, other], ignore_index=True, sort=False)
         if complete.provenance_id.isna().any() or complete.provenance_id.eq("").any():

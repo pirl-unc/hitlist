@@ -349,3 +349,82 @@ def test_bundle_checks_mapping_bytes_against_generation_receipt(built_index, tmp
     with pytest.raises(ValueError, match="Dataset generation hash mismatch: peptide_mappings"):
         write_training_bundle(tmp_path / "bundle", include_evidence="ms", map_source_proteins=True)
     assert not (tmp_path / "bundle").exists()
+
+
+def test_historical_pre_applicability_bundle_verifies_offline_and_incomplete_applicability_fails(
+    built_index, tmp_path
+):
+    from hitlist.lineage import APPLICABILITY_COLUMNS
+
+    directory = tmp_path / "historical_bundle"
+    write_training_bundle(directory, include_evidence="ms")
+    manifest = verify_training_bundle(directory)
+    assert "applicability" in manifest["coverage"]
+
+    # Simulate a pre-#706 schema-v1 bundle (e.g., human-cohort-corrected-v1):
+    # training.parquet retains assay_method, while identities.parquet and manifest.coverage
+    # predate assay_method and APPLICABILITY_COLUMNS.
+    training_path = directory / "training.parquet"
+    identities_path = directory / "identities.parquet"
+    manifest_path = directory / "manifest.json"
+
+    training = pd.read_parquet(training_path).drop(
+        columns=[c for c in APPLICABILITY_COLUMNS if c in pd.read_parquet(training_path).columns]
+    )
+    assert "assay_method" in training.columns
+    training.to_parquet(training_path, index=False)
+
+    identities = pd.read_parquet(identities_path).drop(
+        columns=["assay_method", *APPLICABILITY_COLUMNS]
+    )
+    identities.to_parquet(identities_path, index=False)
+
+    raw_manifest = json.loads(manifest_path.read_text())
+    del raw_manifest["coverage"]["applicability"]
+    raw_manifest["artifacts"]["training"].update(file_digest(training_path))
+    raw_manifest["artifacts"]["identities"].update(file_digest(identities_path))
+    manifest_path.write_text(json.dumps(raw_manifest))
+
+    verified = verify_training_bundle(directory)
+    assert "applicability" not in verified["coverage"]
+
+    # Partial applicability columns in identities must fail verification.
+    partial_dir = tmp_path / "partial_applicability"
+    write_training_bundle(partial_dir, include_evidence="ms")
+    p_ident_path = partial_dir / "identities.parquet"
+    p_manifest_path = partial_dir / "manifest.json"
+    pd.read_parquet(p_ident_path).drop(columns=["donor_applicability"]).to_parquet(
+        p_ident_path, index=False
+    )
+    p_manifest = json.loads(p_manifest_path.read_text())
+    p_manifest["artifacts"]["identities"].update(file_digest(p_ident_path))
+    p_manifest_path.write_text(json.dumps(p_manifest))
+    with pytest.raises(ValueError, match="Incomplete applicability columns"):
+        verify_training_bundle(partial_dir)
+
+
+def test_model_training_accepts_verified_bundle_and_recovers_narrow_projection(
+    built_index, tmp_path
+):
+    from hitlist import prepare_ms_training_data
+
+    bundle_dir = tmp_path / "ms_bundle"
+    write_training_bundle(
+        bundle_dir,
+        include_evidence="ms",
+        map_source_proteins=True,
+        columns=["peptide", "mhc_restriction", "mhc_allele_set", "mhc_allele_provenance"],
+    )
+    sel = prepare_ms_training_data(bundle_dir, scorable_class_i_only=True)
+    assert sel.summary["source_bundle"]["manifest_sha256"]
+    assert sel.summary["n_input_rows"] == 4
+    assert sel.summary["n_input_candidate_rows"] == 2
+    assert sel.summary["n_mapping_alternative_rows_collapsed"] == 2
+    assert len(sel.accepted) == 2
+    assert set(sel.accepted["assay_preparation"]) == {"cell_associated_ms"}
+    assert set(sel.accepted["donor_applicability"]) == {"applicable_unresolved"}
+
+    # Tampering with bundle bytes is rejected before any rows are returned.
+    (bundle_dir / "training.parquet").write_bytes(b"corrupt")
+    with pytest.raises(ValueError, match="artifact mismatch"):
+        prepare_ms_training_data(bundle_dir)

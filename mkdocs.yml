@@ -22,6 +22,7 @@ nav:
   - Source Classification: source-classification.md
   - PMID Curation Overrides: pmid-curation.md
   - Training Provenance and Split Audits: training-provenance.md
+  - Training Presto and MHCflurry: model-training.md
   - Bulk MS Detectability Datasets: detectability.md
   - Versioned UniProt References: uniprot-references.md
   - CTA Expression Evidence and Tissue Blacklists: cta-evidence.md
