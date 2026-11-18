@@ -547,13 +547,16 @@ options:
   --mhc-allele-provenance {exact,peptide_attribution,sample_allele_match,pmid_class_pool,peptide_locus_match,sample_locus_match,pmid_locus_pool,peptide_serotype_match,sample_serotype_match,pmid_serotype_pool,haplotype_roster,unmatched} [{exact,peptide_attribution,sample_allele_match,pmid_class_pool,peptide_locus_match,sample_locus_match,pmid_locus_pool,peptide_serotype_match,sample_serotype_match,pmid_serotype_pool,haplotype_roster,unmatched} ...]
                         Filter by how the allele set was obtained. Use 'exact' for strict-
                         resolution training; ['exact', 'sample_allele_match'] for MIL / noisy-OR
-                        over small trusted sets.
+                        over small trusted sets. Space/comma-separated or repeated; a blank
+                        selection matches no rows.
   --restriction-evidence {experimental,monoallelic,predicted,unknown} [{experimental,monoallelic,predicted,unknown} ...]
                         Filter by how the named peptide-to-MHC restriction was established.
+                        Space/comma-separated or repeated; a blank selection matches no rows.
   --serotype-source {reported,derived,donor_set} [{reported,derived,donor_set} ...]
                         Filter by whether the serotype is primary data (reported), a projection of
                         a named molecule (derived), or a union over a donor's typed alleles
-                        (donor_set).
+                        (donor_set). Space/comma-separated or repeated; a blank selection matches
+                        no rows.
   --gene GENE [GENE ...]
                         Filter to peptides from these genes. Accepts current symbols, Ensembl gene
                         IDs (ENSG...), and old/alias symbols (resolved via HGNC). Space-separated,
@@ -576,7 +579,7 @@ options:
                         class-I peptides 15-17aa as well.
   --exclude-class-label-implausible
                         Drop only rows flagged 'implausible' by mhc_class_label_severity (class-I
-                        ≥18aa or ≤7aa, class-II ≤4 or ≥31aa). Keeps borderline (13-14aa class-I,
+                        ≥18aa or ≤7aa, class-II ≤4 or ≥45aa). Keeps borderline (13-14aa class-I,
                         8-10aa class-II) and suspect (15-17aa class-I, 5-7aa class-II) rows.
                         Useful when bulged class-I peptides should be retained (#201).
   --apm-only            Filter to peptide rows from samples where any APM gene was perturbed
@@ -633,13 +636,16 @@ options:
   --mhc-allele-provenance {exact,peptide_attribution,sample_allele_match,pmid_class_pool,peptide_locus_match,sample_locus_match,pmid_locus_pool,peptide_serotype_match,sample_serotype_match,pmid_serotype_pool,haplotype_roster,unmatched} [{exact,peptide_attribution,sample_allele_match,pmid_class_pool,peptide_locus_match,sample_locus_match,pmid_locus_pool,peptide_serotype_match,sample_serotype_match,pmid_serotype_pool,haplotype_roster,unmatched} ...]
                         Filter by how the allele set was obtained. Use 'exact' for strict-
                         resolution training; ['exact', 'sample_allele_match'] for MIL / noisy-OR
-                        over small trusted sets.
+                        over small trusted sets. Space/comma-separated or repeated; a blank
+                        selection matches no rows.
   --restriction-evidence {experimental,monoallelic,predicted,unknown} [{experimental,monoallelic,predicted,unknown} ...]
                         Filter by how the named peptide-to-MHC restriction was established.
+                        Space/comma-separated or repeated; a blank selection matches no rows.
   --serotype-source {reported,derived,donor_set} [{reported,derived,donor_set} ...]
                         Filter by whether the serotype is primary data (reported), a projection of
                         a named molecule (derived), or a union over a donor's typed alleles
-                        (donor_set).
+                        (donor_set). Space/comma-separated or repeated; a blank selection matches
+                        no rows.
   --gene GENE [GENE ...]
                         Filter to peptides from these genes. Accepts current symbols, Ensembl gene
                         IDs (ENSG...), and old/alias symbols (resolved via HGNC). Space-separated,
@@ -662,7 +668,7 @@ options:
                         class-I peptides 15-17aa as well.
   --exclude-class-label-implausible
                         Drop only rows flagged 'implausible' by mhc_class_label_severity (class-I
-                        ≥18aa or ≤7aa, class-II ≤4 or ≥31aa). Keeps borderline (13-14aa class-I,
+                        ≥18aa or ≤7aa, class-II ≤4 or ≥45aa). Keeps borderline (13-14aa class-I,
                         8-10aa class-II) and suspect (15-17aa class-I, 5-7aa class-II) rows.
                         Useful when bulged class-I peptides should be retained (#201).
   --apm-only            Filter to peptide rows from samples where any APM gene was perturbed
@@ -755,13 +761,16 @@ options:
                         Filter to rows whose mhc_allele_set (issue #137 candidate-allele set)
                         contains any of the listed alleles. Repeatable.
   --mhc-allele-provenance {exact,peptide_attribution,sample_allele_match,pmid_class_pool,peptide_locus_match,sample_locus_match,pmid_locus_pool,peptide_serotype_match,sample_serotype_match,pmid_serotype_pool,haplotype_roster,unmatched} [{exact,peptide_attribution,sample_allele_match,pmid_class_pool,peptide_locus_match,sample_locus_match,pmid_locus_pool,peptide_serotype_match,sample_serotype_match,pmid_serotype_pool,haplotype_roster,unmatched} ...]
-                        Filter by how the allele set was obtained (issue #137).
+                        Filter by how the allele set was obtained (issue #137). Space/comma-
+                        separated or repeated; a blank selection matches no rows.
   --restriction-evidence {experimental,monoallelic,predicted,unknown} [{experimental,monoallelic,predicted,unknown} ...]
                         Filter by how the named peptide-to-MHC restriction was established.
+                        Space/comma-separated or repeated; a blank selection matches no rows.
   --serotype-source {reported,derived,donor_set} [{reported,derived,donor_set} ...]
                         Filter by whether the serotype is primary data (reported), a projection of
                         a named molecule (derived), or a union over a donor's typed alleles
-                        (donor_set).
+                        (donor_set). Space/comma-separated or repeated; a blank selection matches
+                        no rows.
   --gene GENE [GENE ...]
                         Filter by gene (HGNC symbol, Ensembl ID, or old alias). Space-separated,
                         comma-separated, or repeated. Requires a mappings-built index.

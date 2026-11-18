@@ -68,6 +68,11 @@ test.sh refused before pytest at 0.23 GiB available; the full post-change
 attempt is recorded in /private/tmp/hitlist-filter-full.log. No memory-guard
 override or local test pass is claimed. Candidate version is 2.1.14.
 
+Initial hosted Python 3.13 gate: 4,005 passed, two skipped, one failure in
+the CLI help snapshot. The new filter behavior passed. Regenerate the snapshot
+for the intentional guidance changes and correct the pre-existing threshold
+documentation drift discovered during that review; scientific rules are unchanged.
+
 # Training-data completeness and export correctness — #912/#914, 2026-11-18
 
 Roadmap: [training-quality-roadmap.md](training-quality-roadmap.md).
