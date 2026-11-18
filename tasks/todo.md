@@ -1,3 +1,11 @@
+# APC curation PR #909 final review — 2026-11-18
+
+- [x] Preserve the original checkout and reconcile with the export/filter fixes.
+- [ ] Independently review source evidence and condition-membership contracts.
+- [ ] File and resolve in-scope correctness findings; retain unrelated issues.
+- [ ] Refresh version to 2.1.15 and validate isolated metadata, format/lint/tests.
+- [ ] Review final head, merge after #915/#916 and verify PyPI publication.
+
 # APC intervention, statement membership & engineered HLA-DP curation — #899, #900, #856, #593, 2026-11-17
 
 Specification: [apc-intervention-curation-spec.md](apc-intervention-curation-spec.md).
@@ -18,6 +26,121 @@ preservation, `expand_condition_memberships()` provenance retention, and
 `engineering_drift_audit` (`55 -> 54` findings with `36796642` resolved). Passed
 `./format.sh`, `./lint.sh`, `scripts/check_dev_install.py`, and all 3,839 non-integration
 unit tests (`1` skip, `0` failures). Hosted CI and PyPI release `2.1.11` run next.
+
+# Consistent peptide filter inputs — #913, 2026-11-18
+
+Specification: [filter-input-contracts-spec.md](filter-input-contracts-spec.md).
+
+- [x] Read loader/CLI contracts and define normalization and empty-input policy.
+- [x] Audit scalar/list discrepancies and add regressions for empty Arrow/missing-schema failures.
+- [x] Share normalization across loaders and CLI while preserving validation.
+- [ ] Add public API/CLI regressions and version bump; pass required gates.
+- [ ] Review, merge and deploy after #915; verify both public distributions.
+
+## Review
+
+This branch is stacked on #915 while its hosted checks run. Added public API,
+training-export and CLI regressions. Empty gene queries now remain empty even
+through the high-level union export; absent candidate-set columns cause a
+rebuild error instead of disabling the filter. Vocabulary choices remain
+validated after comma/whitespace normalization.
+
+Format/lint and isolated metadata/dependency checks pass. Local baseline
+test.sh refused before pytest at 0.23 GiB available; the full post-change
+attempt is recorded in /private/tmp/hitlist-filter-full.log. No memory-guard
+override or local test pass is claimed. Candidate version is 2.1.14.
+
+# Training-data completeness and export correctness — #912/#914, 2026-11-18
+
+Roadmap: [training-quality-roadmap.md](training-quality-roadmap.md).
+Current specification: [training-export-contracts-spec.md](training-export-contracts-spec.md).
+
+- [x] Inspect current source/issues and preserve existing work in separate checkouts.
+- [x] Specify delivery order, export invariants and verification before code changes.
+- [x] Add regressions reproducing stale projected labels and empty derived schemas.
+- [x] Implement common empty-result finalization and quality-field dependencies.
+- [ ] Bump version; pass format/lint, metadata, guarded tests and hosted checks.
+- [ ] Review, merge, publish and verify both public distributions.
+- [ ] Continue #913, existing curation PRs and quantitative-source work in roadmap order.
+
+## Review
+
+Main baseline is the verified 2.1.12 release; original APC and Presto worktrees
+remain untouched. The initial 75-case baseline reproduced 69 failures and six
+passes. Typed empty Arrow predicates now reach normal derivation; projected
+quality flags load current inputs even when stale flags exist on disk. Missing
+requested derived columns receive typed empty Series without mappings reads.
+Added six legacy-schema/source-dtype cases after the baseline reproduction.
+
+Format and lint pass. Subsequent focused and full local test attempts were
+refused before pytest by the unchanged guard (0.15 and 0.17 GiB available).
+The sandbox also prevents the system memory probe; the reported capacity was
+measured outside it. Hosted validation is required; no post-fix local pass is
+claimed. Candidate version is 2.1.13.
+
+# Stored serotype migration and dependency lock — #907, #908, #911, 2026-11-17
+
+Specification: [serotype-refresh-907-908-spec.md](serotype-refresh-907-908-spec.md).
+
+- [x] Inspect findings and create an isolated branch from current main.
+- [x] Add regressions for the two migration failures reproduced during review.
+- [x] Refresh derived annotations for each distinct nonempty restriction.
+- [x] Refresh uv.lock, bump version and validate an isolated locked environment.
+- [ ] Run all required gates; format/lint pass, local test preflight refused.
+- [x] Open draft PR #910 linking #907 and #908 with validation evidence.
+- [x] Fix #911 with empty-result schema and dtype regressions.
+- [x] Audit nearby bugs, API ambiguity and curation; split in-scope fixes from issues.
+- [ ] Review the final diff and pass exact-head hosted checks.
+- [ ] Merge, build on clean main, publish and verify both public PyPI files.
+- [ ] Give Presto concrete upgrade and regression-check instructions.
+
+## Review
+
+The loader now resolves each distinct nonempty restriction and retains the
+existing changed-value assignments and category preservation. Both serotype
+membership and serotype_source filtering run after the refresh. Thirteen new
+regression cases cover removed B75 membership, added A2.1 membership, both
+loaders, projections, filter-only inputs, reported/donor-set provenance, and
+unchanged/missing annotations. The obsolete refresh whitelist is removed.
+
+uv.lock changes only mhcgnomes 3.64.6 -> 3.70.3 and its associated dependency
+metadata. A fresh isolated locked environment passes pip check. Format/lint
+pass. Python 3.12 CI now installs with uv sync --locked and checks dependencies;
+the other matrix legs retain fresh pip resolution. The local baseline and full-suite attempts were refused before pytest
+by the unchanged memory guard (1.53 GiB and 0.14 GiB available); preserve those
+refusals and qualify via hosted CI. uv lock --check and the editable-install
+audit also pass. No full local test pass is claimed. Existing independent work is preserved
+in the original checkout. Version candidate 2.1.12 avoids active 2.1.11 PRs.
+
+Hosted Python 3.13 run 44199238537 at f1215a6 passed all thirteen new migration
+cases, with 3,836 total passes and two failures. Both failures were the existing
+attribution-scope test expecting an HLA-G row with a stale HLA-A2 label to match
+the A2 query. Update that expectation to exclude the false match while retaining
+all donor-repair, projection and row-selection assertions. The subsequent
+0a6f3a3 matrix passed all five unit configurations (3,838 passed / two skipped
+in Python 3.12) and all 97 integration cases. The expanded final head must pass
+again before landing.
+
+#911 now forces an explicitly boolean serotype predicate, with 36 new cases
+covering both loaders, storage dtypes, projections, empty stored inputs and
+earlier filters. Explicit empty serotype selections now match zero rows;
+the existing migration matrix also exercises this contract. Format/lint pass;
+the latest local baseline preflight refused at 0.26 GiB without starting tests.
+
+Separate follow-ups reproduced on both ccfe326 and this PR: #912 (empty derived
+schema), #913 (scalar/list and empty filter semantics), and #914 (projected
+class-quality labels retaining stale values). The latter demonstrates a derived
+curation-label inconsistency, not a newly asserted biological threshold defect.
+These are linked from the PR and remain outside its serotype/dependency scope.
+
+Presto's current loader calls generate_training_table for binding and MS and
+asserts projected columns; these exports route through the repaired loaders.
+Its dependency/runtime/remote-launcher floor is still 1.53.0. The handoff should
+pin the shipped Hitlist release in the experiment environment, preserve shared
+editable installs, regenerate downstream frozen exports, retain restriction and
+provenance distinctions, and run the existing consumer contract tests. Raw
+Parquet indexes need no rebuild for this load-time refresh; direct raw readers
+must use the loaders or explicitly regenerate their data products.
 
 # Reconcile mhcgnomes >= 3.70.2 contract and map_peptides empty flank schema — #897, #868, 2026-11-17
 
