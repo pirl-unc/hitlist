@@ -343,7 +343,8 @@ def load_observations(
         length_max=25`` to MHC-II. ``None`` (default) means no bound.
     exclude_class_label_suspect
         When True, drop rows where the peptide length disagrees with
-        the curated MHC class (class II ≤ 10 aa, or class I ≥ 18 aa).
+        the curated MHC class severely (class I ≤7 or ≥15 aa; class II
+        ≤7 or ≥45 aa). Borderline lengths are retained.
         See ``mhc_class_label_suspect`` flag (#182). Useful for model
         training pipelines that should not see IEDB class-label drift.
     exclude_non_peptide_ligand

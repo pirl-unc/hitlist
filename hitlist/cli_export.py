@@ -808,7 +808,7 @@ def register(sub: argparse._SubParsersAction) -> None:
         action="store_true",
         help=(
             "Drop only rows flagged 'implausible' by mhc_class_label_severity "
-            "(class-I ≥18aa or ≤7aa, class-II ≤4 or ≥31aa). Keeps borderline "
+            "(class-I ≥18aa or ≤7aa, class-II ≤4 or ≥45aa). Keeps borderline "
             "(13-14aa class-I, 8-10aa class-II) and suspect (15-17aa class-I, "
             "5-7aa class-II) rows. Useful when bulged class-I peptides should "
             "be retained (#201)."
