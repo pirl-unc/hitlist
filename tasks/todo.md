@@ -48,6 +48,11 @@ help snapshot subsequently corrected in #916. The focused retry was refused
 at 0.69 GiB available memory. These are not passing validation. Hosted gates
 must qualify the final head; neither safeguard was weakened.
 
+First hosted review unit run: 4,032 passed, two skipped, one failure in the
+existing symmetric-arm-label guard. The new EL4 labels named material absent
+from their condition descriptions. Made the cultured/tumor condition scope
+explicit on all four arms; keep the guard and ambiguous-material regression.
+
 # APC intervention, statement membership & engineered HLA-DP curation — #899, #900, #856, #593, 2026-11-17
 
 Specification: [apc-intervention-curation-spec.md](apc-intervention-curation-spec.md).
