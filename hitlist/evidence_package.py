@@ -7,6 +7,12 @@ def package_family(manifest):
     """Classify the envelope; the family's verifier still validates all content."""
     schema = manifest.get("schema_version")
     if (
+        schema == 30
+        and manifest.get("package_family") == "perturbation_quantities"
+        and manifest.get("revision") == "stopfer2020_reporter_quantities_v1"
+    ):
+        return "perturbation_quantities"
+    if (
         schema == 29
         and manifest.get("package_family") == "nontryptic_calibration"
         and manifest.get("revision") == "pxd024917_nominal_ms2_v1"

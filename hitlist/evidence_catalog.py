@@ -21,8 +21,11 @@ from .native_peptidomics_schema import SCHEMAS as NATIVE_SCHEMAS
 from .nontryptic_calibration_schema import FIELD_MEANINGS as NONTRYPTIC_FIELD_MEANINGS
 from .nontryptic_calibration_schema import RELATIONS as NONTRYPTIC_RELATIONS
 from .nontryptic_calibration_schema import SCHEMAS as NONTRYPTIC_SCHEMAS
+from .perturbation_quantity_schema import FIELD_MEANINGS as PERTURBATION_FIELD_MEANINGS
+from .perturbation_quantity_schema import RELATIONS as PERTURBATION_RELATIONS
+from .perturbation_quantity_schema import SCHEMAS as PERTURBATION_SCHEMAS
 
-SCHEMA_VERSION = 39
+SCHEMA_VERSION = 40
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -1575,6 +1578,19 @@ for _name, _definition in sorted(_nontryptic_fields.items()):
     if _name.endswith("_id"):
         _role, _kind = "identity", "identifier"
     FIELDS += (_field(_name, _role, _kind, NONTRYPTIC_FIELD_MEANINGS[_name]),)
+
+_existing_fields = {field.name for field in FIELDS}
+_perturbation_fields = {
+    field.name: field for schema in PERTURBATION_SCHEMAS.values() for field in schema
+}
+for _name, _definition in sorted(_perturbation_fields.items()):
+    if _name in _existing_fields:
+        continue
+    _kind = "number" if str(_definition.type) in {"int64", "double"} else "text"
+    _role = "provenance"
+    if _name.endswith("_id"):
+        _role, _kind = "identity", "identifier"
+    FIELDS += (_field(_name, _role, _kind, PERTURBATION_FIELD_MEANINGS[_name]),)
 
 _FIELD_BY_NAME = {field.name: field for field in FIELDS}
 
@@ -5507,6 +5523,24 @@ EVIDENCE += tuple(
         min_package_schema_version=29,
     )
     for name, (grain, kind, primary_key) in NONTRYPTIC_RELATIONS.items()
+)
+
+EVIDENCE += tuple(
+    Evidence(
+        "perturbation_" + name,
+        kind,
+        "relative_perturbation_reporter_quantity",
+        grain,
+        f"perturbation_quantities/typed/{name}.parquet",
+        "pxd017407_original_reporter_quantities_with_qualified_protocol",
+        (),
+        tuple(PERTURBATION_SCHEMAS[name].names),
+        (primary_key,),
+        status="v2_materialized",
+        materialized_artifact=f"perturbation_quantities/typed/{name}.parquet",
+        min_package_schema_version=30,
+    )
+    for name, (grain, kind, primary_key) in PERTURBATION_RELATIONS.items()
 )
 
 _EVIDENCE_BY_NAME = {item.name: item for item in EVIDENCE}

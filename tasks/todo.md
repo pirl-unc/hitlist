@@ -1,3 +1,51 @@
+# Original perturbation quantities — #901 / #924, 2026-11-18
+
+Specification: [perturbation-quantities-spec.md](perturbation-quantities-spec.md).
+
+- [x] Recover original Data 3/5, inspect all sheets and independently replay effects.
+- [x] File source conflicts as #924; retain #901 for the broader source program.
+- [x] Pin source contracts and expose typed rows through the shared EvidenceStore.
+- [x] Add a source-qualified unpaired contrast recipe, exclusions and provenance.
+- [ ] Verify real-source conservation, software gates and consumer semantics.
+- [ ] Review, merge after dependent releases, deploy and verify public distributions.
+
+## Initial implementation review
+
+Original source discrepancies filed as #924. Independent pre-implementation
+workbook arithmetic reconciles 17,763 form/plex comparisons within 1.01e-9 of
+reported log2 effects. Software fixtures cover literal/formula preservation,
+source-dose conflicts, modified forms, zero exclusion, shared joins, empty
+selection, immutable snapshots and tampering after rehash. A separate hosted
+qualification workflow must replay every real quantity and contrast using
+openpyxl independently of the production XML reader. Local focused tests were
+refused at 0.25 GiB by the unchanged guard; no local pass is claimed.
+
+Initial hosted Python 3.12 run: 4,064 passed, two skipped, one failure in the new
+empty-query test's predicate syntax. Corrected the fixture call to the existing
+op/value contract. Full local test.sh refused at 0.23 GiB. Review also keeps the
+deposited line-associated MHC labels as candidates, leaving independent cellular
+typing unset; reuses the common treatment name/dose/unit/duration fields; and
+retains the raw SKMEL5 summary statistics as distinct from normalized summaries.
+
+The corrected public query regression exposed shared bug #927: Arrow's inferred
+null-typed empty membership cannot bind to typed columns. Use a false expression
+for the empty set, preserving other predicate validation and projection types.
+Shared regressions cover direct/related queries and counts across string, large
+string, integer and float columns and all four accepted empty collection types.
+The second hosted run had 4,064 passes, two skips and this one failure; final-head
+verification remains required after the fix.
+Format/lint pass after the shared fix. The focused local retry was refused at
+0.13 GiB by the unchanged memory guard; hosted verification is required.
+
+The next head passes the full release build (4,098 unit / 98 corpus tests), but
+the independent original-source replay catches three rounded file-map contract
+labels: source XML stores 2.2000000000000002, 2.2999999999999998 and
+5.0999999999999996. Pin these exact literals and test line/dose qualification.
+The coverage matrix separately hit #928's startup-speed assertion (5.076s);
+replace it with direct proof of worker termination/reaping. Explicit test paths
+also add the full suite (#929); use supported -k selection for the source job
+and keep the general argument-contract fix as a separate issue.
+
 # DP/DM PR #898 final review — 2026-11-18
 
 - [x] Preserve original work and specify source/software qualification.

@@ -11,6 +11,7 @@ from hitlist.evidence_bindings import materialized_bindings
 from hitlist.evidence_recipe import RecipeError, _read_recipe, verify_recipe_package
 from hitlist.evidence_store import (
     EvidenceFieldError,
+    EvidenceQueryError,
     EvidenceRelationshipError,
     EvidenceStore,
 )
@@ -26,7 +27,9 @@ def _store(tmp_path, rows):
     for name, values in rows.items():
         path = tmp_path / bindings[name][0].materialized_artifact
         path.parent.mkdir(parents=True, exist_ok=True)
-        pq.write_table(pa.Table.from_pylist(values), path)
+        pq.write_table(
+            values if isinstance(values, pa.Table) else pa.Table.from_pylist(values), path
+        )
         schemas[name] = pq.ParquetFile(path).schema_arrow
     (tmp_path / "manifest.json").write_text(json.dumps({"schema_version": 6}))
     store = EvidenceStore.__new__(EvidenceStore)
@@ -42,6 +45,50 @@ def test_recipe_yaml_rejects_duplicate_keys(tmp_path):
     recipe.write_text("schema_version: 1\nschema_version: 2\n")
     with pytest.raises(yaml.constructor.ConstructorError, match="duplicate key"):
         _read_recipe(recipe)
+
+
+@pytest.mark.parametrize("collection", [list, tuple, set, frozenset])
+@pytest.mark.parametrize("field", ["native.probe", "context.native.probe"])
+@pytest.mark.parametrize(
+    "dtype,value",
+    [(pa.string(), "x"), (pa.large_string(), "x"), (pa.int64(), 1), (pa.float64(), 1.5)],
+)
+def test_empty_membership_preserves_direct_and_related_schema(
+    tmp_path, collection, field, dtype, value
+):
+    source = pa.table(
+        {"measurement_id": ["m"], "context_id": ["ctx"], "probe": pa.array([value], type=dtype)}
+    )
+    context = pa.table({"context_id": ["ctx"], "probe": pa.array([value], type=dtype)})
+    store = _store(tmp_path, {"hap1_quantities": source, "hap1_contexts": context})
+    fields = ["measurement_id", "native.probe", "context.native.probe"]
+    baseline = store.query("hap1_quantities", select=fields, joins=["context"], limit=None)
+    where = {field: {"op": "in", "value": collection()}}
+    result = store.query(
+        "hap1_quantities", select=fields, joins=["context"], where=where, limit=None
+    )
+    assert result.n_rows == 0
+    assert result.table.schema == baseline.table.schema
+    assert store.count("hap1_quantities", joins=["context"], where=where) == 0
+    assert (
+        store.count(
+            "hap1_quantities", joins=["context"], where={field: {"op": "in", "value": [value]}}
+        )
+        == 1
+    )
+
+
+def test_empty_membership_still_validates_other_predicates(tmp_path):
+    store = _store(tmp_path, {"hap1_quantities": [{"measurement_id": "m", "value": 1.0}]})
+    with pytest.raises(EvidenceQueryError, match="requires a sequence"):
+        store.query(
+            "hap1_quantities",
+            select=["measurement_id"],
+            where={
+                "measurement_id": {"op": "in", "value": []},
+                "native.value": {"op": "in", "value": "invalid"},
+            },
+        )
 
 
 @pytest.mark.parametrize("keys", [[None], [None, "ctx"]])
