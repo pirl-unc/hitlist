@@ -4212,7 +4212,7 @@ def generate_training_table(
             raise ValueError("Provenance metadata missing; rebuild observations")
     from .lineage import attach_lineage
 
-    result = attach_lineage(result, copy=False)
+    result = attach_lineage(result, copy=False, include_applicability=True)
 
     if map_source_proteins:
         mappings = _load_training_mappings_for_peptides(

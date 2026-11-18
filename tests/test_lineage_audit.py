@@ -4,7 +4,15 @@ import json
 import pandas as pd
 import pytest
 
-from hitlist.lineage import attach_lineage, load_lineage, validate_lineage
+from hitlist.lineage import (
+    APPLICABILITY_COLUMNS,
+    attach_lineage,
+    attach_lineage_applicability,
+    axis_applicability_status,
+    classify_assay_preparation,
+    load_lineage,
+    validate_lineage,
+)
 from hitlist.split_audit import audit_splits
 
 
@@ -214,3 +222,197 @@ def test_assay_identity_normalizes_database_copies(registry):
     )
     assert report["verdict"] == "fail"
     assert report["pairs"][0]["overlaps"]["observation"]["n_shared_values"] == 1
+
+
+def test_classify_assay_preparation_distinguishes_preparations_and_conflicts():
+    assert classify_assay_preparation("purified MHC/competitive/radioactivity", "binding") == (
+        "purified_mhc",
+        "explicit_purified_mhc_method",
+    )
+    assert classify_assay_preparation("cellular MHC/competitive/fluorescence", "binding") == (
+        "cellular_mhc",
+        "explicit_cellular_mhc_method",
+    )
+    assert classify_assay_preparation("lysate MHC/direct/radioactivity", "binding") == (
+        "lysate_mhc",
+        "explicit_lysate_mhc_method",
+    )
+    assert classify_assay_preparation("mass spectrometry", "ms") == (
+        "cell_associated_ms",
+        "native_elution_evidence",
+    )
+    # Numeric assay phrasing without an explicit preparation clause never implies purified MHC.
+    assert classify_assay_preparation("competitive radioactivity IC50", "binding") == (
+        "unknown",
+        "unspecified_assay_preparation",
+    )
+    assert classify_assay_preparation("not purified MHC clause", "binding") == (
+        "unknown",
+        "unspecified_assay_preparation",
+    )
+    assert classify_assay_preparation(
+        "purified MHC; cellular MHC/competitive/fluorescence", "binding"
+    ) == ("unknown", "conflicting_assay_preparation")
+    assert classify_assay_preparation("purified MHC/direct/mass spectrometry", "ms") == (
+        "unknown",
+        "conflicting_assay_preparation",
+    )
+    with pytest.raises(ValueError, match="Unknown lineage axis"):
+        axis_applicability_status("invalid_axis", "unknown", "purified_mhc")
+    with pytest.raises(ValueError, match="Unknown assay preparation"):
+        axis_applicability_status("donor", "unknown", "invented_prep")
+
+
+def test_attach_lineage_applicability_preserves_native_status_and_handles_generated_rows(registry):
+    empty = attach_lineage_applicability(pd.DataFrame())
+    assert set(APPLICABILITY_COLUMNS) <= set(empty.columns)
+
+    frame = pd.DataFrame(
+        {
+            "pmid": [900, 901, 1, 902, 903, 904],
+            "condition_id": ["", "", "arm", "", "", ""],
+            "sample_attribution": ["", "", "curated_sample_label", "", "", ""],
+            "evidence_kind": ["binding", "binding", "ms", "binding", "ms", "binding"],
+            "assay_method": [
+                "purified MHC/competitive/radioactivity",
+                "cellular MHC/competitive/fluorescence",
+                "mass spectrometry",
+                "",
+                "",
+                "",
+            ],
+            "generated_id": ["", "", "", "gen:purified", "gen:cell", "gen:mixed"],
+            "parent_assay_contexts": [
+                "",
+                "",
+                "",
+                json.dumps(
+                    [{"method": "purified MHC/direct/fluorescence", "evidence_kind": "binding"}]
+                ),
+                json.dumps(
+                    [
+                        {"method": "cellular MHC/direct/fluorescence", "evidence_kind": "binding"},
+                        {"method": "mass spectrometry", "evidence_kind": "ms"},
+                    ]
+                ),
+                json.dumps(
+                    [
+                        {"method": "purified MHC/direct/fluorescence", "evidence_kind": "binding"},
+                        {"method": "cellular MHC/direct/fluorescence", "evidence_kind": "binding"},
+                    ]
+                ),
+            ],
+        }
+    )
+    enriched = attach_lineage(frame, registry, include_applicability=True)
+    # Native <axis>_status values are never rewritten by applicability.
+    assert list(enriched["donor_status"]) == [
+        "unknown",
+        "unknown",
+        "resolved",
+        "unknown",
+        "unknown",
+        "unknown",
+    ]
+    assert list(enriched["assay_preparation"]) == [
+        "purified_mhc",
+        "cellular_mhc",
+        "cell_associated_ms",
+        "purified_mhc",
+        "generated_cellular_consensus",
+        "unknown",
+    ]
+    assert list(enriched["donor_applicability"]) == [
+        "not_applicable",
+        "applicable_unresolved",
+        "applicable_resolved",
+        "not_applicable",
+        "applicable_unresolved",
+        "applicability_unknown",
+    ]
+    # Experimental origin and acquisition remain applicable even for purified recombinant MHC.
+    assert enriched.loc[0, "experimental_origin_applicability"] == "applicable_unresolved"
+    assert enriched.loc[0, "acquisition_applicability"] == "applicable_unresolved"
+
+    bad_parent = frame.iloc[[3]].copy()
+    bad_parent["parent_assay_contexts"] = '[{"method": "purified MHC"}]'
+    with pytest.raises(ValueError, match="parent_assay_contexts"):
+        attach_lineage_applicability(bad_parent)
+
+
+def test_split_audit_reports_applicability_denominators_without_false_pass(registry):
+    purified = attach_lineage(
+        pd.DataFrame(
+            {
+                "pmid": [101, 102],
+                "condition_id": ["", ""],
+                "sample_attribution": ["", ""],
+                "evidence_kind": ["binding", "binding"],
+                "assay_method": [
+                    "purified MHC/competitive/radioactivity",
+                    "purified MHC/direct/fluorescence",
+                ],
+                "evidence_row_id": [
+                    "binding:http://iedb.org/assay/101",
+                    "binding:http://iedb.org/assay/102",
+                ],
+                "peptide": ["AAAAAAAAA", "BBBBBBBBB"],
+                "mhc_restriction": ["HLA-A*02:01", "HLA-A*03:01"],
+                "has_peptide_level_allele": [True, True],
+            }
+        ),
+        registry,
+        include_applicability=True,
+    )
+    report = audit_splits(
+        {"train": purified.iloc[:1], "test": purified.iloc[1:]},
+        policy="donor_disjoint",
+        registry=registry,
+    )
+    # Non-applicable donor axes must NEVER turn an unreviewed split into "pass".
+    assert report["verdict"] == "inconclusive"
+    assert report["partitions"]["train"]["by_assay_preparation"] == {"purified_mhc": 1}
+    donor_cov = report["partitions"]["train"]["coverage"]["donor"]
+    assert donor_cov["n_unresolved_observations"] == 1
+    assert donor_cov["n_not_applicable_observations"] == 1
+    assert donor_cov["n_applicable_observations"] == 0
+    assert report["pairs"][0]["overlaps"]["donor"]["applicability_status"] == "all_not_applicable"
+    assert (
+        report["pairs"][0]["overlaps"]["experimental_origin"]["applicability_status"]
+        == "applicable_unresolved"
+    )
+
+    resolved_ms = _observations([1], registry, ["CCCCCCCCC"])
+    resolved_ms["assay_method"] = "mass spectrometry"
+    mixed_report = audit_splits(
+        {
+            "train": pd.concat([resolved_ms, purified.iloc[:1]], ignore_index=True),
+            "test": purified.iloc[1:],
+        },
+        policy="donor_disjoint",
+        registry=registry,
+    )
+    assert mixed_report["verdict"] == "inconclusive"
+    assert (
+        mixed_report["pairs"][0]["overlaps"]["donor"]["applicability_status"]
+        == "disjoint_where_applicable"
+    )
+
+    cellular_unresolved = purified.iloc[1:].copy()
+    cellular_unresolved["assay_method"] = "cellular MHC/competitive/fluorescence"
+    cellular_unresolved = attach_lineage_applicability(cellular_unresolved)
+    cell_report = audit_splits(
+        {"train": resolved_ms, "test": cellular_unresolved},
+        policy="donor_disjoint",
+        registry=registry,
+    )
+    assert (
+        cell_report["partitions"]["test"]["coverage"]["donor"][
+            "n_applicable_unresolved_observations"
+        ]
+        == 1
+    )
+    assert (
+        cell_report["pairs"][0]["overlaps"]["donor"]["applicability_status"]
+        == "applicable_unresolved"
+    )

@@ -35,7 +35,8 @@ training rows or evidence weight. Rows with neither assay nor reference IDs
 remain separate observations (#624).
 
 ```python
-from hitlist import generate_training_table, load_contributors
+from hitlist import load_contributors
+from hitlist.export import generate_training_table
 
 training = generate_training_table(include_evidence="ms", columns=["peptide"])
 contributors = load_contributors(training.provenance_id)
@@ -123,17 +124,18 @@ comparison-only arms remain unprofiled. Registry coverage is deliberately partia
 
 ## Versioned bundles
 
-```bash
-hitlist export training --include-evidence ms --class I \
-    --columns peptide mhc_restriction --bundle train-bundle \
-    --split-policy independent_experiments
-```
+Hitlist 2.0 removed the `hitlist export training` CLI subcommand in favor of
+`hitlist evidence materialize` recipes (see [Evidence store](evidence-store.md)).
+Frozen audit bundles over the built observation/binding indexes remain available
+in Python via `hitlist.training_bundle`:
 
 ```python
-from hitlist import write_training_bundle, verify_training_bundle
+from hitlist.training_bundle import verify_training_bundle, write_training_bundle
 
 write_training_bundle(
-    "train-bundle", include_evidence="ms", map_source_proteins=True,
+    "train-bundle",
+    include_evidence="ms",
+    map_source_proteins=True,
     columns=["peptide", "mhc_restriction", "protein_id"],
     split_policy="independent_experiments",
 )
@@ -154,8 +156,7 @@ unverifiable, not current. Stale, incomplete or missing indexes require
 `hitlist build observations`; the exporter does not rebuild or download inputs.
 
 For an explicitly historical export, use `require_current_indexes=False` in
-Python or `--allow-stale-indexes` with `--bundle`. The manifest's
-`input_validation` records this policy and the actual statuses; the opt-out
+Python. The manifest's `input_validation` records this policy and the actual statuses; the opt-out
 does not certify freshness. Ordinary table reads remain available for legacy
 indexes. Verification of an already frozen bundle stays offline and does not
 require the original sources or a currently matching local cache. Manifests
@@ -184,7 +185,8 @@ hitlist audit-splits --partition train=train-bundle --partition test=test-bundle
 ```
 
 ```python
-from hitlist import audit_splits, audit_training_bundles
+from hitlist import audit_splits
+from hitlist.training_bundle import audit_training_bundles
 
 report = audit_splits({"train": train_frame, "test": test_frame},
                      policy="specimen_disjoint")
@@ -218,6 +220,31 @@ pooled/ambiguous material and incomplete registry coverage never prove
 independence. The audit describes supplied partitions and makes no claim about
 historical model weights or external predictors' training data.
 
+### Assay preparation and axis applicability
+
+`attach_lineage_applicability` (and `generate_training_table`) classifies each
+observation's `assay_preparation` strictly from explicit `assay_method` and
+assay modality evidence — never from numeric endpoint names (`IC50`, `KD`):
+
+- `purified_mhc`: explicit recombinant/purified MHC binding method (`donor` and
+  `specimen` are `not_applicable`, while `experimental_origin` and `acquisition`
+  remain applicable because protein preparations, experiments and runs can still
+  be shared across partitions).
+- `cellular_mhc`, `lysate_mhc`, `cell_associated_ms`: cell- or tissue-derived
+  assays where `donor` and `specimen` are applicable (`applicable_resolved` or
+  `applicable_unresolved`).
+- `unknown`: conflicting preparation statements or unspecified binding methods
+  (`applicability_unknown` on unresolved `donor`/`specimen` axes).
+
+Native `<axis>_status` columns (`resolved`, `unknown`, `pooled`, `ambiguous`)
+and split-audit `verdict` values remain unchanged: a `not_applicable` donor or
+specimen axis never certifies overall biological independence on its own. Each
+partition's `coverage[axis]` reports `n_applicable_observations`,
+`n_applicable_resolved_observations`, `n_applicable_unresolved_observations`,
+`n_not_applicable_observations`, and `n_applicability_unknown_observations`,
+and each pairwise comparison reports `applicability_status`. See
+[Training Presto and MHCflurry](model-training.md) for task-specific adapters.
+
 
 ## Complete index generations
 
@@ -239,7 +266,8 @@ Loaders and exports pin one generation for their multi-file reads. To group
 several calls into one snapshot:
 
 ```python
-from hitlist import dataset_snapshot, load_observations, load_binding, load_contributors
+from hitlist import dataset_snapshot, load_contributors
+from hitlist.observations import load_binding, load_observations
 
 with dataset_snapshot() as generation:
     observations = load_observations(peptide="SLYNTVATL")
