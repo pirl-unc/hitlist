@@ -28,6 +28,11 @@ Three parallel parquet indexes are built by
 The indexes share the same schema but keep evidence modalities separate.  Only the MS index gets supplementary
 data and sample-level metadata joins (see :mod:`hitlist.export`).
 
+Projected class-quality flags use the current load-time rules, including when
+the index stores older flags. Empty results retain requested supported derived
+columns and their types without fetching gene mappings just to form a schema.
+Missing unsupported source columns are omitted, as on nonempty projections.
+
 Usage::
 
     from hitlist.observations import load_ms_observations, load_binding
@@ -590,6 +595,30 @@ _DERIVED_COLUMN_DEPS: dict[str, tuple[str, ...]] = {
     "xenograft": ("source_organism", "species", "host", "mhc_species"),
 }
 
+# Missing derived columns on an empty result need no source lookup. Preserve
+# existing columns (including stored dtypes); use these only to complete an
+# explicitly requested schema, never to manufacture evidence on nonempty rows.
+_EMPTY_DERIVED_DTYPES = {
+    "assay_modality": "category",
+    "assay_modality_source": "category",
+    "is_ms_observation": bool,
+    "is_binding_assay": bool,
+    "ms_outcome_status": str,
+    "mhc_class_label_suspect": bool,
+    "mhc_class_label_severity": object,
+    "is_non_peptide_ligand": bool,
+    "gene_names": str,
+    "gene_ids": str,
+    "protein_ids": str,
+    "n_source_proteins": "int64",
+    "n_source_genes": "int64",
+    "host_organism": str,
+    "source_species": str,
+    "is_chimeric": bool,
+    "is_engineered_mhc": bool,
+    "xenograft": bool,
+}
+
 #: The #46 species-axis columns derived together by ``_attach_species_axes``.
 _SPECIES_AXIS_COLUMNS: tuple[str, ...] = (
     "host_organism",
@@ -651,11 +680,11 @@ def _attach_species_axes(df: pd.DataFrame) -> pd.DataFrame:
     if "host_organism" not in df.columns:
         uniq = host.dropna().unique()
         m = {h: normalize_species(h) for h in uniq}
-        df["host_organism"] = host.map(m).fillna("")
+        df["host_organism"] = host.map(m).fillna("").astype(str)
     if "source_species" not in df.columns:
         uniq = src.unique()
         m = {s: normalize_species(s) for s in uniq}
-        df["source_species"] = src.map(m).fillna("")
+        df["source_species"] = src.map(m).fillna("").astype(str)
     if "is_chimeric" not in df.columns:
         pairs = {(s, m) for s, m in zip(src, mhc)}
         flag = {p: is_chimeric_system(*p) for p in pairs}
@@ -794,10 +823,6 @@ def _load_peptide_index(
     # list — passing a derived column to ``pd.read_parquet(columns=...)``
     # raises ``ArrowInvalid: No match for FieldRef.Name(...)``.
     parquet_columns = set(pq.read_schema(path).names)
-    if columns is not None:
-        columns_for_read = [c for c in columns if c in parquet_columns]
-    else:
-        columns_for_read = None
 
     filters: list = []
     if mhc_class is not None:
@@ -839,11 +864,9 @@ def _load_peptide_index(
                 or wanted.intersection(resolve_allele_identity(r).split(";"))
             )
         ]
-        if not matching:
-            return pd.read_parquet(
-                path, columns=columns_for_read, filters=[("peptide", "==", "__NONE__")]
-            )
-        filters.append(("mhc_restriction", "in", matching))
+        # A typed empty predicate still reaches the normal derivation and
+        # projection path, preserving the public schema when nothing matches.
+        filters.append(("mhc_restriction", "in", pa.array(matching, type=pa.string())))
     if peptide is not None:
         # An untyped empty list becomes Arrow null, which cannot bind to a
         # large_string peptide column. An empty query must match zero rows.
@@ -872,11 +895,7 @@ def _load_peptide_index(
             mapping_filters["gene_id"] = _as_list(gene_id)
         hits = load_peptide_mappings(columns=["peptide"], **mapping_filters)
         matching_peptides = hits["peptide"].unique().tolist()
-        if not matching_peptides:
-            return pd.read_parquet(
-                path, columns=columns_for_read, filters=[("peptide", "==", "__NONE__")]
-            )
-        filters.append(("peptide", "in", matching_peptides))
+        filters.append(("peptide", "in", pa.array(matching_peptides, type=pa.string())))
 
     # Serotype filter runs after load — `serotypes` is a semicolon-joined
     # string column (an allele may belong to a locus-specific serotype AND
@@ -905,19 +924,22 @@ def _load_peptide_index(
     # the post-load step can compute them.  ``gene_names`` and friends are
     # in ``_DERIVED_COLUMN_DEPS`` post-#238 BUT pre-#238 parquets still
     # carry them on disk — read them directly when present, treat as
-    # derived only when absent. The non-peptide flag is always recomputed
-    # so a stored flag cannot hide later classification corrections (#230).
-    # ``parquet_columns`` was computed at the
-    # top of the function for the early-return paths.
-    requested_derived: list[str] = []
+    # derived only when absent. Quality/non-peptide flags are always recomputed
+    # so stored flags cannot hide later classification corrections (#230/#914).
     if read_columns is not None:
         kept: list[str] = []
         for c in read_columns:
             if c in _DERIVED_COLUMN_DEPS and (
                 c not in parquet_columns
-                or c in {"is_non_peptide_ligand", "is_binding_assay", "ms_outcome_status"}
+                or c
+                in {
+                    "is_non_peptide_ligand",
+                    "is_binding_assay",
+                    "ms_outcome_status",
+                    "mhc_class_label_suspect",
+                    "mhc_class_label_severity",
+                }
             ):
-                requested_derived.append(c)
                 for dep in _DERIVED_COLUMN_DEPS[c]:
                     if dep not in kept:
                         kept.append(dep)
@@ -1171,7 +1193,7 @@ def _load_peptide_index(
     # flag — equals ``severity in {"suspect", "implausible"}``.
     # Callers wanting only the strict drift filter use the
     # ``exclude_class_label_implausible`` loader parameter.
-    if "mhc_class" in df.columns and "peptide" in df.columns and len(df) > 0:
+    if "mhc_class" in df.columns and "peptide" in df.columns:
         # Strip IEDB inline PTM annotation before measuring length.
         # Pre-v1.30.10 parquets may carry "LQPFPQPQLPY + DEAM(Q8)" in the
         # peptide column; the bare-length split keeps the severity tier
@@ -1258,9 +1280,7 @@ def _load_peptide_index(
     # projected any of them; compute from host / source_organism / mhc_species
     # so the filters work on parquets built before this schema.
     want_axis_cols = columns is not None and any(c in columns for c in _SPECIES_AXIS_COLUMNS)
-    if (
-        exclude_chimeric or source_species is not None or host_species is not None or want_axis_cols
-    ) and len(df) > 0:
+    if exclude_chimeric or source_species is not None or host_species is not None or want_axis_cols:
         _attach_species_axes(df)
         if source_species is not None:
             wanted = {normalize_species(s) for s in _as_list(source_species)} - {""}
@@ -1331,6 +1351,10 @@ def _load_peptide_index(
     # — derived columns pulled extra dependency columns into the read above
     # and the caller doesn't want those leaking into the result.
     if columns is not None:
+        if df.empty:
+            for column in columns:
+                if column not in df and column in _EMPTY_DERIVED_DTYPES:
+                    df[column] = pd.Series(index=df.index, dtype=_EMPTY_DERIVED_DTYPES[column])
         df = df[[c for c in columns if c in df.columns]]
 
     return df

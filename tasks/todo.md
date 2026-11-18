@@ -1,3 +1,31 @@
+# Training-data completeness and export correctness — #912/#914, 2026-11-18
+
+Roadmap: [training-quality-roadmap.md](training-quality-roadmap.md).
+Current specification: [training-export-contracts-spec.md](training-export-contracts-spec.md).
+
+- [x] Inspect current source/issues and preserve existing work in separate checkouts.
+- [x] Specify delivery order, export invariants and verification before code changes.
+- [x] Add regressions reproducing stale projected labels and empty derived schemas.
+- [x] Implement common empty-result finalization and quality-field dependencies.
+- [ ] Bump version; pass format/lint, metadata, guarded tests and hosted checks.
+- [ ] Review, merge, publish and verify both public distributions.
+- [ ] Continue #913, existing curation PRs and quantitative-source work in roadmap order.
+
+## Review
+
+Main baseline is the verified 2.1.12 release; original APC and Presto worktrees
+remain untouched. The initial 75-case baseline reproduced 69 failures and six
+passes. Typed empty Arrow predicates now reach normal derivation; projected
+quality flags load current inputs even when stale flags exist on disk. Missing
+requested derived columns receive typed empty Series without mappings reads.
+Added six legacy-schema/source-dtype cases after the baseline reproduction.
+
+Format and lint pass. Subsequent focused and full local test attempts were
+refused before pytest by the unchanged guard (0.15 and 0.17 GiB available).
+The sandbox also prevents the system memory probe; the reported capacity was
+measured outside it. Hosted validation is required; no post-fix local pass is
+claimed. Candidate version is 2.1.13.
+
 # Stored serotype migration and dependency lock — #907, #908, #911, 2026-11-17
 
 Specification: [serotype-refresh-907-908-spec.md](serotype-refresh-907-908-spec.md).
