@@ -443,3 +443,24 @@ def test_context_package_builds_with_packaged_historical_and_current_curations(t
     counts = manifest["reconciliation"]
     assert counts["n_curated_arms_per_revision"] == 807
     assert counts["n_current_curated_arms"] > counts["n_historical_curated_arms"]
+
+
+@pytest.mark.parametrize("kind", ["arms", "studies"])
+@pytest.mark.parametrize("revision", ["historical", "current"])
+def test_context_verifier_rejects_wrong_revision_counts(tmp_path, kind, revision):
+    mhc, cohort, old, current, lineage = _cohort_fixture(tmp_path)
+    target = tmp_path / "context_counts"
+    write_context_evidence_package(
+        mhc,
+        cohort,
+        target,
+        historical_curation_path=old,
+        current_curation_path=current,
+        lineage_file=lineage,
+    )
+    manifest_path = target / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["reconciliation"][f"n_{revision}_curated_{kind}"] += 1
+    manifest_path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match="curation revision count mismatch"):
+        verify_context_evidence_package(target)

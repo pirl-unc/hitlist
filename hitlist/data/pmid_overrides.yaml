@@ -1763,7 +1763,7 @@
         condition_id: "721_221_transfectant_shla_b_46_01"
         condition_status: "annotated"
         condition_evidence: "primary_source"
-        condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5465962/ — Experimental Procedures, Cell Lines and Soluble HLA Production"
+        condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5510751/ — Experimental Procedures, Isolation of HLA Class I Complexes from 721.221 Cells"
         condition_control: "untreated"
         condition_mhc_context: "mhc_transfectant;monoallelic;soluble_mhc"
         condition_material: "cultured"
@@ -1775,7 +1775,7 @@
         condition_id: "721_221_transfectant_shla_b_15_01"
         condition_status: "annotated"
         condition_evidence: "primary_source"
-        condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5465962/ — Experimental Procedures, Cell Lines and Soluble HLA Production"
+        condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5510751/ — Experimental Procedures, Isolation of HLA Class I Complexes from 721.221 Cells"
         condition_control: "untreated"
         condition_mhc_context: "mhc_transfectant;monoallelic;soluble_mhc"
         condition_material: "cultured"
@@ -1787,7 +1787,7 @@
         condition_id: "721_221_transfectant_shla_c_01_02"
         condition_status: "annotated"
         condition_evidence: "primary_source"
-        condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5465962/ — Experimental Procedures, Cell Lines and Soluble HLA Production"
+        condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5510751/ — Experimental Procedures, Isolation of HLA Class I Complexes from 721.221 Cells"
         condition_control: "untreated"
         condition_mhc_context: "mhc_transfectant;monoallelic;soluble_mhc"
         condition_material: "cultured"
@@ -9721,11 +9721,13 @@
     mono_allelic_host: "K562"
     mono_allelic_method: "MP71/pLZRS retroviral transduction of individual HLA-DPA1 and HLA-DPB1 chains (B7/21 IP)"
     ip_antibody: "B7/21"
-    arm_resolution: resolved
+    arm_resolution: no_row_discriminator
     arm_resolution_note: >
-      All 45,961 deposited MS observations come from HLA-null K562 cells retrovirally
-      transduced with individual HLA-DPA1/DPB1 heterodimers and carry one of the 14 exact
-      paired HLA-DP restrictions, mapping one-to-one onto the 14 engineered K562 constructs.
+      The deposit contains 14 distinct paired restrictions, but the primary paper and
+      Supplementary Table 1 list only 13 K562 constructs. Curated arms follow those
+      13 source-listed pairs. DPA1*02:02/DPB1*19:01 remains a reported restriction
+      without a source-qualified matching construct; do not infer an additional
+      arm from that restriction alone (#921).
     note: >
       HLA class I and II-negative K562 human myelogenous leukemia cells were retrovirally
       transduced (MP71/pLZRS vectors) with individual HLA-DPA1 and HLA-DPB1 allele pairs and
@@ -9739,7 +9741,7 @@
         condition_id: "k562_hla_dpa1_01_03_dpb1_02_01"
         condition_status: "annotated"
         condition_evidence: "primary_source"
-        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Materials and Methods, Cell Culture and Retroviral Transduction; Isolation of HLA-DP-Presented Peptides"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
         condition_control: "untreated"
         condition_combination: "single"
         condition_transduction: "HLA-DPA1;HLA-DPB1"
@@ -9754,7 +9756,7 @@
         condition_id: "k562_hla_dpa1_01_03_dpb1_03_01"
         condition_status: "annotated"
         condition_evidence: "primary_source"
-        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Materials and Methods, Cell Culture and Retroviral Transduction; Isolation of HLA-DP-Presented Peptides"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
         condition_control: "untreated"
         condition_combination: "single"
         condition_transduction: "HLA-DPA1;HLA-DPB1"
@@ -9769,7 +9771,7 @@
         condition_id: "k562_hla_dpa1_01_03_dpb1_04_01"
         condition_status: "annotated"
         condition_evidence: "primary_source"
-        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Materials and Methods, Cell Culture and Retroviral Transduction; Isolation of HLA-DP-Presented Peptides"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
         condition_control: "untreated"
         condition_combination: "single"
         condition_transduction: "HLA-DPA1;HLA-DPB1"
@@ -9784,7 +9786,7 @@
         condition_id: "k562_hla_dpa1_01_03_dpb1_04_02"
         condition_status: "annotated"
         condition_evidence: "primary_source"
-        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Materials and Methods, Cell Culture and Retroviral Transduction; Isolation of HLA-DP-Presented Peptides"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
         condition_control: "untreated"
         condition_combination: "single"
         condition_transduction: "HLA-DPA1;HLA-DPB1"
@@ -9799,7 +9801,7 @@
         condition_id: "k562_hla_dpa1_01_03_dpb1_06_01"
         condition_status: "annotated"
         condition_evidence: "primary_source"
-        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Materials and Methods, Cell Culture and Retroviral Transduction; Isolation of HLA-DP-Presented Peptides"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
         condition_control: "untreated"
         condition_combination: "single"
         condition_transduction: "HLA-DPA1;HLA-DPB1"
@@ -9814,7 +9816,7 @@
         condition_id: "k562_hla_dpa1_02_01_dpb1_01_01"
         condition_status: "annotated"
         condition_evidence: "primary_source"
-        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Materials and Methods, Cell Culture and Retroviral Transduction; Isolation of HLA-DP-Presented Peptides"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
         condition_control: "untreated"
         condition_combination: "single"
         condition_transduction: "HLA-DPA1;HLA-DPB1"
@@ -9829,7 +9831,7 @@
         condition_id: "k562_hla_dpa1_02_01_dpb1_09_01"
         condition_status: "annotated"
         condition_evidence: "primary_source"
-        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Materials and Methods, Cell Culture and Retroviral Transduction; Isolation of HLA-DP-Presented Peptides"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
         condition_control: "untreated"
         condition_combination: "single"
         condition_transduction: "HLA-DPA1;HLA-DPB1"
@@ -9844,7 +9846,7 @@
         condition_id: "k562_hla_dpa1_02_01_dpb1_10_01"
         condition_status: "annotated"
         condition_evidence: "primary_source"
-        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Materials and Methods, Cell Culture and Retroviral Transduction; Isolation of HLA-DP-Presented Peptides"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
         condition_control: "untreated"
         condition_combination: "single"
         condition_transduction: "HLA-DPA1;HLA-DPB1"
@@ -9859,7 +9861,7 @@
         condition_id: "k562_hla_dpa1_02_01_dpb1_11_01"
         condition_status: "annotated"
         condition_evidence: "primary_source"
-        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Materials and Methods, Cell Culture and Retroviral Transduction; Isolation of HLA-DP-Presented Peptides"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
         condition_control: "untreated"
         condition_combination: "single"
         condition_transduction: "HLA-DPA1;HLA-DPB1"
@@ -9874,7 +9876,7 @@
         condition_id: "k562_hla_dpa1_02_01_dpb1_13_01"
         condition_status: "annotated"
         condition_evidence: "primary_source"
-        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Materials and Methods, Cell Culture and Retroviral Transduction; Isolation of HLA-DP-Presented Peptides"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
         condition_control: "untreated"
         condition_combination: "single"
         condition_transduction: "HLA-DPA1;HLA-DPB1"
@@ -9889,7 +9891,7 @@
         condition_id: "k562_hla_dpa1_02_01_dpb1_14_01"
         condition_status: "annotated"
         condition_evidence: "primary_source"
-        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Materials and Methods, Cell Culture and Retroviral Transduction; Isolation of HLA-DP-Presented Peptides"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
         condition_control: "untreated"
         condition_combination: "single"
         condition_transduction: "HLA-DPA1;HLA-DPB1"
@@ -9904,7 +9906,7 @@
         condition_id: "k562_hla_dpa1_02_01_dpb1_17_01"
         condition_status: "annotated"
         condition_evidence: "primary_source"
-        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Materials and Methods, Cell Culture and Retroviral Transduction; Isolation of HLA-DP-Presented Peptides"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
         condition_control: "untreated"
         condition_combination: "single"
         condition_transduction: "HLA-DPA1;HLA-DPB1"
@@ -9919,7 +9921,7 @@
         condition_id: "k562_hla_dpa1_02_02_dpb1_05_01"
         condition_status: "annotated"
         condition_evidence: "primary_source"
-        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Materials and Methods, Cell Culture and Retroviral Transduction; Isolation of HLA-DP-Presented Peptides"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
         condition_control: "untreated"
         condition_combination: "single"
         condition_transduction: "HLA-DPA1;HLA-DPB1"
@@ -9928,22 +9930,6 @@
         mhc_class: "II"
         mhc: "HLA-DPA1*02:02/DPB1*05:01"
         mhc_basis: "selected_restriction"
-      - sample_label: "K562 transfectant HLA-DPA1*02:02/DPB1*19:01"
-        source: "HLA-null K562 transduced with HLA-DPA1*02:02 and HLA-DPB1*19:01 (B7/21 IP)"
-        condition: "unperturbed — HLA-DPA1/DPB1 retroviral transduction in HLA-null K562"
-        condition_id: "k562_hla_dpa1_02_02_dpb1_19_01"
-        condition_status: "annotated"
-        condition_evidence: "primary_source"
-        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Materials and Methods, Cell Culture and Retroviral Transduction; Isolation of HLA-DP-Presented Peptides"
-        condition_control: "untreated"
-        condition_combination: "single"
-        condition_transduction: "HLA-DPA1;HLA-DPB1"
-        condition_mhc_context: "mhc_transfectant;monoallelic"
-        condition_material: "cultured"
-        mhc_class: "II"
-        mhc: "HLA-DPA1*02:02/DPB1*19:01"
-        mhc_basis: "selected_restriction"
-
   - pmid: 30429286
     study_label: "Gfeller 2018 — HLA-I length distributions"
     # Arm-resolution verdict (#451): recorded so this study is not
@@ -10686,7 +10672,9 @@
       HCT 116 rows, 3,844 blank MDA-MB-468 rows, 3,001 EL4 rows and 3,001 C57BL/6 splenocyte
       rows derive from multiplexed TMT comparisons whose per-row untreated/doxorubicin channel
       membership was not recorded in IEDB; they remain group_ambiguous rather than being
-      borrowed as untreated controls (#900).
+      borrowed as untreated controls (#900). EL4 additionally includes cultured cells and
+      subcutaneous tumors in the primary ten-channel experiment (Figure 4). An EL4-only
+      source statement cannot distinguish these materials; retain that ambiguity (#922).
     title: "Multiplexed Relative Quantitation with Isobaric Tagging Mass Spectrometry Reveals Class I Major Histocompatibility Complex Ligand Dynamics in Response to Doxorubicin"
     override: cell_line
     rules:
@@ -10758,23 +10746,23 @@
         mhc_class: "I"
         mhc: "HLA-A*23:01 HLA-A*30:02 HLA-B*27:03 HLA-B*53:01 HLA-C*02:02 HLA-C*04:01"
         mhc_basis: "sample_typing"
-      - sample_label: "EL-4 murine lymphoma (untreated)"
+      - sample_label: "EL-4 cultured cells (PBS vehicle)"
         sample_group: "EL-4"
         species: "Mus musculus"
         source: "EL4 murine T-cell lymphoma line"
-        condition: "unperturbed"
+        condition: "PBS vehicle"
         condition_id: "el4_untreated"
         condition_status: "annotated"
         condition_evidence: "primary_source"
         condition_reference: "https://doi.org/10.1021/acs.analchem.8b05616 — Experimental Section, Cell Culture and Mouse Models"
-        condition_control: "untreated"
+        condition_control: "vehicle"
         condition_control_for: "el4_doxorubicin"
-        condition_drugs: "none"
+        condition_drugs: "PBS"
         condition_material: "cultured"
         mhc_class: "I"
         mhc: "H2-D*b H2-K*b"
         mhc_basis: "sample_typing"
-      - sample_label: "EL-4 murine lymphoma + doxorubicin"
+      - sample_label: "EL-4 cultured cells + doxorubicin"
         sample_group: "EL-4"
         species: "Mus musculus"
         source: "EL4 murine T-cell lymphoma line"
@@ -10786,6 +10774,40 @@
         condition_combination: "single"
         condition_drugs: "doxorubicin"
         condition_material: "cultured"
+        mhc_class: "I"
+        mhc: "H2-D*b H2-K*b"
+        mhc_basis: "sample_typing"
+      - sample_label: "EL-4 subcutaneous tumor (PBS vehicle)"
+        sample_group: "EL-4"
+        species: "Mus musculus"
+        override:
+        source: "subcutaneous EL4 tumors harvested from C57BL/6 mice"
+        condition: "PBS vehicle in EL4-bearing C57BL/6 mice"
+        condition_id: "el4_subcutaneous_tumor_pbs_vehicle"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.1021/acs.analchem.8b05616 — Figure 4 and Experimental Section, Cell Culture and Mouse Models"
+        condition_control: "vehicle"
+        condition_control_for: "el4_subcutaneous_tumor_doxorubicin"
+        condition_combination: "single"
+        condition_drugs: "PBS"
+        condition_material: "direct_ex_vivo"
+        mhc_class: "I"
+        mhc: "H2-D*b H2-K*b"
+        mhc_basis: "sample_typing"
+      - sample_label: "EL-4 subcutaneous tumor (doxorubicin)"
+        sample_group: "EL-4"
+        species: "Mus musculus"
+        override:
+        source: "subcutaneous EL4 tumors harvested from C57BL/6 mice"
+        condition: "doxorubicin in EL4-bearing C57BL/6 mice"
+        condition_id: "el4_subcutaneous_tumor_doxorubicin"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.1021/acs.analchem.8b05616 — Figure 4 and Experimental Section, Cell Culture and Mouse Models"
+        condition_combination: "single"
+        condition_drugs: "doxorubicin"
+        condition_material: "direct_ex_vivo"
         mhc_class: "I"
         mhc: "H2-D*b H2-K*b"
         mhc_basis: "sample_typing"
@@ -11358,9 +11380,12 @@
     arm_resolution: multi_arm_evidence
     arm_resolution_note: >
       Three exact deposited assay_comments values partition all 3,204 rows: 1,198 eluted from
-      untreated A375 melanoma cells (which does not state absence under DG013A), 417 eluted
-      from DG013A-treated A375 cells but not untreated cells, and 1,589 eluted from both
-      untreated and DG013A-treated A375 cells (#900).
+      untreated A375 melanoma cells, 417 in the DG013A-specific group, and 1,589 shared
+      detections. The primary paper defines condition-specific groups as unique OR at
+      least fourfold enriched (PMC6684451, Results, Analysis of A375 immunopeptidome and
+      Fig. 3). The deposited 'but not from untreated cells' wording overstates absence:
+      retain its positive treatment membership but no comparator exclusion until original
+      measurements distinguish unique from enriched shared peptides (#917).
     title: "Editing the immunopeptidome of melanoma cells using a potent inhibitor of endoplasmic reticulum aminopeptidase 1 (ERAP1)"
     override: cell_line
     perturbations: ["ERAP1 pharmacological inhibitor"]
@@ -11371,8 +11396,6 @@
       "The peptide was eluted from A375 melanoma cells treated with the ERAP1 inhibitor DG013A, but not from untreated cells.":
         detected:
           - a375_erap1_inhibitor
-        not_detected:
-          - a375_melanoma_untreated
       "The peptide was eluted from untreated A375 melanoma cells and A375 cells treated with the ERAP1 inhibitor DG013A.":
         detected:
           - a375_melanoma_untreated

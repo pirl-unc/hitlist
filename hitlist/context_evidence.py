@@ -1058,6 +1058,27 @@ def verify_context_evidence_package(directory, *, manifest_path="manifest.json")
     for name, expected in required_tables.items():
         if pq.ParquetFile(directory / "typed" / name).metadata.num_rows != expected:
             raise ValueError(f"Context typed row count mismatch: {name}")
+    # Successor manifests distinguish evolving current curation from the frozen
+    # cohort revision. A correct combined count cannot validate that split.
+    for kind in ("arms", "studies"):
+        historical_key = f"n_historical_curated_{kind}"
+        current_key = f"n_current_curated_{kind}"
+        total_key = f"n_curated_{kind}"
+        if not any(key in inventory for key in (historical_key, current_key, total_key)):
+            continue  # Original frozen manifests only carry per-revision counts.
+        revisions = pq.read_table(
+            directory / "typed" / f"curated_{kind}.parquet", columns=["curation_revision"]
+        )["curation_revision"].to_pylist()
+        historical_count = revisions.count("cohort_1_78")
+        current_count = revisions.count("current")
+        if (
+            historical_count + current_count != len(revisions)
+            or inventory.get(historical_key) != historical_count
+            or inventory.get(current_key) != current_count
+            or inventory.get(total_key) != len(revisions)
+            or inventory[f"n_curated_{kind}_per_revision"] != historical_count
+        ):
+            raise ValueError(f"Context curation revision count mismatch: {kind}")
     if (
         pq.ParquetFile(directory / "typed" / "assay_context.parquet").schema_arrow.to_string()
         != inventory["assay_context_schema"]

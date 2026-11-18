@@ -375,11 +375,12 @@ def test_five_intervention_studies_preserve_shared_excluded_and_unresolved_membe
     obs = generate_observations_table(exclude_non_peptide_ligand=False).set_index("peptide")
     assert len(obs) == 15
 
-    # DG013A
+    # DG013A specificity includes >=4-fold enrichment, not only unique detection
+    # (primary paper Fig. 3; #917). Deposited text cannot establish absence.
     assert obs.loc["DG013UNT1", "condition_id"] == "a375_melanoma_untreated"
     assert obs.loc["DG013UNT1", "excluded_condition_ids"] == ""
     assert obs.loc["DG013TRT1", "condition_id"] == "a375_erap1_inhibitor"
-    assert obs.loc["DG013TRT1", "excluded_condition_ids"] == "a375_melanoma_untreated"
+    assert obs.loc["DG013TRT1", "excluded_condition_ids"] == ""
     assert obs.loc["DG013TRT1", "condition_drugs"] == "DG013A"
     assert obs.loc["DG013BTH1", "condition_id"] == ""
     assert (
@@ -425,6 +426,11 @@ def test_five_intervention_studies_preserve_shared_excluded_and_unresolved_membe
     assert obs.loc["DOXHCTBLK", "sample_group"] == "HCT 116"
     assert obs.loc["DOXEL4CEL", "condition_id"] == ""
     assert obs.loc["DOXEL4CEL", "sample_group"] == "EL-4"
+    assert obs.loc["DOXEL4CEL", "condition_material"] == ""
+    dox_samples = generate_ms_samples_table()
+    el4 = dox_samples[(dox_samples.pmid == 30779550) & (dox_samples.sample_group == "EL-4")]
+    assert len(el4) == 4
+    assert set(el4.condition_material) == {"cultured", "direct_ex_vivo"}
     assert obs.loc["DOXSPLENO", "condition_id"] == ""
     assert obs.loc["DOXSPLENO", "sample_group"] == "Splenocyte"
     cls_spleno = classify_ms_row(
@@ -466,11 +472,15 @@ def test_five_intervention_studies_preserve_shared_excluded_and_unresolved_membe
     dg_unt_edges = edges[edges["peptide"] == "DG013UNT1"]
     assert list(dg_unt_edges["condition_id"]) == ["a375_melanoma_untreated"]
     assert list(dg_unt_edges["membership_status"]) == ["detected"]
+    dg_treated_edges = edges[edges["peptide"] == "DG013TRT1"]
+    assert list(dg_treated_edges["condition_id"]) == ["a375_erap1_inhibitor"]
+    assert list(dg_treated_edges["membership_status"]) == ["detected"]
 
 
 def test_laghmouchi_k562_hla_dp_heterodimers_and_hilton_shla_engineering(monkeypatch):
     dp_entry = load_pmid_overrides()[35251023]
-    assert len(dp_entry["ms_samples"]) == 14
+    assert len(dp_entry["ms_samples"]) == 13
+    assert all("19:01" not in sample["mhc"] for sample in dp_entry["ms_samples"])
     for sample in dp_entry["ms_samples"]:
         assert sample["condition_mhc_context"] == "mhc_transfectant;monoallelic"
         assert sample["condition_transduction"] == "HLA-DPA1;HLA-DPB1"
@@ -480,6 +490,7 @@ def test_laghmouchi_k562_hla_dp_heterodimers_and_hilton_shla_engineering(monkeyp
     hilton_samples = hilton_samples[hilton_samples["pmid"] == 28514659]
     assert len(hilton_samples) == 3
     assert all(is_engineered_material(row) for _, row in hilton_samples.iterrows())
+    assert hilton_samples.condition_reference.str.contains("PMC5510751", regex=False).all()
 
     _mock_observations(
         monkeypatch,
@@ -489,6 +500,13 @@ def test_laghmouchi_k562_hla_dp_heterodimers_and_hilton_shla_engineering(monkeyp
                 "pmid": 35251023,
                 "mhc_class": "II",
                 "mhc_restriction": "HLA-DPA1*02:01/DPB1*13:01",
+                "cell_name": "K562-Myeloid cell",
+            },
+            {
+                "peptide": "DPUNVERIF",
+                "pmid": 35251023,
+                "mhc_class": "II",
+                "mhc_restriction": "HLA-DPA1*02:02/DPB1*19:01",
                 "cell_name": "K562-Myeloid cell",
             },
             {
@@ -508,3 +526,6 @@ def test_laghmouchi_k562_hla_dp_heterodimers_and_hilton_shla_engineering(monkeyp
     assert obs.loc["DPCOARSE1", "supported_condition_ids"] == ""
     assert obs.loc["DPCOARSE1", "sample_attribution"] == "pmid_ambiguous"
     assert obs.loc["DPCOARSE1", "condition_mhc_context"] == "mhc_transfectant;monoallelic"
+    assert obs.loc["DPUNVERIF", "condition_id"] == ""
+    assert obs.loc["DPUNVERIF", "supported_condition_ids"] == ""
+    assert obs.loc["DPUNVERIF", "mhc_restriction"] == "HLA-DPA1*02:02/DPB1*19:01"

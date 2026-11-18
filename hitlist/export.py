@@ -4251,13 +4251,18 @@ def expand_condition_memberships(
     memberships — including peptides shared across two arms (``"and"``) — this
     projection expands ``supported_condition_ids`` and ``excluded_condition_ids``
     and joins the target arm's curated metadata while preserving source-row
-    identity (``source_observation_index``, ``provenance_id``, ``evidence_row_id``,
+    identity (``source_observation_position``, ``source_observation_index``, ``provenance_id``, ``evidence_row_id``,
     ``assay_iri``).
 
     Rows with neither supported nor explicitly excluded condition IDs (including
     unmapped, disjunctive ``"or"``, blank, or binding rows) emit zero edges.
     MS nondetection edges reflect only explicit statement exclusions, never
     invented proteome-wide negatives or affinity non-binding claims.
+
+    Positions identify rows within this input even when index labels repeat.
+    Nonempty memberships require a numeric PMID and an unambiguous matching
+    curated arm; unknown references, conflicting metadata and duplicate or
+    contradictory memberships raise ``ValueError``.
     """
     carry_cols = [
         c
@@ -4289,16 +4294,27 @@ def expand_condition_memberships(
         *[c for c in CONDITION_COLUMNS if c != "condition_id"],
     ]
     out_cols = [
+        "source_observation_position",
         "source_observation_index",
         *carry_cols,
         "condition_id",
         "membership_status",
         *[("sample_mhc" if c == "mhc" else c) for c in arm_meta_cols],
     ]
+    empty = pd.DataFrame(
+        {
+            column: pd.Series(dtype=df[column].dtype if column in df else object)
+            for column in out_cols
+        }
+    )
+    empty["source_observation_position"] = pd.Series(dtype="int64")
+    empty["source_observation_index"] = pd.Series(dtype=df.index.dtype)
+    empty["condition_id"] = pd.Series(dtype=str)
+    empty["membership_status"] = pd.Series(dtype=str)
     if df.empty or (
         "supported_condition_ids" not in df.columns and "excluded_condition_ids" not in df.columns
     ):
-        return pd.DataFrame(columns=out_cols)
+        return empty
 
     supp_series = (
         _fillna_scalar_safe(df["supported_condition_ids"], "").astype(str)
@@ -4320,6 +4336,7 @@ def expand_condition_memberships(
         if not active_mask.any():
             continue
         sub = df.loc[active_mask, carry_cols].copy()
+        sub["source_observation_position"] = np.flatnonzero(active_mask.to_numpy())
         sub["source_observation_index"] = df.index[active_mask.to_numpy()]
         sub["condition_id"] = series.loc[active_mask].str.split(";")
         sub = sub.explode("condition_id", ignore_index=True)
@@ -4328,28 +4345,42 @@ def expand_condition_memberships(
         parts.append(sub)
 
     if not parts:
-        return pd.DataFrame(columns=out_cols)
+        return empty
 
     edges = pd.concat(parts, ignore_index=True)
+    if edges.duplicated(["source_observation_position", "condition_id"]).any():
+        raise ValueError("Duplicate or contradictory condition memberships for a source row")
     edges = edges.sort_values(
-        ["source_observation_index", "membership_status", "condition_id"],
+        ["source_observation_position", "membership_status", "condition_id"],
         kind="stable",
     ).reset_index(drop=True)
 
     samples = samples_df if samples_df is not None else generate_ms_samples_table()
-    if not samples.empty and "pmid" in edges.columns:
-        avail_arm_cols = [c for c in arm_meta_cols if c in samples.columns]
-        arm_lookup = samples[["pmid", "condition_id", *avail_arm_cols]].drop_duplicates(
-            subset=["pmid", "condition_id"], keep="first"
-        )
-        arm_lookup = arm_lookup.rename(columns={"mhc": "sample_mhc"})
-        arm_lookup["_pmid_key"] = pd.to_numeric(arm_lookup["pmid"], errors="coerce")
-        edges["_pmid_key"] = pd.to_numeric(edges["pmid"], errors="coerce")
-        edges = edges.merge(
-            arm_lookup.drop(columns=["pmid"]),
-            on=["_pmid_key", "condition_id"],
-            how="left",
-        ).drop(columns=["_pmid_key"])
+    if "pmid" not in edges or not {"pmid", "condition_id"} <= set(samples):
+        raise ValueError("Condition memberships require PMID and condition_id arm metadata")
+    avail_arm_cols = [c for c in arm_meta_cols if c in samples.columns]
+    arm_lookup = samples[["pmid", "condition_id", *avail_arm_cols]].copy()
+    arm_lookup = arm_lookup.rename(columns={"mhc": "sample_mhc"})
+    # Uncurated sample records do not name an arm and cannot be a join target.
+    arm_lookup = arm_lookup[arm_lookup.condition_id.notna() & arm_lookup.condition_id.ne("")]
+    for table in (edges, arm_lookup):
+        key = pd.to_numeric(table["pmid"], errors="coerce")
+        if (key.isna() | key.le(0) | key.mod(1).ne(0)).any():
+            raise ValueError("Condition memberships require positive integer PMID values")
+        table["_pmid_key"] = key.astype("int64")
+    arm_lookup = arm_lookup.drop(columns="pmid").drop_duplicates()
+    if arm_lookup.duplicated(["_pmid_key", "condition_id"]).any():
+        raise ValueError("Conflicting condition metadata for (PMID, condition_id)")
+    edges = edges.merge(
+        arm_lookup,
+        on=["_pmid_key", "condition_id"],
+        how="left",
+        validate="many_to_one",
+        indicator=True,
+    )
+    if edges["_merge"].ne("both").any():
+        raise ValueError("Unknown (PMID, condition_id) in condition memberships")
+    edges = edges.drop(columns=["_pmid_key", "_merge"])
     for col in out_cols:
         if col not in edges.columns:
             edges[col] = ""

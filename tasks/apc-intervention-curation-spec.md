@@ -70,8 +70,9 @@ and `verify_context_evidence_package` assumes `2 * n_curated_studies_per_revisio
   `species_contexts.yaml` (`human_helam_tapbpr_immunopeptidome`).
 - **PMID 31222486 (`#900`, Koumantou et al. 2019)**:
   Curate `DG013A` (`1 uM, 6 d`) primary-source metadata, comparator link, and exact statement
-  map (`1,198` untreated without false absence under DG013A; `417` DG013A with explicit
-  nondetection in untreated; `1,589` shared in both).
+  map (`1,198` untreated without false absence under DG013A; `417` DG013A detections
+  without comparator exclusions because specificity includes enrichment (#917);
+  `1,589` shared in both).
 - **PMID 23328677 (`#900`, Cronin et al. 2013)**:
   Fix `raji_dmso_vehicle_control` (`condition_control: "vehicle"`, `condition_drugs: "DMSO"`,
   `condition_control_for: "raji_entinostat_hdac_inhibitor"`), map the `16` DMSO-only and `10`
@@ -92,12 +93,15 @@ and `verify_context_evidence_package` assumes `2 * n_curated_studies_per_revisio
   with untreated/vehicle and doxorubicin arms under `sample_group`), map the `2,038`
   `"terated with doxorubicin"` HCT 116 rows, keep all blank/system-only rows `group_ambiguous`
   (`arm_not_recorded`), and add a `Direct Ex Vivo` conditional rule so mouse splenocytes do
-  not inherit `override: cell_line`.
+  not inherit `override: cell_line`. Final source review (#922) adds distinct cultured
+  and subcutaneous-tumor EL4 arms; EL4-only statements cannot assert cultured material.
 - **PMID 35251023 (`#856`, Laghmouchi et al. 2022, DOI `10.3389/fimmu.2022.831822`)**:
-  Replace generic `cell_lines_multiple_hla_dp_genotypes` with the 14 retrovirally transduced
+  Replace generic `cell_lines_multiple_hla_dp_genotypes` with the 13 retrovirally transduced
   HLA-null K562 single-HLA-DP heterodimer arms (`condition_mhc_context: "mhc_transfectant;monoallelic"`,
-  `condition_transduction: "HLA-DPA1;HLA-DPB1"`, `ip_antibody: "B7/21"`), resolving all 45,961
-  `ci-corpus-v4` rows via `allele_exact`.
+  `condition_transduction: "HLA-DPA1;HLA-DPB1"`, `ip_antibody: "B7/21"`) listed in
+  Supplementary Table 1. The deposit's additional DPA1*02:02/DPB1*19:01 restriction is
+  retained without an asserted matching construct (#921); the earlier claim that all
+  45,961 rows are qualified by 14 primary-source constructs is withdrawn.
 - **Engineering drift cleanup (`#593`)**:
   Update PMID `28514659`'s three 721.221 sHLA transfectant arms to
   `condition_mhc_context: "mhc_transfectant;monoallelic;soluble_mhc"` and separate PMID

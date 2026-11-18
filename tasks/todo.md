@@ -6,6 +6,24 @@
 - [ ] Refresh version to 2.1.15 and validate isolated metadata, format/lint/tests.
 - [ ] Review final head, merge after #915/#916 and verify PyPI publication.
 
+## Final-review evidence
+
+Filed in-scope findings #917 (DG013A enrichment is not absence), #918 (ambiguous
+condition joins/source positions), #919 (revision-specific count verification),
+#921 (13 primary-source DP constructs versus 14 deposited restrictions), #922
+(cultured versus subcutaneous-tumor EL4 material), and #923 (wrong Hilton citation).
+Original DP supplement: DOI 10.3389/fimmu.2022.831822.s001, Figshare file 34077722,
+SHA256 4ce9351b45bc32390dacf0e53c578050f8ce697d31adb29dc8b598f89295ff42;
+page 2 inspected visually. Source review also confirms TAPBPR rescue constructs,
+gemcitabine-specific groups and SHERPA cultured/tumor material distinctions.
+
+Local full test.sh was admitted at 4.48 GiB but hit the 1 GiB disk reserve in
+contributor fixtures. Interrupted after 1,306 passes, 7 failures and 26 errors;
+six failures plus fixture errors were disk-capacity refusals and one was the
+help snapshot subsequently corrected in #916. The focused retry was refused
+at 0.69 GiB available memory. These are not passing validation. Hosted gates
+must qualify the final head; neither safeguard was weakened.
+
 # APC intervention, statement membership & engineered HLA-DP curation — #899, #900, #856, #593, 2026-11-17
 
 Specification: [apc-intervention-curation-spec.md](apc-intervention-curation-spec.md).
