@@ -1,0 +1,243 @@
+pmid: 33025005
+accession: PXD017154
+primary_supplement: https://ars.els-cdn.com/content/image/1-s2.0-S000649712100313X-mmc1.pdf
+source_recovery: https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+input_sha256: daaa04962f690a184c553ac8ec55c8545f40bdfbecac61ce89a8997d94124beb
+source_original_msf_sha256:
+  OEI21959.msf: 7e142404ac55a33d6c708c3efb1dad29bcadc93c32a592d3aa18581873135aa0
+  OEI21920.msf: ad43ce1d08dbf97ffdb1eb1d246a0c449d7c8e24f989c95a3e563ac9834e4404
+  OEI21938.msf: d584936f11b7d89308ead883c5bd019e621fe24f70cd99a9f34aeeb0ab50c547
+  OEI21969.msf: 502afd649d2b85b979f8de0847f08704d091fcad0633b84b206730eae885b540
+  OEI21930.msf: 1848021def8bd8eaa24b93a54c8a142c51c7a7078da1803587d5b190661a5d5b
+  OEI21951.msf: 4540d4eadf4dfe00626538bb8bd834212d98653afcade4359b2b2153f765c54c
+  OEI21922.msf: c912997caed6fe82fa12b1f777492ab89545f403485f745f163559a3e2e2147b
+  OEI21940.msf: d7ecda8fa86b6f2fff9d893c30dd3422d5e2b9c9446db07c3754dbfc3269a2e5
+  OEI21961.msf: 5479e32f15d78051b712e2bd51fa5fa9ed44fe8d756b42b365b22115c562a505
+  OEI21932.msf: 3604cd8ef41cef9d73ac0089b9f1abb654ce31b9966784b202fa174402112bd7
+  OEI21953.msf: 558b93a8b6e121521b2e8679dff9fd8bff76ca52f72a9c1f3ed6f2983d07be3b
+  OEI21971.msf: e22355406b4e1ca1629d6330cde60888edf8448cd8b25563dbd56c01b71c9403
+  L20192001657a.msf: 2a2072b6abdbca00063d639d04c75718312502419627782be1caf3a18df7781b
+  L20192001657c.msf: 504dac1c2e1b9d15d07a46a4995658331733a5a45be9501754d55cf8815d95c0
+  L20192001658a.msf: 793b72d8d831694101e3710c7719e782616bde57352d8d192fbcfb28d4fdbbc8
+  L20192001658b.msf: 6236afa848c6566250614e49d28c7d99d3911cbe1f46c699717b0b9ae1861b56
+  L20192001658c.msf: 02a4f7a8741b794ea1d07f858b421536e566d02f3ef8ee5877efc320a44b4d75
+  OEI21916.msf: 1447ea5c5820987883f3b4f29ebef57bccedbaf87356ca47113a4a936c2c38e8
+  OEI21955.msf: b45d2ba540408ef72407bcaac3e33a74bb5cb124f0b94872544db7d7d367c729
+  OEI21934.msf: 3b58c4ddbdefa48c3698bebe6d6697c962a84e955b24fab2619033e6c200c47a
+  OEI21926.msf: b5697a1f5061caddea041928eb18781d434688c2f2fb75f054c15a427d6d5372
+  OEI21965.msf: be369a18f8de71c5659c28a77e3233e969f22837a6e7f631e5d664d06d8e16ac
+  OEI21947.msf: 3e7ed8eaf3478a2873564124844fd6c6c4eab4ab73201e2f22f3f048e1c171a1
+  OEI21918.msf: 91b6795caa71adf85b734d1f69dc32d38b809baa830a2ae13ed82825a49e29ae
+  OEI21936.msf: cc870eb426984dc8b27632dce20922583f8b867073c998e776b5ea90cfade54f
+  OEI21957.msf: ac4e262ef152b7b5a89e0973d309b6a64ea9e169988684dbb49ea532472a943f
+  OEI21949.msf: 977888a09a81e9d59439861d5849fc76801c2fde7767819c27c0e28fc0227822
+  OEI21928.msf: 038889cbdabe167837de2f6b9e77fcd4e194b783e7c499980a7b814e83a1e5c6
+  OEI21967.msf: d182fd921373ff00511551e8657f5c1a8c56ee37dfaed533167f4074ad677730
+  OEI21924.msf: ac0ab467a88296eb7d7619d5bf2dda44e28e65de59ba749365c707e93be7e439
+  OEI21963.msf: 7a437d2dd405b8d7fe08ab870b568ee9d157fd7c8ce1d76b7e0215f3d6b72f0e
+  OEI21945.msf: cbfa8cfa1da55b1a12a5355041ffa83c73a236059ed91b72e5cb5366e738b2db
+n_candidate_peptide_sample_rows: 21547
+n_distinct_candidate_peptides: 10143
+n_biological_samples: 10
+sample_candidate_counts:
+  DP10_A: 3052
+  DP10_B: 3552
+  DP10_DM_A: 1687
+  DP10_DM_B: 1728
+  DP401_DM_A: 1602
+  DP401_DM_B: 1597
+  DP402_A: 2956
+  DP402_B: 2815
+  DP402_DM_A: 1446
+  DP402_DM_B: 1112
+control_companion:
+  file: meurer_2021_dp_dm_controls.csv.gz
+  sha256: 4140b446add6df6cd7eb0af47a39d38ce096fe7b92f4adcf9f237d559eb7d0c1
+  size_bytes: 23363
+  n_rows: 87
+control_role_counts:
+  engineered_dp_capture: 70
+  no_dp_capture_control: 17
+confidence_contract: Native ConfidenceLevel=3; TargetFPRHigh=0.01; converted passThreshold not used
+input_scope: Unpartitioned source evidence; consumer overlap/split qualification still required
+supplementary_entries:
+- pmid: 33025005
+  file: meurer_2021_dp_dm_dp10_a.csv.gz
+  sha256: f75037be9c7720ab395a9cd621c99e8cc818a97088c057a9929bc2c6ec0d308e
+  size_bytes: 225481
+  study_label: Meurer 2021 — HLA-DP/DM HeLa DP10_A
+  source: PXD017154 original MSF native high-confidence PSMs; https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+  note: Biological-sample peptide detections, technical acquisitions collapsed with native PSM/file/form
+    lineage retained. Conservative unmodified, unique visible rank-1, protein-mapped subset; no-DP controls
+    and control-overlap sequences excluded. No affinity, abundance, or nondetection-negative labels.
+  defaults:
+    host: Homo sapiens (human)
+    species: Homo sapiens
+    source_organism: Homo sapiens
+    culture_condition: Cell Line / Clone
+    cell_name: HeLa
+    source_tissue: Cervix
+    disease: cervical cancer
+    attributed_sample_label: DP10_A
+- pmid: 33025005
+  file: meurer_2021_dp_dm_dp10_b.csv.gz
+  sha256: 426cf772fc1bd55760d450853fd5236c18f5425964cdadaeda097eb1c8ba8bed
+  size_bytes: 257922
+  study_label: Meurer 2021 — HLA-DP/DM HeLa DP10_B
+  source: PXD017154 original MSF native high-confidence PSMs; https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+  note: Biological-sample peptide detections, technical acquisitions collapsed with native PSM/file/form
+    lineage retained. Conservative unmodified, unique visible rank-1, protein-mapped subset; no-DP controls
+    and control-overlap sequences excluded. No affinity, abundance, or nondetection-negative labels.
+  defaults:
+    host: Homo sapiens (human)
+    species: Homo sapiens
+    source_organism: Homo sapiens
+    culture_condition: Cell Line / Clone
+    cell_name: HeLa
+    source_tissue: Cervix
+    disease: cervical cancer
+    attributed_sample_label: DP10_B
+- pmid: 33025005
+  file: meurer_2021_dp_dm_dp10_dm_a.csv.gz
+  sha256: 9eb5768e1e49adeeb04b61161b47a9fb0965489bf37eb657e05fc2167fad9f56
+  size_bytes: 116050
+  study_label: Meurer 2021 — HLA-DP/DM HeLa DP10_DM_A
+  source: PXD017154 original MSF native high-confidence PSMs; https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+  note: Biological-sample peptide detections, technical acquisitions collapsed with native PSM/file/form
+    lineage retained. Conservative unmodified, unique visible rank-1, protein-mapped subset; no-DP controls
+    and control-overlap sequences excluded. No affinity, abundance, or nondetection-negative labels.
+  defaults:
+    host: Homo sapiens (human)
+    species: Homo sapiens
+    source_organism: Homo sapiens
+    culture_condition: Cell Line / Clone
+    cell_name: HeLa
+    source_tissue: Cervix
+    disease: cervical cancer
+    attributed_sample_label: DP10_DM_A
+- pmid: 33025005
+  file: meurer_2021_dp_dm_dp10_dm_b.csv.gz
+  sha256: 8acf7269bca17a7340b6aec0708723785ed8a522e969d97ac802f4b61d32ac1d
+  size_bytes: 118150
+  study_label: Meurer 2021 — HLA-DP/DM HeLa DP10_DM_B
+  source: PXD017154 original MSF native high-confidence PSMs; https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+  note: Biological-sample peptide detections, technical acquisitions collapsed with native PSM/file/form
+    lineage retained. Conservative unmodified, unique visible rank-1, protein-mapped subset; no-DP controls
+    and control-overlap sequences excluded. No affinity, abundance, or nondetection-negative labels.
+  defaults:
+    host: Homo sapiens (human)
+    species: Homo sapiens
+    source_organism: Homo sapiens
+    culture_condition: Cell Line / Clone
+    cell_name: HeLa
+    source_tissue: Cervix
+    disease: cervical cancer
+    attributed_sample_label: DP10_DM_B
+- pmid: 33025005
+  file: meurer_2021_dp_dm_dp401_dm_a.csv.gz
+  sha256: 430507001d7390e4873a67852316418749d1f916c7af2a18d8a192518162be89
+  size_bytes: 117790
+  study_label: Meurer 2021 — HLA-DP/DM HeLa DP401_DM_A
+  source: PXD017154 original MSF native high-confidence PSMs; https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+  note: Biological-sample peptide detections, technical acquisitions collapsed with native PSM/file/form
+    lineage retained. Conservative unmodified, unique visible rank-1, protein-mapped subset; no-DP controls
+    and control-overlap sequences excluded. No affinity, abundance, or nondetection-negative labels.
+  defaults:
+    host: Homo sapiens (human)
+    species: Homo sapiens
+    source_organism: Homo sapiens
+    culture_condition: Cell Line / Clone
+    cell_name: HeLa
+    source_tissue: Cervix
+    disease: cervical cancer
+    attributed_sample_label: DP401_DM_A
+- pmid: 33025005
+  file: meurer_2021_dp_dm_dp401_dm_b.csv.gz
+  sha256: 4a031ff2cff92e62e2f73a6d9dd5d93c6c45b515ff80684d49eb3e78479d81e9
+  size_bytes: 139870
+  study_label: Meurer 2021 — HLA-DP/DM HeLa DP401_DM_B
+  source: PXD017154 original MSF native high-confidence PSMs; https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+  note: Biological-sample peptide detections, technical acquisitions collapsed with native PSM/file/form
+    lineage retained. Conservative unmodified, unique visible rank-1, protein-mapped subset; no-DP controls
+    and control-overlap sequences excluded. No affinity, abundance, or nondetection-negative labels.
+  defaults:
+    host: Homo sapiens (human)
+    species: Homo sapiens
+    source_organism: Homo sapiens
+    culture_condition: Cell Line / Clone
+    cell_name: HeLa
+    source_tissue: Cervix
+    disease: cervical cancer
+    attributed_sample_label: DP401_DM_B
+- pmid: 33025005
+  file: meurer_2021_dp_dm_dp402_a.csv.gz
+  sha256: 89f3761fce8d419bb6d68570be24e5dc8f977c641900e55a97cf233a0a1c2da2
+  size_bytes: 223025
+  study_label: Meurer 2021 — HLA-DP/DM HeLa DP402_A
+  source: PXD017154 original MSF native high-confidence PSMs; https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+  note: Biological-sample peptide detections, technical acquisitions collapsed with native PSM/file/form
+    lineage retained. Conservative unmodified, unique visible rank-1, protein-mapped subset; no-DP controls
+    and control-overlap sequences excluded. No affinity, abundance, or nondetection-negative labels.
+  defaults:
+    host: Homo sapiens (human)
+    species: Homo sapiens
+    source_organism: Homo sapiens
+    culture_condition: Cell Line / Clone
+    cell_name: HeLa
+    source_tissue: Cervix
+    disease: cervical cancer
+    attributed_sample_label: DP402_A
+- pmid: 33025005
+  file: meurer_2021_dp_dm_dp402_b.csv.gz
+  sha256: 426431316bec44860ad88514015ba50d04e95dbd5144d621ccecdec76dc36b23
+  size_bytes: 213085
+  study_label: Meurer 2021 — HLA-DP/DM HeLa DP402_B
+  source: PXD017154 original MSF native high-confidence PSMs; https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+  note: Biological-sample peptide detections, technical acquisitions collapsed with native PSM/file/form
+    lineage retained. Conservative unmodified, unique visible rank-1, protein-mapped subset; no-DP controls
+    and control-overlap sequences excluded. No affinity, abundance, or nondetection-negative labels.
+  defaults:
+    host: Homo sapiens (human)
+    species: Homo sapiens
+    source_organism: Homo sapiens
+    culture_condition: Cell Line / Clone
+    cell_name: HeLa
+    source_tissue: Cervix
+    disease: cervical cancer
+    attributed_sample_label: DP402_B
+- pmid: 33025005
+  file: meurer_2021_dp_dm_dp402_dm_a.csv.gz
+  sha256: f09c09fd026ff32bddcc0641042d5ce4238292991d5f34b058cd122468f5cdb5
+  size_bytes: 108650
+  study_label: Meurer 2021 — HLA-DP/DM HeLa DP402_DM_A
+  source: PXD017154 original MSF native high-confidence PSMs; https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+  note: Biological-sample peptide detections, technical acquisitions collapsed with native PSM/file/form
+    lineage retained. Conservative unmodified, unique visible rank-1, protein-mapped subset; no-DP controls
+    and control-overlap sequences excluded. No affinity, abundance, or nondetection-negative labels.
+  defaults:
+    host: Homo sapiens (human)
+    species: Homo sapiens
+    source_organism: Homo sapiens
+    culture_condition: Cell Line / Clone
+    cell_name: HeLa
+    source_tissue: Cervix
+    disease: cervical cancer
+    attributed_sample_label: DP402_DM_A
+- pmid: 33025005
+  file: meurer_2021_dp_dm_dp402_dm_b.csv.gz
+  sha256: abf2c29e2df994f6590b04ff232aeca3882469798bf703cf9ce4626ebf82523b
+  size_bytes: 82981
+  study_label: Meurer 2021 — HLA-DP/DM HeLa DP402_DM_B
+  source: PXD017154 original MSF native high-confidence PSMs; https://github.com/pirl-unc/presto/tree/e21d6dbf135400b5d8a598fca4016a8cbc217f53/experiments/2026-11-10_1454_codex_dp-dm-source-recovery
+  note: Biological-sample peptide detections, technical acquisitions collapsed with native PSM/file/form
+    lineage retained. Conservative unmodified, unique visible rank-1, protein-mapped subset; no-DP controls
+    and control-overlap sequences excluded. No affinity, abundance, or nondetection-negative labels.
+  defaults:
+    host: Homo sapiens (human)
+    species: Homo sapiens
+    source_organism: Homo sapiens
+    culture_condition: Cell Line / Clone
+    cell_name: HeLa
+    source_tissue: Cervix
+    disease: cervical cancer
+    attributed_sample_label: DP402_DM_B

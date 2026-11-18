@@ -1,3 +1,27 @@
+# DP/DM PR #898 final review — 2026-11-18
+
+- [x] Preserve original work and specify source/software qualification.
+- [x] Reconcile with the export, filter and APC fixes; reserve version 2.1.16.
+- [ ] Verify primary source, packaged evidence and common export contracts.
+- [ ] Resolve findings, pass required final-head gates and review again.
+- [ ] Merge after dependencies, deploy and verify both PyPI distributions.
+
+## Final-review evidence
+
+Re-read the original supplementary Methods (pages 2–3), confirming exact DP
+pairs, shared CD74/CD80 background, additional DM transduction and the stated
+biological/technical replicates. SHA256 of the original supplemental PDF:
+1ed9901a59d79fa78f12162a38a10bd17384806b8634a28651511eb71e5a6d3e.
+An independent streaming audit of every packaged row verifies all hashes,
+21,547 unique peptide/sample pairs, 10,143 sequences, 55,931 distinct native
+PSM identifiers, 87 control-companion rows and no control-peptide overlap.
+DM absent/present totals remain 12,375/9,172. This checks preserved source
+references, not a repeat extraction of the 6.4 GB original MSF databases.
+
+Format/lint, isolated editable metadata and dependency checks pass. Local
+full test.sh refused at 0.31 GiB available memory with its guard unchanged.
+Hosted final-head unit/integration/release checks remain required.
+
 # APC curation PR #909 final review — 2026-11-18
 
 - [x] Preserve the original checkout and reconcile with the export/filter fixes.
@@ -9525,3 +9549,37 @@ and incompressible quota fallback. Repeat full qualification candidate-first on
 one allocation with enforced actual parallel selection/no retry. Start the final
 suite comparison only after the first full candidate succeeds. Local full tests
 were refused at 0.13 GiB available; preserve the guard and use hosted test.sh gates.
+
+## 2026-11-10 — Paired HLA-DP/DM source integration (#895)
+
+Spec: `tasks/dp_dm_source_integration_spec.md`. Source recovery is verified in
+Presto family2026-11-10_1454_codex_dp-dm-source-recovery.
+- [x] Export pinned biological-sample CSVs with native confidence/form lineage.
+- [x] Curate exact DP constructs, sample identities and scoped DM conditions.
+- [x] Verify common supplementary/provenance/Presto admission end to end.
+- [x] Run required checks, record failures, bump the candidate version and inspect wheel.
+- [ ] Publish draft source PR; resolve #897 and qualify full/integration checks.
+- [ ] Merge and deploy only after release gates pass.
+
+## Publication review — 2026-11-10
+
+The source integration and common export verification pass on all 21,547 rows.
+Original native PSM support, protein annotations and acquisition/sample fields
+are compared field-for-field with the recovered source. Presto resolves every
+exact heterodimer and retains DM absent (12,375) / present (9,172). No affinity
+target or inferred specimen identity is introduced.
+
+`./format.sh`, `./lint.sh`, isolated-environment `pip check`, and wheel asset
+verification pass (all 12 source assets match). The full local default suite
+had 3,729 passes / 91 failures; 9 existing failures reproduce on clean base.
+Follow-up: https://github.com/pirl-unc/hitlist/issues/897. The new real-source
+census check now has the required integration marker. Subsequent guarded
+isolated test launches stopped before pytest for insufficient host memory;
+no guard was lowered. Full post-fix pytest/integration qualification remains
+open. Do not merge/release this source PR on the strength of the adapter audit.
+
+Version 2.1.11 reserves the next patch after pending PR894's 2.1.10. No PyPI
+release occurred. Presto's overlap audit embargoes 8,338 rows against protected
+presentation/Atlas identities; 13,209 clear those specific checks, but affinity
+and other reserved cohorts remain unchecked. These are source candidates, not
+independent TRAIN additions or an improvement in predictive performance.
