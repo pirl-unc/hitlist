@@ -6,6 +6,22 @@
 - [ ] Resolve findings, pass required final-head gates and review again.
 - [ ] Merge after dependencies, deploy and verify both PyPI distributions.
 
+## Final-review evidence
+
+Re-read the original supplementary Methods (pages 2–3), confirming exact DP
+pairs, shared CD74/CD80 background, additional DM transduction and the stated
+biological/technical replicates. SHA256 of the original supplemental PDF:
+1ed9901a59d79fa78f12162a38a10bd17384806b8634a28651511eb71e5a6d3e.
+An independent streaming audit of every packaged row verifies all hashes,
+21,547 unique peptide/sample pairs, 10,143 sequences, 55,931 distinct native
+PSM identifiers, 87 control-companion rows and no control-peptide overlap.
+DM absent/present totals remain 12,375/9,172. This checks preserved source
+references, not a repeat extraction of the 6.4 GB original MSF databases.
+
+Format/lint, isolated editable metadata and dependency checks pass. Local
+full test.sh refused at 0.31 GiB available memory with its guard unchanged.
+Hosted final-head unit/integration/release checks remain required.
+
 # APC curation PR #909 final review — 2026-11-18
 
 - [x] Preserve the original checkout and reconcile with the export/filter fixes.
