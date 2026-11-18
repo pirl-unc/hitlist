@@ -27,6 +27,16 @@ deposited line-associated MHC labels as candidates, leaving independent cellular
 typing unset; reuses the common treatment name/dose/unit/duration fields; and
 retains the raw SKMEL5 summary statistics as distinct from normalized summaries.
 
+The corrected public query regression exposed shared bug #927: Arrow's inferred
+null-typed empty membership cannot bind to typed columns. Use a false expression
+for the empty set, preserving other predicate validation and projection types.
+Shared regressions cover direct/related queries and counts across string, large
+string, integer and float columns and all four accepted empty collection types.
+The second hosted run had 4,064 passes, two skips and this one failure; final-head
+verification remains required after the fix.
+Format/lint pass after the shared fix. The focused local retry was refused at
+0.13 GiB by the unchanged memory guard; hosted verification is required.
+
 # DP/DM PR #898 final review — 2026-11-18
 
 - [x] Preserve original work and specify source/software qualification.

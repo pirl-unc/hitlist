@@ -71,7 +71,9 @@ def _predicate(expression, column, operator, value):
     elif operator == "in":
         if not isinstance(value, (tuple, list, set, frozenset)):
             raise EvidenceQueryError("'in' requires a sequence of values")
-        part = field.isin(list(value))
+        # Arrow infers null type for an empty value set, which cannot bind to
+        # typed columns. Empty membership is false regardless of column type.
+        part = field.isin(list(value)) if value else ds.scalar(False)
     elif operator == "lt":
         part = field < value
     elif operator == "le":
