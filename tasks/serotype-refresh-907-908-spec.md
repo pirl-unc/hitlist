@@ -34,6 +34,8 @@ the number of observation rows.
 - Empty serotype results retain full/projected schemas and dtypes, including
   after parquet pushdown, source filtering, and on an empty stored table.
   The membership mask must remain boolean for both string and category storage.
+  Explicit empty serotype selections match no rows, like empty peptide queries;
+  only None disables the predicate.
 
 ## Bounded follow-up audit
 

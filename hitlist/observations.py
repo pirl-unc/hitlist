@@ -1078,7 +1078,7 @@ def _load_peptide_index(
     if serotype_source is not None:
         df = df[df["serotype_source"].isin(_as_list(serotype_source))]
 
-    if post_serotypes:
+    if post_serotypes is not None:
         wanted = set(post_serotypes)
         mask = df["serotypes"].map(
             lambda s: bool(wanted & set(s.split(";"))) if isinstance(s, str) and s else False
