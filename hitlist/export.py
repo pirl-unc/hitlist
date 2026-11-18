@@ -1531,16 +1531,23 @@ def generate_observations_table(
     if mhc_allele is not None:
         obs_filters["mhc_restriction"] = mhc_allele
     if mhc_allele_in_set is not None:
-        obs_filters["mhc_allele_in_set"] = _to_list(mhc_allele_in_set)
+        obs_filters["mhc_allele_in_set"] = mhc_allele_in_set
     if mhc_allele_provenance is not None:
-        obs_filters["mhc_allele_provenance"] = _to_list(mhc_allele_provenance)
-    obs_filters.update(_gene_observation_filters(resolved_gene_names, resolved_gene_ids, peptide))
+        obs_filters["mhc_allele_provenance"] = mhc_allele_provenance
+    obs_filters.update(
+        _gene_observation_filters(
+            resolved_gene_names,
+            resolved_gene_ids,
+            peptide,
+            gene_selection_requested=any(value is not None for value in (gene, gene_name, gene_id)),
+        )
+    )
     if restriction_evidence is not None:
         obs_filters["restriction_evidence"] = restriction_evidence
     if serotype_source is not None:
-        obs_filters["serotype_source"] = _to_list(serotype_source)
+        obs_filters["serotype_source"] = serotype_source
     if serotype is not None:
-        obs_filters["serotype"] = _to_list(serotype)
+        obs_filters["serotype"] = serotype
     if length_min is not None:
         obs_filters["length_min"] = length_min
     if length_max is not None:
@@ -3106,16 +3113,23 @@ def generate_binding_table(
     if mhc_allele is not None:
         bind_filters["mhc_restriction"] = mhc_allele
     if mhc_allele_in_set is not None:
-        bind_filters["mhc_allele_in_set"] = _to_list(mhc_allele_in_set)
+        bind_filters["mhc_allele_in_set"] = mhc_allele_in_set
     if mhc_allele_provenance is not None:
-        bind_filters["mhc_allele_provenance"] = _to_list(mhc_allele_provenance)
-    bind_filters.update(_gene_observation_filters(resolved_gene_names, resolved_gene_ids, peptide))
+        bind_filters["mhc_allele_provenance"] = mhc_allele_provenance
+    bind_filters.update(
+        _gene_observation_filters(
+            resolved_gene_names,
+            resolved_gene_ids,
+            peptide,
+            gene_selection_requested=any(value is not None for value in (gene, gene_name, gene_id)),
+        )
+    )
     if restriction_evidence is not None:
         bind_filters["restriction_evidence"] = restriction_evidence
     if serotype_source is not None:
-        bind_filters["serotype_source"] = _to_list(serotype_source)
+        bind_filters["serotype_source"] = serotype_source
     if serotype is not None:
-        bind_filters["serotype"] = _to_list(serotype)
+        bind_filters["serotype"] = serotype
     if length_min is not None:
         bind_filters["length_min"] = length_min
     if length_max is not None:
@@ -3741,9 +3755,18 @@ def _load_gene_union_mappings(
 
 
 def _gene_observation_filters(
-    gene_names: set[str], gene_ids: set[str], peptide: str | list[str] | None
+    gene_names: set[str],
+    gene_ids: set[str],
+    peptide: str | list[str] | None,
+    *,
+    gene_selection_requested: bool = False,
 ) -> dict:
     """Translate the export's gene alternatives to a loader-safe peptide filter."""
+    from .filter_values import normalize_filter_values
+
+    peptide = normalize_filter_values(peptide, "peptide")
+    if gene_selection_requested and not (gene_names or gene_ids):
+        return {"peptide": []}
     filters: dict = {}
     if gene_names and gene_ids:
         mappings = _load_gene_union_mappings(
@@ -3751,7 +3774,7 @@ def _gene_observation_filters(
         )
         matches = set(mappings["peptide"].dropna())
         if peptide is not None:
-            matches.intersection_update(_to_list(peptide))
+            matches.intersection_update(peptide)
         filters["peptide"] = sorted(matches)
     else:
         if gene_names:
@@ -4084,19 +4107,21 @@ def _resolve_gene_filters(
     gene_id: str | list[str] | None,
 ) -> tuple[set[str], set[str]]:
     """Resolve user gene filters into exact gene_name / gene_id sets."""
+    from .filter_values import normalize_filter_values
+
     resolved_gene_names: set[str] = set()
     resolved_gene_ids: set[str] = set()
     if gene is not None:
         from .genes import resolve_gene_query
 
-        for q in _to_list(gene):
+        for q in normalize_filter_values(gene, "gene"):
             spec = resolve_gene_query(q)
             resolved_gene_names |= spec["names"]
             resolved_gene_ids |= spec["ids"]
     if gene_name is not None:
-        resolved_gene_names |= set(_to_list(gene_name))
+        resolved_gene_names |= set(normalize_filter_values(gene_name, "gene_name"))
     if gene_id is not None:
-        resolved_gene_ids |= set(_to_list(gene_id))
+        resolved_gene_ids |= set(normalize_filter_values(gene_id, "gene_id"))
     return resolved_gene_names, resolved_gene_ids
 
 

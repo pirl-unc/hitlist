@@ -33,6 +33,15 @@ the index stores older flags. Empty results retain requested supported derived
 columns and their types without fetching gene mappings just to form a schema.
 Missing unsupported source columns are omitted, as on nonempty projections.
 
+Membership filters (all ``str | list[str]`` arguments) split commas in scalar
+strings and in every list element, trim surrounding whitespace, and ignore
+blank tokens. ``None`` leaves the axis unfiltered. An explicitly empty/blank
+selection matches no rows, except ``mhc_restriction`` and ``mhc_allele_in_set``
+which require at least one usable allele and raise ``ValueError`` otherwise.
+Non-string elements raise ``TypeError``. Scalar-only ``source``, ``species``
+and ``mhc_class`` retain their individual matching rules. Candidate-set filters
+on legacy indexes without ``mhc_allele_set`` require rebuilding the index.
+
 Usage::
 
     from hitlist.observations import load_ms_observations, load_binding
@@ -87,6 +96,7 @@ import pyarrow.parquet as pq
 from .curation import normalize_serotype_query as _normalize_serotype_query
 from .dataset import dataset_cache_check, dataset_path, dataset_snapshot
 from .downloads import data_dir
+from .filter_values import normalize_filter_values
 from .pandas_utils import fillna_scalar_safe
 
 
@@ -333,7 +343,8 @@ def load_observations(
         length_max=25`` to MHC-II. ``None`` (default) means no bound.
     exclude_class_label_suspect
         When True, drop rows where the peptide length disagrees with
-        the curated MHC class (class II ≤ 10 aa, or class I ≥ 18 aa).
+        the curated MHC class severely (class I ≤7 or ≥15 aa; class II
+        ≤7 or ≥45 aa). Borderline lengths are retained.
         See ``mhc_class_label_suspect`` flag (#182). Useful for model
         training pipelines that should not see IEDB class-label drift.
     exclude_non_peptide_ligand
@@ -811,10 +822,37 @@ def _load_peptide_index(
 
     from .curation import normalize_allele, normalize_species, resolve_allele_identity
 
-    def _as_list(v) -> list[str]:
-        if isinstance(v, str):
-            return [s.strip() for s in v.split(",") if s.strip()]
-        return [s for s in v if s]
+    source_species = normalize_filter_values(source_species, "source_species")
+    host_species = normalize_filter_values(host_species, "host_species")
+    mhc_restriction = normalize_filter_values(mhc_restriction, "mhc_restriction")
+    mhc_allele_in_set = normalize_filter_values(mhc_allele_in_set, "mhc_allele_in_set")
+    mhc_allele_provenance = normalize_filter_values(mhc_allele_provenance, "mhc_allele_provenance")
+    restriction_evidence = normalize_filter_values(restriction_evidence, "restriction_evidence")
+    serotype_source = normalize_filter_values(serotype_source, "serotype_source")
+    gene_name = normalize_filter_values(gene_name, "gene_name")
+    gene_id = normalize_filter_values(gene_id, "gene_id")
+    peptide = normalize_filter_values(peptide, "peptide")
+    serotype = normalize_filter_values(serotype, "serotype")
+
+    # Validate allele selections before inspecting rows: even a zero-hit or
+    # legacy-schema query must not silently disable an explicitly set filter.
+    wanted_restrictions = None
+    wanted_candidates = None
+    for name, values in (
+        ("mhc_restriction", mhc_restriction),
+        ("mhc_allele_in_set", mhc_allele_in_set),
+    ):
+        if values is not None:
+            wanted = {resolve_allele_identity(value) for value in values} - {""}
+            if not wanted:
+                raise ValueError(
+                    f"{name} filter received no usable allele values "
+                    "after normalization; pass at least one non-empty allele."
+                )
+            if name == "mhc_restriction":
+                wanted_restrictions = wanted
+            else:
+                wanted_candidates = wanted
 
     # Determine which of the caller's requested columns actually live in
     # the parquet vs are derived (computed at load time, e.g. post-#238
@@ -823,6 +861,11 @@ def _load_peptide_index(
     # list — passing a derived column to ``pd.read_parquet(columns=...)``
     # raises ``ArrowInvalid: No match for FieldRef.Name(...)``.
     parquet_columns = set(pq.read_schema(path).names)
+    if mhc_allele_in_set is not None and "mhc_allele_set" not in parquet_columns:
+        raise ValueError(
+            "mhc_allele_in_set requires mhc_allele_set in the index; "
+            "rebuild with: hitlist build observations --force"
+        )
 
     filters: list = []
     if mhc_class is not None:
@@ -848,20 +891,14 @@ def _load_peptide_index(
         # predicate fast while honoring set-membership semantics.  The
         # unique-restriction set is cached per ``(path, mtime_ns, size)``
         # so we don't re-read the column on every call.
-        wanted = {resolve_allele_identity(v) for v in _as_list(mhc_restriction)} - {""}
-        if not wanted:
-            raise ValueError(
-                "mhc_restriction filter received no usable allele values "
-                "after normalization; pass at least one non-empty allele."
-            )
         all_restrictions = _unique_restrictions_for(path)
         matching = [
             r
             for r in all_restrictions
             if r
             and (
-                resolve_allele_identity(r) in wanted
-                or wanted.intersection(resolve_allele_identity(r).split(";"))
+                resolve_allele_identity(r) in wanted_restrictions
+                or wanted_restrictions.intersection(resolve_allele_identity(r).split(";"))
             )
         ]
         # A typed empty predicate still reaches the normal derivation and
@@ -870,11 +907,15 @@ def _load_peptide_index(
     if peptide is not None:
         # An untyped empty list becomes Arrow null, which cannot bind to a
         # large_string peptide column. An empty query must match zero rows.
-        filters.append(("peptide", "in", pa.array(_as_list(peptide), type=pa.string())))
+        filters.append(("peptide", "in", pa.array(peptide, type=pa.string())))
     if mhc_allele_provenance is not None:
-        filters.append(("mhc_allele_provenance", "in", _as_list(mhc_allele_provenance)))
+        filters.append(
+            ("mhc_allele_provenance", "in", pa.array(mhc_allele_provenance, type=pa.string()))
+        )
     if restriction_evidence is not None:
-        filters.append(("restriction_evidence", "in", _as_list(restriction_evidence)))
+        filters.append(
+            ("restriction_evidence", "in", pa.array(restriction_evidence, type=pa.string()))
+        )
     if gene_name is not None or gene_id is not None:
         # Gene filters resolve to a peptide list via peptide_mappings.parquet,
         # then push down on the obs frame.  Post-#238, the obs parquet itself
@@ -890,9 +931,9 @@ def _load_peptide_index(
             )
         mapping_filters: dict = {}
         if gene_name is not None:
-            mapping_filters["gene_name"] = _as_list(gene_name)
+            mapping_filters["gene_name"] = gene_name
         if gene_id is not None:
-            mapping_filters["gene_id"] = _as_list(gene_id)
+            mapping_filters["gene_id"] = gene_id
         hits = load_peptide_mappings(columns=["peptide"], **mapping_filters)
         matching_peptides = hits["peptide"].unique().tolist()
         filters.append(("peptide", "in", pa.array(matching_peptides, type=pa.string())))
@@ -902,7 +943,7 @@ def _load_peptide_index(
     # a public epitope like Bw4), so parquet pushdown can't express it.
     post_serotypes: list[str] | None = None
     if serotype is not None:
-        post_serotypes = [_normalize_serotype_query(s) for s in _as_list(serotype)]
+        post_serotypes = [_normalize_serotype_query(s) for s in serotype]
         if columns is not None and "serotypes" not in columns:
             read_columns = [*columns, "serotypes"]
         else:
@@ -1098,7 +1139,7 @@ def _load_peptide_index(
     # This provenance is refreshed with membership, so a parquet predicate
     # would discard rows using stale values before they could be repaired.
     if serotype_source is not None:
-        df = df[df["serotype_source"].isin(_as_list(serotype_source))]
+        df = df[df["serotype_source"].isin(serotype_source)]
 
     if post_serotypes is not None:
         wanted = set(post_serotypes)
@@ -1115,23 +1156,15 @@ def _load_peptide_index(
     # ``;``-joined string so parquet pushdown can't express the filter;
     # apply post-load.  Cheap on a filtered frame (the heavy filters
     # above already shrunk the row count).
-    if mhc_allele_in_set is not None and "mhc_allele_set" in df.columns:
+    if wanted_candidates is not None:
         # Vectorized set-membership: pad each cell with leading/trailing
         # ``;`` and substring-match ``;<allele>;``.  Anchors prevent
         # ``HLA-A*02`` from matching ``HLA-A*02:01``.  ``str.contains`` runs
         # in C; one pass per wanted allele beats a per-row Python apply
         # for low-selectivity queries on millions of rows.
-        wanted_set = {resolve_allele_identity(a.strip()) for a in _as_list(mhc_allele_in_set)} - {
-            ""
-        }
-        if not wanted_set:
-            raise ValueError(
-                "mhc_allele_in_set filter received no usable allele values "
-                "after normalization; pass at least one non-empty allele."
-            )
         padded = ";" + fillna_scalar_safe(df["mhc_allele_set"], "").astype(str) + ";"
         mask = pd.Series(False, index=df.index)
-        for allele in wanted_set:
+        for allele in wanted_candidates:
             mask |= padded.str.contains(f";{re.escape(allele)};", regex=True)
         df = df[mask]
         # Don't leak the helper column when the caller didn't project it
@@ -1283,10 +1316,10 @@ def _load_peptide_index(
     if exclude_chimeric or source_species is not None or host_species is not None or want_axis_cols:
         _attach_species_axes(df)
         if source_species is not None:
-            wanted = {normalize_species(s) for s in _as_list(source_species)} - {""}
+            wanted = {normalize_species(s) for s in source_species} - {""}
             df = df[df["source_species"].isin(wanted)]
         if host_species is not None:
-            wanted = {normalize_species(s) for s in _as_list(host_species)} - {""}
+            wanted = {normalize_species(s) for s in host_species} - {""}
             df = df[df["host_organism"].isin(wanted)]
         if exclude_chimeric:
             df = df[~df["is_chimeric"]]
