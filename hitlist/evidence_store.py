@@ -131,7 +131,13 @@ class EvidenceStore:
             include_adjudications=adjudication_manifest_path(manifest) is not None,
             package_features=package_features,
         )
-        if family == "nontryptic_calibration":
+        if family == "perturbation_quantities":
+            self.bindings = {
+                name: binding
+                for name, binding in self.bindings.items()
+                if name.startswith("perturbation_")
+            }
+        elif family == "nontryptic_calibration":
             self.bindings = {
                 name: binding
                 for name, binding in self.bindings.items()
@@ -238,7 +244,11 @@ class EvidenceStore:
             family = package_family(envelope)
         except ValueError as exc:
             raise EvidenceQueryError(str(exc)) from exc
-        if family == "nontryptic_calibration":
+        if family == "perturbation_quantities":
+            from .perturbation_quantities import verify_perturbation_quantity_package
+
+            manifest = verify_perturbation_quantity_package(directory)
+        elif family == "nontryptic_calibration":
             from .nontryptic_calibration import verify_nontryptic_calibration_package
 
             manifest = verify_nontryptic_calibration_package(directory)
@@ -442,6 +452,7 @@ class EvidenceStore:
             "native_peptidomics",
             "dilution_observer",
             "nontryptic_calibration",
+            "perturbation_quantities",
         ):
             return self.manifest.get("source_registry", {})
         if family == "tmab_peptidomics":

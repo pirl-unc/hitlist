@@ -4,10 +4,21 @@ Specification: [perturbation-quantities-spec.md](perturbation-quantities-spec.md
 
 - [x] Recover original Data 3/5, inspect all sheets and independently replay effects.
 - [x] File source conflicts as #924; retain #901 for the broader source program.
-- [ ] Pin source contracts and expose typed rows through the shared EvidenceStore.
-- [ ] Add a source-qualified unpaired contrast recipe, exclusions and provenance.
+- [x] Pin source contracts and expose typed rows through the shared EvidenceStore.
+- [x] Add a source-qualified unpaired contrast recipe, exclusions and provenance.
 - [ ] Verify real-source conservation, software gates and consumer semantics.
 - [ ] Review, merge after dependent releases, deploy and verify public distributions.
+
+## Initial implementation review
+
+Original source discrepancies filed as #924. Independent pre-implementation
+workbook arithmetic reconciles 17,763 form/plex comparisons within 1.01e-9 of
+reported log2 effects. Software fixtures cover literal/formula preservation,
+source-dose conflicts, modified forms, zero exclusion, shared joins, empty
+selection, immutable snapshots and tampering after rehash. A separate hosted
+qualification workflow must replay every real quantity and contrast using
+openpyxl independently of the production XML reader. Local focused tests were
+refused at 0.25 GiB by the unchanged guard; no local pass is claimed.
 
 # DP/DM PR #898 final review — 2026-11-18
 

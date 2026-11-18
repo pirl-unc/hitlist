@@ -1,0 +1,1462 @@
+{
+  "source_dataset": "PXD017407",
+  "source_reference_id": "PMID:32488085",
+  "revision": "stopfer2020_reporter_quantities_v1",
+  "article_url": "https://www.nature.com/articles/s41467-020-16588-9",
+  "assets": [
+    {
+      "filename": "41467_2020_16588_MOESM5_ESM.xlsx",
+      "role": "data3",
+      "source_url": "https://static-content.springer.com/esm/art%3A10.1038%2Fs41467-020-16588-9/MediaObjects/41467_2020_16588_MOESM5_ESM.xlsx",
+      "sha256": "cb7ec2606a72becae1743f9832b0d2ef816068c642e77ce418be803580c3ca1b",
+      "size_bytes": 2721067,
+      "license_status": "original_publication_asset_rights_retained"
+    },
+    {
+      "filename": "41467_2020_16588_MOESM7_ESM.xlsx",
+      "role": "data5",
+      "source_url": "https://static-content.springer.com/esm/art%3A10.1038%2Fs41467-020-16588-9/MediaObjects/41467_2020_16588_MOESM7_ESM.xlsx",
+      "sha256": "bce668bb0d0639d36b6ce39cbc8d79a103588123b904b7211a65ea17a753be49",
+      "size_bytes": 2657172,
+      "license_status": "original_publication_asset_rights_retained"
+    }
+  ],
+  "comparisons": [
+    {
+      "asset": "41467_2020_16588_MOESM5_ESM.xlsx",
+      "sheet": "3.1 SKMEL5_1",
+      "header_row": 7,
+      "cell_line_name": "SK-MEL-5",
+      "line_raw": "SKMEL5",
+      "dose": 1,
+      "dose_unit": "uM",
+      "treatment": "palbociclib",
+      "treated_condition_id": "sk_mel_5_palbociclib_1um",
+      "control_condition_id": "sk_mel_5_dmso",
+      "quantities": [
+        {
+          "quantity_kind": "hipmhc_normalized_reporter",
+          "columns": [
+            "Q",
+            "R",
+            "S",
+            "T",
+            "U",
+            "V"
+          ],
+          "slots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "quantity_kind": "raw_reporter",
+          "columns": [
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J"
+          ],
+          "slots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "quantity_kind": "mean_adjusted_reporter",
+          "columns": [
+            "AF",
+            "AG",
+            "AH"
+          ],
+          "slots": [
+            3,
+            4,
+            5
+          ]
+        }
+      ],
+      "statistics": {
+        "mean_control": "W",
+        "sd_control": "X",
+        "cv_percent_control": "Y",
+        "mean_treated": "Z",
+        "sd_treated": "AA",
+        "cv_percent_treated": "AB",
+        "log2_fold_change": "AC",
+        "p_value": "AD",
+        "negative_log10_p_value": "AE",
+        "mean_adjusted_p_value": "AI",
+        "mean_adjusted_negative_log10_p_value": "AJ"
+      },
+      "gene_column": "D",
+      "length_column": "C",
+      "n_forms": 1063,
+      "dose_qualification": "source_title_and_header_agree",
+      "expected_headers": {
+        "A": "Sequence",
+        "B": "Protein",
+        "C": "Length",
+        "D": "Gene",
+        "E": "DMSO 1",
+        "F": "DMSO 2",
+        "G": "DMSO 3",
+        "H": "1uM 1",
+        "I": "1uM 2",
+        "J": "1uM 3",
+        "K": "X mean",
+        "L": "X std dev",
+        "M": "X % CV ",
+        "N": "Y mean",
+        "O": "Y std dev",
+        "P": "Y %C V",
+        "Q": "DMSO 1",
+        "R": "DMSO 2",
+        "S": "DMSO 3",
+        "T": "1uM 1",
+        "U": "1uM 2",
+        "V": "1uM 3",
+        "W": "X mean",
+        "X": "X std dev",
+        "Y": "X % CV",
+        "Z": "Y mean",
+        "AA": "Y std dev",
+        "AB": "Y % CV",
+        "AC": "Log2(FC)",
+        "AD": "pval",
+        "AE": " -log10(pval)",
+        "AF": "1uM 1",
+        "AG": "1uM 2",
+        "AH": "1uM 3",
+        "AI": "pval",
+        "AJ": " -log10(pval)"
+      }
+    },
+    {
+      "asset": "41467_2020_16588_MOESM5_ESM.xlsx",
+      "sheet": "3.2 SKMEL5_10",
+      "header_row": 6,
+      "cell_line_name": "SK-MEL-5",
+      "line_raw": "SKMEL5",
+      "dose": 10,
+      "dose_unit": "uM",
+      "treatment": "palbociclib",
+      "treated_condition_id": "sk_mel_5_palbociclib_10um",
+      "control_condition_id": "sk_mel_5_dmso",
+      "quantities": [
+        {
+          "quantity_kind": "hipmhc_normalized_reporter",
+          "columns": [
+            "Q",
+            "R",
+            "S",
+            "T",
+            "U",
+            "V"
+          ],
+          "slots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "quantity_kind": "raw_reporter",
+          "columns": [
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J"
+          ],
+          "slots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "quantity_kind": "mean_adjusted_reporter",
+          "columns": [
+            "AC",
+            "AD",
+            "AE"
+          ],
+          "slots": [
+            3,
+            4,
+            5
+          ]
+        }
+      ],
+      "statistics": {
+        "mean_control": "W",
+        "mean_treated": "X",
+        "ratio": "Y",
+        "log2_fold_change": "Z",
+        "p_value": "AA",
+        "negative_log10_p_value": "AB",
+        "mean_adjusted_p_value": "AF",
+        "mean_adjusted_negative_log10_p_value": "AG"
+      },
+      "gene_column": "C",
+      "length_column": "D",
+      "n_forms": 1530,
+      "dose_qualification": "source_header_conflict_resolved_by_title_and_filemap",
+      "expected_headers": {
+        "A": "Sequence",
+        "B": "Protein",
+        "C": "Gene",
+        "D": "Length",
+        "E": "DMSO 1",
+        "F": "DMSO 2",
+        "G": "DMSO 3",
+        "H": "1uM 1",
+        "I": "1uM 2",
+        "J": "1uM 3",
+        "K": "X mean",
+        "L": "X std dev",
+        "M": "X % CV ",
+        "N": "Y mean",
+        "O": "Y std dev",
+        "P": "Y %C V",
+        "Q": "DMSO 1",
+        "R": "DMSO 2",
+        "S": "DMSO 3",
+        "T": "10uM 1",
+        "U": "10uM 2",
+        "V": "10uM 3",
+        "W": "X mean",
+        "X": "Y mean",
+        "Y": "Y/X",
+        "Z": "Log2(FC)",
+        "AA": "pval",
+        "AB": " -log10(pval)",
+        "AC": "10uM 1",
+        "AD": "10uM 2",
+        "AE": "10uM 3",
+        "AF": "pval",
+        "AG": " -log10(pval)"
+      }
+    },
+    {
+      "asset": "41467_2020_16588_MOESM5_ESM.xlsx",
+      "sheet": "3.3 SKMEL2_1",
+      "header_row": 6,
+      "cell_line_name": "SK-MEL-2",
+      "line_raw": "SKMEL2",
+      "dose": 1,
+      "dose_unit": "uM",
+      "treatment": "palbociclib",
+      "treated_condition_id": "sk_mel_2_palbociclib_1um",
+      "control_condition_id": "sk_mel_2_dmso",
+      "quantities": [
+        {
+          "quantity_kind": "hipmhc_normalized_reporter",
+          "columns": [
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J"
+          ],
+          "slots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "quantity_kind": "mean_adjusted_reporter",
+          "columns": [
+            "Q",
+            "R",
+            "S"
+          ],
+          "slots": [
+            3,
+            4,
+            5
+          ]
+        }
+      ],
+      "statistics": {
+        "mean_control": "K",
+        "mean_treated": "L",
+        "ratio": "M",
+        "log2_fold_change": "N",
+        "p_value": "O",
+        "negative_log10_p_value": "P",
+        "mean_adjusted_p_value": "T",
+        "mean_adjusted_negative_log10_p_value": "U"
+      },
+      "gene_column": "C",
+      "length_column": "D",
+      "n_forms": 677,
+      "dose_qualification": "source_title_and_header_agree",
+      "expected_headers": {
+        "A": "Sequence",
+        "B": "Protein",
+        "C": "Gene",
+        "D": "Length",
+        "E": "DMSO 1",
+        "F": "DMSO 2",
+        "G": "DMSO 3",
+        "H": "1uM 1",
+        "I": "1uM 2",
+        "J": "1uM 3",
+        "K": "X mean",
+        "L": "Y mean",
+        "M": "Y/X",
+        "N": "Log2(FC)",
+        "O": "pval",
+        "P": " -log10(pval)",
+        "Q": "1uM 1",
+        "R": "1uM 2",
+        "S": "1uM 3",
+        "T": "pval",
+        "U": " -log10(pval)"
+      }
+    },
+    {
+      "asset": "41467_2020_16588_MOESM5_ESM.xlsx",
+      "sheet": "3.4 SKMEL2_10",
+      "header_row": 6,
+      "cell_line_name": "SK-MEL-2",
+      "line_raw": "SKMEL2",
+      "dose": 10,
+      "dose_unit": "uM",
+      "treatment": "palbociclib",
+      "treated_condition_id": "sk_mel_2_palbociclib_10um",
+      "control_condition_id": "sk_mel_2_dmso",
+      "quantities": [
+        {
+          "quantity_kind": "hipmhc_normalized_reporter",
+          "columns": [
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J"
+          ],
+          "slots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "quantity_kind": "mean_adjusted_reporter",
+          "columns": [
+            "Q",
+            "R",
+            "S"
+          ],
+          "slots": [
+            3,
+            4,
+            5
+          ]
+        }
+      ],
+      "statistics": {
+        "mean_control": "K",
+        "mean_treated": "L",
+        "ratio": "M",
+        "log2_fold_change": "N",
+        "p_value": "O",
+        "negative_log10_p_value": "P",
+        "mean_adjusted_p_value": "T",
+        "mean_adjusted_negative_log10_p_value": "U"
+      },
+      "gene_column": "C",
+      "length_column": "D",
+      "n_forms": 658,
+      "dose_qualification": "source_header_conflict_resolved_by_title_and_filemap",
+      "expected_headers": {
+        "A": "Sequence",
+        "B": "Protein",
+        "C": "Gene",
+        "D": "Length",
+        "E": "DMSO 1",
+        "F": "DMSO 2",
+        "G": "DMSO 3",
+        "H": "1uM 1",
+        "I": "1uM 2",
+        "J": "1uM 3",
+        "K": "X mean",
+        "L": "Y mean",
+        "M": "Y/X",
+        "N": "Log2(FC)",
+        "O": "pval",
+        "P": " -log10(pval)",
+        "Q": "1uM 1",
+        "R": "1uM 2",
+        "S": "1uM 3",
+        "T": "pval",
+        "U": " -log10(pval)"
+      }
+    },
+    {
+      "asset": "41467_2020_16588_MOESM5_ESM.xlsx",
+      "sheet": "3.5 SKMEL28_1",
+      "header_row": 6,
+      "cell_line_name": "SK-MEL-28",
+      "line_raw": "SKMEL28",
+      "dose": 1,
+      "dose_unit": "uM",
+      "treatment": "palbociclib",
+      "treated_condition_id": "sk_mel_28_palbociclib_1um",
+      "control_condition_id": "sk_mel_28_dmso",
+      "quantities": [
+        {
+          "quantity_kind": "hipmhc_normalized_reporter",
+          "columns": [
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J"
+          ],
+          "slots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "quantity_kind": "mean_adjusted_reporter",
+          "columns": [
+            "Q",
+            "R",
+            "S"
+          ],
+          "slots": [
+            3,
+            4,
+            5
+          ]
+        }
+      ],
+      "statistics": {
+        "mean_control": "K",
+        "mean_treated": "L",
+        "ratio": "M",
+        "log2_fold_change": "N",
+        "p_value": "O",
+        "negative_log10_p_value": "P",
+        "mean_adjusted_p_value": "T",
+        "mean_adjusted_negative_log10_p_value": "U"
+      },
+      "gene_column": "C",
+      "length_column": "D",
+      "n_forms": 490,
+      "dose_qualification": "source_title_and_header_agree",
+      "expected_headers": {
+        "A": "Sequence",
+        "B": "Protein",
+        "C": "Gene",
+        "D": "Length",
+        "E": "DMSO 1",
+        "F": "DMSO 2",
+        "G": "DMSO 3",
+        "H": "1uM 1",
+        "I": "1uM 2",
+        "J": "1uM 3",
+        "K": "X mean",
+        "L": "Y mean",
+        "M": "Y/X",
+        "N": "Log2(FC)",
+        "O": "pval",
+        "P": " -log10(pval)",
+        "Q": "1uM 1",
+        "R": "1uM 2",
+        "S": "1uM 3",
+        "T": "pval",
+        "U": " -log10(pval)"
+      }
+    },
+    {
+      "asset": "41467_2020_16588_MOESM5_ESM.xlsx",
+      "sheet": "3.6 SKMEL28_10",
+      "header_row": 7,
+      "cell_line_name": "SK-MEL-28",
+      "line_raw": "SKMEL28",
+      "dose": 10,
+      "dose_unit": "uM",
+      "treatment": "palbociclib",
+      "treated_condition_id": "sk_mel_28_palbociclib_10um",
+      "control_condition_id": "sk_mel_28_dmso",
+      "quantities": [
+        {
+          "quantity_kind": "hipmhc_normalized_reporter",
+          "columns": [
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J"
+          ],
+          "slots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        }
+      ],
+      "statistics": {
+        "mean_control": "K",
+        "mean_treated": "L",
+        "ratio": "M",
+        "log2_fold_change": "N",
+        "p_value": "O",
+        "negative_log10_p_value": "P"
+      },
+      "gene_column": "C",
+      "length_column": "D",
+      "n_forms": 1142,
+      "dose_qualification": "source_header_conflict_resolved_by_title_and_filemap",
+      "expected_headers": {
+        "A": "Sequence",
+        "B": "Protein",
+        "C": "Gene",
+        "D": "Length",
+        "E": "DMSO 1",
+        "F": "DMSO 2",
+        "G": "DMSO 3",
+        "H": "1uM 1",
+        "I": "1uM 2",
+        "J": "1uM 3",
+        "K": "X mean",
+        "L": "Y mean",
+        "M": "Y/X",
+        "N": "Log2(FC)",
+        "O": "pval",
+        "P": " -log10(pval)"
+      }
+    },
+    {
+      "asset": "41467_2020_16588_MOESM5_ESM.xlsx",
+      "sheet": "3.7 IPC298_1",
+      "header_row": 6,
+      "cell_line_name": "IPC-298",
+      "line_raw": "IPC298",
+      "dose": 1,
+      "dose_unit": "uM",
+      "treatment": "palbociclib",
+      "treated_condition_id": "ipc_298_palbociclib_1um",
+      "control_condition_id": "ipc_298_dmso",
+      "quantities": [
+        {
+          "quantity_kind": "hipmhc_normalized_reporter",
+          "columns": [
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J"
+          ],
+          "slots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "quantity_kind": "mean_adjusted_reporter",
+          "columns": [
+            "Q",
+            "R",
+            "S"
+          ],
+          "slots": [
+            3,
+            4,
+            5
+          ]
+        }
+      ],
+      "statistics": {
+        "mean_control": "K",
+        "mean_treated": "L",
+        "ratio": "M",
+        "log2_fold_change": "N",
+        "p_value": "O",
+        "negative_log10_p_value": "P",
+        "mean_adjusted_p_value": "T",
+        "mean_adjusted_negative_log10_p_value": "U"
+      },
+      "gene_column": "C",
+      "length_column": "D",
+      "n_forms": 797,
+      "dose_qualification": "source_title_and_header_agree",
+      "expected_headers": {
+        "A": "Sequence",
+        "B": "Protein",
+        "C": "Gene",
+        "D": "Length",
+        "E": "DMSO 1",
+        "F": "DMSO 2",
+        "G": "DMSO 3",
+        "H": "1uM 1",
+        "I": "1uM 2",
+        "J": "1uM 3",
+        "K": "X mean",
+        "L": "Y mean",
+        "M": "Y/X",
+        "N": "Log2(FC)",
+        "O": "pval",
+        "P": " -log10(pval)",
+        "Q": "1uM 1",
+        "R": "1uM 2",
+        "S": "1uM 3",
+        "T": "pval",
+        "U": " -log10(pval)"
+      }
+    },
+    {
+      "asset": "41467_2020_16588_MOESM5_ESM.xlsx",
+      "sheet": "3.8 IPC298_10",
+      "header_row": 7,
+      "cell_line_name": "IPC-298",
+      "line_raw": "IPC298",
+      "dose": 10,
+      "dose_unit": "uM",
+      "treatment": "palbociclib",
+      "treated_condition_id": "ipc_298_palbociclib_10um",
+      "control_condition_id": "ipc_298_dmso",
+      "quantities": [
+        {
+          "quantity_kind": "hipmhc_normalized_reporter",
+          "columns": [
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J"
+          ],
+          "slots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        }
+      ],
+      "statistics": {
+        "mean_control": "K",
+        "mean_treated": "L",
+        "ratio": "M",
+        "log2_fold_change": "N",
+        "p_value": "O",
+        "negative_log10_p_value": "P"
+      },
+      "gene_column": "C",
+      "length_column": "D",
+      "n_forms": 2366,
+      "dose_qualification": "source_header_conflict_resolved_by_title_and_filemap",
+      "expected_headers": {
+        "A": "Sequence",
+        "B": "Protein",
+        "C": "Gene",
+        "D": "Length",
+        "E": "DMSO 1",
+        "F": "DMSO 2",
+        "G": "DMSO 3",
+        "H": "1uM 1",
+        "I": "1uM 2",
+        "J": "1uM 3",
+        "K": "X mean",
+        "L": "Y mean",
+        "M": "Y/X",
+        "N": "Log2(FC)",
+        "O": "pval",
+        "P": " -log10(pval)"
+      }
+    },
+    {
+      "asset": "41467_2020_16588_MOESM7_ESM.xlsx",
+      "sheet": "5.1 SKMEL5_\ud835\udefe",
+      "header_row": 6,
+      "cell_line_name": "SK-MEL-5",
+      "line_raw": "SKMEL5",
+      "dose": 10,
+      "dose_unit": "ng/mL",
+      "treatment": "IFNG",
+      "treated_condition_id": "sk_mel_5_ifng",
+      "control_condition_id": "sk_mel_5_dmso",
+      "quantities": [
+        {
+          "quantity_kind": "hipmhc_normalized_reporter",
+          "columns": [
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J"
+          ],
+          "slots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "quantity_kind": "mean_adjusted_reporter",
+          "columns": [
+            "Q",
+            "R",
+            "S"
+          ],
+          "slots": [
+            3,
+            4,
+            5
+          ]
+        }
+      ],
+      "statistics": {
+        "mean_control": "K",
+        "mean_treated": "L",
+        "ratio": "M",
+        "log2_fold_change": "N",
+        "p_value": "O",
+        "negative_log10_p_value": "P",
+        "mean_adjusted_p_value": "T",
+        "mean_adjusted_negative_log10_p_value": "U"
+      },
+      "gene_column": "C",
+      "length_column": "D",
+      "n_forms": 2392,
+      "dose_qualification": "source_title_and_header_agree",
+      "expected_headers": {
+        "A": "Sequence",
+        "B": "Protein",
+        "C": "Gene",
+        "D": "Length",
+        "E": "TMT-126",
+        "F": "TMT-127",
+        "G": "TMT-128",
+        "H": "TMT-129",
+        "I": "TMT-130",
+        "J": "TMT-131",
+        "K": "X mean",
+        "L": "Y mean",
+        "M": "Y/X",
+        "N": "Log2(FC)",
+        "O": "pval",
+        "P": " -log10(pval)",
+        "Q": "Ifn-\ud835\udefe 1",
+        "R": "Ifn-\ud835\udefe 2",
+        "S": "Ifn-\ud835\udefe 3",
+        "T": "pval",
+        "U": " -log10(pval)"
+      }
+    },
+    {
+      "asset": "41467_2020_16588_MOESM7_ESM.xlsx",
+      "sheet": "5.2 SKMEL28_\ud835\udefe",
+      "header_row": 6,
+      "cell_line_name": "SK-MEL-28",
+      "line_raw": "SKMEL28",
+      "dose": 10,
+      "dose_unit": "ng/mL",
+      "treatment": "IFNG",
+      "treated_condition_id": "sk_mel_28_ifng",
+      "control_condition_id": "sk_mel_28_dmso",
+      "quantities": [
+        {
+          "quantity_kind": "hipmhc_normalized_reporter",
+          "columns": [
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J"
+          ],
+          "slots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "quantity_kind": "mean_adjusted_reporter",
+          "columns": [
+            "Q",
+            "R",
+            "S"
+          ],
+          "slots": [
+            3,
+            4,
+            5
+          ]
+        }
+      ],
+      "statistics": {
+        "mean_control": "K",
+        "mean_treated": "L",
+        "ratio": "M",
+        "log2_fold_change": "N",
+        "p_value": "O",
+        "negative_log10_p_value": "P",
+        "mean_adjusted_p_value": "T",
+        "mean_adjusted_negative_log10_p_value": "U"
+      },
+      "gene_column": "C",
+      "length_column": "D",
+      "n_forms": 2089,
+      "dose_qualification": "source_title_and_header_agree",
+      "expected_headers": {
+        "A": "Sequence",
+        "B": "Protein",
+        "C": "Gene",
+        "D": "Length",
+        "E": "TMT-126",
+        "F": "TMT-127",
+        "G": "TMT-128",
+        "H": "TMT-129",
+        "I": "TMT-130",
+        "J": "TMT-131",
+        "K": "X mean",
+        "L": "Y mean",
+        "M": "Y/X",
+        "N": "Log2(FC)",
+        "O": "pval",
+        "P": " -log10(pval)",
+        "Q": "Ifn-\ud835\udefe 1",
+        "R": "Ifn-\ud835\udefe 2",
+        "S": "Ifn-\ud835\udefe 3",
+        "T": "pval",
+        "U": " -log10(pval)"
+      }
+    },
+    {
+      "asset": "41467_2020_16588_MOESM7_ESM.xlsx",
+      "sheet": "5.3 SKMEL2_\ud835\udefe",
+      "header_row": 6,
+      "cell_line_name": "SK-MEL-2",
+      "line_raw": "SKMEL2",
+      "dose": 10,
+      "dose_unit": "ng/mL",
+      "treatment": "IFNG",
+      "treated_condition_id": "sk_mel_2_ifng",
+      "control_condition_id": "sk_mel_2_dmso",
+      "quantities": [
+        {
+          "quantity_kind": "hipmhc_normalized_reporter",
+          "columns": [
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J"
+          ],
+          "slots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "quantity_kind": "mean_adjusted_reporter",
+          "columns": [
+            "Q",
+            "R",
+            "S"
+          ],
+          "slots": [
+            3,
+            4,
+            5
+          ]
+        }
+      ],
+      "statistics": {
+        "mean_control": "K",
+        "mean_treated": "L",
+        "ratio": "M",
+        "log2_fold_change": "N",
+        "p_value": "O",
+        "negative_log10_p_value": "P",
+        "mean_adjusted_p_value": "T",
+        "mean_adjusted_negative_log10_p_value": "U"
+      },
+      "gene_column": "C",
+      "length_column": "D",
+      "n_forms": 2143,
+      "dose_qualification": "source_title_and_header_agree",
+      "expected_headers": {
+        "A": "Sequence",
+        "B": "Protein",
+        "C": "Gene",
+        "D": "Length",
+        "E": "TMT-126",
+        "F": "TMT-127",
+        "G": "TMT-128",
+        "H": "TMT-129",
+        "I": "TMT-130",
+        "J": "TMT-131",
+        "K": "X mean",
+        "L": "Y mean",
+        "M": "Y/X",
+        "N": "Log2(FC)",
+        "O": "pval",
+        "P": " -log10(pval)",
+        "Q": "Ifn-\ud835\udefe 1",
+        "R": "Ifn-\ud835\udefe 2",
+        "S": "Ifn-\ud835\udefe 3",
+        "T": "pval",
+        "U": " -log10(pval)"
+      }
+    },
+    {
+      "asset": "41467_2020_16588_MOESM7_ESM.xlsx",
+      "sheet": "5.4 IPC298_\ud835\udefe",
+      "header_row": 6,
+      "cell_line_name": "IPC-298",
+      "line_raw": "IPC298",
+      "dose": 10,
+      "dose_unit": "ng/mL",
+      "treatment": "IFNG",
+      "treated_condition_id": "ipc_298_ifng",
+      "control_condition_id": "ipc_298_dmso",
+      "quantities": [
+        {
+          "quantity_kind": "hipmhc_normalized_reporter",
+          "columns": [
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J"
+          ],
+          "slots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "quantity_kind": "mean_adjusted_reporter",
+          "columns": [
+            "Q",
+            "R",
+            "S"
+          ],
+          "slots": [
+            3,
+            4,
+            5
+          ]
+        }
+      ],
+      "statistics": {
+        "mean_control": "K",
+        "mean_treated": "L",
+        "ratio": "M",
+        "log2_fold_change": "N",
+        "p_value": "O",
+        "negative_log10_p_value": "P",
+        "mean_adjusted_p_value": "T",
+        "mean_adjusted_negative_log10_p_value": "U"
+      },
+      "gene_column": "C",
+      "length_column": "D",
+      "n_forms": 2416,
+      "dose_qualification": "source_title_and_header_agree",
+      "expected_headers": {
+        "A": "Sequence",
+        "B": "Protein",
+        "C": "Gene",
+        "D": "Length",
+        "E": "TMT-126",
+        "F": "TMT-127",
+        "G": "TMT-128",
+        "H": "TMT-129",
+        "I": "TMT-130",
+        "J": "TMT-131",
+        "K": "X mean",
+        "L": "Y mean",
+        "M": "Y/X",
+        "N": "Log2(FC)",
+        "O": "pval",
+        "P": " -log10(pval)",
+        "Q": "Ifn-\ud835\udefe 1",
+        "R": "Ifn-\ud835\udefe 2",
+        "S": "Ifn-\ud835\udefe 3",
+        "T": "pval",
+        "U": " -log10(pval)"
+      }
+    }
+  ],
+  "filemaps": [
+    {
+      "asset": "41467_2020_16588_MOESM5_ESM.xlsx",
+      "sheet": "3.10 File Map",
+      "line_column": "B",
+      "condition_column": "C",
+      "table_column": "D",
+      "filename_column": "E",
+      "type_column": "F",
+      "blocks": [
+        {
+          "start_row": 5,
+          "line_raw": "SKMEL5",
+          "condition_raw": "1 uM CDK4/6i",
+          "table_raw": "2.1",
+          "comparison_sheet": "3.1 SKMEL5_1",
+          "rows": [
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ]
+        },
+        {
+          "start_row": 17,
+          "line_raw": "SKMEL5",
+          "condition_raw": "10 uM CDK4/6i",
+          "table_raw": "2.2",
+          "comparison_sheet": "3.2 SKMEL5_10",
+          "rows": [
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23
+          ]
+        },
+        {
+          "start_row": 25,
+          "line_raw": "SKMEL2",
+          "condition_raw": "1 uM CDK4/6i",
+          "table_raw": "2.3",
+          "comparison_sheet": "3.3 SKMEL2_1",
+          "rows": [
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32
+          ]
+        },
+        {
+          "start_row": 34,
+          "line_raw": "SKMEL2",
+          "condition_raw": "10 uM CDK4/6i",
+          "table_raw": "2.4",
+          "comparison_sheet": "3.4 SKMEL2_10",
+          "rows": [
+            34,
+            35,
+            36,
+            37,
+            38,
+            39
+          ]
+        },
+        {
+          "start_row": 41,
+          "line_raw": "SKMEL28",
+          "condition_raw": "1 uM CDK4/6i",
+          "table_raw": "2.5",
+          "comparison_sheet": "3.5 SKMEL28_1",
+          "rows": [
+            41,
+            42,
+            43,
+            44,
+            45
+          ]
+        },
+        {
+          "start_row": 48,
+          "line_raw": "SKMEL28",
+          "condition_raw": "10 uM CDK4/6i",
+          "table_raw": "2.6",
+          "comparison_sheet": "3.6 SKMEL28_10",
+          "rows": [
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55
+          ]
+        },
+        {
+          "start_row": 57,
+          "line_raw": "IPC298",
+          "condition_raw": "10 uM CDK4/6i",
+          "table_raw": "2.8",
+          "comparison_sheet": "3.8 IPC298_10",
+          "rows": [
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64
+          ]
+        },
+        {
+          "start_row": 66,
+          "line_raw": "IPC298",
+          "condition_raw": "1 uM CDK4/6i",
+          "table_raw": "2.7",
+          "comparison_sheet": "3.7 IPC298_1",
+          "rows": [
+            66,
+            67,
+            68,
+            69,
+            70,
+            71
+          ]
+        },
+        {
+          "start_row": 73,
+          "line_raw": "SKMEL5",
+          "condition_raw": "1 uM CDK4/6i",
+          "table_raw": "2.9",
+          "comparison_sheet": null,
+          "rows": [
+            73,
+            74,
+            75,
+            76,
+            77,
+            78,
+            79
+          ]
+        }
+      ]
+    },
+    {
+      "asset": "41467_2020_16588_MOESM7_ESM.xlsx",
+      "sheet": "File Map",
+      "line_column": "A",
+      "condition_column": "B",
+      "table_column": "C",
+      "filename_column": "D",
+      "type_column": "E",
+      "blocks": [
+        {
+          "start_row": 3,
+          "line_raw": "SKMEL5",
+          "condition_raw": "10ng/mL Ifn-g",
+          "table_raw": "5.1",
+          "comparison_sheet": "5.1 SKMEL5_\ud835\udefe",
+          "rows": [
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ]
+        },
+        {
+          "start_row": 13,
+          "line_raw": "SKMEL28",
+          "condition_raw": "10ng/mL Ifn-g",
+          "table_raw": "5.2",
+          "comparison_sheet": "5.2 SKMEL28_\ud835\udefe",
+          "rows": [
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19
+          ]
+        },
+        {
+          "start_row": 21,
+          "line_raw": "SKMEL2",
+          "condition_raw": "10ng/mL Ifn-g",
+          "table_raw": "5.3",
+          "comparison_sheet": "5.3 SKMEL2_\ud835\udefe",
+          "rows": [
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ]
+        },
+        {
+          "start_row": 30,
+          "line_raw": "IPC298",
+          "condition_raw": "10ng/mL Ifn-g",
+          "table_raw": "5.4",
+          "comparison_sheet": "5.4 IPC298_\ud835\udefe",
+          "rows": [
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37
+          ]
+        }
+      ]
+    }
+  ],
+  "conditions": [
+    {
+      "condition_id": "sk_mel_5_dmso",
+      "sample_group": "SK-MEL-5",
+      "condition": "unperturbed (DMSO vehicle, 72 h)",
+      "mhc": "HLA-A*02:01 HLA-A*11:01 HLA-B*07:02 HLA-B*40:01 HLA-C*03:04 HLA-C*07:02"
+    },
+    {
+      "condition_id": "sk_mel_5_palbociclib_1um",
+      "sample_group": "SK-MEL-5",
+      "condition": "palbociclib (CDK4/6i), 1 uM, 72 h",
+      "mhc": "HLA-A*02:01 HLA-A*11:01 HLA-B*07:02 HLA-B*40:01 HLA-C*03:04 HLA-C*07:02"
+    },
+    {
+      "condition_id": "sk_mel_5_palbociclib_10um",
+      "sample_group": "SK-MEL-5",
+      "condition": "palbociclib (CDK4/6i), 10 uM, 72 h",
+      "mhc": "HLA-A*02:01 HLA-A*11:01 HLA-B*07:02 HLA-B*40:01 HLA-C*03:04 HLA-C*07:02"
+    },
+    {
+      "condition_id": "sk_mel_5_ifng",
+      "sample_group": "SK-MEL-5",
+      "condition": "IFN-gamma, 10 ng/mL, 72 h",
+      "mhc": "HLA-A*02:01 HLA-A*11:01 HLA-B*07:02 HLA-B*40:01 HLA-C*03:04 HLA-C*07:02"
+    },
+    {
+      "condition_id": "sk_mel_28_dmso",
+      "sample_group": "SK-MEL-28",
+      "condition": "unperturbed (DMSO vehicle, 72 h)",
+      "mhc": "HLA-A*11:01 HLA-B*40:01 HLA-C*03:04"
+    },
+    {
+      "condition_id": "sk_mel_28_palbociclib_1um",
+      "sample_group": "SK-MEL-28",
+      "condition": "palbociclib (CDK4/6i), 1 uM, 72 h",
+      "mhc": "HLA-A*11:01 HLA-B*40:01 HLA-C*03:04"
+    },
+    {
+      "condition_id": "sk_mel_28_palbociclib_10um",
+      "sample_group": "SK-MEL-28",
+      "condition": "palbociclib (CDK4/6i), 10 uM, 72 h",
+      "mhc": "HLA-A*11:01 HLA-B*40:01 HLA-C*03:04"
+    },
+    {
+      "condition_id": "sk_mel_28_ifng",
+      "sample_group": "SK-MEL-28",
+      "condition": "IFN-gamma, 10 ng/mL, 72 h",
+      "mhc": "HLA-A*11:01 HLA-B*40:01 HLA-C*03:04"
+    },
+    {
+      "condition_id": "sk_mel_2_dmso",
+      "sample_group": "SK-MEL-2",
+      "condition": "unperturbed (DMSO vehicle, 72 h)",
+      "mhc": "HLA-A*03:01 HLA-A*26:01 HLA-B*35:08 HLA-B*38:01 HLA-C*04:01 HLA-C*12:03"
+    },
+    {
+      "condition_id": "sk_mel_2_palbociclib_1um",
+      "sample_group": "SK-MEL-2",
+      "condition": "palbociclib (CDK4/6i), 1 uM, 72 h",
+      "mhc": "HLA-A*03:01 HLA-A*26:01 HLA-B*35:08 HLA-B*38:01 HLA-C*04:01 HLA-C*12:03"
+    },
+    {
+      "condition_id": "sk_mel_2_palbociclib_10um",
+      "sample_group": "SK-MEL-2",
+      "condition": "palbociclib (CDK4/6i), 10 uM, 72 h",
+      "mhc": "HLA-A*03:01 HLA-A*26:01 HLA-B*35:08 HLA-B*38:01 HLA-C*04:01 HLA-C*12:03"
+    },
+    {
+      "condition_id": "sk_mel_2_ifng",
+      "sample_group": "SK-MEL-2",
+      "condition": "IFN-gamma, 10 ng/mL, 72 h",
+      "mhc": "HLA-A*03:01 HLA-A*26:01 HLA-B*35:08 HLA-B*38:01 HLA-C*04:01 HLA-C*12:03"
+    },
+    {
+      "condition_id": "ipc_298_dmso",
+      "sample_group": "IPC-298",
+      "condition": "unperturbed (DMSO vehicle, 72 h)",
+      "mhc": "HLA-A*03:01 HLA-A*24:02 HLA-B*07:02 HLA-B*35:02 HLA-C*04:01 HLA-C*07:02"
+    },
+    {
+      "condition_id": "ipc_298_palbociclib_1um",
+      "sample_group": "IPC-298",
+      "condition": "palbociclib (CDK4/6i), 1 uM, 72 h",
+      "mhc": "HLA-A*03:01 HLA-A*24:02 HLA-B*07:02 HLA-B*35:02 HLA-C*04:01 HLA-C*07:02"
+    },
+    {
+      "condition_id": "ipc_298_palbociclib_10um",
+      "sample_group": "IPC-298",
+      "condition": "palbociclib (CDK4/6i), 10 uM, 72 h",
+      "mhc": "HLA-A*03:01 HLA-A*24:02 HLA-B*07:02 HLA-B*35:02 HLA-C*04:01 HLA-C*07:02"
+    },
+    {
+      "condition_id": "ipc_298_ifng",
+      "sample_group": "IPC-298",
+      "condition": "IFN-gamma, 10 ng/mL, 72 h",
+      "mhc": "HLA-A*03:01 HLA-A*24:02 HLA-B*07:02 HLA-B*35:02 HLA-C*04:01 HLA-C*07:02"
+    }
+  ],
+  "protocol_assertions": [
+    [
+      "replication",
+      "three biological replicates per arm; unpaired; cross-plex physical reuse unresolved",
+      "Cell treatment; Data analysis"
+    ],
+    [
+      "exposure",
+      "72 hours; palbociclib 1 or 10 uM, IFNG 10 ng/mL, DMSO vehicle",
+      "Cell treatment"
+    ],
+    [
+      "identification",
+      "Mascot 2.4 / Proteome Discoverer 2.2; rank 1; interference <=30%; length 8-15; ion score >=15; Percolator q <=0.05",
+      "Mass spectrometry data analysis"
+    ],
+    [
+      "normalization",
+      "PSM reporter signals summed per unique peptide; hipMHC ratio correction; separate within-condition factors for changes above twofold",
+      "Data analysis"
+    ],
+    [
+      "mean_adjustment",
+      "treated intensities divided by reported mean fold change; no centering for mean log2 fold change between -0.07 and 0.07",
+      "Data analysis"
+    ],
+    [
+      "statistics",
+      "log2 ratio of arithmetic means; unpaired two-sided t test; reported p <=0.05 is not a multiplicity-corrected identification q value",
+      "Data analysis"
+    ],
+    [
+      "scale",
+      "relative TMT reporter intensity; no peptide-specific absolute calibration in Data 3/5",
+      "Figures 4 and 6; Data analysis"
+    ],
+    [
+      "modifications",
+      "methionine oxidation and serine/threonine/tyrosine phosphorylation searched for treatment analyses",
+      "Mass spectrometry data analysis"
+    ],
+    [
+      "missingness",
+      "only reported cells used; absence and imputation status are not inferred",
+      "source qualification"
+    ],
+    [
+      "training_admission",
+      "separate protected-cohort/affinity/source-overlap review required; no automatic TRAIN assignment",
+      "curation policy"
+    ]
+  ],
+  "source_registry": {
+    "PXD017407": {
+      "pmid": "32488085",
+      "doi": "10.1038/s41467-020-16588-9",
+      "source_role": "relative_treatment_control_reporter_quantities",
+      "training_admission": "requires_external_split_and_overlap_review",
+      "limitations": [
+        "identification_q_0.05",
+        "condition_dependent_MS_and_extraction_response",
+        "no_absolute_molar_calibration",
+        "unresolved_physical_specimen_reuse",
+        "multi_allelic_sample_not_peptide_restriction"
+      ]
+    }
+  },
+  "expected_reconciliation": {
+    "n_forms_rows": 17763,
+    "n_plexes_rows": 12,
+    "n_samples_rows": 72,
+    "n_conditions_rows": 16,
+    "n_measurements_rows": 164901,
+    "n_normalized_measurements": 106578,
+    "n_excluded_aggregate_rows": 1
+  }
+}

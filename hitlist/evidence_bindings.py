@@ -1942,6 +1942,55 @@ for _nt_source, _nt_target, _nt_name, _nt_source_key, _nt_target_key, _nt_cardin
     )
 
 
+for _pq_source, _pq_target, _pq_name, _pq_source_key, _pq_target_key, _pq_cardinality in (
+    ("source_sheets", "assets", "asset", "source_asset_id", "source_asset_id", "one"),
+    ("source_records", "source_sheets", "sheet", "sheet_id", "sheet_id", "one"),
+    ("plexes", "source_sheets", "sheet", "sheet_id", "sheet_id", "one"),
+    ("plexes", "conditions", "control", "control_condition_id", "condition_id", "one"),
+    ("plexes", "conditions", "treated", "treated_condition_id", "condition_id", "one"),
+    ("samples", "plexes", "plex", "plex_id", "plex_id", "one"),
+    ("samples", "conditions", "condition", "condition_id", "condition_id", "one"),
+    ("samples", "material_contexts", "context", "context_id", "context_id", "one"),
+    ("conditions", "material_contexts", "context", "context_id", "context_id", "one"),
+    ("forms", "source_records", "record", "source_record_id", "source_record_id", "one"),
+    ("forms", "plexes", "plex", "plex_id", "plex_id", "one"),
+    ("measurements", "forms", "form", "form_id", "form_id", "one"),
+    ("measurements", "samples", "sample", "sample_id", "sample_id", "one"),
+    ("measurements", "source_records", "record", "source_record_id", "source_record_id", "one"),
+    ("reported_summaries", "forms", "form", "form_id", "form_id", "one"),
+    ("file_links", "plexes", "plex", "plex_id", "plex_id", "optional_one"),
+    ("file_links", "source_records", "record", "source_record_id", "source_record_id", "one"),
+    ("protocol_assertions", "material_contexts", "context", "context_id", "context_id", "one"),
+    (
+        "material_links",
+        "material_contexts",
+        "source_context",
+        "source_context_id",
+        "context_id",
+        "one",
+    ),
+    (
+        "material_links",
+        "material_contexts",
+        "target_context",
+        "target_context_id",
+        "context_id",
+        "one",
+    ),
+):
+    LINKS += (
+        Link(
+            _pq_name,
+            "perturbation_" + _pq_source,
+            "perturbation_" + _pq_target,
+            _pq_source_key,
+            _pq_target_key,
+            _pq_cardinality,
+            "explicit_source_link_not_physical_specimen_or_peptide_detection_identity",
+        ),
+    )
+
+
 def materialized_bindings(
     package_schema_version=None,
     *,

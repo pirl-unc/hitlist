@@ -1,0 +1,46 @@
+name: Qualify original perturbation quantities
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/perturbation-quantities.yml
+      - hitlist/perturbation_*.py
+      - hitlist/data/evidence_revisions/perturbation_quantities.json
+      - hitlist/evidence_catalog.py
+      - hitlist/evidence_bindings.py
+      - hitlist/evidence_package.py
+      - hitlist/evidence_store.py
+      - hitlist/evidence_recipe.py
+      - tests/test_perturbation_quantities*.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: perturbation-quantities-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TEST_SH_MAX: "1"
+      HITLIST_PERTURBATION_SOURCE_DIR: ${{ github.workspace }}/source-inputs
+      PYTEST_ADDOPTS: "-ra -s"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install source qualification dependencies
+        run: |
+          python -m pip install -e '.[dev]'
+          python -m pip check
+      - name: Acquire checksum-pinned original workbooks
+        run: |
+          python -c 'import os; from hitlist import fetch_perturbation_sources; fetch_perturbation_sources(os.environ["HITLIST_PERTURBATION_SOURCE_DIR"])'
+      - name: Verify source preservation and independent arithmetic
+        run: ./test.sh --all tests/test_perturbation_quantities.py tests/test_perturbation_quantities_real.py

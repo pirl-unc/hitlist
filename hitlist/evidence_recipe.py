@@ -543,11 +543,17 @@ def materialize_recipe(store, recipe, destination):
         from .native_contrast import materialize_contrasts
         from .pbmc_composition import RECIPE_ID as PBMC_COMPOSITION_ID
         from .pbmc_composition import materialize_composition as materialize_pbmc
+        from .perturbation_contrast import RECIPE_ID as PERTURBATION_CONTRAST_ID
+        from .perturbation_contrast import (
+            materialize_contrasts as materialize_perturbation_contrasts,
+        )
         from .proteometools_response import RECIPE_ID as PROTEOMETOOLS_ID
         from .proteometools_response import materialize_response as materialize_proteometools
         from .tmab_response_recipe import RECIPE_ID as NATIVE_RESPONSE_ID
         from .tmab_response_recipe import materialize_responses
 
+        if recipe["registered_recipe"] == PERTURBATION_CONTRAST_ID:
+            return materialize_perturbation_contrasts(store, recipe, destination)
         if recipe["registered_recipe"] == INTACT_ORGAN_METHOD_ID:
             return materialize_organ_method(store, recipe, destination)
         if recipe["registered_recipe"] == INTACT_ORGAN_ID:
@@ -808,6 +814,10 @@ def verify_recipe_package(directory, *, source_package=None):
     ):
         raise RecipeError("Source package manifest changed")
     output_kind = manifest.get("output_kind", "row_decisions")
+    if output_kind == "registered_perturbation_contrast":
+        from .perturbation_contrast import verify_contrast_contents
+
+        return verify_contrast_contents(directory, manifest, source_package)
     if output_kind == "registered_pbmc_composition":
         from .pbmc_composition import verify_composition_contents
 

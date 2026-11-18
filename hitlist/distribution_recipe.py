@@ -45,6 +45,7 @@ def describe_registered_recipes(store):
     from .ms_calibration_response import describe
     from .native_contrast import describe as describe_native_contrast
     from .pbmc_composition import describe as describe_pbmc
+    from .perturbation_contrast import describe as describe_perturbation
     from .precursor_recipe import describe as describe_precursor
     from .proteometools_response import describe as describe_proteometools
     from .tmab_response_recipe import describe as describe_native_response
@@ -70,6 +71,7 @@ def describe_registered_recipes(store):
         describe_goldberg(store),
         describe_goldberg_composition(store),
         describe_pbmc(store),
+        describe_perturbation(store),
     ]
 
 

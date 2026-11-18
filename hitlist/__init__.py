@@ -33,6 +33,9 @@ from .version import __version__
 # are only imported on first attribute access. Listed in ``__all__`` so the API
 # is discoverable via ``dir(hitlist)`` / autocomplete and stable across refactors.
 _PUBLIC_API: dict[str, str] = {
+    "fetch_perturbation_sources": ".perturbation_quantities",
+    "write_perturbation_quantity_package": ".perturbation_quantities",
+    "verify_perturbation_quantity_package": ".perturbation_quantities",
     "write_nontryptic_calibration_package": ".nontryptic_calibration",
     "verify_nontryptic_calibration_package": ".nontryptic_calibration",
     "write_dilution_observer_package": ".dilution_observer",

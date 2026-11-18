@@ -42,6 +42,8 @@ numeric cell.
 
 ## Start here
 
+- [Original perturbation quantities](https://github.com/pirl-unc/hitlist/blob/main/docs/perturbation-quantities.md):
+  same-plex treatment/control reporter signals, source-qualified contrasts and Presto admission boundaries.
 - [Evidence store guide](https://github.com/pirl-unc/hitlist/blob/main/docs/evidence-store.md): catalog, grain-safe queries,
   named relationships, recipes and verification.
 - [Pinned source and count audit](https://github.com/pirl-unc/hitlist/blob/main/tasks/evidence-store-results/README.md): 53
