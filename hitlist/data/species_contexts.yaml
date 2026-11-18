@@ -381,7 +381,11 @@ records:
 
   - pmid: 30484775
     species_context_id: human_helam_tapbpr_immunopeptidome
-    condition_ids: [cells_tapbpr_manipulation]
+    condition_ids:
+      - helam_tapbpr_ko_ifng_tapbpr_m29
+      - helam_tapbpr_ko_ifng_tapbpr_og30l
+      - helam_tapbpr_ko_ifng_tapbpr_oloop
+      - helam_tapbpr_ko_ifng_tapbpr_wt
     species_context_status: resolved
     species_context_scope: human HeLaM cells expressing TAPBPR variants for immunopeptidomic analysis
     species_context_kind: native

@@ -1762,9 +1762,11 @@
         condition: unperturbed — soluble HLA secreted into supernatant
         condition_id: "721_221_transfectant_shla_b_46_01"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5510751/ — Experimental Procedures, Isolation of HLA Class I Complexes from 721.221 Cells"
         condition_control: "untreated"
-        condition_mhc_context: "soluble_mhc"
+        condition_mhc_context: "mhc_transfectant;monoallelic;soluble_mhc"
+        condition_material: "cultured"
         mhc_class: I
         mhc: "HLA-B*46:01"
       - sample_label: "721.221 transfectant (sHLA-B*15:01)"
@@ -1772,9 +1774,11 @@
         condition: unperturbed — soluble HLA (parental allele comparison)
         condition_id: "721_221_transfectant_shla_b_15_01"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5510751/ — Experimental Procedures, Isolation of HLA Class I Complexes from 721.221 Cells"
         condition_control: "untreated"
-        condition_mhc_context: "soluble_mhc"
+        condition_mhc_context: "mhc_transfectant;monoallelic;soluble_mhc"
+        condition_material: "cultured"
         mhc_class: I
         mhc: "HLA-B*15:01"
       - sample_label: "721.221 transfectant (sHLA-C*01:02)"
@@ -1782,9 +1786,11 @@
         condition: unperturbed — soluble HLA (parental allele comparison)
         condition_id: "721_221_transfectant_shla_c_01_02"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5510751/ — Experimental Procedures, Isolation of HLA Class I Complexes from 721.221 Cells"
         condition_control: "untreated"
-        condition_mhc_context: "soluble_mhc"
+        condition_mhc_context: "mhc_transfectant;monoallelic;soluble_mhc"
+        condition_material: "cultured"
         mhc_class: I
         mhc: "HLA-C*01:02"
   - pmid: 28228285
@@ -9710,21 +9716,220 @@
 
   - pmid: 35251023
     study_label: "Laghmouchi 2022 — HLA-DP promiscuity"
-    title: "HLA-DP peptidome promiscuity across immunogenicity groups"
+    title: "Promiscuity of Peptides Presented in HLA-DP Molecules from Different Immunogenicity Groups Is Associated With T-Cell Cross-Reactivity"
     override: cell_line
+    mono_allelic_host: "K562"
+    mono_allelic_method: "MP71/pLZRS retroviral transduction of individual HLA-DPA1 and HLA-DPB1 chains (B7/21 IP)"
+    ip_antibody: "B7/21"
+    arm_resolution: no_row_discriminator
+    arm_resolution_note: >
+      The deposit contains 14 distinct paired restrictions, but the primary paper and
+      Supplementary Table 1 list only 13 K562 constructs. Curated arms follow those
+      13 source-listed pairs. DPA1*02:02/DPB1*19:01 remains a reported restriction
+      without a source-qualified matching construct; do not infer an additional
+      arm from that restriction alone (#921).
     note: >
-      HLA-DP class II. IEDB "Bone Marrow" likely refers to transplant
-      donor context, not tissue source. Cell lines used.
+      HLA class I and II-negative K562 human myelogenous leukemia cells were retrovirally
+      transduced (MP71/pLZRS vectors) with individual HLA-DPA1 and HLA-DPB1 allele pairs and
+      immunoprecipitated with monomorphic anti-HLA-DP mAb B7/21 (DOI 10.3389/fimmu.2022.831822,
+      Materials and Methods). IEDB's "Bone Marrow" tissue reflects K562's CML origin rather
+      than primary marrow biopsies (#856).
     ms_samples:
-      - sample_label: "cell lines (multiple HLA-DP genotypes)"
-        condition: "unperturbed"
-        condition_id: "cell_lines_multiple_hla_dp_genotypes"
+      - sample_label: "K562 transfectant HLA-DPA1*01:03/DPB1*02:01"
+        source: "HLA-null K562 transduced with HLA-DPA1*01:03 and HLA-DPB1*02:01 (B7/21 IP)"
+        condition: "unperturbed — HLA-DPA1/DPB1 retroviral transduction in HLA-null K562"
+        condition_id: "k562_hla_dpa1_01_03_dpb1_02_01"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
         condition_control: "untreated"
+        condition_combination: "single"
+        condition_transduction: "HLA-DPA1;HLA-DPB1"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: "cultured"
         mhc_class: "II"
-        mhc: "HLA class II"
-
+        mhc: "HLA-DPA1*01:03/DPB1*02:01"
+        mhc_basis: "selected_restriction"
+      - sample_label: "K562 transfectant HLA-DPA1*01:03/DPB1*03:01"
+        source: "HLA-null K562 transduced with HLA-DPA1*01:03 and HLA-DPB1*03:01 (B7/21 IP)"
+        condition: "unperturbed — HLA-DPA1/DPB1 retroviral transduction in HLA-null K562"
+        condition_id: "k562_hla_dpa1_01_03_dpb1_03_01"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
+        condition_control: "untreated"
+        condition_combination: "single"
+        condition_transduction: "HLA-DPA1;HLA-DPB1"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: "cultured"
+        mhc_class: "II"
+        mhc: "HLA-DPA1*01:03/DPB1*03:01"
+        mhc_basis: "selected_restriction"
+      - sample_label: "K562 transfectant HLA-DPA1*01:03/DPB1*04:01"
+        source: "HLA-null K562 transduced with HLA-DPA1*01:03 and HLA-DPB1*04:01 (B7/21 IP)"
+        condition: "unperturbed — HLA-DPA1/DPB1 retroviral transduction in HLA-null K562"
+        condition_id: "k562_hla_dpa1_01_03_dpb1_04_01"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
+        condition_control: "untreated"
+        condition_combination: "single"
+        condition_transduction: "HLA-DPA1;HLA-DPB1"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: "cultured"
+        mhc_class: "II"
+        mhc: "HLA-DPA1*01:03/DPB1*04:01"
+        mhc_basis: "selected_restriction"
+      - sample_label: "K562 transfectant HLA-DPA1*01:03/DPB1*04:02"
+        source: "HLA-null K562 transduced with HLA-DPA1*01:03 and HLA-DPB1*04:02 (B7/21 IP)"
+        condition: "unperturbed — HLA-DPA1/DPB1 retroviral transduction in HLA-null K562"
+        condition_id: "k562_hla_dpa1_01_03_dpb1_04_02"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
+        condition_control: "untreated"
+        condition_combination: "single"
+        condition_transduction: "HLA-DPA1;HLA-DPB1"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: "cultured"
+        mhc_class: "II"
+        mhc: "HLA-DPA1*01:03/DPB1*04:02"
+        mhc_basis: "selected_restriction"
+      - sample_label: "K562 transfectant HLA-DPA1*01:03/DPB1*06:01"
+        source: "HLA-null K562 transduced with HLA-DPA1*01:03 and HLA-DPB1*06:01 (B7/21 IP)"
+        condition: "unperturbed — HLA-DPA1/DPB1 retroviral transduction in HLA-null K562"
+        condition_id: "k562_hla_dpa1_01_03_dpb1_06_01"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
+        condition_control: "untreated"
+        condition_combination: "single"
+        condition_transduction: "HLA-DPA1;HLA-DPB1"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: "cultured"
+        mhc_class: "II"
+        mhc: "HLA-DPA1*01:03/DPB1*06:01"
+        mhc_basis: "selected_restriction"
+      - sample_label: "K562 transfectant HLA-DPA1*02:01/DPB1*01:01"
+        source: "HLA-null K562 transduced with HLA-DPA1*02:01 and HLA-DPB1*01:01 (B7/21 IP)"
+        condition: "unperturbed — HLA-DPA1/DPB1 retroviral transduction in HLA-null K562"
+        condition_id: "k562_hla_dpa1_02_01_dpb1_01_01"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
+        condition_control: "untreated"
+        condition_combination: "single"
+        condition_transduction: "HLA-DPA1;HLA-DPB1"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: "cultured"
+        mhc_class: "II"
+        mhc: "HLA-DPA1*02:01/DPB1*01:01"
+        mhc_basis: "selected_restriction"
+      - sample_label: "K562 transfectant HLA-DPA1*02:01/DPB1*09:01"
+        source: "HLA-null K562 transduced with HLA-DPA1*02:01 and HLA-DPB1*09:01 (B7/21 IP)"
+        condition: "unperturbed — HLA-DPA1/DPB1 retroviral transduction in HLA-null K562"
+        condition_id: "k562_hla_dpa1_02_01_dpb1_09_01"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
+        condition_control: "untreated"
+        condition_combination: "single"
+        condition_transduction: "HLA-DPA1;HLA-DPB1"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: "cultured"
+        mhc_class: "II"
+        mhc: "HLA-DPA1*02:01/DPB1*09:01"
+        mhc_basis: "selected_restriction"
+      - sample_label: "K562 transfectant HLA-DPA1*02:01/DPB1*10:01"
+        source: "HLA-null K562 transduced with HLA-DPA1*02:01 and HLA-DPB1*10:01 (B7/21 IP)"
+        condition: "unperturbed — HLA-DPA1/DPB1 retroviral transduction in HLA-null K562"
+        condition_id: "k562_hla_dpa1_02_01_dpb1_10_01"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
+        condition_control: "untreated"
+        condition_combination: "single"
+        condition_transduction: "HLA-DPA1;HLA-DPB1"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: "cultured"
+        mhc_class: "II"
+        mhc: "HLA-DPA1*02:01/DPB1*10:01"
+        mhc_basis: "selected_restriction"
+      - sample_label: "K562 transfectant HLA-DPA1*02:01/DPB1*11:01"
+        source: "HLA-null K562 transduced with HLA-DPA1*02:01 and HLA-DPB1*11:01 (B7/21 IP)"
+        condition: "unperturbed — HLA-DPA1/DPB1 retroviral transduction in HLA-null K562"
+        condition_id: "k562_hla_dpa1_02_01_dpb1_11_01"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
+        condition_control: "untreated"
+        condition_combination: "single"
+        condition_transduction: "HLA-DPA1;HLA-DPB1"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: "cultured"
+        mhc_class: "II"
+        mhc: "HLA-DPA1*02:01/DPB1*11:01"
+        mhc_basis: "selected_restriction"
+      - sample_label: "K562 transfectant HLA-DPA1*02:01/DPB1*13:01"
+        source: "HLA-null K562 transduced with HLA-DPA1*02:01 and HLA-DPB1*13:01 (B7/21 IP)"
+        condition: "unperturbed — HLA-DPA1/DPB1 retroviral transduction in HLA-null K562"
+        condition_id: "k562_hla_dpa1_02_01_dpb1_13_01"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
+        condition_control: "untreated"
+        condition_combination: "single"
+        condition_transduction: "HLA-DPA1;HLA-DPB1"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: "cultured"
+        mhc_class: "II"
+        mhc: "HLA-DPA1*02:01/DPB1*13:01"
+        mhc_basis: "selected_restriction"
+      - sample_label: "K562 transfectant HLA-DPA1*02:01/DPB1*14:01"
+        source: "HLA-null K562 transduced with HLA-DPA1*02:01 and HLA-DPB1*14:01 (B7/21 IP)"
+        condition: "unperturbed — HLA-DPA1/DPB1 retroviral transduction in HLA-null K562"
+        condition_id: "k562_hla_dpa1_02_01_dpb1_14_01"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
+        condition_control: "untreated"
+        condition_combination: "single"
+        condition_transduction: "HLA-DPA1;HLA-DPB1"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: "cultured"
+        mhc_class: "II"
+        mhc: "HLA-DPA1*02:01/DPB1*14:01"
+        mhc_basis: "selected_restriction"
+      - sample_label: "K562 transfectant HLA-DPA1*02:01/DPB1*17:01"
+        source: "HLA-null K562 transduced with HLA-DPA1*02:01 and HLA-DPB1*17:01 (B7/21 IP)"
+        condition: "unperturbed — HLA-DPA1/DPB1 retroviral transduction in HLA-null K562"
+        condition_id: "k562_hla_dpa1_02_01_dpb1_17_01"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
+        condition_control: "untreated"
+        condition_combination: "single"
+        condition_transduction: "HLA-DPA1;HLA-DPB1"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: "cultured"
+        mhc_class: "II"
+        mhc: "HLA-DPA1*02:01/DPB1*17:01"
+        mhc_basis: "selected_restriction"
+      - sample_label: "K562 transfectant HLA-DPA1*02:02/DPB1*05:01"
+        source: "HLA-null K562 transduced with HLA-DPA1*02:02 and HLA-DPB1*05:01 (B7/21 IP)"
+        condition: "unperturbed — HLA-DPA1/DPB1 retroviral transduction in HLA-null K562"
+        condition_id: "k562_hla_dpa1_02_02_dpb1_05_01"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.3389/fimmu.2022.831822 — Supplementary Table 1 (https://doi.org/10.3389/fimmu.2022.831822.s001); Materials and Methods, Cell Culture and Retroviral Transduction"
+        condition_control: "untreated"
+        condition_combination: "single"
+        condition_transduction: "HLA-DPA1;HLA-DPB1"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: "cultured"
+        mhc_class: "II"
+        mhc: "HLA-DPA1*02:02/DPB1*05:01"
+        mhc_basis: "selected_restriction"
   - pmid: 30429286
     study_label: "Gfeller 2018 — HLA-I length distributions"
     # Arm-resolution verdict (#451): recorded so this study is not
@@ -10457,39 +10662,189 @@
             proteome_label: Human immunodeficiency virus 1
   - pmid: 30779550
     study_label: "Murphy 2019 — cancer cells + doxorubicin"
-    # Arm-resolution verdict (#451): recorded so this study is not
-    # re-investigated. Describes the deposited evidence, not the curation.
-    arm_resolution: curation_gap
+    arm_resolution: arm_not_recorded
     arm_resolution_note: >
-      assay_comments takes 3 distinct values and one names the treatment arm directly: 'The
-      epitope was eluted from HCT 116 cells that were terated with doxorubicin.' on 2,038
-      rows, against 'The epitope was eluted from EL4 cells.' (3,001) and 'The epitope was
-      eluted from C57BL/6 mice that had received EL4 cells.' (3,001). cell_name and
-      source_tissue each take 4 distinct values (HCT 116 4,799; MDA-MB-468 3,844; Splenocyte
-      3,001; EL-4 3,001). The two curated arms are generic 'cancer cell lines' with and
-      without doxorubicin and name no line, so the deposited per-row discriminator cannot be
-      matched, and the mouse EL4/splenocyte system has no curated arm at all.
+      cell_name and source_tissue partition all 14,645 rows across four distinct biological
+      systems (HCT 116 4,799; MDA-MB-468 3,844; murine EL4 3,001; C57BL/6 EL4-recipient
+      splenocytes 3,001), which sample_group resolves. Exact statement mapping assigns the
+      2,038 HCT 116 rows carrying IEDB's 'The epitope was eluted from HCT 116 cells that were
+      terated with doxorubicin.' verbatim to hct_116_doxorubicin. The remaining 2,761 blank
+      HCT 116 rows, 3,844 blank MDA-MB-468 rows, 3,001 EL4 rows and 3,001 C57BL/6 splenocyte
+      rows derive from multiplexed TMT comparisons whose per-row untreated/doxorubicin channel
+      membership was not recorded in IEDB; they remain group_ambiguous rather than being
+      borrowed as untreated controls (#900). EL4 additionally includes cultured cells and
+      subcutaneous tumors in the primary ten-channel experiment (Figure 4). An EL4-only
+      source statement cannot distinguish these materials; retain that ambiguity (#922).
     title: "Multiplexed Relative Quantitation with Isobaric Tagging Mass Spectrometry Reveals Class I Major Histocompatibility Complex Ligand Dynamics in Response to Doxorubicin"
     override: cell_line
+    rules:
+      - condition:
+          Culture Condition: "Direct Ex Vivo"
+        override:
+    labeling: TMT
     perturbations: ["Doxorubicin treatment"]
+    elution_condition_ids:
+      "The epitope was eluted from HCT 116 cells that were terated with doxorubicin.":
+        detected:
+          - hct_116_doxorubicin
     ms_samples:
-      - sample_label: "cancer cell lines (untreated)"
+      - sample_label: "HCT 116 (untreated)"
+        sample_group: "HCT 116"
+        source: "HCT 116 human colon carcinoma cell line"
         condition: "unperturbed"
-        condition_id: "cancer_cell_lines_untreated"
+        condition_id: "hct_116_untreated"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.1021/acs.analchem.8b05616 — Experimental Section, Cell Culture and Mouse Models"
         condition_control: "untreated"
+        condition_control_for: "hct_116_doxorubicin"
+        condition_drugs: "none"
+        condition_material: "cultured"
         mhc_class: "I"
-        mhc: "HLA class I"
-      - sample_label: "cancer cell lines + doxorubicin"
+        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*18:01 HLA-B*45:01 HLA-C*05:01 HLA-C*07:01"
+        mhc_basis: "sample_typing"
+      - sample_label: "HCT 116 + doxorubicin"
+        sample_group: "HCT 116"
+        source: "HCT 116 human colon carcinoma cell line"
         condition: "doxorubicin treatment"
-        condition_id: "cancer_cell_lines_doxorubicin"
+        condition_id: "hct_116_doxorubicin"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.1021/acs.analchem.8b05616 — Experimental Section, Cell Culture and Mouse Models"
         condition_combination: "single"
         condition_drugs: "doxorubicin"
+        condition_material: "cultured"
         mhc_class: "I"
-        mhc: "HLA class I"
+        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*18:01 HLA-B*45:01 HLA-C*05:01 HLA-C*07:01"
+        mhc_basis: "sample_typing"
+      - sample_label: "MDA-MB-468 (untreated)"
+        sample_group: "MDA-MB-468"
+        source: "MDA-MB-468 human triple-negative breast carcinoma cell line"
+        condition: "unperturbed"
+        condition_id: "mda_mb_468_untreated"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.1021/acs.analchem.8b05616 — Experimental Section, Cell Culture and Mouse Models"
+        condition_control: "untreated"
+        condition_control_for: "mda_mb_468_doxorubicin"
+        condition_drugs: "none"
+        condition_material: "cultured"
+        mhc_class: "I"
+        mhc: "HLA-A*23:01 HLA-A*30:02 HLA-B*27:03 HLA-B*53:01 HLA-C*02:02 HLA-C*04:01"
+        mhc_basis: "sample_typing"
+      - sample_label: "MDA-MB-468 + doxorubicin"
+        sample_group: "MDA-MB-468"
+        source: "MDA-MB-468 human triple-negative breast carcinoma cell line"
+        condition: "doxorubicin treatment"
+        condition_id: "mda_mb_468_doxorubicin"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.1021/acs.analchem.8b05616 — Experimental Section, Cell Culture and Mouse Models"
+        condition_combination: "single"
+        condition_drugs: "doxorubicin"
+        condition_material: "cultured"
+        mhc_class: "I"
+        mhc: "HLA-A*23:01 HLA-A*30:02 HLA-B*27:03 HLA-B*53:01 HLA-C*02:02 HLA-C*04:01"
+        mhc_basis: "sample_typing"
+      - sample_label: "EL-4 cultured cells (PBS vehicle)"
+        sample_group: "EL-4"
+        species: "Mus musculus"
+        source: "EL4 murine T-cell lymphoma line"
+        condition: "PBS vehicle in cultured EL-4 cells"
+        condition_id: "el4_untreated"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.1021/acs.analchem.8b05616 — Experimental Section, Cell Culture and Mouse Models"
+        condition_control: "vehicle"
+        condition_control_for: "el4_doxorubicin"
+        condition_drugs: "PBS"
+        condition_material: "cultured"
+        mhc_class: "I"
+        mhc: "H2-D*b H2-K*b"
+        mhc_basis: "sample_typing"
+      - sample_label: "EL-4 cultured cells + doxorubicin"
+        sample_group: "EL-4"
+        species: "Mus musculus"
+        source: "EL4 murine T-cell lymphoma line"
+        condition: "doxorubicin treatment in cultured EL-4 cells"
+        condition_id: "el4_doxorubicin"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.1021/acs.analchem.8b05616 — Experimental Section, Cell Culture and Mouse Models"
+        condition_combination: "single"
+        condition_drugs: "doxorubicin"
+        condition_material: "cultured"
+        mhc_class: "I"
+        mhc: "H2-D*b H2-K*b"
+        mhc_basis: "sample_typing"
+      - sample_label: "EL-4 subcutaneous tumor (PBS vehicle)"
+        sample_group: "EL-4"
+        species: "Mus musculus"
+        override:
+        source: "subcutaneous EL4 tumors harvested from C57BL/6 mice"
+        condition: "PBS vehicle in subcutaneous EL-4 tumor in C57BL/6 mice"
+        condition_id: "el4_subcutaneous_tumor_pbs_vehicle"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.1021/acs.analchem.8b05616 — Figure 4 and Experimental Section, Cell Culture and Mouse Models"
+        condition_control: "vehicle"
+        condition_control_for: "el4_subcutaneous_tumor_doxorubicin"
+        condition_combination: "single"
+        condition_drugs: "PBS"
+        condition_material: "direct_ex_vivo"
+        mhc_class: "I"
+        mhc: "H2-D*b H2-K*b"
+        mhc_basis: "sample_typing"
+      - sample_label: "EL-4 subcutaneous tumor (doxorubicin)"
+        sample_group: "EL-4"
+        species: "Mus musculus"
+        override:
+        source: "subcutaneous EL4 tumors harvested from C57BL/6 mice"
+        condition: "doxorubicin in subcutaneous EL-4 tumor in C57BL/6 mice"
+        condition_id: "el4_subcutaneous_tumor_doxorubicin"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.1021/acs.analchem.8b05616 — Figure 4 and Experimental Section, Cell Culture and Mouse Models"
+        condition_combination: "single"
+        condition_drugs: "doxorubicin"
+        condition_material: "direct_ex_vivo"
+        mhc_class: "I"
+        mhc: "H2-D*b H2-K*b"
+        mhc_basis: "sample_typing"
+      - sample_label: "C57BL/6 EL4-recipient Splenocyte (PBS vehicle)"
+        sample_group: "Splenocyte"
+        species: "Mus musculus"
+        override:
+        source: "spleens harvested from EL4-bearing C57BL/6 mice given intratumoral PBS vehicle"
+        condition: "unperturbed — EL4-bearing C57BL/6 recipient mice, PBS vehicle"
+        condition_id: "c57bl6_el4_recipient_splenocytes_pbs_vehicle"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.1021/acs.analchem.8b05616 — Experimental Section, Cell Culture and Mouse Models"
+        condition_control: "vehicle"
+        condition_control_for: "c57bl6_el4_recipient_splenocytes_doxorubicin"
+        condition_combination: "single"
+        condition_drugs: "PBS"
+        condition_material: "direct_ex_vivo"
+        mhc_class: "I"
+        mhc: "H2-D*b H2-K*b"
+        mhc_basis: "sample_typing"
+      - sample_label: "C57BL/6 EL4-recipient Splenocyte + doxorubicin"
+        sample_group: "Splenocyte"
+        species: "Mus musculus"
+        override:
+        source: "spleens harvested from EL4-bearing C57BL/6 mice given intratumoral doxorubicin (2.5 mg/kg, 48 h)"
+        condition: "intratumoral doxorubicin (2.5 mg/kg, 48 h) in EL4-bearing C57BL/6 mice"
+        condition_id: "c57bl6_el4_recipient_splenocytes_doxorubicin"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.1021/acs.analchem.8b05616 — Experimental Section, Cell Culture and Mouse Models"
+        condition_combination: "single"
+        condition_drugs: "doxorubicin"
+        condition_material: "direct_ex_vivo"
+        mhc_class: "I"
+        mhc: "H2-D*b H2-K*b"
+        mhc_basis: "sample_typing"
 
   - pmid: 30524438
     # Arm-resolution verdict (#366): recorded so this study is not
@@ -10571,19 +10926,62 @@
 
   - pmid: 32265295
     study_label: "Lorente 2020 — HLA-B*27:05 ERAP2 KO"
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      Three exact deposited assay_comments values partition all 6,948 HLA-B*27:05 rows:
+      412 eluted from B27-C1R WT but not mutant ERAP2-deleted C1R, 278 eluted only from
+      mutant C1R with ERAP2 exons 5 and 6 deleted, and 6,258 eluted from both WT and mutant
+      B27-C1R cells. Splitting the previous pooled KO arm recovers exact single-arm and
+      explicit-nondetection memberships while keeping the 6,258 shared rows positively
+      supported in both arms rather than falsely labelled as ERAP2 KO (#900).
     title: "Modulation of Natural HLA-B*27:05 Ligandome by Ankylosing Spondylitis-associated Endoplasmic Reticulum Aminopeptidase 2 (ERAP2)"
     override: cell_line
     perturbations: ["ERAP2 CRISPR KO"]
+    elution_condition_ids:
+      "The epitope was eluted from B27-C1R cells, but not from mutant C1R cells missing ERAP2 exons 5 and 6.":
+        detected:
+          - b27_c1r_wt
+        not_detected:
+          - b27_c1r_erap2_ko
+      "The epitope was eluted only from mutant C1R cells with ERAP2 exons 5 and 6 deleted.":
+        detected:
+          - b27_c1r_erap2_ko
+        not_detected:
+          - b27_c1r_wt
+      "The epitope was eluted from B27-C1R cells and mutant B27-C1R cells missing ERAP2 exons 5 and 6.":
+        detected:
+          - b27_c1r_wt
+          - b27_c1r_erap2_ko
     ms_samples:
-      - sample_label: "cells HLA-B*27:05 (WT vs ERAP2 KO)"
-        condition: "ERAP2 KO comparison"
-        condition_id: "cells_hla_b_27_05_wt_vs_erap2_ko"
+      - sample_label: "B27-C1R HLA-B*27:05 (ERAP2 WT)"
+        source: "B27-C1R (HLA-B*27:05 transfectant of HMy2.C1R, endogenous ERAP2 positive)"
+        condition: "unperturbed — HLA-B*27:05 transfectant of HMy2.C1R (ERAP2 WT)"
+        condition_id: "b27_c1r_wt"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_combination: "single"
-        condition_knockout_genes: "ERAP2"
+        condition_evidence: "primary_source"
+        condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC7261818/ — Experimental Procedures, Cell Lines and CRISPR/Cas9 Generation of ERAP2-KO Clones"
+        condition_control: "untreated"
+        condition_control_for: "b27_c1r_erap2_ko"
+        condition_knockout_genes: "none"
+        condition_mhc_context: "mhc_transfectant"
+        condition_material: "cultured"
         mhc_class: "I"
         mhc: "HLA-B*27:05"
+        mhc_basis: "selected_restriction"
+      - sample_label: "B27-C1R HLA-B*27:05 (ERAP2 exons 5-6 CRISPR KO)"
+        source: "B27-C1R homozygous CRISPR/Cas9 deletion of ERAP2 exons 5 and 6"
+        condition: "ERAP2 exons 5-6 CRISPR/Cas9 knockout"
+        condition_id: "b27_c1r_erap2_ko"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC7261818/ — Experimental Procedures, Cell Lines and CRISPR/Cas9 Generation of ERAP2-KO Clones"
+        condition_combination: "single"
+        condition_knockout_genes: "ERAP2"
+        condition_mhc_context: "mhc_transfectant"
+        condition_material: "cultured"
+        mhc_class: "I"
+        mhc: "HLA-B*27:05"
+        mhc_basis: "selected_restriction"
 
   - pmid: 35561310
     study_label: "Bourne 2022 — DLBCL + EZH2i + decitabine + IFNg"
@@ -10979,53 +11377,160 @@
 
   - pmid: 31222486
     study_label: "Koumantou 2019 — A375 + ERAP1 inhibitor"
-    # Arm-resolution verdict (#451): recorded so this study is not
-    # re-investigated. Describes the deposited evidence, not the curation.
-    arm_resolution: curation_gap
+    arm_resolution: multi_arm_evidence
     arm_resolution_note: >
-      assay_comments takes 3 distinct values and two of them name exactly one arm: 'The
-      peptide was eluted from untreated A375 melanoma cells.' on 1,198 rows and 'The peptide
-      was eluted from A375 melanoma cells treated with the ERAP1 inhibitor DG013A, but not
-      from untreated cells.' on 417. Those 1,615 rows map one-to-one onto the curated
-      untreated and ERAP1-inhibitor arms and are not used. cell_name (1 distinct, 'Epithelial
-      cell'), source_tissue (1, 'Skin') and antigen_processing_comments (0 distinct) carry
-      nothing. The remaining 1,589 rows name both arms and are genuine multi-arm evidence, but
-      the single-arm rows are recoverable work.
+      Three exact deposited assay_comments values partition all 3,204 rows: 1,198 eluted from
+      untreated A375 melanoma cells, 417 in the DG013A-specific group, and 1,589 shared
+      detections. The primary paper defines condition-specific groups as unique OR at
+      least fourfold enriched (PMC6684451, Results, Analysis of A375 immunopeptidome and
+      Fig. 3). The deposited 'but not from untreated cells' wording overstates absence:
+      retain its positive treatment membership but no comparator exclusion until original
+      measurements distinguish unique from enriched shared peptides (#917).
     title: "Editing the immunopeptidome of melanoma cells using a potent inhibitor of endoplasmic reticulum aminopeptidase 1 (ERAP1)"
     override: cell_line
     perturbations: ["ERAP1 pharmacological inhibitor"]
+    elution_condition_ids:
+      "The peptide was eluted from untreated A375 melanoma cells.":
+        detected:
+          - a375_melanoma_untreated
+      "The peptide was eluted from A375 melanoma cells treated with the ERAP1 inhibitor DG013A, but not from untreated cells.":
+        detected:
+          - a375_erap1_inhibitor
+      "The peptide was eluted from untreated A375 melanoma cells and A375 cells treated with the ERAP1 inhibitor DG013A.":
+        detected:
+          - a375_melanoma_untreated
+          - a375_erap1_inhibitor
     ms_samples:
       - sample_label: "A375 melanoma (untreated)"
+        source: "A375 human melanoma cell line"
         condition: "unperturbed"
         condition_id: "a375_melanoma_untreated"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.1007/s00262-019-02358-0 — Materials and Methods, Cell Culture and Inhibitor Treatment (1 uM DG013A, 6 days)"
         condition_control: "untreated"
+        condition_control_for: "a375_erap1_inhibitor"
+        condition_drugs: "none"
+        condition_material: "cultured"
         mhc_class: "I"
         mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*44:03 HLA-B*57:01 HLA-C*06:02 HLA-C*16:01"
-      - sample_label: "A375 + ERAP1 inhibitor"
-        condition: "ERAP1 pharmacological inhibition"
+        mhc_basis: "sample_typing"
+      - sample_label: "A375 + ERAP1 inhibitor (DG013A)"
+        source: "A375 human melanoma cell line treated with 1 uM DG013A for 6 days"
+        condition: "DG013A ERAP1 pharmacological inhibition (1 uM, 6 d)"
         condition_id: "a375_erap1_inhibitor"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.1007/s00262-019-02358-0 — Materials and Methods, Cell Culture and Inhibitor Treatment (1 uM DG013A, 6 days)"
         condition_combination: "single"
-        condition_drugs: "ERAP1_inhibitor"
+        condition_drugs: "DG013A"
+        condition_material: "cultured"
         mhc_class: "I"
         mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*44:03 HLA-B*57:01 HLA-C*06:02 HLA-C*16:01"
+        mhc_basis: "sample_typing"
 
   - pmid: 30484775
     study_label: "Ilca 2018 — TAPBPR peptide editing"
     title: "TAPBPR mediates peptide dissociation from MHC class I using a leucine lever"
     override: cell_line
+    ip_antibody: "W6/32"
+    arm_resolution: resolved
+    arm_resolution_note: >
+      Exact deposited assay_comments distinguish the four IFN-gamma-treated HeLaM-TAPBPR-KO
+      lentiviral rescue/variant arms (1,947 TAPBPR WT, 713 TAPBPR oloop, 352 TAPBPR oG30L,
+      146 TAPBPR M29 across all 3,158 ci-corpus-v4 rows). Two deposited statements carry U+FFFD
+      where the primary article writes 'ø' (øloop and øG30L); the map retains the deposited
+      bytes verbatim while leaving any unmapped/blank row unresolved (#899).
+    note: >
+      CRISPR/Cas9 TAPBPR-knockout HeLaM cells were stably transduced (pHRSIN-C56W-UbEM
+      lentiviral vector) with wild-type TAPBPR or K22-D35 editing-loop variants (øloop,
+      øG30L leucine-lever reconstitution, M29), treated with IFN-gamma, and profiled by W6/32
+      MHC-I immunoaffinity LC-MS/MS (PMC6307860, Materials and Methods; Dryad
+      doi:10.5061/dryad.p5k0156). Endogenous TAPBPR knockout is curated in
+      condition_background ("TAPBPR_KO") and IFN-gamma in condition_cytokines ("IFNG") so
+      the reconstituted arms are never conflated with a simple TAPBPR-absent knockout or
+      numeric overexpression (#899).
     perturbations: ["TAPBPR overexpression/mutation"]
+    elution_condition_ids:
+      "Peptides were eluted from W6/32-reactive MHC I complexes from IFNg treated HeLaM-TAPBPR KO cells expressing TAPBPR WT.":
+        detected:
+          - helam_tapbpr_ko_ifng_tapbpr_wt
+      "Peptides were eluted from W6/32-reactive MHC I complexes from IFNg treated HeLaM-TAPBPR KO cells expressing TAPBPR \ufffd loop.":
+        detected:
+          - helam_tapbpr_ko_ifng_tapbpr_oloop
+      "Peptides were eluted from W6/32-reactive MHC I complexes from IFNg treated HeLaM-TAPBPR KO cells expressing TAPBPR \ufffd G30L.":
+        detected:
+          - helam_tapbpr_ko_ifng_tapbpr_og30l
+      "Peptides were eluted from W6/32-reactive MHC I complexes from IFNg treated HeLaM-TAPBPR KO cells expressing TAPBPR M29.":
+        detected:
+          - helam_tapbpr_ko_ifng_tapbpr_m29
     ms_samples:
-      - sample_label: "cells ± TAPBPR manipulation"
-        condition: "TAPBPR overexpression/mutation"
-        condition_id: "cells_tapbpr_manipulation"
-        condition_status: "mixed"
-        condition_evidence: "curated_text"
+      - sample_label: "HeLaM-TAPBPR-KO + IFN-gamma (TAPBPR WT rescue)"
+        source: "IFN-gamma-treated HeLaM-TAPBPR-KO cells lentivirally expressing wild-type TAPBPR"
+        condition: "endogenous TAPBPR CRISPR knockout + lentiviral TAPBPR WT rescue + IFN-gamma"
+        condition_id: "helam_tapbpr_ko_ifng_tapbpr_wt"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC6307860/ — Materials and Methods, Constructs, Cell Culture, Lentiviral Transduction and Immunopeptidomic Analysis"
+        condition_control: "positive"
+        condition_control_for: "helam_tapbpr_ko_ifng_tapbpr_m29;helam_tapbpr_ko_ifng_tapbpr_og30l;helam_tapbpr_ko_ifng_tapbpr_oloop"
+        condition_combination: "sequential"
+        condition_genetic_variants: "none"
+        condition_transduction: "TAPBPR WT"
+        condition_cytokines: "IFNG"
+        condition_background: "TAPBPR_KO"
+        condition_material: "cultured"
         mhc_class: "I"
         mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03"
+        mhc_basis: "sample_typing"
+      - sample_label: "HeLaM-TAPBPR-KO + IFN-gamma (TAPBPR oloop)"
+        source: "IFN-gamma-treated HeLaM-TAPBPR-KO cells lentivirally expressing TAPBPR K22-D35 loopless variant (deposited as 'TAPBPR  loop')"
+        condition: "endogenous TAPBPR CRISPR knockout + lentiviral TAPBPR K22-D35 loopless rescue (øloop) + IFN-gamma"
+        condition_id: "helam_tapbpr_ko_ifng_tapbpr_oloop"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC6307860/ — Materials and Methods, Constructs, Cell Culture, Lentiviral Transduction and Immunopeptidomic Analysis"
+        condition_combination: "sequential"
+        condition_genetic_variants: "TAPBPR K22-D35 loopless"
+        condition_transduction: "TAPBPR K22-D35 loopless"
+        condition_cytokines: "IFNG"
+        condition_background: "TAPBPR_KO"
+        condition_material: "cultured"
+        mhc_class: "I"
+        mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03"
+        mhc_basis: "sample_typing"
+      - sample_label: "HeLaM-TAPBPR-KO + IFN-gamma (TAPBPR oG30L)"
+        source: "IFN-gamma-treated HeLaM-TAPBPR-KO cells lentivirally expressing TAPBPR K22-D35 loopless G30L leucine-lever variant (deposited as 'TAPBPR  G30L')"
+        condition: "endogenous TAPBPR CRISPR knockout + lentiviral TAPBPR K22-D35 loopless G30L rescue (øG30L) + IFN-gamma"
+        condition_id: "helam_tapbpr_ko_ifng_tapbpr_og30l"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC6307860/ — Materials and Methods, Constructs, Cell Culture, Lentiviral Transduction and Immunopeptidomic Analysis"
+        condition_combination: "sequential"
+        condition_genetic_variants: "TAPBPR K22-D35 loopless G30L"
+        condition_transduction: "TAPBPR K22-D35 loopless G30L"
+        condition_cytokines: "IFNG"
+        condition_background: "TAPBPR_KO"
+        condition_material: "cultured"
+        mhc_class: "I"
+        mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03"
+        mhc_basis: "sample_typing"
+      - sample_label: "HeLaM-TAPBPR-KO + IFN-gamma (TAPBPR M29)"
+        source: "IFN-gamma-treated HeLaM-TAPBPR-KO cells lentivirally expressing TAPBPR M29 loop variant"
+        condition: "endogenous TAPBPR CRISPR knockout + lentiviral TAPBPR M29 variant + IFN-gamma"
+        condition_id: "helam_tapbpr_ko_ifng_tapbpr_m29"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC6307860/ — Materials and Methods, Constructs, Cell Culture, Lentiviral Transduction and Immunopeptidomic Analysis"
+        condition_combination: "sequential"
+        condition_genetic_variants: "TAPBPR M29"
+        condition_transduction: "TAPBPR M29"
+        condition_cytokines: "IFNG"
+        condition_background: "TAPBPR_KO"
+        condition_material: "cultured"
+        mhc_class: "I"
+        mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03"
+        mhc_basis: "sample_typing"
 
   - pmid: 33633747
     # Arm-resolution verdict (#366).
@@ -13296,9 +13801,11 @@
         condition: "unperturbed — mono-allelic"
         condition_id: "k562_mono_allelic_transfectants_hla_i"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.1016/j.mcpro.2023.100506 — Experimental Procedures, Cell Line Generation and Tumor Tissue Profiling"
         condition_control: "untreated"
         condition_mhc_context: "monoallelic"
+        condition_material: "cultured"
         mhc_class: "I"
         mhc: "HLA class I"
         classification: cell_line
@@ -13308,8 +13815,10 @@
         condition: "unperturbed"
         condition_id: "lung_and_colorectal_tumor_tissue_hla_i_multi_all"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "https://doi.org/10.1016/j.mcpro.2023.100506 — Experimental Procedures, Cell Line Generation and Tumor Tissue Profiling"
         condition_control: "untreated"
+        condition_material: "direct_ex_vivo"
         mhc_class: "I"
         mhc: "HLA class I"
         classification: cancer
@@ -14455,18 +14964,15 @@
   # Cell-line HLA types verified against Cellosaurus and IEDB's own records.
   - pmid: 23328677
     study_label: "Cronin 2013 — Raji Burkitt lymphoma HLA-DR ligandome ± HDAC inhibitor"
-    # Arm-resolution verdict (#451): recorded so this study is not
-    # re-investigated. Describes the deposited evidence, not the curation.
-    arm_resolution: curation_gap
+    arm_resolution: axis_mismatch
     arm_resolution_note: >
-      assay_comments takes 3 distinct values across the 184 rows and 26 of them exclude one
-      arm outright ('The epitope was eluted from DMSO-treated HLA-DR expressing Raji B-cells
-      but not from Entinostat -treated cells.' 16 rows, plus the mirrored Entinostat-only
-      sentence, 10 rows), which maps one to one onto the two curated arms. cell_name ('B
-      cell') and source_tissue ('Blood') are constant and antigen_processing_comments is
-      absent. The remaining 158 rows name both arms at once ('eluted from DMSO or Entinostat-
-      treated'), so most of the ambiguity is genuine, but those 26 exclusionary rows are a
-      per-row discriminator no arm currently consumes.
+      Exact statement mapping resolves the 26 exclusionary rows across the 184 HLA-DR
+      observations (16 eluted from DMSO-treated Raji B-cells but not Entinostat-treated cells;
+      10 eluted from Entinostat-treated Raji B-cells but not DMSO-treated cells) together with
+      their explicit nondetection comparators. The remaining 158 rows carry IEDB's disjunctive
+      'The epitope was eluted from DMSO or Entinostat-treated HLA-DR expressing Raji B-cells.';
+      because 'or' does not assert detection in both arms, those 158 rows deliberately remain
+      unresolved (#900).
     title: "Regulation of HLA-DR peptide occupancy by histone deacetylase inhibitors"
     override: cell_line
     note: >
@@ -14476,30 +14982,50 @@
       EBV-immortalized normal B-LCL and must not be force-fit to ebv_lcl.  IEDB
       records only the "HLA-DR" serotype (no allele); this override resolves the
       DRB1 type and captures the HDAC-inhibitor perturbation.  Two arms compared:
-      DMSO vehicle control vs Entinostat (MS-275, HDAC inhibitor) treatment.
-      #33c/#36.
+      DMSO vehicle control vs Entinostat (MS-275, 5 uM, 40 h, HDAC inhibitor) treatment.
+      #33c/#36/#900.
+    elution_condition_ids:
+      "The epitope was eluted from DMSO-treated HLA-DR expressing Raji B-cells but not from Entinostat -treated cells.":
+        detected:
+          - raji_dmso_vehicle_control
+        not_detected:
+          - raji_entinostat_hdac_inhibitor
+      "The epitope was eluted from Entinostat-treated HLA-DR expressing Raji B-cells but not from DMSO-treated cells.":
+        detected:
+          - raji_entinostat_hdac_inhibitor
+        not_detected:
+          - raji_dmso_vehicle_control
     ms_samples:
       - sample_label: "Raji — DMSO (vehicle control)"
         n_samples: 1
-        source: "Raji Burkitt lymphoma B-cell line, anti-HLA-DR elution"
-        condition: unperturbed
+        source: "Raji Burkitt lymphoma B-cell line, DMSO vehicle control, anti-HLA-DR elution"
+        condition: "unperturbed — DMSO vehicle control (40 h)"
         condition_id: "raji_dmso_vehicle_control"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_control: "untreated"
+        condition_evidence: "primary_source"
+        condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC3791686/ — Materials and Methods, Cell Culture and Drug Treatment (5 uM MS-275 / Entinostat vs DMSO vehicle, 40 h)"
+        condition_control: "vehicle"
+        condition_control_for: "raji_entinostat_hdac_inhibitor"
+        condition_combination: "single"
+        condition_drugs: "DMSO"
+        condition_material: "cultured"
         mhc_class: "II"
         mhc: "HLA-DRB1*03:01 HLA-DRB1*10:01"
+        mhc_basis: "sample_typing"
       - sample_label: "Raji — Entinostat (HDAC inhibitor)"
         n_samples: 1
-        source: "Raji Burkitt lymphoma B-cell line, anti-HLA-DR elution"
-        condition: "Entinostat (MS-275, HDAC inhibitor)"
+        source: "Raji Burkitt lymphoma B-cell line treated with 5 uM Entinostat (MS-275) for 40 h, anti-HLA-DR elution"
+        condition: "Entinostat (MS-275, HDAC inhibitor, 5 uM, 40 h)"
         condition_id: "raji_entinostat_hdac_inhibitor"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC3791686/ — Materials and Methods, Cell Culture and Drug Treatment (5 uM MS-275 / Entinostat vs DMSO vehicle, 40 h)"
         condition_combination: "single"
         condition_drugs: "entinostat"
+        condition_material: "cultured"
         mhc_class: "II"
         mhc: "HLA-DRB1*03:01 HLA-DRB1*10:01"
+        mhc_basis: "sample_typing"
   - pmid: 29774024
     study_label: "Álvaro-Benito 2018 — HLA-DR3-transduced T2, HLA-DM-dependent class-II immunopeptidome"
     title: "Quantification of HLA-DM-Dependent Major Histocompatibility Complex of Class II Immunopeptidomes by the PLAtEAU Algorithm"
@@ -14710,21 +15236,12 @@
   # ── #36 — HCT 116 colon carcinoma + gemcitabine (type now resolved) ─────────
   - pmid: 29930882
     study_label: "Gravett 2018 — HCT 116 colon carcinoma class-I ligandome ± gemcitabine"
-    # Arm-resolution verdict (#451): recorded so this study is not
-    # re-investigated. Describes the deposited evidence, not the curation.
-    arm_resolution: curation_gap
+    arm_resolution: multi_arm_evidence
     arm_resolution_note: >
-      cell_name, source_tissue and antigen_processing_comments are each constant across all
-      122 rows (HCT 116-Epithelial cell; Gastrointestinal Tract; one W6/32 immunoaffinity
-      paragraph), but assay_comments takes 3 distinct values and 87 rows carry one that names
-      a single arm: 'The class I ligand was eluted exclusively in the presence of gemcitabine
-      (GEM) treatment, which is known to upregulate MHC class I expression on the surface of
-      tumor cells.'. Those 87 rows belong to the gemcitabine-treated arm and are unattributed,
-      so a per-row discriminator is present that the curated arms do not yet exploit. The
-      remaining 35 rows carry the two phrasings of eluted in the presence and absence of
-      gemcitabine (34 plus 1, differing only in wording) and are genuinely multi-arm: the
-      peptide was found in both arms, so those rows stay ambiguous even after the gap is
-      closed.
+      Exact statement mapping assigns the 87 gemcitabine-exclusive HCT 116 rows to
+      hct_116_gemcitabine_treated (with explicit nondetection in hct_116_untreated_constitutive)
+      and records shared detection across both arms on the remaining 35 rows (34 plus 1
+      differing only in phrasing of presence and absence of gemcitabine) (#900).
     title: "Gemcitabine alters the proteasome composition and immunopeptidome of tumour cells"
     override: cell_line
     note: >
@@ -14737,8 +15254,22 @@
       allele is B*45:01 (an earlier "B*21:01" string was obsolete broad-serotype
       nomenclature, not a molecular type).  Two arms via assay_comments: ligands
       eluted constitutively (± gemcitabine) vs eluted exclusively after
-      gemcitabine (GEM) treatment, which alters proteasome composition.  HCT 116
-      is a tumor line, so src_cancer is correct (cell_line).  #36.
+      gemcitabine (GEM, 100 nM, 24 h) treatment, which alters proteasome composition.
+      HCT 116 is a tumor line, so src_cancer is correct (cell_line).  #36/#900.
+    elution_condition_ids:
+      "The class I ligand was eluted exclusively in the presence of gemcitabine (GEM) treatment, which is known to upregulate MHC class I expression on the surface of tumor cells.":
+        detected:
+          - hct_116_gemcitabine_treated
+        not_detected:
+          - hct_116_untreated_constitutive
+      "The class I ligand was eluted in the presence and absence of gemcitabine (GEM) treatment, which is known to upregulate MHC class I expression on the surface of tumor cells.":
+        detected:
+          - hct_116_untreated_constitutive
+          - hct_116_gemcitabine_treated
+      "The class I ligand was eluted in the presence, as well as the absence of gemcitabine (GEM) treatment, which is known to upregulate MHC class I expression on the surface of tumor cells.":
+        detected:
+          - hct_116_untreated_constitutive
+          - hct_116_gemcitabine_treated
     ms_samples:
       - sample_label: "HCT 116 — untreated (constitutive)"
         n_samples: 1
@@ -14746,21 +15277,29 @@
         condition: unperturbed
         condition_id: "hct_116_untreated_constitutive"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5980551/ — Materials and Methods, Cell Culture, Gemcitabine Treatment (IC25 / 100 nM) and HLA Class I Peptide Elution"
         condition_control: "untreated"
+        condition_control_for: "hct_116_gemcitabine_treated"
+        condition_drugs: "none"
+        condition_material: "cultured"
         mhc_class: "I"
         mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*18:01 HLA-B*45:01 HLA-C*05:01 HLA-C*07:01"
+        mhc_basis: "sample_typing"
       - sample_label: "HCT 116 — gemcitabine-treated"
         n_samples: 1
-        source: "HCT 116 colon carcinoma line (CVCL_0291)"
-        condition: "Gemcitabine (alters proteasome composition)"
+        source: "HCT 116 colon carcinoma line (CVCL_0291) treated with gemcitabine"
+        condition: "Gemcitabine (100 nM IC25, alters proteasome composition)"
         condition_id: "hct_116_gemcitabine_treated"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5980551/ — Materials and Methods, Cell Culture, Gemcitabine Treatment (IC25 / 100 nM) and HLA Class I Peptide Elution"
         condition_combination: "single"
         condition_drugs: "gemcitabine"
+        condition_material: "cultured"
         mhc_class: "I"
         mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*18:01 HLA-B*45:01 HLA-C*05:01 HLA-C*07:01"
+        mhc_basis: "sample_typing"
   # ── #36 — mixed-cohort per-arm splits (conditional rules) ───────────────────
   # 22299025: B-LCL arm (correctly ebv_lcl via culture_condition) + a CD4+
   # T-cell-clone arm IEDB defaults to src_cancer.  The clones are chronically

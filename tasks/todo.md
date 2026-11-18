@@ -1,3 +1,55 @@
+# APC curation PR #909 final review — 2026-11-18
+
+- [x] Preserve the original checkout and reconcile with the export/filter fixes.
+- [ ] Independently review source evidence and condition-membership contracts.
+- [ ] File and resolve in-scope correctness findings; retain unrelated issues.
+- [ ] Refresh version to 2.1.15 and validate isolated metadata, format/lint/tests.
+- [ ] Review final head, merge after #915/#916 and verify PyPI publication.
+
+## Final-review evidence
+
+Filed in-scope findings #917 (DG013A enrichment is not absence), #918 (ambiguous
+condition joins/source positions), #919 (revision-specific count verification),
+#921 (13 primary-source DP constructs versus 14 deposited restrictions), #922
+(cultured versus subcutaneous-tumor EL4 material), and #923 (wrong Hilton citation).
+Original DP supplement: DOI 10.3389/fimmu.2022.831822.s001, Figshare file 34077722,
+SHA256 4ce9351b45bc32390dacf0e53c578050f8ce697d31adb29dc8b598f89295ff42;
+page 2 inspected visually. Source review also confirms TAPBPR rescue constructs,
+gemcitabine-specific groups and SHERPA cultured/tumor material distinctions.
+
+Local full test.sh was admitted at 4.48 GiB but hit the 1 GiB disk reserve in
+contributor fixtures. Interrupted after 1,306 passes, 7 failures and 26 errors;
+six failures plus fixture errors were disk-capacity refusals and one was the
+help snapshot subsequently corrected in #916. The focused retry was refused
+at 0.69 GiB available memory. These are not passing validation. Hosted gates
+must qualify the final head; neither safeguard was weakened.
+
+First hosted review unit run: 4,032 passed, two skipped, one failure in the
+existing symmetric-arm-label guard. The new EL4 labels named material absent
+from their condition descriptions. Made the cultured/tumor condition scope
+explicit on all four arms; keep the guard and ambiguous-material regression.
+
+# APC intervention, statement membership & engineered HLA-DP curation — #899, #900, #856, #593, 2026-11-17
+
+Specification: [apc-intervention-curation-spec.md](apc-intervention-curation-spec.md).
+
+- [x] Unlock `context_evidence` curation-count evolution while preserving historical `cohort_1_78` reconciliation and frozen-package verification.
+- [x] Extend `elution_condition_ids` / `StatementMap` for `detected` + `not_detected` memberships, fix negated-clause parsing in `_arms_in_elution_conditions`, and export `supported_condition_ids`, `excluded_condition_ids`, and `expand_condition_memberships`.
+- [x] Curate primary-source arms and exact statement maps for PMIDs `30484775` (#899), `31222486`, `23328677`, `32265295`, `29930882`, `30779550` (#900), `35251023` (#856), and `28514659`/`36796642` (#593).
+- [x] Replay against `ci-corpus-v4`, add regressions, bump to `2.1.11`, and pass `./format.sh`, `./lint.sh`, and `./test.sh`.
+- [ ] Open PR (`v2.1.11`), pass hosted CI, merge, and deploy to PyPI from clean `main`.
+
+## Review
+
+Replayed all 83,514 `ci-corpus-v4` rows across the 8 updated studies (`30484775`,
+`31222486`, `23328677`, `32265295`, `29930882`, `30779550`, `35251023`, `28514659`)
+and verified exact row-count conservation, single-arm vs shared (`supported_condition_ids`)
+vs explicit-nondetection (`excluded_condition_ids`) vs disjunctive (`"or"`) / blank
+preservation, `expand_condition_memberships()` provenance retention, and
+`engineering_drift_audit` (`55 -> 54` findings with `36796642` resolved). Passed
+`./format.sh`, `./lint.sh`, `scripts/check_dev_install.py`, and all 3,839 non-integration
+unit tests (`1` skip, `0` failures). Hosted CI and PyPI release `2.1.11` run next.
+
 # Consistent peptide filter inputs — #913, 2026-11-18
 
 Specification: [filter-input-contracts-spec.md](filter-input-contracts-spec.md).
@@ -127,7 +179,7 @@ Specification: [mhcgnomes-370-and-flanks-spec.md](mhcgnomes-370-and-flanks-spec.
 - [x] Restore split-before-broad serotype ordering via `mhcgnomes.data.serotype_splits`, `HLA-B*15:112` vs `HLA-B*15:11` distinction, load-time serotype refresh, conservative `host_mhc_types` slot parsing, and symmetric `(pmid, allele)` export join.
 - [x] Align `ProteomeIndex.map_peptides` empty/no-hit return columns (`unique_n_flank`, `unique_c_flank`) and docstring (#868).
 - [x] Add/update unit and corpus regressions; pass `./format.sh`, `./lint.sh`, and `./test.sh`.
-- [ ] Open PR (`v2.1.10`), pass hosted CI, merge, and deploy from clean `main`.
+- [x] Open PR (`v2.1.10`), pass hosted CI, merge, and deploy from clean `main`.
 
 ## Review
 

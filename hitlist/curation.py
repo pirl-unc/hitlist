@@ -183,8 +183,9 @@ PMID_ENTRY_FIELDS = MappingProxyType(
             "reported restrictions eligible for the peptide map; scanner and index repair (#534)"
         ),
         "elution_condition_ids": (
-            "exact deposited assay comments mapped to supported condition IDs; "
-            "export._select_by_elution_conditions reads this (#512)"
+            "exact deposited assay comments mapped to supported (and optional explicitly "
+            "not_detected) condition IDs; export._select_by_elution_conditions and "
+            "export.StatementMap read this (#512, #900)"
         ),
         "tissue_overrides": "per-tissue overrides; rendered by hitlist.report",
         "arm_resolution": (
@@ -323,6 +324,82 @@ def _asset_path(rel_path: str) -> str:
     return str(packaged_or_fetched(_data_path(rel_path), basename(rel_path)))
 
 
+def parse_elution_condition_targets(
+    targets: object,
+    *,
+    pmid: object = None,
+    allowed_condition_ids: set[str] | None = None,
+) -> tuple[list[str], list[str]]:
+    """Validate and normalize one ``elution_condition_ids`` entry value.
+
+    Accepts either ``[condition_id, ...]`` (positive detections only) or
+    ``{"detected": [condition_id, ...], "not_detected": [condition_id, ...]}``
+    where ``detected`` is non-empty, both lists hold distinct profiled
+    ``condition_id`` strings, and ``detected`` is disjoint from ``not_detected``.
+    """
+
+    def _check_id_list(values: object, *, allow_empty: bool) -> list[str]:
+        if (
+            not isinstance(values, list)
+            or (not allow_empty and not values)
+            or any(not isinstance(v, str) or not v for v in values)
+            or len(set(values)) != len(values)
+            or (allowed_condition_ids is not None and not set(values) <= allowed_condition_ids)
+        ):
+            raise ValueError(
+                f"PMID {pmid}: elution targets must be distinct condition IDs "
+                "of profiled samples in this study"
+            )
+        return list(values)
+
+    if isinstance(targets, list):
+        return _check_id_list(targets, allow_empty=False), []
+    if isinstance(targets, dict):
+        if not set(targets) <= {"detected", "not_detected"} or "detected" not in targets:
+            raise ValueError(
+                f"PMID {pmid}: elution mapping dict must have 'detected' and optional "
+                "'not_detected' keys"
+            )
+        detected = _check_id_list(targets["detected"], allow_empty=False)
+        not_detected = _check_id_list(targets.get("not_detected", []), allow_empty=True)
+        if not set(detected).isdisjoint(not_detected):
+            raise ValueError(
+                f"PMID {pmid}: elution detected and not_detected condition IDs must be disjoint"
+            )
+        return detected, not_detected
+    raise ValueError(
+        f"PMID {pmid}: elution targets must be distinct condition IDs "
+        "of profiled samples in this study"
+    )
+
+
+def validate_elution_condition_ids(entry: Mapping[str, object]) -> None:
+    """Validate a study entry's ``elution_condition_ids`` mapping."""
+    pmid = entry.get("pmid", entry.get("submission_id"))
+    elution_map = entry.get("elution_condition_ids", {})
+    if not isinstance(elution_map, dict):
+        raise ValueError(f"PMID {pmid}: elution_condition_ids must be a mapping")
+    condition_ids = {
+        str(sample.get("condition_id"))
+        for sample in (entry.get("ms_samples") or [])  # type: ignore[attr-defined]
+        if sample.get("profiled", True)
+        and sample.get("n_samples") != 0
+        and sample.get("condition_id")
+    }
+    for statement, targets in elution_map.items():
+        if (
+            not isinstance(statement, str)
+            or not statement.strip()
+            or statement != statement.strip()
+        ):
+            raise ValueError(f"PMID {pmid}: elution statement must be nonempty, stripped text")
+        parse_elution_condition_targets(
+            targets,
+            pmid=pmid,
+            allowed_condition_ids=condition_ids,
+        )
+
+
 @lru_cache(maxsize=1)
 def load_pmid_overrides() -> dict[int, dict]:
     """Load PMID curation overrides from YAML.
@@ -434,34 +511,7 @@ def load_pmid_overrides() -> dict[int, dict]:
                 f"PMID {e.get('pmid')}: peptide_attribution_restrictions requires a peptide "
                 "map and a nonempty list of distinct, stripped restriction strings"
             )
-        elution_map = e.get("elution_condition_ids", {})
-        if not isinstance(elution_map, dict):
-            raise ValueError(f"PMID {e.get('pmid')}: elution_condition_ids must be a mapping")
-        condition_ids = {
-            sample.get("condition_id")
-            for sample in e.get("ms_samples") or []
-            if sample.get("profiled", True)
-        }
-        for statement, targets in elution_map.items():
-            if (
-                not isinstance(statement, str)
-                or not statement.strip()
-                or statement != statement.strip()
-            ):
-                raise ValueError(
-                    f"PMID {e.get('pmid')}: elution statement must be nonempty, stripped text"
-                )
-            if (
-                not isinstance(targets, list)
-                or not targets
-                or any(not isinstance(target, str) or not target for target in targets)
-                or len(set(targets)) != len(targets)
-                or not set(targets) <= condition_ids
-            ):
-                raise ValueError(
-                    f"PMID {e.get('pmid')}: elution targets must be distinct condition IDs "
-                    "of profiled samples in this study"
-                )
+        validate_elution_condition_ids(e)
         if group_sizes and ungrouped_labels:
             raise ValueError(
                 f"PMID {e.get('pmid')}: sample_group is curated on "
