@@ -1,3 +1,26 @@
+# Consistent peptide filter inputs — #913, 2026-11-18
+
+Specification: [filter-input-contracts-spec.md](filter-input-contracts-spec.md).
+
+- [x] Read loader/CLI contracts and define normalization and empty-input policy.
+- [x] Audit scalar/list discrepancies and add regressions for empty Arrow/missing-schema failures.
+- [x] Share normalization across loaders and CLI while preserving validation.
+- [ ] Add public API/CLI regressions and version bump; pass required gates.
+- [ ] Review, merge and deploy after #915; verify both public distributions.
+
+## Review
+
+This branch is stacked on #915 while its hosted checks run. Added public API,
+training-export and CLI regressions. Empty gene queries now remain empty even
+through the high-level union export; absent candidate-set columns cause a
+rebuild error instead of disabling the filter. Vocabulary choices remain
+validated after comma/whitespace normalization.
+
+Format/lint and isolated metadata/dependency checks pass. Local baseline
+test.sh refused before pytest at 0.23 GiB available; the full post-change
+attempt is recorded in /private/tmp/hitlist-filter-full.log. No memory-guard
+override or local test pass is claimed. Candidate version is 2.1.14.
+
 # Training-data completeness and export correctness — #912/#914, 2026-11-18
 
 Roadmap: [training-quality-roadmap.md](training-quality-roadmap.md).
