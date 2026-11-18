@@ -335,3 +335,132 @@ def test_historical_context_manifest_verifies_inside_successor_package(tmp_path)
     )
     with pytest.raises(ValueError, match="Invalid context package manifest path"):
         verify_context_evidence_package(target, manifest_path="../context/manifest.json")
+
+
+def test_context_package_accepts_evolved_current_curation_arm_and_study_counts(tmp_path):
+    mhc, cohort, old, current, lineage = _cohort_fixture(tmp_path)
+    current.write_text(
+        """- pmid: 12345678
+  instrument: study instrument
+  ms_samples:
+  - condition_id: test_arm_wt
+    sample_label: split wt arm
+    condition: unperturbed
+    condition_status: annotated
+    condition_evidence: primary_source
+    condition_reference: PMID:12345678 Methods
+    condition_control: untreated
+    condition_control_for: test_arm_ko
+    condition_knockout_genes: none
+    mhc: HLA-A*02:01
+    mhc_basis: sample_typing
+  - condition_id: test_arm_ko
+    sample_label: split ko arm
+    condition: TAP1 knockout
+    condition_status: annotated
+    condition_evidence: primary_source
+    condition_reference: PMID:12345678 Methods
+    condition_combination: single
+    condition_knockout_genes: TAP1
+    mhc: HLA-A*02:01
+    mhc_basis: sample_typing
+  - condition_id: test_control
+    sample_label: control arm
+    condition: control
+    condition_status: annotated
+    condition_evidence: curated_text
+    condition_control: untreated
+    condition_control_for: test_arm_ko
+- pmid: 87654321
+  ms_samples:
+  - condition_id: added_study_arm
+    sample_label: added study arm
+    condition: unperturbed
+    condition_status: annotated
+    condition_evidence: curated_text
+    condition_control: untreated
+"""
+    )
+    target = tmp_path / "context_evolved"
+    write_context_evidence_package(
+        mhc,
+        cohort,
+        target,
+        historical_curation_path=old,
+        current_curation_path=current,
+        lineage_file=lineage,
+    )
+    manifest = verify_context_evidence_package(target)
+    counts = manifest["reconciliation"]
+    assert counts["n_curated_arms_per_revision"] == 2
+    assert counts["n_historical_curated_arms"] == 2
+    assert counts["n_current_curated_arms"] == 4
+    assert counts["n_curated_arms"] == 6
+    assert counts["n_curated_studies_per_revision"] == 1
+    assert counts["n_historical_curated_studies"] == 1
+    assert counts["n_current_curated_studies"] == 2
+    assert counts["n_curated_studies"] == 3
+    amendments = pq.read_table(target / "typed" / "curation_amendments.parquet").to_pylist()
+    amended_arms = {row["arm_id"] for row in amendments}
+    assert "pmid:12345678:arm:test_arm" in amended_arms
+    assert "pmid:12345678:arm:test_arm_wt" in amended_arms
+    assert "pmid:87654321:arm:added_study_arm" in amended_arms
+
+
+def test_context_package_builds_with_packaged_historical_and_current_curations(tmp_path):
+    mhc, cohort, _old, _current, lineage = _cohort_fixture(tmp_path)
+    from pathlib import Path
+
+    import hitlist.context_evidence as ce
+
+    packaged_old = ce._historical_path()
+    packaged_current = Path(ce.__file__).parent / "data" / "pmid_overrides.yaml"
+    # Rewrite cohort fixture against packaged historical curation using an existing 1.78 arm.
+    training = pq.read_table(cohort / "training.parquet").to_pylist()
+    training[0]["pmid"] = 30484775
+    training[0]["condition_id"] = "cells_tapbpr_manipulation"
+    pq.write_table(pa.Table.from_pylist(training), cohort / "training.parquet")
+    identities = pq.read_table(cohort / "identities.parquet").to_pylist()
+    identities[0]["pmid"] = 30484775
+    identities[0]["condition_id"] = "cells_tapbpr_manipulation"
+    pq.write_table(pa.Table.from_pylist(identities), cohort / "identities.parquet")
+    cohort_manifest = json.loads((cohort / "manifest.json").read_text())
+    for name, filename in COHORT_ARTIFACTS.items():
+        cohort_manifest["artifacts"][name] = {"file": filename, **file_digest(cohort / filename)}
+    cohort_manifest["inputs"]["files"]["curation:pmid_overrides.yaml"] = file_digest(packaged_old)
+    (cohort / "manifest.json").write_text(json.dumps(cohort_manifest))
+
+    target = tmp_path / "context_packaged"
+    write_context_evidence_package(
+        mhc,
+        cohort,
+        target,
+        historical_curation_path=packaged_old,
+        current_curation_path=packaged_current,
+        lineage_file=lineage,
+    )
+    manifest = verify_context_evidence_package(target)
+    counts = manifest["reconciliation"]
+    assert counts["n_curated_arms_per_revision"] == 807
+    assert counts["n_current_curated_arms"] > counts["n_historical_curated_arms"]
+
+
+@pytest.mark.parametrize("kind", ["arms", "studies"])
+@pytest.mark.parametrize("revision", ["historical", "current"])
+def test_context_verifier_rejects_wrong_revision_counts(tmp_path, kind, revision):
+    mhc, cohort, old, current, lineage = _cohort_fixture(tmp_path)
+    target = tmp_path / "context_counts"
+    write_context_evidence_package(
+        mhc,
+        cohort,
+        target,
+        historical_curation_path=old,
+        current_curation_path=current,
+        lineage_file=lineage,
+    )
+    manifest_path = target / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["reconciliation"][f"n_{revision}_curated_{kind}"] += 1
+    manifest_path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match="curation revision count mismatch"):
+        verify_context_evidence_package(target)

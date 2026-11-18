@@ -313,6 +313,11 @@ def load_peptide_mappings(
     Filters are pushed down to pyarrow, so a query like ``gene_name="PRAME"``
     reads only the matching row groups.
 
+    String/list filters split commas in each element and trim whitespace.
+    ``None`` leaves the axis unfiltered; empty or blank selections match no
+    rows. Non-string elements raise ``TypeError``. Separately supplied column
+    filters intersect (gene_name AND gene_id), unlike the export gene union.
+
     ``gene_biotype`` distinguishes conventional ``protein_coding`` mappings
     from germline IG/TR sources; FASTA-backed rows carry ``""``. Issue #141
     added ``transcript_id`` and ``is_canonical_transcript`` so
@@ -324,28 +329,23 @@ def load_peptide_mappings(
     if not path.exists():
         raise FileNotFoundError("Peptide mappings not built.  Run: hitlist build observations")
 
-    def _as_list(v) -> list[str]:
-        if isinstance(v, str):
-            return [s.strip() for s in v.split(",") if s.strip()]
-        return [s for s in v if s]
+    from .filter_values import normalize_filter_values
 
     filters: list = []
-    if peptide is not None:
-        filters.append(("peptide", "in", _as_list(peptide)))
-    if gene_name is not None:
-        filters.append(("gene_name", "in", _as_list(gene_name)))
-    if gene_id is not None:
-        filters.append(("gene_id", "in", _as_list(gene_id)))
-    if gene_biotype is not None:
-        filters.append(("gene_biotype", "in", _as_list(gene_biotype)))
-    if protein_id is not None:
-        filters.append(("protein_id", "in", _as_list(protein_id)))
-    if transcript_id is not None:
-        filters.append(("transcript_id", "in", _as_list(transcript_id)))
+    for name, values in (
+        ("peptide", peptide),
+        ("gene_name", gene_name),
+        ("gene_id", gene_id),
+        ("gene_biotype", gene_biotype),
+        ("protein_id", protein_id),
+        ("transcript_id", transcript_id),
+        ("proteome", proteome),
+    ):
+        normalized = normalize_filter_values(values, name)
+        if normalized is not None:
+            filters.append((name, "in", normalized))
     if is_canonical_transcript is not None:
         filters.append(("is_canonical_transcript", "=", bool(is_canonical_transcript)))
-    if proteome is not None:
-        filters.append(("proteome", "in", _as_list(proteome)))
 
     # An explicit empty selection is empty, not a null-typed Arrow IN set.
     # Read only the schema: pandas 3 writes large_string columns, which Arrow

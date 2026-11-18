@@ -663,8 +663,13 @@ For filtering a frame already in memory, `hitlist.normalize_serotype_query()` us
 the same spelling rules as the loaders and exports: `"a2"` becomes `"HLA-A2"`,
 and `"bola-a18"` becomes `"BoLA-A18"`.
 
-All filters are pushed down to the parquet reader (pyarrow), so `--gene PRAME` reads
-only the matching row groups — typically milliseconds rather than a full table scan.
+Eligible filters, including gene-derived peptide selections, are pushed down to
+the parquet reader (pyarrow). Serotype membership and provenance are filtered
+after loading, once annotations have been refreshed against the installed
+mhcgnomes catalog. The Python loaders distinguish `serotype=None` (no filter)
+from `serotype=[]` or an empty string (zero matches). Empty serotype results
+preserve the stored/projected columns; derived empty-schema gaps are tracked in
+[#912](https://github.com/pirl-unc/hitlist/issues/912).
 Examples:
 - `hitlist export ms --gene PRAME --class I -o prame_classI.csv`
 - `hitlist export ms --gene "MART-1"` (HGNC resolves to `MLANA`)

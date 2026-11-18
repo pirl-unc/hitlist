@@ -209,10 +209,24 @@ def test_inexact_nonhuman_or_partial_pair_cannot_be_a_donor_set(typing):
 
 @pytest.mark.parametrize(
     "typing",
-    ["HLA-DRA*01:01/DRB1", "HLA-DRB1*12", "HLA-DRB1*12:01 class II", "garbage"],
+    [
+        "HLA-DRA*01:01/DRB1",
+        "HLA-DRB1*12",
+        "HLA-DRB1*12:01 class II",
+        "HLA-DRB1*12:01 natural_process",
+        "garbage",
+    ],
 )
 def test_imprecise_or_misleading_typing_is_not_an_exact_candidate(typing):
     assert curation.expand_allele_set("HLA-DR", typing) == ("", "unmatched", 0)
+
+
+def test_host_mhc_types_keeps_clean_slots_and_comma_mutations():
+    assert curation.expand_allele_set(
+        "HLA class I",
+        "HLA-A*02:01 Y59A, Y171A mutant;HLA-B*07:02;HLA-DRB1*12:01 class II",
+        mhc_class="I",
+    ) == ("HLA-A*02:01 Y59A Y171A mutant;HLA-B*07:02", "sample_allele_match", 2)
 
 
 @pytest.mark.parametrize("typing", ["HLA-DRA*01:01/DRB1", "HLA-DRB1*12", "HLA-DR3"])

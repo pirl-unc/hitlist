@@ -1596,6 +1596,34 @@ def test_low_level_gene_name_and_id_filters_still_intersect(mixed_gene_indexes):
         assert loader(gene_name="PRAME", gene_id="ENSG00000198681").empty
 
 
+@pytest.mark.parametrize("name", ["gene", "gene_name", "gene_id"])
+@pytest.mark.parametrize("selection", [[], "", [" , "]])
+def test_training_empty_gene_selection_never_broadens(mixed_gene_indexes, name, selection):
+    from hitlist.export import generate_training_table
+
+    result = generate_training_table(**{name: selection}, map_source_proteins=True)
+    assert result.empty
+    assert "peptide" in result
+    assert len(generate_training_table(**{name: None})) == 6
+
+
+def test_empty_gene_axis_preserves_other_export_alternatives(mixed_gene_indexes):
+    from hitlist.export import generate_training_table
+
+    result = generate_training_table(gene_name=[], gene_id="ENSG00000185686")
+    assert result.peptide.tolist() == ["AAAAAAAAA", "AAAAAAAAA"]
+
+
+@pytest.mark.parametrize(
+    "name", ["gene", "gene_name", "gene_id", "mhc_allele_provenance", "peptide"]
+)
+def test_training_filter_invalid_values_are_not_discarded(mixed_gene_indexes, name):
+    from hitlist.export import generate_training_table
+
+    with pytest.raises(TypeError, match=name):
+        generate_training_table(**{name: [None]})
+
+
 def test_training_gene_union_large_peptide_selection(mixed_gene_indexes):
     from hitlist.export import _load_training_mappings_for_peptides
 

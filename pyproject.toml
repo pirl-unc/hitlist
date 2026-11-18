@@ -65,7 +65,11 @@ dependencies = [
     # disagreed; this makes the declared floor match the tested one.
     # 3.64.4 preserves chain mutation selectors in complete pairs (#528).
     # 3.64.6 catalogs source-backed, gene-specific non-roster alleles (#606).
-    "mhcgnomes>=3.64.6",
+    # 3.70.2 expands WMDA broad/split serotype memberships, makes colon field
+    # boundaries significant in allele-alias lookup (keeping B*15:112 distinct
+    # from B*15:11), adds Gaga-BF2*13:01 -> Gaga-BF2*004:01, and renames
+    # Allele.annotation_cystosolic -> annotation_cytosolic (#897).
+    "mhcgnomes>=3.70.2",
     # Canonical bundled CTA panel; imported only when a gene set is queried.
     "oncoref>=1.8.207",
 ]

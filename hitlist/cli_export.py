@@ -23,6 +23,32 @@ from .curation import (
     RESTRICTION_EVIDENCE_VALUES,
     SEROTYPE_SOURCE_VALUES,
 )
+from .filter_values import normalize_filter_values
+
+
+class _MembershipChoices(argparse.Action):
+    """Extend repeatable selections after normalizing and validating each token."""
+
+    def __init__(self, *args, choices, **kwargs):
+        self.allowed_values = tuple(choices)
+        # argparse's built-in choices check sees the unsplit shell argument.
+        # Keep the vocabulary visible in help and validate split tokens below.
+        kwargs.setdefault("metavar", "{" + ",".join(self.allowed_values) + "}")
+        kwargs["help"] = (kwargs.get("help") or "") + (
+            " Space/comma-separated or repeated; a blank selection matches no rows."
+        )
+        super().__init__(*args, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        normalized = normalize_filter_values(values, option_string or self.dest)
+        for value in normalized:
+            if value not in self.allowed_values:
+                raise argparse.ArgumentError(
+                    self,
+                    f"invalid choice: {value!r} (choose from {', '.join(self.allowed_values)})",
+                )
+        previous = getattr(namespace, self.dest, None)
+        setattr(namespace, self.dest, [*(previous or []), *normalized])
 
 
 def _add_export_bulk_proteomics_args(p: argparse.ArgumentParser) -> None:
@@ -705,7 +731,7 @@ def register(sub: argparse._SubParsersAction) -> None:
     )
     p_obs.add_argument(
         "--mhc-allele-provenance",
-        action="extend",
+        action=_MembershipChoices,
         nargs="+",
         choices=MHC_ALLELE_PROVENANCE_VALUES,
         help=(
@@ -716,14 +742,14 @@ def register(sub: argparse._SubParsersAction) -> None:
     )
     p_obs.add_argument(
         "--restriction-evidence",
-        action="extend",
+        action=_MembershipChoices,
         nargs="+",
         choices=RESTRICTION_EVIDENCE_VALUES,
         help="Filter by how the named peptide-to-MHC restriction was established.",
     )
     p_obs.add_argument(
         "--serotype-source",
-        action="extend",
+        action=_MembershipChoices,
         nargs="+",
         choices=SEROTYPE_SOURCE_VALUES,
         help=(
@@ -782,7 +808,7 @@ def register(sub: argparse._SubParsersAction) -> None:
         action="store_true",
         help=(
             "Drop only rows flagged 'implausible' by mhc_class_label_severity "
-            "(class-I ≥18aa or ≤7aa, class-II ≤4 or ≥31aa). Keeps borderline "
+            "(class-I ≥18aa or ≤7aa, class-II ≤4 or ≥45aa). Keeps borderline "
             "(13-14aa class-I, 8-10aa class-II) and suspect (15-17aa class-I, "
             "5-7aa class-II) rows. Useful when bulged class-I peptides should "
             "be retained (#201)."
@@ -896,21 +922,21 @@ def register(sub: argparse._SubParsersAction) -> None:
     )
     p_bind.add_argument(
         "--mhc-allele-provenance",
-        action="extend",
+        action=_MembershipChoices,
         nargs="+",
         choices=MHC_ALLELE_PROVENANCE_VALUES,
         help="Filter by how the allele set was obtained (issue #137).",
     )
     p_bind.add_argument(
         "--restriction-evidence",
-        action="extend",
+        action=_MembershipChoices,
         nargs="+",
         choices=RESTRICTION_EVIDENCE_VALUES,
         help="Filter by how the named peptide-to-MHC restriction was established.",
     )
     p_bind.add_argument(
         "--serotype-source",
-        action="extend",
+        action=_MembershipChoices,
         nargs="+",
         choices=SEROTYPE_SOURCE_VALUES,
         help=(

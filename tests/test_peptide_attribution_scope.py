@@ -100,7 +100,10 @@ def test_repair_and_non_peptide_filters_preserve_row_selection(tmp_path, monkeyp
     projected = loader(columns=["peptide", "is_non_peptide_ligand"])
     assert projected.index.tolist() == [0, 2]
     assert projected.columns.tolist() == ["peptide", "is_non_peptide_ligand"]
-    assert loader(serotype="HLA-A2").index.tolist() == [0, 2]
+    # Refresh also removes the stale A2 assignment from the HLA-G rows (#907).
+    # The valid donor-set row still survives the combined repair/filter masks.
+    assert default.loc[0, "serotypes"] == ""
+    assert loader(serotype="HLA-A2").index.tolist() == [2]
     assert loader(mhc_allele_in_set="HLA-A*02:01").index.tolist() == [2]
     assert loader(length_min=8, length_max=13).index.tolist() == [0, 2]
 

@@ -25,7 +25,7 @@ from .conditions import (
     split_condition_tokens,
     validate_study_conditions,
 )
-from .curation import MS_SAMPLE_FIELDS, PMID_ENTRY_FIELDS
+from .curation import MS_SAMPLE_FIELDS, PMID_ENTRY_FIELDS, validate_elution_condition_ids
 from .curation_yaml import load_curation_yaml
 from .evidence_snapshot import snapshot_file
 from .lineage import lineage_path, validate_lineage
@@ -424,6 +424,7 @@ def _revision_rows(path, revision):
     sample_fields = set()
     for study_index, study in enumerate(entries):
         validate_study_conditions(study)
+        validate_elution_condition_ids(study)
         pmid = study.get("pmid")
         if not isinstance(pmid, int) or pmid in seen_pmids:
             raise ValueError("Curated studies need distinct numeric PMIDs")
@@ -636,7 +637,11 @@ def _amendments(old_arms, current_arms):
                     "new_value_json": json.dumps(current.get(field), sort_keys=True),
                     "old_revision": "cohort_1_78",
                     "new_revision": "current",
-                    "citation": str(current.get("condition_reference") or ""),
+                    "citation": str(
+                        current.get("condition_reference")
+                        or (old.get("condition_reference") if not current else "")
+                        or ""
+                    ),
                 }
             )
     return rows
@@ -787,7 +792,13 @@ def _write_small_tables(typed_dir, historical_path, current_path):
         "historical_arms": old[0],
         "current_arms": current[0],
         "n_curated_arms_per_revision": len(old[1]),
+        "n_historical_curated_arms": len(old[1]),
+        "n_current_curated_arms": len(current[1]),
+        "n_curated_arms": len(old[1]) + len(current[1]),
         "n_curated_studies_per_revision": len(old[7]),
+        "n_historical_curated_studies": len(old[7]),
+        "n_current_curated_studies": len(current[7]),
+        "n_curated_studies": len(old[7]) + len(current[7]),
         "n_arm_control_links": len(old[8]) + len(current[8]),
         "n_arm_factors": len(old[2]) + len(current[2]),
         "n_arm_mhc_claims": len(old[3]) + len(current[3]),
@@ -1031,8 +1042,12 @@ def verify_context_evidence_package(directory, *, manifest_path="manifest.json")
     inventory = manifest["reconciliation"]
     required_tables = {
         "assay_context.parquet": inventory["n_assay_context_rows"],
-        "curated_studies.parquet": 2 * inventory["n_curated_studies_per_revision"],
-        "curated_arms.parquet": 2 * inventory["n_curated_arms_per_revision"],
+        "curated_studies.parquet": inventory.get(
+            "n_curated_studies", 2 * inventory["n_curated_studies_per_revision"]
+        ),
+        "curated_arms.parquet": inventory.get(
+            "n_curated_arms", 2 * inventory["n_curated_arms_per_revision"]
+        ),
         "arm_control_links.parquet": inventory["n_arm_control_links"],
         "arm_factors.parquet": inventory["n_arm_factors"],
         "arm_mhc_claims.parquet": inventory["n_arm_mhc_claims"],
@@ -1043,6 +1058,27 @@ def verify_context_evidence_package(directory, *, manifest_path="manifest.json")
     for name, expected in required_tables.items():
         if pq.ParquetFile(directory / "typed" / name).metadata.num_rows != expected:
             raise ValueError(f"Context typed row count mismatch: {name}")
+    # Successor manifests distinguish evolving current curation from the frozen
+    # cohort revision. A correct combined count cannot validate that split.
+    for kind in ("arms", "studies"):
+        historical_key = f"n_historical_curated_{kind}"
+        current_key = f"n_current_curated_{kind}"
+        total_key = f"n_curated_{kind}"
+        if not any(key in inventory for key in (historical_key, current_key, total_key)):
+            continue  # Original frozen manifests only carry per-revision counts.
+        revisions = pq.read_table(
+            directory / "typed" / f"curated_{kind}.parquet", columns=["curation_revision"]
+        )["curation_revision"].to_pylist()
+        historical_count = revisions.count("cohort_1_78")
+        current_count = revisions.count("current")
+        if (
+            historical_count + current_count != len(revisions)
+            or inventory.get(historical_key) != historical_count
+            or inventory.get(current_key) != current_count
+            or inventory.get(total_key) != len(revisions)
+            or inventory[f"n_curated_{kind}_per_revision"] != historical_count
+        ):
+            raise ValueError(f"Context curation revision count mismatch: {kind}")
     if (
         pq.ParquetFile(directory / "typed" / "assay_context.parquet").schema_arrow.to_string()
         != inventory["assay_context_schema"]
@@ -1127,8 +1163,6 @@ def write_context_evidence_package(
             audit_path,
         )
         audit_path.unlink()
-        if len(small["historical_arms"]) != len(small["current_arms"]):
-            raise ValueError("Curated arm revision changed key count")
         reconciliation.update(
             {
                 key: value

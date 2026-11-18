@@ -183,8 +183,9 @@ PMID_ENTRY_FIELDS = MappingProxyType(
             "reported restrictions eligible for the peptide map; scanner and index repair (#534)"
         ),
         "elution_condition_ids": (
-            "exact deposited assay comments mapped to supported condition IDs; "
-            "export._select_by_elution_conditions reads this (#512)"
+            "exact deposited assay comments mapped to supported (and optional explicitly "
+            "not_detected) condition IDs; export._select_by_elution_conditions and "
+            "export.StatementMap read this (#512, #900)"
         ),
         "tissue_overrides": "per-tissue overrides; rendered by hitlist.report",
         "arm_resolution": (
@@ -323,6 +324,82 @@ def _asset_path(rel_path: str) -> str:
     return str(packaged_or_fetched(_data_path(rel_path), basename(rel_path)))
 
 
+def parse_elution_condition_targets(
+    targets: object,
+    *,
+    pmid: object = None,
+    allowed_condition_ids: set[str] | None = None,
+) -> tuple[list[str], list[str]]:
+    """Validate and normalize one ``elution_condition_ids`` entry value.
+
+    Accepts either ``[condition_id, ...]`` (positive detections only) or
+    ``{"detected": [condition_id, ...], "not_detected": [condition_id, ...]}``
+    where ``detected`` is non-empty, both lists hold distinct profiled
+    ``condition_id`` strings, and ``detected`` is disjoint from ``not_detected``.
+    """
+
+    def _check_id_list(values: object, *, allow_empty: bool) -> list[str]:
+        if (
+            not isinstance(values, list)
+            or (not allow_empty and not values)
+            or any(not isinstance(v, str) or not v for v in values)
+            or len(set(values)) != len(values)
+            or (allowed_condition_ids is not None and not set(values) <= allowed_condition_ids)
+        ):
+            raise ValueError(
+                f"PMID {pmid}: elution targets must be distinct condition IDs "
+                "of profiled samples in this study"
+            )
+        return list(values)
+
+    if isinstance(targets, list):
+        return _check_id_list(targets, allow_empty=False), []
+    if isinstance(targets, dict):
+        if not set(targets) <= {"detected", "not_detected"} or "detected" not in targets:
+            raise ValueError(
+                f"PMID {pmid}: elution mapping dict must have 'detected' and optional "
+                "'not_detected' keys"
+            )
+        detected = _check_id_list(targets["detected"], allow_empty=False)
+        not_detected = _check_id_list(targets.get("not_detected", []), allow_empty=True)
+        if not set(detected).isdisjoint(not_detected):
+            raise ValueError(
+                f"PMID {pmid}: elution detected and not_detected condition IDs must be disjoint"
+            )
+        return detected, not_detected
+    raise ValueError(
+        f"PMID {pmid}: elution targets must be distinct condition IDs "
+        "of profiled samples in this study"
+    )
+
+
+def validate_elution_condition_ids(entry: Mapping[str, object]) -> None:
+    """Validate a study entry's ``elution_condition_ids`` mapping."""
+    pmid = entry.get("pmid", entry.get("submission_id"))
+    elution_map = entry.get("elution_condition_ids", {})
+    if not isinstance(elution_map, dict):
+        raise ValueError(f"PMID {pmid}: elution_condition_ids must be a mapping")
+    condition_ids = {
+        str(sample.get("condition_id"))
+        for sample in (entry.get("ms_samples") or [])  # type: ignore[attr-defined]
+        if sample.get("profiled", True)
+        and sample.get("n_samples") != 0
+        and sample.get("condition_id")
+    }
+    for statement, targets in elution_map.items():
+        if (
+            not isinstance(statement, str)
+            or not statement.strip()
+            or statement != statement.strip()
+        ):
+            raise ValueError(f"PMID {pmid}: elution statement must be nonempty, stripped text")
+        parse_elution_condition_targets(
+            targets,
+            pmid=pmid,
+            allowed_condition_ids=condition_ids,
+        )
+
+
 @lru_cache(maxsize=1)
 def load_pmid_overrides() -> dict[int, dict]:
     """Load PMID curation overrides from YAML.
@@ -434,34 +511,7 @@ def load_pmid_overrides() -> dict[int, dict]:
                 f"PMID {e.get('pmid')}: peptide_attribution_restrictions requires a peptide "
                 "map and a nonempty list of distinct, stripped restriction strings"
             )
-        elution_map = e.get("elution_condition_ids", {})
-        if not isinstance(elution_map, dict):
-            raise ValueError(f"PMID {e.get('pmid')}: elution_condition_ids must be a mapping")
-        condition_ids = {
-            sample.get("condition_id")
-            for sample in e.get("ms_samples") or []
-            if sample.get("profiled", True)
-        }
-        for statement, targets in elution_map.items():
-            if (
-                not isinstance(statement, str)
-                or not statement.strip()
-                or statement != statement.strip()
-            ):
-                raise ValueError(
-                    f"PMID {e.get('pmid')}: elution statement must be nonempty, stripped text"
-                )
-            if (
-                not isinstance(targets, list)
-                or not targets
-                or any(not isinstance(target, str) or not target for target in targets)
-                or len(set(targets)) != len(targets)
-                or not set(targets) <= condition_ids
-            ):
-                raise ValueError(
-                    f"PMID {e.get('pmid')}: elution targets must be distinct condition IDs "
-                    "of profiled samples in this study"
-                )
+        validate_elution_condition_ids(e)
         if group_sizes and ungrouped_labels:
             raise ValueError(
                 f"PMID {e.get('pmid')}: sample_group is curated on "
@@ -1829,7 +1879,7 @@ def allele_resolution_rank(resolution: str) -> int:
     return _RESOLUTION_RANK.get(resolution, len(ALLELE_RESOLUTION_ORDER))
 
 
-_LOCUS_SEROTYPE_RE = re.compile(r"^(A|B|C|DR|DQ|DP|DM|DO)\d")
+_LOCUS_SEROTYPE_RE = re.compile(r"^(A|Aw|B|C|Cw|DR|DQ|DP|DPw|DM|DO)\d")
 _LOCUS_SEROTYPE_NAME_RE = re.compile(r"^(A|B|C|DR|DQ|DP|DM|DO)(\d+)$")
 
 
@@ -1883,17 +1933,31 @@ def _build_allele_to_serotypes_map() -> dict[tuple[str, str], tuple[str, ...]]:
 
     Returns a dict of ``{allele_key: (serotype1, serotype2, ...)}`` where
     the tuple is ordered by specificity:
-    1. Locus-specific serotypes first (A24, B57, DR15)
-    2. Public epitopes after (Bw4, Bw6)
-    3. Prefer memberships under a current designation over a retired alias
-    4. Break remaining ties by name length and spelling
+    1. Locus-specific serotypes first (A24, B57, Cw10, DR15)
+    2. Standard WHO serological names before IEF sub-specificities (A2 before A2.1)
+    3. WHO split serotypes before their broad parent antigens when both apply
+       (A24 before A9, B57 before B17, B44 before B12, B75 before B15, DR15 before DR2)
+    4. Prefer memberships under a current designation over a retired alias
+    5. Public epitopes after locus-specific serotypes (Bw4, Bw6)
+    6. Break remaining ties by name length and spelling
 
     Returns empty dict if mhcgnomes is unavailable.
     """
     try:
+        from mhcgnomes import data as mhcgnomes_data
         from mhcgnomes.data import serotypes
     except ImportError:
         return {}
+
+    raw_splits = getattr(mhcgnomes_data, "serotype_splits", {})
+    try:
+        from mhcgnomes.serotype_hierarchy import serotype_descendants
+
+        split_descendants = {
+            prefix: serotype_descendants(splits) for prefix, splits in raw_splits.items()
+        }
+    except ImportError:
+        split_descendants = {}
 
     reverse: dict[tuple[str, str], list[str]] = {}
     current_memberships: set[tuple[tuple[str, str], str]] = set()
@@ -1912,49 +1976,23 @@ def _build_allele_to_serotypes_map() -> dict[tuple[str, str], tuple[str, ...]]:
                 if resolve_allele_identity(reported) == reported:
                     current_memberships.update((key, name) for name in names_for_sero)
 
-    return {
-        (prefix, allele): tuple(
-            f"{prefix}-{s}"
-            for s in sorted(
-                set(names),
-                key=lambda n: (
-                    _serotype_specificity_rank(n),
-                    ((prefix, allele), n) not in current_memberships,
-                    len(n),
-                    n,
-                ),
-            )
+    out: dict[tuple[str, str], tuple[str, ...]] = {}
+    for (prefix, allele), names in reverse.items():
+        names_set = set(names)
+        descendants = split_descendants.get(prefix, {})
+        ordered = sorted(
+            names_set,
+            key=lambda n: (
+                _serotype_specificity_rank(n),
+                "." in n,
+                any(child in names_set for child in descendants.get(n, ())),
+                ((prefix, allele), n) not in current_memberships,
+                len(n),
+                n,
+            ),
         )
-        for (prefix, allele), names in reverse.items()
-    }
-
-
-@cache
-def _renamed_serotype_members() -> frozenset[str]:
-    from mhcgnomes.data import serotypes
-
-    return frozenset(
-        resolve_allele_identity(f"{prefix}-{allele}")
-        for prefix, table in serotypes.items()
-        for alleles in table.values()
-        for allele in alleles
-        if resolve_allele_identity(f"{prefix}-{allele}") != normalize_allele(f"{prefix}-{allele}")
-    )
-
-
-@lru_cache(maxsize=8192)
-def serotype_requires_alias_refresh(mhc_restriction: str) -> bool:
-    """Whether a reported or catalogued retirement can change this annotation.
-
-    A stored current name can also need refreshing when its catalog membership
-    was recorded under a retired alias, e.g. B*15:112 -> B*15:11 (#456).
-    """
-    return any(
-        resolve_allele_identity(part) != normalize_allele(part)
-        or resolve_allele_identity(part) in _renamed_serotype_members()
-        for part in (mhc_restriction or "").split(";")
-        if part.strip()
-    )
+        out[(prefix, allele)] = tuple(f"{prefix}-{s}" for s in ordered)
+    return out
 
 
 @lru_cache(maxsize=8192)
@@ -1973,9 +2011,9 @@ def allele_to_all_serotypes(mhc_restriction: str) -> tuple[str, ...]:
 
     Examples::
 
-        allele_to_all_serotypes("HLA-A*24:02")  # ("HLA-A24", "HLA-Bw4")
-        allele_to_all_serotypes("HLA-B*57:01")  # ("HLA-B57", "HLA-B17", "HLA-Bw4")
-        allele_to_all_serotypes("HLA-A*02:01")  # ("HLA-A2",)
+        allele_to_all_serotypes("HLA-A*24:02")  # ("HLA-A24", "HLA-A9", "HLA-Bw4")
+        allele_to_all_serotypes("HLA-B*57:01")  # ("HLA-B57", "HLA-B17", "HLA-B17.2", "HLA-Bw4")
+        allele_to_all_serotypes("HLA-A*02:01")  # ("HLA-A2", "HLA-A2.1")
 
     Returns an empty tuple when the allele cannot be mapped or input is empty.
     """
@@ -2500,7 +2538,7 @@ def sample_mhc_candidates(mhc_field) -> SampleMhcCandidates:
 _NON_SURFACE_ANNOTATION_ATTRS = (
     "annotation_null",
     "annotation_secreted",
-    "annotation_cystosolic",  # mhcgnomes' spelling
+    "annotation_cytosolic" if hasattr(Allele, "annotation_cytosolic") else "annotation_cystosolic",
 )
 
 
@@ -3218,11 +3256,25 @@ def _parse_host_mhc_types(host_mhc_types: str) -> frozenset[str]:
     """Parse IEDB ``Host | MHC Types Present`` into exact designations.
 
     IEDB uses ``;``-separated ``HLA-A*01:01;HLA-B*13:02;...`` strings.
-    Free-text or non-allele tokens are dropped.
+    Each ``;``-delimited slot must consist solely of exact allele/pair
+    designations; slots carrying trailing class sentinels (e.g.
+    ``"HLA-DRB1*12:01 class II"``), imprecise loci, or unrecognized modifiers
+    are dropped rather than narrowed to a partial exact claim.
     """
     if not host_mhc_types:
         return frozenset()
-    return _exact_typing_tokens(host_mhc_types)
+    out: set[str] = set()
+    for slot in host_mhc_types.split(";"):
+        slot = slot.strip()
+        if not slot:
+            continue
+        try:
+            spans, unparsed = _mhc_field_scan(slot)
+        except ValueError:
+            continue
+        if spans and not unparsed and all(_is_exact_allele_candidate(tok) for tok, _ in spans):
+            out.update(tok for tok, _ in spans)
+    return frozenset(out)
 
 
 def _filter_alleles_by_class(alleles, mhc_class: str) -> set[str]:

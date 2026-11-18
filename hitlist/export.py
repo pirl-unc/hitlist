@@ -53,7 +53,9 @@ from .curation import (
     normalize_allele,
     normalize_mhc_class_token,
     normalize_species,
+    parse_elution_condition_targets,
     reported_mhc_fields_overlap,
+    resolve_allele_identity,
     sample_mhc_candidates,
     sample_mhc_metadata,
     serotype_to_alleles,
@@ -138,6 +140,8 @@ _CATEGORICAL_EXPORT_METADATA_COLS: tuple[str, ...] = (
     # cells stay categorical here (unlike apm_genes_perturbed) because they
     # are sorted and canonical, so equal cells really are one category.
     *CONDITION_COLUMNS,
+    "supported_condition_ids",
+    "excluded_condition_ids",
     # Independently reviewed literature contexts are also bounded by the
     # curation registry, including the free-text scope and citation fields.
     *SPECIES_CONTEXT_COLUMNS,
@@ -302,6 +306,8 @@ _TRAINING_DEFAULTS = {
     # to report.  "" says exactly that; any other default would assert an
     # untreated arm for every predicted binder in the training table (#450).
     **empty_condition_columns(),
+    "supported_condition_ids": "",
+    "excluded_condition_ids": "",
     **empty_species_context_columns(),
     "sample_match_type": "not_applicable",
     "sample_mhc_origin": "not_applicable",
@@ -386,6 +392,14 @@ _CONTROL_CONDITION_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Negated fragments ("but not from untreated cells", "excluding control")
+# inside a comma/semicolon-separated elution comment assert nondetection
+# rather than positive membership in that arm (#900).
+_NEGATED_ELUTION_CLAUSE_RE = re.compile(
+    r"^(?:but\s+not|not(?:\s+from|\s+in|\s+with|\s+detected)?|excluding|except)\b",
+    re.IGNORECASE,
+)
+
 
 def _arms_in_elution_conditions(assay_comments: str) -> set[str]:
     """Which arms an IEDB elution-condition enumeration names.
@@ -403,17 +417,25 @@ def _arms_in_elution_conditions(assay_comments: str) -> set[str]:
     arms: set[str] = set()
     for fragment in re.split(r"[;,]", match.group(1)):
         fragment = fragment.strip(" .")
-        if not fragment:
+        if not fragment or _NEGATED_ELUTION_CLAUSE_RE.search(fragment):
             continue
         arms.add("control" if _CONTROL_CONDITION_RE.search(fragment) else "perturbed")
     return arms
+
+
+def _detected_elution_targets(spec: object) -> list[str] | None:
+    """Extract positive ``detected`` condition IDs from a curated statement spec."""
+    if spec is None:
+        return None
+    detected, _ = parse_elution_condition_targets(spec)
+    return detected
 
 
 def _select_by_elution_conditions(
     candidates: list[tuple[str, str, dict]],
     assay_comments: str,
     *,
-    curated_condition_ids: dict[str, list[str]] | None = None,
+    curated_condition_ids: dict[str, object] | None = None,
 ) -> dict | None:
     """Resolve an arm from IEDB's elution-condition enumeration.
 
@@ -425,7 +447,8 @@ def _select_by_elution_conditions(
     including distinct doses of one drug. Unmapped statements retain the
     existing generic enumeration rules; arbitrary narrative is not admitted.
     """
-    targets = (curated_condition_ids or {}).get(str(assay_comments).strip())
+    raw_spec = (curated_condition_ids or {}).get(str(assay_comments).strip())
+    targets = _detected_elution_targets(raw_spec)
     if targets is not None:
         matching = [c for c in candidates if c[2].get("condition_id") in targets]
     else:
@@ -460,30 +483,84 @@ class StatementMap(NamedTuple):
     #: ``condition_id`` -> the class tokens that arm is curated for, so a row
     #: can ask whether any arm its statement names could have presented it.
     arm_classes: dict[str, frozenset[str]]
+    excluded_targets: dict[str, list[str]] | None = None
+    arm_groups: dict[str, str] | None = None
+    arm_mhcs: dict[str, str] | None = None
 
     def allowed(self, assay_comments: str) -> list[str] | None:
-        """The arms this statement names, or ``None`` if it is unmapped."""
+        """The arms this statement names as detected, or ``None`` if unmapped."""
         return self.targets.get(str(assay_comments).strip())
+
+    def excluded(self, assay_comments: str) -> list[str]:
+        """The arms this statement explicitly states as not detected."""
+        if not self.excluded_targets:
+            return []
+        return self.excluded_targets.get(str(assay_comments).strip(), [])
 
     def allows_class(self, allowed: list[str], mhc_class: str) -> bool:
         """Whether any named arm is curated for ``mhc_class``."""
         return any(mhc_class in self.arm_classes.get(arm, frozenset()) for arm in allowed)
+
+    def compatible_arms(
+        self,
+        arm_ids: list[str],
+        *,
+        mhc_class: str = "",
+        sample_group: str = "",
+        reported_restriction: str = "",
+        check_restriction: bool = True,
+    ) -> list[str]:
+        """Filter ``arm_ids`` to profiled arms compatible with the row's context."""
+        groups = self.arm_groups or {}
+        mhcs = self.arm_mhcs or {}
+        out: list[str] = []
+        for arm in arm_ids:
+            classes = self.arm_classes.get(arm)
+            if classes is None:
+                continue
+            if mhc_class and classes and mhc_class not in classes:
+                continue
+            if sample_group and groups.get(arm, "") != sample_group:
+                continue
+            if (
+                check_restriction
+                and reported_restriction
+                and reported_mhc_fields_overlap(reported_restriction, mhcs.get(arm, "")) is False
+            ):
+                continue
+            out.append(arm)
+        return sorted(set(out))
 
 
 def _statement_maps(overrides: dict[int, dict], samples: pd.DataFrame) -> dict[int, StatementMap]:
     """One :class:`StatementMap` per study that curates a statement map."""
     maps: dict[int, StatementMap] = {}
     for pmid, entry in overrides.items():
-        targets = entry.get("elution_condition_ids")
-        if not targets:
+        raw_map = entry.get("elution_condition_ids")
+        if not raw_map:
             continue
+        targets: dict[str, list[str]] = {}
+        excluded_targets: dict[str, list[str]] = {}
+        for stmt, spec in raw_map.items():
+            det, not_det = parse_elution_condition_targets(spec, pmid=pmid)
+            targets[stmt] = det
+            if not_det:
+                excluded_targets[stmt] = not_det
         study = samples[samples["pmid"].astype(int) == int(pmid)]
+        arm_classes: dict[str, frozenset[str]] = {}
+        arm_groups: dict[str, str] = {}
+        arm_mhcs: dict[str, str] = {}
+        for _, row in study.iterrows():
+            cid = str(row.get("condition_id", "") or "")
+            arm_classes[cid] = frozenset(_sample_class_tokens(row))
+            arm_groups[cid] = str(row.get("sample_group", "") or "")
+            arm_mhcs[cid] = str(row.get("mhc", "") or "")
         maps[int(pmid)] = StatementMap(
             targets=targets,
-            arm_classes={
-                str(row.get("condition_id", "") or ""): frozenset(_sample_class_tokens(row))
-                for _, row in study.iterrows()
-            },
+            arm_classes=arm_classes,
+            excluded_targets=excluded_targets,
+            arm_groups=arm_groups,
+            arm_mhcs=arm_mhcs,
         )
     return maps
 
@@ -1530,16 +1607,23 @@ def generate_observations_table(
     if mhc_allele is not None:
         obs_filters["mhc_restriction"] = mhc_allele
     if mhc_allele_in_set is not None:
-        obs_filters["mhc_allele_in_set"] = _to_list(mhc_allele_in_set)
+        obs_filters["mhc_allele_in_set"] = mhc_allele_in_set
     if mhc_allele_provenance is not None:
-        obs_filters["mhc_allele_provenance"] = _to_list(mhc_allele_provenance)
-    obs_filters.update(_gene_observation_filters(resolved_gene_names, resolved_gene_ids, peptide))
+        obs_filters["mhc_allele_provenance"] = mhc_allele_provenance
+    obs_filters.update(
+        _gene_observation_filters(
+            resolved_gene_names,
+            resolved_gene_ids,
+            peptide,
+            gene_selection_requested=any(value is not None for value in (gene, gene_name, gene_id)),
+        )
+    )
     if restriction_evidence is not None:
         obs_filters["restriction_evidence"] = restriction_evidence
     if serotype_source is not None:
-        obs_filters["serotype_source"] = _to_list(serotype_source)
+        obs_filters["serotype_source"] = serotype_source
     if serotype is not None:
-        obs_filters["serotype"] = _to_list(serotype)
+        obs_filters["serotype"] = serotype
     if length_min is not None:
         obs_filters["length_min"] = length_min
     if length_max is not None:
@@ -1730,10 +1814,16 @@ def generate_observations_table(
     # molecules keep exact identity: two known pairs that merely share DQA1
     # or DPA1 are not the same molecule.
     _observed_pairs_by_component: dict[str, set[str]] = {}
+    _observed_restrictions_by_identity: dict[str, set[str]] = {}
     _pair_restrictions = set(_fillna_scalar_safe(obs["mhc_restriction"], "").astype(str).unique())
     if _study_context is not None:
         _pair_restrictions.update(_study_context["mhc_restriction"].unique())
     for _restriction in sorted(_pair_restrictions):
+        _resolved_restriction = resolve_allele_identity(_restriction)
+        if _resolved_restriction and _resolved_restriction != _restriction:
+            _observed_restrictions_by_identity.setdefault(_resolved_restriction, set()).add(
+                _restriction
+            )
         _restriction_components = _normalized_allele_components(_restriction)
         if len(_restriction_components) <= 1:
             continue
@@ -1760,6 +1850,8 @@ def generate_observations_table(
                 if from_serotype:
                     row["sample_attribution"] = "serotype_expansion"
                 allele_rows.append(row)
+                for reported_alias in sorted(_observed_restrictions_by_identity.get(component, ())):
+                    allele_rows.append({**row, "_allele": reported_alias})
 
                 # A serotype member can identify a full observed pair
                 # through that component. Exact molecules cannot: the full
@@ -2657,6 +2749,91 @@ def generate_observations_table(
                     obs.loc[_idxs, _col] = _meta[_col]
                 _statement_vetoed.loc[_idxs] = True
 
+    # 3e) Per-observation supported and explicitly excluded condition memberships (#900).
+    #
+    # ``condition_id`` remains single-arm: it is blank whenever a row is shared
+    # across two or more arms, unmapped/disjunctive ("DMSO or Entinostat"), or
+    # statement-vetoed. ``supported_condition_ids`` exposes the sorted, ';'-joined
+    # set of profiled condition IDs positively supported by either a resolved
+    # single arm or a mapped multi-arm ("and") statement, while
+    # ``excluded_condition_ids`` exposes comparator condition IDs explicitly
+    # stated as not detected ("but not from untreated cells"). Unmapped,
+    # disjunctive ("or") and statement-vetoed rows report "" on both columns.
+    if obs.empty:
+        obs["supported_condition_ids"] = pd.Series(dtype="object")
+        obs["excluded_condition_ids"] = pd.Series(dtype="object")
+    else:
+        obs["supported_condition_ids"] = _fillna_scalar_safe(obs["condition_id"], "").astype(str)
+        obs["excluded_condition_ids"] = ""
+        if _stmt_maps and "assay_comments" in obs.columns and "condition_id" in obs.columns:
+            for _pmid, _smap in _stmt_maps.items():
+                _in_study = (obs["_pmid_int"] == float(_pmid)).fillna(False)
+                if not _in_study.any():
+                    continue
+                _rows = obs.index[_in_study.to_numpy()]
+                _stmts = obs.loc[_rows, "assay_comments"].astype("string").fillna("")
+                _assigned = obs.loc[_rows, "condition_id"].astype("string").fillna("")
+                _classes = obs.loc[_rows, "_mhc_class_norm"].astype("string").fillna("")
+                _groups = obs.loc[_rows, "sample_group"].astype("string").fillna("")
+                _rests = obs.loc[_rows, "mhc_restriction"].astype("string").fillna("")
+                _rev_ev = (
+                    obs.loc[_rows, "restriction_evidence"].astype("string").fillna("")
+                    if "restriction_evidence" in obs.columns
+                    else pd.Series("", index=_rows, dtype="string")
+                )
+                _vetos = _statement_vetoed.loc[_rows]
+                _supp_vals: list[str] = []
+                _excl_vals: list[str] = []
+                for _stmt, _arm, _cls, _grp, _rest, _re, _veto in zip(
+                    _stmts.tolist(),
+                    _assigned.tolist(),
+                    _classes.tolist(),
+                    _groups.tolist(),
+                    _rests.tolist(),
+                    _rev_ev.tolist(),
+                    _vetos.tolist(),
+                ):
+                    if _veto:
+                        _supp_vals.append("")
+                        _excl_vals.append("")
+                        continue
+                    _allowed = _smap.allowed(_stmt)
+                    if _allowed is None:
+                        _supp_vals.append(_arm)
+                        _excl_vals.append("")
+                        continue
+                    if _arm:
+                        _supp_vals.append(_arm)
+                    else:
+                        _rep_rest = "" if _re == "predicted" else _rest
+                        _supp_vals.append(
+                            ";".join(
+                                _smap.compatible_arms(
+                                    _allowed,
+                                    mhc_class=_cls,
+                                    sample_group=_grp,
+                                    reported_restriction=_rep_rest,
+                                    check_restriction=True,
+                                )
+                            )
+                        )
+                    _not_det = _smap.excluded(_stmt)
+                    if _not_det:
+                        _excl_vals.append(
+                            ";".join(
+                                _smap.compatible_arms(
+                                    _not_det,
+                                    mhc_class=_cls,
+                                    sample_group=_grp,
+                                    check_restriction=False,
+                                )
+                            )
+                        )
+                    else:
+                        _excl_vals.append("")
+                obs.loc[_rows, "supported_condition_ids"] = _supp_vals
+                obs.loc[_rows, "excluded_condition_ids"] = _excl_vals
+
     # 4) Class-pool fallback: for still-unmatched rows, fill sample_mhc
     #    with the union of all alleles from samples of the same class.
     still_empty = obs["mhc"] == ""
@@ -3097,16 +3274,23 @@ def generate_binding_table(
     if mhc_allele is not None:
         bind_filters["mhc_restriction"] = mhc_allele
     if mhc_allele_in_set is not None:
-        bind_filters["mhc_allele_in_set"] = _to_list(mhc_allele_in_set)
+        bind_filters["mhc_allele_in_set"] = mhc_allele_in_set
     if mhc_allele_provenance is not None:
-        bind_filters["mhc_allele_provenance"] = _to_list(mhc_allele_provenance)
-    bind_filters.update(_gene_observation_filters(resolved_gene_names, resolved_gene_ids, peptide))
+        bind_filters["mhc_allele_provenance"] = mhc_allele_provenance
+    bind_filters.update(
+        _gene_observation_filters(
+            resolved_gene_names,
+            resolved_gene_ids,
+            peptide,
+            gene_selection_requested=any(value is not None for value in (gene, gene_name, gene_id)),
+        )
+    )
     if restriction_evidence is not None:
         bind_filters["restriction_evidence"] = restriction_evidence
     if serotype_source is not None:
-        bind_filters["serotype_source"] = _to_list(serotype_source)
+        bind_filters["serotype_source"] = serotype_source
     if serotype is not None:
-        bind_filters["serotype"] = _to_list(serotype)
+        bind_filters["serotype"] = serotype
     if length_min is not None:
         bind_filters["length_min"] = length_min
     if length_max is not None:
@@ -3732,9 +3916,18 @@ def _load_gene_union_mappings(
 
 
 def _gene_observation_filters(
-    gene_names: set[str], gene_ids: set[str], peptide: str | list[str] | None
+    gene_names: set[str],
+    gene_ids: set[str],
+    peptide: str | list[str] | None,
+    *,
+    gene_selection_requested: bool = False,
 ) -> dict:
     """Translate the export's gene alternatives to a loader-safe peptide filter."""
+    from .filter_values import normalize_filter_values
+
+    peptide = normalize_filter_values(peptide, "peptide")
+    if gene_selection_requested and not (gene_names or gene_ids):
+        return {"peptide": []}
     filters: dict = {}
     if gene_names and gene_ids:
         mappings = _load_gene_union_mappings(
@@ -3742,7 +3935,7 @@ def _gene_observation_filters(
         )
         matches = set(mappings["peptide"].dropna())
         if peptide is not None:
-            matches.intersection_update(_to_list(peptide))
+            matches.intersection_update(peptide)
         filters["peptide"] = sorted(matches)
     else:
         if gene_names:
@@ -4044,6 +4237,156 @@ def generate_training_table(
     return _project_training_columns(result, columns)
 
 
+def expand_condition_memberships(
+    df: pd.DataFrame,
+    *,
+    samples_df: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Project observations or training rows into long-form condition-comparison edges (#900).
+
+    The standard observation and training exports retain one row per source
+    record so independent measurement counts are never inflated. When a
+    downstream contrast or APC-intervention workflow needs per-arm positive
+    (``detected``) and statement-backed negative (``explicit_not_detected``)
+    memberships — including peptides shared across two arms (``"and"``) — this
+    projection expands ``supported_condition_ids`` and ``excluded_condition_ids``
+    and joins the target arm's curated metadata while preserving source-row
+    identity (``source_observation_position``, ``source_observation_index``, ``provenance_id``, ``evidence_row_id``,
+    ``assay_iri``).
+
+    Rows with neither supported nor explicitly excluded condition IDs (including
+    unmapped, disjunctive ``"or"``, blank, or binding rows) emit zero edges.
+    MS nondetection edges reflect only explicit statement exclusions, never
+    invented proteome-wide negatives or affinity non-binding claims.
+
+    Positions identify rows within this input even when index labels repeat.
+    Nonempty memberships require a numeric PMID and an unambiguous matching
+    curated arm; unknown references, conflicting metadata and duplicate or
+    contradictory memberships raise ``ValueError``.
+    """
+    carry_cols = [
+        c
+        for c in (
+            "provenance_id",
+            "evidence_row_id",
+            "evidence_source_id",
+            "evidence_kind",
+            "assay_iri",
+            "reference_iri",
+            "pmid",
+            "peptide",
+            "mhc_restriction",
+            "mhc_class",
+            "sample_attribution",
+            "arm_resolution",
+        )
+        if c in df.columns
+    ]
+    arm_meta_cols = [
+        "sample_label",
+        "sample_group",
+        "condition",
+        "perturbation",
+        "condition_category",
+        "is_control_arm",
+        "mhc",
+        "mhc_basis",
+        *[c for c in CONDITION_COLUMNS if c != "condition_id"],
+    ]
+    out_cols = [
+        "source_observation_position",
+        "source_observation_index",
+        *carry_cols,
+        "condition_id",
+        "membership_status",
+        *[("sample_mhc" if c == "mhc" else c) for c in arm_meta_cols],
+    ]
+    empty = pd.DataFrame(
+        {
+            column: pd.Series(dtype=df[column].dtype if column in df else object)
+            for column in out_cols
+        }
+    )
+    empty["source_observation_position"] = pd.Series(dtype="int64")
+    empty["source_observation_index"] = pd.Series(dtype=df.index.dtype)
+    empty["condition_id"] = pd.Series(dtype=str)
+    empty["membership_status"] = pd.Series(dtype=str)
+    if df.empty or (
+        "supported_condition_ids" not in df.columns and "excluded_condition_ids" not in df.columns
+    ):
+        return empty
+
+    supp_series = (
+        _fillna_scalar_safe(df["supported_condition_ids"], "").astype(str)
+        if "supported_condition_ids" in df.columns
+        else pd.Series("", index=df.index, dtype=str)
+    )
+    excl_series = (
+        _fillna_scalar_safe(df["excluded_condition_ids"], "").astype(str)
+        if "excluded_condition_ids" in df.columns
+        else pd.Series("", index=df.index, dtype=str)
+    )
+
+    parts: list[pd.DataFrame] = []
+    for series, status in (
+        (supp_series, "detected"),
+        (excl_series, "explicit_not_detected"),
+    ):
+        active_mask = series.ne("")
+        if not active_mask.any():
+            continue
+        sub = df.loc[active_mask, carry_cols].copy()
+        sub["source_observation_position"] = np.flatnonzero(active_mask.to_numpy())
+        sub["source_observation_index"] = df.index[active_mask.to_numpy()]
+        sub["condition_id"] = series.loc[active_mask].str.split(";")
+        sub = sub.explode("condition_id", ignore_index=True)
+        sub = sub[sub["condition_id"].ne("")]
+        sub["membership_status"] = status
+        parts.append(sub)
+
+    if not parts:
+        return empty
+
+    edges = pd.concat(parts, ignore_index=True)
+    if edges.duplicated(["source_observation_position", "condition_id"]).any():
+        raise ValueError("Duplicate or contradictory condition memberships for a source row")
+    edges = edges.sort_values(
+        ["source_observation_position", "membership_status", "condition_id"],
+        kind="stable",
+    ).reset_index(drop=True)
+
+    samples = samples_df if samples_df is not None else generate_ms_samples_table()
+    if "pmid" not in edges or not {"pmid", "condition_id"} <= set(samples):
+        raise ValueError("Condition memberships require PMID and condition_id arm metadata")
+    avail_arm_cols = [c for c in arm_meta_cols if c in samples.columns]
+    arm_lookup = samples[["pmid", "condition_id", *avail_arm_cols]].copy()
+    arm_lookup = arm_lookup.rename(columns={"mhc": "sample_mhc"})
+    # Uncurated sample records do not name an arm and cannot be a join target.
+    arm_lookup = arm_lookup[arm_lookup.condition_id.notna() & arm_lookup.condition_id.ne("")]
+    for table in (edges, arm_lookup):
+        key = pd.to_numeric(table["pmid"], errors="coerce")
+        if (key.isna() | key.le(0) | key.mod(1).ne(0)).any():
+            raise ValueError("Condition memberships require positive integer PMID values")
+        table["_pmid_key"] = key.astype("int64")
+    arm_lookup = arm_lookup.drop(columns="pmid").drop_duplicates()
+    if arm_lookup.duplicated(["_pmid_key", "condition_id"]).any():
+        raise ValueError("Conflicting condition metadata for (PMID, condition_id)")
+    edges = edges.merge(
+        arm_lookup,
+        on=["_pmid_key", "condition_id"],
+        how="left",
+        validate="many_to_one",
+        indicator=True,
+    )
+    if edges["_merge"].ne("both").any():
+        raise ValueError("Unknown (PMID, condition_id) in condition memberships")
+    edges = edges.drop(columns=["_pmid_key", "_merge"])
+    for col in out_cols:
+        if col not in edges.columns:
+            edges[col] = ""
+    return edges[out_cols]
+
+
 def _to_list(v) -> list[str]:
     """Accept a string or list; split commas in any element so all three
     CLI input shapes flatten to the same flat list:
@@ -4075,19 +4418,21 @@ def _resolve_gene_filters(
     gene_id: str | list[str] | None,
 ) -> tuple[set[str], set[str]]:
     """Resolve user gene filters into exact gene_name / gene_id sets."""
+    from .filter_values import normalize_filter_values
+
     resolved_gene_names: set[str] = set()
     resolved_gene_ids: set[str] = set()
     if gene is not None:
         from .genes import resolve_gene_query
 
-        for q in _to_list(gene):
+        for q in normalize_filter_values(gene, "gene"):
             spec = resolve_gene_query(q)
             resolved_gene_names |= spec["names"]
             resolved_gene_ids |= spec["ids"]
     if gene_name is not None:
-        resolved_gene_names |= set(_to_list(gene_name))
+        resolved_gene_names |= set(normalize_filter_values(gene_name, "gene_name"))
     if gene_id is not None:
-        resolved_gene_ids |= set(_to_list(gene_id))
+        resolved_gene_ids |= set(normalize_filter_values(gene_id, "gene_id"))
     return resolved_gene_names, resolved_gene_ids
 
 

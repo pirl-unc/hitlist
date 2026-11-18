@@ -760,7 +760,7 @@ dev = [
 requires-dist = [
     { name = "datacache", specifier = ">=1.27.1" },
     { name = "filelock", specifier = ">=3.13" },
-    { name = "mhcgnomes", specifier = ">=3.64.6" },
+    { name = "mhcgnomes", specifier = ">=3.70.2" },
     { name = "numpy", specifier = ">=1.22" },
     { name = "oncoref", specifier = ">=1.8.207" },
     { name = "openpyxl", marker = "extra == 'curation'", specifier = ">=3.1.5" },
@@ -1021,17 +1021,15 @@ sdist = { url = "https://files.pythonhosted.org/packages/70/db/23f8b5d86c9385299
 
 [[package]]
 name = "mhcgnomes"
-version = "3.64.6"
+version = "3.70.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "pandas" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c7/ae/5bf04ea6d57325bbf64aa7bb162c6f6ac8e196807be12ea25d0516b5e584/mhcgnomes-3.64.6.tar.gz", hash = "sha256:5ca3fa9a428b4062c0aa72a10f6f1f07e08ae47effcbf437e4e8a038f0fad315", size = 238623, upload-time = "2026-10-19T16:21:29.853Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/39/15/c93063dae7bc1637d8883f9ee844c07f874947c86e8ac16eb67c274c97a0/mhcgnomes-3.70.3.tar.gz", hash = "sha256:47e06434882bdc7316a9b42b657784a5bea2639212ae438e51367ed70572366b", size = 275361, upload-time = "2026-11-12T14:13:21.906Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1c/f2/a50399cf5f617dc7020ba77895af155da9959d4d63bbbfb32bc25fbf18c8/mhcgnomes-3.64.6-py3-none-any.whl", hash = "sha256:75c7a47f3524936799618f172a5bb806e3aa9137245b77a4c258ebf06a7ed5de", size = 243635, upload-time = "2026-10-19T16:21:28.349Z" },
+    { url = "https://files.pythonhosted.org/packages/b7/f0/2472c6eca703ecbbaee3be6942368d63869a4459732f7e5629ed5c4837ee/mhcgnomes-3.70.3-py3-none-any.whl", hash = "sha256:02c7bf1257d556dbe20ba308dfe5c4d791093ba06962120aa5604c692e1e2c5b", size = 302181, upload-time = "2026-11-12T14:13:20.525Z" },
 ]
 
 [[package]]

@@ -1,3 +1,207 @@
+# DP/DM PR #898 final review — 2026-11-18
+
+- [x] Preserve original work and specify source/software qualification.
+- [x] Reconcile with the export, filter and APC fixes; reserve version 2.1.16.
+- [ ] Verify primary source, packaged evidence and common export contracts.
+- [ ] Resolve findings, pass required final-head gates and review again.
+- [ ] Merge after dependencies, deploy and verify both PyPI distributions.
+
+# APC curation PR #909 final review — 2026-11-18
+
+- [x] Preserve the original checkout and reconcile with the export/filter fixes.
+- [ ] Independently review source evidence and condition-membership contracts.
+- [ ] File and resolve in-scope correctness findings; retain unrelated issues.
+- [ ] Refresh version to 2.1.15 and validate isolated metadata, format/lint/tests.
+- [ ] Review final head, merge after #915/#916 and verify PyPI publication.
+
+## Final-review evidence
+
+Filed in-scope findings #917 (DG013A enrichment is not absence), #918 (ambiguous
+condition joins/source positions), #919 (revision-specific count verification),
+#921 (13 primary-source DP constructs versus 14 deposited restrictions), #922
+(cultured versus subcutaneous-tumor EL4 material), and #923 (wrong Hilton citation).
+Original DP supplement: DOI 10.3389/fimmu.2022.831822.s001, Figshare file 34077722,
+SHA256 4ce9351b45bc32390dacf0e53c578050f8ce697d31adb29dc8b598f89295ff42;
+page 2 inspected visually. Source review also confirms TAPBPR rescue constructs,
+gemcitabine-specific groups and SHERPA cultured/tumor material distinctions.
+
+Local full test.sh was admitted at 4.48 GiB but hit the 1 GiB disk reserve in
+contributor fixtures. Interrupted after 1,306 passes, 7 failures and 26 errors;
+six failures plus fixture errors were disk-capacity refusals and one was the
+help snapshot subsequently corrected in #916. The focused retry was refused
+at 0.69 GiB available memory. These are not passing validation. Hosted gates
+must qualify the final head; neither safeguard was weakened.
+
+# APC intervention, statement membership & engineered HLA-DP curation — #899, #900, #856, #593, 2026-11-17
+
+Specification: [apc-intervention-curation-spec.md](apc-intervention-curation-spec.md).
+
+- [x] Unlock `context_evidence` curation-count evolution while preserving historical `cohort_1_78` reconciliation and frozen-package verification.
+- [x] Extend `elution_condition_ids` / `StatementMap` for `detected` + `not_detected` memberships, fix negated-clause parsing in `_arms_in_elution_conditions`, and export `supported_condition_ids`, `excluded_condition_ids`, and `expand_condition_memberships`.
+- [x] Curate primary-source arms and exact statement maps for PMIDs `30484775` (#899), `31222486`, `23328677`, `32265295`, `29930882`, `30779550` (#900), `35251023` (#856), and `28514659`/`36796642` (#593).
+- [x] Replay against `ci-corpus-v4`, add regressions, bump to `2.1.11`, and pass `./format.sh`, `./lint.sh`, and `./test.sh`.
+- [ ] Open PR (`v2.1.11`), pass hosted CI, merge, and deploy to PyPI from clean `main`.
+
+## Review
+
+Replayed all 83,514 `ci-corpus-v4` rows across the 8 updated studies (`30484775`,
+`31222486`, `23328677`, `32265295`, `29930882`, `30779550`, `35251023`, `28514659`)
+and verified exact row-count conservation, single-arm vs shared (`supported_condition_ids`)
+vs explicit-nondetection (`excluded_condition_ids`) vs disjunctive (`"or"`) / blank
+preservation, `expand_condition_memberships()` provenance retention, and
+`engineering_drift_audit` (`55 -> 54` findings with `36796642` resolved). Passed
+`./format.sh`, `./lint.sh`, `scripts/check_dev_install.py`, and all 3,839 non-integration
+unit tests (`1` skip, `0` failures). Hosted CI and PyPI release `2.1.11` run next.
+
+# Consistent peptide filter inputs — #913, 2026-11-18
+
+Specification: [filter-input-contracts-spec.md](filter-input-contracts-spec.md).
+
+- [x] Read loader/CLI contracts and define normalization and empty-input policy.
+- [x] Audit scalar/list discrepancies and add regressions for empty Arrow/missing-schema failures.
+- [x] Share normalization across loaders and CLI while preserving validation.
+- [ ] Add public API/CLI regressions and version bump; pass required gates.
+- [ ] Review, merge and deploy after #915; verify both public distributions.
+
+## Review
+
+This branch is stacked on #915 while its hosted checks run. Added public API,
+training-export and CLI regressions. Empty gene queries now remain empty even
+through the high-level union export; absent candidate-set columns cause a
+rebuild error instead of disabling the filter. Vocabulary choices remain
+validated after comma/whitespace normalization.
+
+Format/lint and isolated metadata/dependency checks pass. Local baseline
+test.sh refused before pytest at 0.23 GiB available; the full post-change
+attempt is recorded in /private/tmp/hitlist-filter-full.log. No memory-guard
+override or local test pass is claimed. Candidate version is 2.1.14.
+
+Initial hosted Python 3.13 gate: 4,005 passed, two skipped, one failure in
+the CLI help snapshot. The new filter behavior passed. Regenerate the snapshot
+for the intentional guidance changes and correct the pre-existing threshold
+documentation drift discovered during that review; scientific rules are unchanged.
+
+# Training-data completeness and export correctness — #912/#914, 2026-11-18
+
+Roadmap: [training-quality-roadmap.md](training-quality-roadmap.md).
+Current specification: [training-export-contracts-spec.md](training-export-contracts-spec.md).
+
+- [x] Inspect current source/issues and preserve existing work in separate checkouts.
+- [x] Specify delivery order, export invariants and verification before code changes.
+- [x] Add regressions reproducing stale projected labels and empty derived schemas.
+- [x] Implement common empty-result finalization and quality-field dependencies.
+- [ ] Bump version; pass format/lint, metadata, guarded tests and hosted checks.
+- [ ] Review, merge, publish and verify both public distributions.
+- [ ] Continue #913, existing curation PRs and quantitative-source work in roadmap order.
+
+## Review
+
+Main baseline is the verified 2.1.12 release; original APC and Presto worktrees
+remain untouched. The initial 75-case baseline reproduced 69 failures and six
+passes. Typed empty Arrow predicates now reach normal derivation; projected
+quality flags load current inputs even when stale flags exist on disk. Missing
+requested derived columns receive typed empty Series without mappings reads.
+Added six legacy-schema/source-dtype cases after the baseline reproduction.
+
+Format and lint pass. Subsequent focused and full local test attempts were
+refused before pytest by the unchanged guard (0.15 and 0.17 GiB available).
+The sandbox also prevents the system memory probe; the reported capacity was
+measured outside it. Hosted validation is required; no post-fix local pass is
+claimed. Candidate version is 2.1.13.
+
+# Stored serotype migration and dependency lock — #907, #908, #911, 2026-11-17
+
+Specification: [serotype-refresh-907-908-spec.md](serotype-refresh-907-908-spec.md).
+
+- [x] Inspect findings and create an isolated branch from current main.
+- [x] Add regressions for the two migration failures reproduced during review.
+- [x] Refresh derived annotations for each distinct nonempty restriction.
+- [x] Refresh uv.lock, bump version and validate an isolated locked environment.
+- [ ] Run all required gates; format/lint pass, local test preflight refused.
+- [x] Open draft PR #910 linking #907 and #908 with validation evidence.
+- [x] Fix #911 with empty-result schema and dtype regressions.
+- [x] Audit nearby bugs, API ambiguity and curation; split in-scope fixes from issues.
+- [ ] Review the final diff and pass exact-head hosted checks.
+- [ ] Merge, build on clean main, publish and verify both public PyPI files.
+- [ ] Give Presto concrete upgrade and regression-check instructions.
+
+## Review
+
+The loader now resolves each distinct nonempty restriction and retains the
+existing changed-value assignments and category preservation. Both serotype
+membership and serotype_source filtering run after the refresh. Thirteen new
+regression cases cover removed B75 membership, added A2.1 membership, both
+loaders, projections, filter-only inputs, reported/donor-set provenance, and
+unchanged/missing annotations. The obsolete refresh whitelist is removed.
+
+uv.lock changes only mhcgnomes 3.64.6 -> 3.70.3 and its associated dependency
+metadata. A fresh isolated locked environment passes pip check. Format/lint
+pass. Python 3.12 CI now installs with uv sync --locked and checks dependencies;
+the other matrix legs retain fresh pip resolution. The local baseline and full-suite attempts were refused before pytest
+by the unchanged memory guard (1.53 GiB and 0.14 GiB available); preserve those
+refusals and qualify via hosted CI. uv lock --check and the editable-install
+audit also pass. No full local test pass is claimed. Existing independent work is preserved
+in the original checkout. Version candidate 2.1.12 avoids active 2.1.11 PRs.
+
+Hosted Python 3.13 run 44199238537 at f1215a6 passed all thirteen new migration
+cases, with 3,836 total passes and two failures. Both failures were the existing
+attribution-scope test expecting an HLA-G row with a stale HLA-A2 label to match
+the A2 query. Update that expectation to exclude the false match while retaining
+all donor-repair, projection and row-selection assertions. The subsequent
+0a6f3a3 matrix passed all five unit configurations (3,838 passed / two skipped
+in Python 3.12) and all 97 integration cases. The expanded final head must pass
+again before landing.
+
+#911 now forces an explicitly boolean serotype predicate, with 36 new cases
+covering both loaders, storage dtypes, projections, empty stored inputs and
+earlier filters. Explicit empty serotype selections now match zero rows;
+the existing migration matrix also exercises this contract. Format/lint pass;
+the latest local baseline preflight refused at 0.26 GiB without starting tests.
+
+Separate follow-ups reproduced on both ccfe326 and this PR: #912 (empty derived
+schema), #913 (scalar/list and empty filter semantics), and #914 (projected
+class-quality labels retaining stale values). The latter demonstrates a derived
+curation-label inconsistency, not a newly asserted biological threshold defect.
+These are linked from the PR and remain outside its serotype/dependency scope.
+
+Presto's current loader calls generate_training_table for binding and MS and
+asserts projected columns; these exports route through the repaired loaders.
+Its dependency/runtime/remote-launcher floor is still 1.53.0. The handoff should
+pin the shipped Hitlist release in the experiment environment, preserve shared
+editable installs, regenerate downstream frozen exports, retain restriction and
+provenance distinctions, and run the existing consumer contract tests. Raw
+Parquet indexes need no rebuild for this load-time refresh; direct raw readers
+must use the loaders or explicitly regenerate their data products.
+
+# Reconcile mhcgnomes >= 3.70.2 contract and map_peptides empty flank schema — #897, #868, 2026-11-17
+
+Specification: [mhcgnomes-370-and-flanks-spec.md](mhcgnomes-370-and-flanks-spec.md).
+
+- [x] Reproduce baseline failures in clean published-dependency environment (`mhcgnomes 3.70.3`, `pandas 3.1.1`) and audit `ci-corpus-v4` vocabulary impact.
+- [x] Replace deprecated `Allele.annotation_cystosolic` access and align `pyproject.toml` floor to `mhcgnomes>=3.70.2`.
+- [x] Restore split-before-broad serotype ordering via `mhcgnomes.data.serotype_splits`, `HLA-B*15:112` vs `HLA-B*15:11` distinction, load-time serotype refresh, conservative `host_mhc_types` slot parsing, and symmetric `(pmid, allele)` export join.
+- [x] Align `ProteomeIndex.map_peptides` empty/no-hit return columns (`unique_n_flank`, `unique_c_flank`) and docstring (#868).
+- [x] Add/update unit and corpus regressions; pass `./format.sh`, `./lint.sh`, and `./test.sh`.
+- [x] Open PR (`v2.1.10`), pass hosted CI, merge, and deploy from clean `main`.
+
+## Review
+
+Clean published-dependency verification (`Python 3.12.10`, `mhcgnomes 3.70.3`,
+`pandas 3.1.1`, `ruff 0.16.10`) reproduced all 89 baseline failures across
+`test_curation.py`, `test_allele_identity.py`, `test_allele_candidates.py`,
+`test_export.py`, `test_predict.py`, `test_reassign_genotypes.py`, and
+`test_source_verification.py`. Whole-corpus replay across `ci-corpus-v4`
+confirmed zero unintended changes across all 881 distinct `host_mhc_types` values
+and verified IMGT/HLA colon-boundary semantics (`HLA-B*15:112` -> `HLA-B15` vs
+`HLA-B*15:11` -> `HLA-B75;HLA-B15`). After updating `_NON_SURFACE_ANNOTATION_ATTRS`,
+WMDA split-before-broad serotype ordering, `_split_expanded_serotype_members()`
+load-time refresh, `;`-slot `host_mhc_types` candidate admission, symmetric
+`(pmid, allele)` identity matching in `generate_observations_table`, and
+`_MAP_PEPTIDES_COLUMNS` in `ProteomeIndex.map_peptides`, `./format.sh`, `./lint.sh`,
+`scripts/check_dev_install.py`, wheel/sdist + license/twine checks, and all 3,826
+non-integration tests pass (`1` skip). Hosted `Tests` (5 Python/pandas matrix legs +
+`ci-corpus-v4` integration + `allele-candidate-audit`) and `Release build` run next.
+
 # Contributor storage and scanning — #63, second pass, 2026-10-29
 
 Specification: [contributor-storage-63-spec.md](contributor-storage-63-spec.md).

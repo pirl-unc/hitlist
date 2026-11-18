@@ -73,8 +73,6 @@
 36010968:
 - saos_2_osteosarcoma_tp53_null_vector_control|condition_genetic_variants|error
 - saos_2_osteosarcoma_tp53_null_vector_control|condition_transfection|error
-36796642:
-- lung_and_colorectal_tumor_tissue_hla_i_multi_all|condition_mhc_context|error
 38480730:
 - hela_cervical_carcinoma|condition_transfection|error
 - human_plasma_commercial_pool|condition_transfection|error
