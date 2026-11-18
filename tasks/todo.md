@@ -1,3 +1,14 @@
+# Original perturbation quantities — #901 / #924, 2026-11-18
+
+Specification: [perturbation-quantities-spec.md](perturbation-quantities-spec.md).
+
+- [x] Recover original Data 3/5, inspect all sheets and independently replay effects.
+- [x] File source conflicts as #924; retain #901 for the broader source program.
+- [ ] Pin source contracts and expose typed rows through the shared EvidenceStore.
+- [ ] Add a source-qualified unpaired contrast recipe, exclusions and provenance.
+- [ ] Verify real-source conservation, software gates and consumer semantics.
+- [ ] Review, merge after dependent releases, deploy and verify public distributions.
+
 # DP/DM PR #898 final review — 2026-11-18
 
 - [x] Preserve original work and specify source/software qualification.
