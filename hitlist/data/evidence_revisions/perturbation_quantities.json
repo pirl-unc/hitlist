@@ -97,7 +97,13 @@
         "p_value": "AD",
         "negative_log10_p_value": "AE",
         "mean_adjusted_p_value": "AI",
-        "mean_adjusted_negative_log10_p_value": "AJ"
+        "mean_adjusted_negative_log10_p_value": "AJ",
+        "raw_mean_control": "K",
+        "raw_sd_control": "L",
+        "raw_cv_percent_control": "M",
+        "raw_mean_treated": "N",
+        "raw_sd_treated": "O",
+        "raw_cv_percent_treated": "P"
       },
       "gene_column": "D",
       "length_column": "C",
@@ -140,7 +146,8 @@
         "AH": "1uM 3",
         "AI": "pval",
         "AJ": " -log10(pval)"
-      }
+      },
+      "filemap_condition_raw": "1 uM CDK4/6i"
     },
     {
       "asset": "41467_2020_16588_MOESM5_ESM.xlsx",
@@ -214,7 +221,13 @@
         "p_value": "AA",
         "negative_log10_p_value": "AB",
         "mean_adjusted_p_value": "AF",
-        "mean_adjusted_negative_log10_p_value": "AG"
+        "mean_adjusted_negative_log10_p_value": "AG",
+        "raw_mean_control": "K",
+        "raw_sd_control": "L",
+        "raw_cv_percent_control": "M",
+        "raw_mean_treated": "N",
+        "raw_sd_treated": "O",
+        "raw_cv_percent_treated": "P"
       },
       "gene_column": "C",
       "length_column": "D",
@@ -254,7 +267,8 @@
         "AE": "10uM 3",
         "AF": "pval",
         "AG": " -log10(pval)"
-      }
+      },
+      "filemap_condition_raw": "10 uM CDK4/6i"
     },
     {
       "asset": "41467_2020_16588_MOESM5_ESM.xlsx",
@@ -337,7 +351,8 @@
         "S": "1uM 3",
         "T": "pval",
         "U": " -log10(pval)"
-      }
+      },
+      "filemap_condition_raw": "1 uM CDK4/6i"
     },
     {
       "asset": "41467_2020_16588_MOESM5_ESM.xlsx",
@@ -420,7 +435,8 @@
         "S": "1uM 3",
         "T": "pval",
         "U": " -log10(pval)"
-      }
+      },
+      "filemap_condition_raw": "10 uM CDK4/6i"
     },
     {
       "asset": "41467_2020_16588_MOESM5_ESM.xlsx",
@@ -503,7 +519,8 @@
         "S": "1uM 3",
         "T": "pval",
         "U": " -log10(pval)"
-      }
+      },
+      "filemap_condition_raw": "1 uM CDK4/6i"
     },
     {
       "asset": "41467_2020_16588_MOESM5_ESM.xlsx",
@@ -566,7 +583,8 @@
         "N": "Log2(FC)",
         "O": "pval",
         "P": " -log10(pval)"
-      }
+      },
+      "filemap_condition_raw": "10 uM CDK4/6i"
     },
     {
       "asset": "41467_2020_16588_MOESM5_ESM.xlsx",
@@ -649,7 +667,8 @@
         "S": "1uM 3",
         "T": "pval",
         "U": " -log10(pval)"
-      }
+      },
+      "filemap_condition_raw": "1 uM CDK4/6i"
     },
     {
       "asset": "41467_2020_16588_MOESM5_ESM.xlsx",
@@ -712,7 +731,8 @@
         "N": "Log2(FC)",
         "O": "pval",
         "P": " -log10(pval)"
-      }
+      },
+      "filemap_condition_raw": "10 uM CDK4/6i"
     },
     {
       "asset": "41467_2020_16588_MOESM7_ESM.xlsx",
@@ -795,7 +815,8 @@
         "S": "Ifn-\ud835\udefe 3",
         "T": "pval",
         "U": " -log10(pval)"
-      }
+      },
+      "filemap_condition_raw": "10ng/mL Ifn-g"
     },
     {
       "asset": "41467_2020_16588_MOESM7_ESM.xlsx",
@@ -878,7 +899,8 @@
         "S": "Ifn-\ud835\udefe 3",
         "T": "pval",
         "U": " -log10(pval)"
-      }
+      },
+      "filemap_condition_raw": "10ng/mL Ifn-g"
     },
     {
       "asset": "41467_2020_16588_MOESM7_ESM.xlsx",
@@ -961,7 +983,8 @@
         "S": "Ifn-\ud835\udefe 3",
         "T": "pval",
         "U": " -log10(pval)"
-      }
+      },
+      "filemap_condition_raw": "10ng/mL Ifn-g"
     },
     {
       "asset": "41467_2020_16588_MOESM7_ESM.xlsx",
@@ -1044,7 +1067,8 @@
         "S": "Ifn-\ud835\udefe 3",
         "T": "pval",
         "U": " -log10(pval)"
-      }
+      },
+      "filemap_condition_raw": "10ng/mL Ifn-g"
     }
   ],
   "filemaps": [
@@ -1432,6 +1456,11 @@
     [
       "training_admission",
       "separate protected-cohort/affinity/source-overlap review required; no automatic TRAIN assignment",
+      "curation policy"
+    ],
+    [
+      "mhc_context",
+      "curated deposited line-associated MHC labels supply candidates; independent cellular typing and peptide restriction remain unresolved",
       "curation policy"
     ]
   ],

@@ -56,6 +56,12 @@ def test_original_reporter_workbooks_roundtrip(tmp_path):
     contrasts = {
         row["form_id"]: row for row in pq.read_table(output / "typed/contrasts.parquet").to_pylist()
     }
+    assert all(row["cellular_mhc_genotype"] is None for row in contrasts.values())
+    assert all(row["candidate_mhc_set"] for row in contrasts.values())
+    summaries = {
+        row["source_locator"]: row
+        for row in pq.read_table(typed / "reported_summaries.parquet").to_pylist()
+    }
     by_record = {row["source_record_id"]: row for row in forms.values()}
     records = pq.read_table(
         typed / "source_records.parquet",
@@ -101,6 +107,14 @@ def test_original_reporter_workbooks_roundtrip(tmp_path):
                         if quantity["quantity_kind"] == "hipmhc_normalized_reporter":
                             normalized.append(value)
                 assert len(normalized) == 6
+                for statistic, column in spec["statistics"].items():
+                    value = cells[openpyxl.utils.column_index_from_string(column) - 1]
+                    summary = summaries[locator + column + str(ordinal)]
+                    assert summary["statistic_name"] == statistic
+                    if isinstance(value, (int, float)) and math.isfinite(value):
+                        assert summary["quantitative_value"] == value
+                    else:
+                        assert summary["quantitative_value"] is None
                 independent_effect = math.log2(sum(normalized[3:]) / sum(normalized[:3]))
                 contrast = contrasts[form["form_id"]]
                 assert contrast["target_log2_fold_change"] == pytest.approx(

@@ -58,8 +58,8 @@ source project/reference, and contributing measurement IDs. Group this entire
 source project together for split assignment, reconcile it with IEDB/CEDAR and
 other copies of the same experiment, and apply protected-cohort/affinity overlap
 checks before admitting rows to TRAIN. No row is automatically assigned to TRAIN.
-Sample genotypes supply allele candidates, not experimentally assigned peptide
-restrictions. Numbered channels do not establish cross-arm specimen pairing or
+Deposited line-associated MHC labels supply allele candidates; independent
+cellular typing and peptide restrictions remain unset. Numbered channels do not establish cross-arm specimen pairing or
 physical independence between different plexes.
 
 Data 3/5 contain relative reporter signals. They do not provide peptide-specific

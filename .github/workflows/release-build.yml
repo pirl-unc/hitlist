@@ -5,6 +5,10 @@ on:
   pull_request:
     paths:
       - .github/workflows/release-build.yml
+      - .github/workflows/perturbation-quantities.yml
+      - hitlist/perturbation_*.py
+      - hitlist/data/evidence_revisions/perturbation_quantities.json
+      - tests/test_perturbation_quantities*.py
       - deploy.sh
       - scripts/release_artifacts.py
       - scripts/release_diagnostics.py

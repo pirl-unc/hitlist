@@ -48,7 +48,7 @@ CONTRACT = {
         "condition_dependent_extraction_and_MS_response_not_cancelled",
         "separate_within_condition_normalization_for_large_shifts",
         "no_absolute_abundance_or_copies_per_cell",
-        "sample_MHC_genotype_not_peptide_restriction",
+        "deposited_line_MHC_candidates_not_independent_cellular_typing_or_peptide_restriction",
         "physical_specimen_identity_and_cross_plex_reuse_unresolved",
         "modified_forms_require_explicit_consumer_support",
     ],
@@ -61,7 +61,7 @@ SCHEMAS = {
     "contrasts": _schema(
         "contrast_id source_record_id form_id plex_id peptide_sequence modified_sequence_raw "
         "modifications_json cell_line_name control_condition_id treated_condition_id "
-        "cellular_mhc_genotype measurement_ids_json source_dataset source_reference_id "
+        "candidate_mhc_set cellular_mhc_genotype mhc_context_evidence measurement_ids_json source_dataset source_reference_id "
         "split_group_id training_admission measurement_unit",
         "n_control_samples n_treated_samples",
         "mean_control_intensity mean_treated_intensity sd_control_intensity sd_treated_intensity "
@@ -172,6 +172,10 @@ def compile_contrasts(source_directory, destination, recipe):
                 "treated_condition_id": plex["treated_condition_id"],
                 "cellular_mhc_genotype": conditions[plex["treated_condition_id"]][
                     "cellular_mhc_genotype"
+                ],
+                "candidate_mhc_set": conditions[plex["treated_condition_id"]]["candidate_mhc_set"],
+                "mhc_context_evidence": conditions[plex["treated_condition_id"]][
+                    "mhc_context_evidence"
                 ],
                 "measurement_ids_json": encoded(sorted(measurements)),
                 **counts,

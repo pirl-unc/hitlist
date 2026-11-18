@@ -32,7 +32,8 @@ Reserve 2.1.17 after dependent releases; verify before publishing.
   reuse remains unknown. Acquisition links describe the plex, not six independent
   runs or peptide-specific detections in every raw file.
 - Preserve all reported protein/gene labels without assigning one protein of
-  origin. The sample HLA genotype is a candidate set, not a peptide restriction.
+  origin. Deposited line-associated HLA labels supply candidates; independent
+  cellular typing and peptide restrictions remain unset without source evidence.
   No nondetection, imputation, missing control or zero quantity is invented.
 - Retain Methods' Percolator q <= 0.05 for labeled samples and the explicitly
   separate within-condition hipMHC normalization when fold changes exceed two.

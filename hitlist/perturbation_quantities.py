@@ -68,6 +68,7 @@ def fetch_perturbation_sources(cache_directory=None, *, force=False, verbose=Tru
     _space(directory)
     result = {}
     for asset in source_contract()["assets"]:
+        _space(directory)
         path = directory / asset["filename"]
         check_cache_path(directory, path)
         result[asset["filename"]] = download_to_file(

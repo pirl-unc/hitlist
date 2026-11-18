@@ -26,9 +26,9 @@ SCHEMAS = {
         "source_row_ordinal n_source_cells",
     ),
     "conditions": _schema(
-        "condition_id context_id cell_line_name perturbation_name dose_unit condition_text "
-        "cellular_mhc_genotype mhc_genotype_basis source_locator",
-        numbers="treatment_dose treatment_duration_hours",
+        "condition_id context_id cell_line_name treatment_name treatment_dose_unit condition_text "
+        "reported_mhc candidate_mhc_set cellular_mhc_genotype mhc_context_evidence source_locator",
+        numbers="treatment_dose duration_hours",
     ),
     "plexes": _schema(
         "plex_id sheet_id cell_line_name control_condition_id treated_condition_id "
@@ -109,11 +109,7 @@ FIELD_MEANINGS = {
     "arm_role": "Control or treated channel within this one source comparison",
     "source_slot_ordinal": "One-based slot within a reported arm, with no cross-arm pairing implied",
     "replicate_type": "Source reports biological triplicates; physical specimen IDs and cross-plex reuse remain unresolved",
-    "perturbation_name": "Reviewed intervention name; vehicle controls retain their own condition identity",
-    "dose_unit": "Unit of the reviewed treatment concentration, not the measured peptide quantity",
-    "treatment_dose": "Source-reported treatment concentration in dose_unit",
-    "treatment_duration_hours": "Source-reported exposure duration in hours",
-    "mhc_genotype_basis": "Provenance of the sample genotype; it does not assign a measured peptide to an allele",
+    "mhc_context_evidence": "Curated deposited line-associated MHC labels supply candidates; independent cellular typing and peptide restriction are not established by these workbooks",
     "source_table_label": "Original file-map table number, including obsolete numbering",
     "filemap_qualification": "Evidence for matching a source file-map block to a comparison; source typos remain preserved",
     "source_file_type": "Original deposited-file role, such as Raw, Search or Peak",

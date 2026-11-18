@@ -163,12 +163,14 @@ class Compiler:
                     "context_id": context_id,
                     "cell_line_name": arm["sample_group"],
                     "condition_text": arm["condition"],
-                    "perturbation_name": treatment["treatment"] if treatment else "DMSO vehicle",
+                    "treatment_name": treatment["treatment"] if treatment else "DMSO vehicle",
                     "treatment_dose": treatment["dose"] if treatment else None,
-                    "dose_unit": treatment["dose_unit"] if treatment else None,
-                    "treatment_duration_hours": 72.0,
-                    "cellular_mhc_genotype": arm["mhc"],
-                    "mhc_genotype_basis": "curated_deposited_sample_genotype_not_peptide_restriction",
+                    "treatment_dose_unit": treatment["dose_unit"] if treatment else None,
+                    "duration_hours": 72.0,
+                    "reported_mhc": arm["mhc"],
+                    "candidate_mhc_set": ";".join(arm["mhc"].split()),
+                    "cellular_mhc_genotype": None,
+                    "mhc_context_evidence": "curated_deposited_line_labels_not_independent_cellular_typing_or_peptide_restriction",
                     "source_locator": article + ";pmid_overrides.yaml#32488085/" + key,
                 },
             )
@@ -351,7 +353,7 @@ class Compiler:
                     )
                     if kind == "hipmhc_normalized_reporter":
                         self.n_normalized_measurements += 1
-            for statistic, column in spec["statistics"].items():
+            for statistic, column in sorted(spec["statistics"].items()):
                 coordinate = f"{column}{rownum}"
                 raw_value = self.value(sheet, coordinate)
                 value, status = numeric(raw_value, signed=statistic == "log2_fold_change")
@@ -365,12 +367,16 @@ class Compiler:
                         "statistic_name": statistic,
                         "quantity_kind": "mean_adjusted_reporter"
                         if statistic.startswith("mean_adjusted_")
+                        else "raw_reporter"
+                        if statistic.startswith("raw_")
                         else "hipmhc_normalized_reporter",
                         "quantitative_raw": raw_value,
                         "quantitative_value": value,
                         "value_status": status,
-                        "measurement_unit": "relative_reporter_intensity"
-                        if statistic.startswith(("mean_", "sd_"))
+                        "measurement_unit": "percent"
+                        if "cv_percent" in statistic
+                        else "relative_reporter_intensity"
+                        if statistic.removeprefix("raw_").startswith(("mean_", "sd_"))
                         and not statistic.startswith("mean_adjusted_")
                         else "dimensionless",
                         "source_column": column,
@@ -392,6 +398,17 @@ class Compiler:
             ):
                 raise ValueError("Qualified file-map block changed")
             target = block["comparison_sheet"]
+            if target is not None:
+                comparison = next(
+                    item
+                    for item in self.contract["comparisons"]
+                    if item["asset"] == filename and item["sheet"] == target
+                )
+                if (
+                    comparison["line_raw"] != block["line_raw"]
+                    or comparison["filemap_condition_raw"] != block["condition_raw"]
+                ):
+                    raise ValueError("File-map line/dose does not qualify the selected comparison")
             for rownum in block["rows"]:
                 coordinate = f"{spec['filename_column']}{rownum}"
                 raw_file = self.value(sheet, coordinate)

@@ -206,7 +206,7 @@ def test_shared_queries_and_empty_joins(source_package):
         "perturbation_measurements",
         select=["quantitative_value", "sample.arm_role"],
         joins=["sample"],
-        where={"measurement_id": {"in": []}},
+        where={"measurement_id": {"op": "in", "value": []}},
     )
     assert empty.table.num_rows == 0
     assert empty.table.schema.field("quantitative_value").type == pa.float64()
@@ -237,6 +237,9 @@ def test_unpaired_contrasts_exclude_zero_and_aggregate(source_package, tmp_path)
     assert contrast["training_admission"].startswith("pending_external_")
     assert contrast["split_group_id"] == "PXD017407"
     assert "peptide_mhc_restriction" not in contrast
+    assert contrast["cellular_mhc_genotype"] is None
+    assert contrast["candidate_mhc_set"] == "HLA-A*02:01;HLA-B*07:02"
+    assert "not_independent_cellular_typing" in contrast["mhc_context_evidence"]
 
 
 def test_empty_plex_selection_preserves_all_exclusions(source_package, tmp_path):

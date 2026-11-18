@@ -20,6 +20,13 @@ qualification workflow must replay every real quantity and contrast using
 openpyxl independently of the production XML reader. Local focused tests were
 refused at 0.25 GiB by the unchanged guard; no local pass is claimed.
 
+Initial hosted Python 3.12 run: 4,064 passed, two skipped, one failure in the new
+empty-query test's predicate syntax. Corrected the fixture call to the existing
+op/value contract. Full local test.sh refused at 0.23 GiB. Review also keeps the
+deposited line-associated MHC labels as candidates, leaving independent cellular
+typing unset; reuses the common treatment name/dose/unit/duration fields; and
+retains the raw SKMEL5 summary statistics as distinct from normalized summaries.
+
 # DP/DM PR #898 final review — 2026-11-18
 
 - [x] Preserve original work and specify source/software qualification.
