@@ -14,8 +14,9 @@ import pytest
 from hitlist import perturbation_quantities as package
 from hitlist.evidence_recipe import verify_recipe_package
 from hitlist.evidence_store import EvidenceStore
+from hitlist.nontryptic_workbooks import read_source_workbook
 from hitlist.perturbation_contrast import RECIPE_ID
-from hitlist.perturbation_quantity_compiler import numeric, peptide_form
+from hitlist.perturbation_quantity_compiler import Compiler, numeric, peptide_form
 from hitlist.provenance import file_digest
 
 
@@ -371,3 +372,52 @@ def test_default_contract_retains_every_admitted_comparison():
         )
         == 4
     )
+
+
+def test_filemap_preserves_literal_label_and_checks_line_dose(tmp_path):
+    source = tmp_path / "map.xlsx"
+    book = openpyxl.Workbook()
+    book.active.append(["line", "10 uM", "2.2000000000000002", "run.raw", "raw"])
+    book.save(source)
+    sheet = read_source_workbook(source)[0]
+    comparison = {
+        "asset": source.name,
+        "sheet": "comparison",
+        "line_raw": "line",
+        "filemap_condition_raw": "10 uM",
+    }
+    contract = {"source_dataset": "fixture", "comparisons": [comparison]}
+    recorded = []
+
+    class Sink:
+        def add(self, name, row):
+            recorded.append((name, row))
+
+    compiler = Compiler(contract, Sink())
+    asset = {"filename": source.name, "role": "data3"}
+    spec = {
+        "line_column": "A",
+        "condition_column": "B",
+        "table_column": "C",
+        "filename_column": "D",
+        "type_column": "E",
+        "blocks": [
+            {
+                "start_row": 1,
+                "rows": [1],
+                "line_raw": "line",
+                "condition_raw": "10 uM",
+                "table_raw": "2.2000000000000002",
+                "comparison_sheet": "comparison",
+            }
+        ],
+    }
+    compiler.filemap(asset, sheet, spec)
+    assert recorded[0][1]["source_table_label"] == "2.2000000000000002"
+    comparison["filemap_condition_raw"] = "1 uM"
+    with pytest.raises(ValueError, match="line/dose"):
+        compiler.filemap(asset, sheet, spec)
+    comparison["filemap_condition_raw"] = "10 uM"
+    spec["blocks"][0]["table_raw"] = "2.2"
+    with pytest.raises(ValueError, match="file-map block changed"):
+        compiler.filemap(asset, sheet, spec)

@@ -393,8 +393,7 @@ class Compiler:
             if (
                 self.value(sheet, f"{spec['line_column']}{start}") != block["line_raw"]
                 or self.value(sheet, f"{spec['condition_column']}{start}") != block["condition_raw"]
-                or Decimal(self.value(sheet, f"{spec['table_column']}{start}"))
-                != Decimal(block["table_raw"])
+                or self.value(sheet, f"{spec['table_column']}{start}") != block["table_raw"]
             ):
                 raise ValueError("Qualified file-map block changed")
             target = block["comparison_sheet"]

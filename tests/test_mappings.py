@@ -779,13 +779,23 @@ def test_prefetch_supervisor_continues_after_failure(capsys, monkeypatch):
     assert calls == ["BadSpecies", "GoodSpecies", "close", "join"]
 
 
-def test_prefetch_supervisor_terminates_blocked_inflight_call(capsys):
+def test_prefetch_supervisor_terminates_blocked_inflight_call(monkeypatch, capsys):
+    import multiprocessing as mp
+    from types import SimpleNamespace
+
+    context = mp.get_context("spawn")
+    workers = []
+
+    def record_pool(**kwargs):
+        pool = context.Pool(**kwargs)
+        workers.extend(pool._pool)
+        return pool
+
+    monkeypatch.setattr(mp, "get_context", lambda _: SimpleNamespace(Pool=record_pool))
     tasks = [
         ("BlockedSpecies", ("BlockedSpecies",), {"kind": "uniprot", "proteome_id": "UP1"}),
         ("NeverStarted", ("NeverStarted",), {"kind": "uniprot", "proteome_id": "UP2"}),
     ]
-    started = time.monotonic()
-
     unavailable = _supervise_prefetch_tasks(
         tasks,
         release=112,
@@ -794,9 +804,11 @@ def test_prefetch_supervisor_terminates_blocked_inflight_call(capsys):
         worker_target=_blocking_prefetch_worker,
     )
 
-    elapsed = time.monotonic() - started
     out = capsys.readouterr().out
-    assert elapsed < 5
+    # Assert actual termination/reaping, not interpreter startup speed (#928).
+    # A normal close/join would let the sleeping worker exit successfully.
+    assert workers
+    assert all(not worker.is_alive() and worker.exitcode != 0 for worker in workers)
     assert unavailable == {"BlockedSpecies", "NeverStarted"}
     assert "BlockedSpecies" in out
     assert "timed out" in out

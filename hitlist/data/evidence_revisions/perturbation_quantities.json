@@ -1105,7 +1105,7 @@
           "start_row": 17,
           "line_raw": "SKMEL5",
           "condition_raw": "10 uM CDK4/6i",
-          "table_raw": "2.2",
+          "table_raw": "2.2000000000000002",
           "comparison_sheet": "3.2 SKMEL5_10",
           "rows": [
             17,
@@ -1121,7 +1121,7 @@
           "start_row": 25,
           "line_raw": "SKMEL2",
           "condition_raw": "1 uM CDK4/6i",
-          "table_raw": "2.3",
+          "table_raw": "2.2999999999999998",
           "comparison_sheet": "3.3 SKMEL2_1",
           "rows": [
             25,
@@ -1243,7 +1243,7 @@
           "start_row": 3,
           "line_raw": "SKMEL5",
           "condition_raw": "10ng/mL Ifn-g",
-          "table_raw": "5.1",
+          "table_raw": "5.0999999999999996",
           "comparison_sheet": "5.1 SKMEL5_\ud835\udefe",
           "rows": [
             3,

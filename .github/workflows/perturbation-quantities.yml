@@ -43,4 +43,4 @@ jobs:
         run: |
           python -c 'import os; from hitlist import fetch_perturbation_sources; fetch_perturbation_sources(os.environ["HITLIST_PERTURBATION_SOURCE_DIR"])'
       - name: Verify source preservation and independent arithmetic
-        run: ./test.sh --all tests/test_perturbation_quantities.py tests/test_perturbation_quantities_real.py
+        run: ./test.sh --all -k perturbation_quantities

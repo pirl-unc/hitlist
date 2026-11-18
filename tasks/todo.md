@@ -37,6 +37,15 @@ verification remains required after the fix.
 Format/lint pass after the shared fix. The focused local retry was refused at
 0.13 GiB by the unchanged memory guard; hosted verification is required.
 
+The next head passes the full release build (4,098 unit / 98 corpus tests), but
+the independent original-source replay catches three rounded file-map contract
+labels: source XML stores 2.2000000000000002, 2.2999999999999998 and
+5.0999999999999996. Pin these exact literals and test line/dose qualification.
+The coverage matrix separately hit #928's startup-speed assertion (5.076s);
+replace it with direct proof of worker termination/reaping. Explicit test paths
+also add the full suite (#929); use supported -k selection for the source job
+and keep the general argument-contract fix as a separate issue.
+
 # DP/DM PR #898 final review — 2026-11-18
 
 - [x] Preserve original work and specify source/software qualification.
