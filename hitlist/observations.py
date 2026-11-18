@@ -852,9 +852,6 @@ def _load_peptide_index(
         filters.append(("mhc_allele_provenance", "in", _as_list(mhc_allele_provenance)))
     if restriction_evidence is not None:
         filters.append(("restriction_evidence", "in", _as_list(restriction_evidence)))
-    if serotype_source is not None:
-        filters.append(("serotype_source", "in", _as_list(serotype_source)))
-
     if gene_name is not None or gene_id is not None:
         # Gene filters resolve to a peptide list via peptide_mappings.parquet,
         # then push down on the obs frame.  Post-#238, the obs parquet itself
@@ -947,8 +944,10 @@ def _load_peptide_index(
         # (the guard below is `... in df.columns`), returning the full table.
         if mhc_allele_in_set is not None and "mhc_allele_set" not in kept:
             kept.append("mhc_allele_set")
-        # Retired identities affect derived serotypes and candidate counts
-        # even when the caller does not request the original restriction.
+        if serotype_source is not None and "serotype_source" not in kept:
+            kept.append("serotype_source")
+        # Catalog changes affect derived serotypes and candidate counts even
+        # when the caller does not request the original restriction.
         if (
             any(c in kept for c in ("serotype", "serotypes", "serotype_source"))
             and "mhc_restriction" not in kept
@@ -1038,13 +1037,16 @@ def _load_peptide_index(
     if "mhc_restriction" in df.columns and any(
         c in df.columns for c in ("serotype", "serotypes", "serotype_source")
     ):
-        from .curation import resolve_mhc_annotation, serotype_requires_alias_refresh
+        from .curation import resolve_mhc_annotation
 
+        # Current alias/split tables cannot enumerate historical changes:
+        # removed aliases and new IEF memberships also stale stored values
+        # (#907). Resolve the distinct vocabulary, then replace only changes.
         uniq_restrictions = df["mhc_restriction"].dropna().unique()
         annotations = {
             str(s): resolve_mhc_annotation(str(s)).as_record_fields()
             for s in uniq_restrictions
-            if str(s) and serotype_requires_alias_refresh(str(s))
+            if str(s).strip()
         }
         if annotations:
             restrictions = df["mhc_restriction"].astype("string").fillna("")
@@ -1071,12 +1073,19 @@ def _load_peptide_index(
                         df[column] = df[column].astype("string")
                     df.loc[changed_idx, column] = expected.loc[changed_idx]
 
-    if post_serotypes:
+    # This provenance is refreshed with membership, so a parquet predicate
+    # would discard rows using stale values before they could be repaired.
+    if serotype_source is not None:
+        df = df[df["serotype_source"].isin(_as_list(serotype_source))]
+
+    if post_serotypes is not None:
         wanted = set(post_serotypes)
         mask = df["serotypes"].map(
             lambda s: bool(wanted & set(s.split(";"))) if isinstance(s, str) and s else False
         )
-        df = df[mask]
+        # Empty string/category maps retain their input dtype. Force a row
+        # predicate so a zero-hit query cannot erase the schema (#911).
+        df = df.loc[mask.astype("boolean").fillna(False)]
         if columns is not None and "serotypes" not in columns:
             df = df.drop(columns=["serotypes"])
 

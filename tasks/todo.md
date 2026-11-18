@@ -1,3 +1,67 @@
+# Stored serotype migration and dependency lock — #907, #908, #911, 2026-11-17
+
+Specification: [serotype-refresh-907-908-spec.md](serotype-refresh-907-908-spec.md).
+
+- [x] Inspect findings and create an isolated branch from current main.
+- [x] Add regressions for the two migration failures reproduced during review.
+- [x] Refresh derived annotations for each distinct nonempty restriction.
+- [x] Refresh uv.lock, bump version and validate an isolated locked environment.
+- [ ] Run all required gates; format/lint pass, local test preflight refused.
+- [x] Open draft PR #910 linking #907 and #908 with validation evidence.
+- [x] Fix #911 with empty-result schema and dtype regressions.
+- [x] Audit nearby bugs, API ambiguity and curation; split in-scope fixes from issues.
+- [ ] Review the final diff and pass exact-head hosted checks.
+- [ ] Merge, build on clean main, publish and verify both public PyPI files.
+- [ ] Give Presto concrete upgrade and regression-check instructions.
+
+## Review
+
+The loader now resolves each distinct nonempty restriction and retains the
+existing changed-value assignments and category preservation. Both serotype
+membership and serotype_source filtering run after the refresh. Thirteen new
+regression cases cover removed B75 membership, added A2.1 membership, both
+loaders, projections, filter-only inputs, reported/donor-set provenance, and
+unchanged/missing annotations. The obsolete refresh whitelist is removed.
+
+uv.lock changes only mhcgnomes 3.64.6 -> 3.70.3 and its associated dependency
+metadata. A fresh isolated locked environment passes pip check. Format/lint
+pass. Python 3.12 CI now installs with uv sync --locked and checks dependencies;
+the other matrix legs retain fresh pip resolution. The local baseline and full-suite attempts were refused before pytest
+by the unchanged memory guard (1.53 GiB and 0.14 GiB available); preserve those
+refusals and qualify via hosted CI. uv lock --check and the editable-install
+audit also pass. No full local test pass is claimed. Existing independent work is preserved
+in the original checkout. Version candidate 2.1.12 avoids active 2.1.11 PRs.
+
+Hosted Python 3.13 run 44199238537 at f1215a6 passed all thirteen new migration
+cases, with 3,836 total passes and two failures. Both failures were the existing
+attribution-scope test expecting an HLA-G row with a stale HLA-A2 label to match
+the A2 query. Update that expectation to exclude the false match while retaining
+all donor-repair, projection and row-selection assertions. The subsequent
+0a6f3a3 matrix passed all five unit configurations (3,838 passed / two skipped
+in Python 3.12) and all 97 integration cases. The expanded final head must pass
+again before landing.
+
+#911 now forces an explicitly boolean serotype predicate, with 36 new cases
+covering both loaders, storage dtypes, projections, empty stored inputs and
+earlier filters. Explicit empty serotype selections now match zero rows;
+the existing migration matrix also exercises this contract. Format/lint pass;
+the latest local baseline preflight refused at 0.26 GiB without starting tests.
+
+Separate follow-ups reproduced on both ccfe326 and this PR: #912 (empty derived
+schema), #913 (scalar/list and empty filter semantics), and #914 (projected
+class-quality labels retaining stale values). The latter demonstrates a derived
+curation-label inconsistency, not a newly asserted biological threshold defect.
+These are linked from the PR and remain outside its serotype/dependency scope.
+
+Presto's current loader calls generate_training_table for binding and MS and
+asserts projected columns; these exports route through the repaired loaders.
+Its dependency/runtime/remote-launcher floor is still 1.53.0. The handoff should
+pin the shipped Hitlist release in the experiment environment, preserve shared
+editable installs, regenerate downstream frozen exports, retain restriction and
+provenance distinctions, and run the existing consumer contract tests. Raw
+Parquet indexes need no rebuild for this load-time refresh; direct raw readers
+must use the loaders or explicitly regenerate their data products.
+
 # Reconcile mhcgnomes >= 3.70.2 contract and map_peptides empty flank schema — #897, #868, 2026-11-17
 
 Specification: [mhcgnomes-370-and-flanks-spec.md](mhcgnomes-370-and-flanks-spec.md).
