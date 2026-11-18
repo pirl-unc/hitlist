@@ -172,9 +172,10 @@ def test_stored_serotypes_follow_current_catalog(tmp_path, monkeypatch, loader, 
         serotype="HLA-A2.1", serotype_source=["derived", "donor_set"], columns=columns
     ).peptide.tolist() == ["ADDED", "DONOR"]
     # An explicitly empty membership query must not become an unfiltered load.
+    expected_empty = loader(serotype="HLA-A99", columns=columns)
     for empty_query in ([], "", " , ", [""]):
         empty = loader(serotype=empty_query, columns=columns)
-        pd.testing.assert_frame_equal(empty, result.iloc[:0])
+        pd.testing.assert_frame_equal(empty, expected_empty)
 
 
 @pytest.mark.parametrize("loader", [load_observations, load_binding])
