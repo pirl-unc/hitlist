@@ -1,3 +1,17 @@
+# Archived pre-2.1.18 `cta_expression` bundle verification — #935, 2026-11-19
+
+- [x] Inspect `#935`, `hitlist/evidence_bundle.py`, `hitlist/training_bundle.py`, `hitlist/species_evidence.py`, and `hitlist/model_training.py` for pre-`2.1.18` `IDENTITY_COLUMNS` / `APPLICABILITY_COLUMNS` replay invariants.
+- [x] Add failing regression in `tests/test_cta_evidence_bundle.py` reproducing `#935` (`(2, 27)` vs `(2, 28)` shape mismatch on pre-`2.1.18` `cta_expression` bundles across nonempty and empty observations, plus partial-applicability rejection) and observe failure before applying the fix.
+- [x] Update `_identity_table` (`hitlist/training_bundle.py`) and `verify_evidence_bundle` (`hitlist/evidence_bundle.py`) to apply the same `has_applicability` / `_BASE_IDENTITY_COLUMNS` selection as `verify_training_bundle`.
+- [x] Bump version to `2.1.20`, refresh `.venv` editable metadata, run `./format.sh`, `./lint.sh`, and `./test.sh` (preserving memory guard), and verify focused bundle tests.
+- [ ] Open PR (`v2.1.20`), pass hosted CI + release gate, merge, deploy `2.1.20` to PyPI from clean `main`, and close `#935` and `#706`.
+
+## Implementation review (`#935`)
+
+- Reproduced `#935` (`ValueError: Evidence bundle relationship mismatch: observation identities and contributors`, shape `(2, 27)` vs `(2, 28)` and `(3, 27)` vs `(3, 28)`) in `tests/test_cta_evidence_bundle.py` before editing production code.
+- Added `columns=IDENTITY_COLUMNS` to `_identity_table` (`hitlist/training_bundle.py`) and applied the matching `has_applicability` / `_BASE_IDENTITY_COLUMNS` check in `verify_evidence_bundle` (`hitlist/evidence_bundle.py`), while rejecting partial `APPLICABILITY_COLUMNS` across `identities.parquet`, `presentation.parquet`, and `excluded_observations.parquet`.
+- Passed `./format.sh`, `./lint.sh`, `scripts/check_dev_install.py` (`2.1.20`), and all 76 bundle tests across `tests/test_cta_evidence_bundle.py`, `tests/test_training_bundle.py`, and `tests/test_species_evidence.py`. Local `./test.sh` refused at preflight (`0.19GB` available vs `2.5GB` guard, left untouched); full hosted matrix + `ci-corpus-v4` integration + release-build verification run next.
+
 # Explicit test selection & bounded PyPI visibility verification — #929, #867, 2026-11-18
 
 Specification: [release-and-test-harness-867-929-spec.md](release-and-test-harness-867-929-spec.md).
@@ -6,7 +20,7 @@ Specification: [release-and-test-harness-867-929-spec.md](release-and-test-harne
 - [x] Implement `#929` in `test.sh` (delegate default `testpaths` to `pyproject.toml`, compose caller `-m` safely with per-phase markers, handle single-phase pytest exit `5` under filtered `--all` without weakening unfiltered `--all`) and add regressions in `tests/test_test_script.py`.
 - [x] Implement `#867` in `scripts/release_artifacts.py` (bounded monotonic wait across Project JSON + byte verification, PEP 691 Simple JSON, and isolated uncached `pip install --dry-run` resolution without repeating uploads) and add deterministic regressions in `tests/test_release_artifacts.py` and `docs/release-integrity.md`.
 - [x] Bump version to `2.1.19`, refresh `.venv` editable metadata, and pass `./format.sh`, `./lint.sh`, and `./test.sh`.
-- [ ] Open PR (`v2.1.19`), pass hosted CI + release gate, merge, and deploy `2.1.19` to PyPI from clean `main` (exercising the new `#867` visibility verifier live).
+- [x] Open PR (`v2.1.19`), pass hosted CI + release gate, merge, and deploy `2.1.19` to PyPI from clean `main` (exercising the new `#867` visibility verifier live).
 
 ## Implementation review (`#929`, `#867`)
 
