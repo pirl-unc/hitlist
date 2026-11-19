@@ -1,0 +1,203 @@
+{
+  "assay_protocol": {
+    "assay_method": "purified MHC/direct/radioactivity",
+    "complex_formation_temperature_celsius": 18.0,
+    "dissociation_temperature_celsius": 37.0,
+    "peptide_concentration_um": 10.0,
+    "peptide_synthesis": "Schafer-N Fmoc synthetic nonamers; terminal blocking and Cys redox state unreported per row",
+    "protocol_pmcid": "PMC4341823",
+    "protocol_pmid": 21044632,
+    "reading_window_hours": 48.0,
+    "replicate_aggregation": "geometric_mean_of_at_least_two_independent_experiments",
+    "reported_units": "h",
+    "response_measured": "half life",
+    "synthetic_random_negatives_note": "PMC4976001 describes enriching ANN training with 1,000 NetMHCpan-2.8-selected random 9-mers assigned 0 hours per allotype (75,000 rows), whereas Stability.txt contains exactly the 28,166 Table 2 experimental/in-house rows across all 75 constructs.",
+    "synthetic_random_negatives_present_in_archive": false,
+    "zero_value_note": "Literal 0.00 hours denotes SPA nondetection or dissociation faster than quantifiable decay (matching DTU IEDB submissions 1000631-1000641 qualitative_measurement='Negative'); per-well detection floor is unreported and must never be replaced with an invented positive floor."
+  },
+  "curated_mutant_constructs": {
+    "HLA-B*14:01(C67S)": {
+      "canonical_mhc": "HLA-B*14:01 C67S mutant",
+      "domain_numbering": "mature_alpha1_position_67",
+      "evidence_locator": "PMC4976001 Table 2 (Group B8: HLA-B*14:01 (C67S), 374 data points)",
+      "mutation": "C67S",
+      "upstream_parser_issue": "https://github.com/pirl-unc/mhcgnomes/issues/268",
+      "wildtype_base_allele": "HLA-B*14:01"
+    },
+    "HLA-B*14:02(C67S)": {
+      "canonical_mhc": "HLA-B*14:02 C67S mutant",
+      "domain_numbering": "mature_alpha1_position_67",
+      "evidence_locator": "PMC4976001 Table 2 (Group B8: HLA-B*14:02 (C67S), 382 data points)",
+      "mutation": "C67S",
+      "upstream_parser_issue": "https://github.com/pirl-unc/mhcgnomes/issues/268",
+      "wildtype_base_allele": "HLA-B*14:02"
+    },
+    "HLA-B*39:06(C67S)": {
+      "canonical_mhc": "HLA-B*39:06 C67S mutant",
+      "domain_numbering": "mature_alpha1_position_67",
+      "evidence_locator": "PMC4976001 Table 2 (Group B39: HLA-B*39:06 (C67S), 379 data points)",
+      "mutation": "C67S",
+      "upstream_parser_issue": "https://github.com/pirl-unc/mhcgnomes/issues/268",
+      "wildtype_base_allele": "HLA-B*39:06"
+    }
+  },
+  "dtu_iedb_stability_submissions": [
+    {
+      "allele": "HLA-A*01:01",
+      "reference_iri": "http://www.iedb.org/reference/1028282",
+      "submission_id": "1000631"
+    },
+    {
+      "allele": "HLA-A*02:01",
+      "reference_iri": "http://www.iedb.org/reference/1028285",
+      "submission_id": "1000632"
+    },
+    {
+      "allele": "HLA-A*03:01",
+      "reference_iri": "http://www.iedb.org/reference/1028288",
+      "submission_id": "1000634"
+    },
+    {
+      "allele": "HLA-A*11:01",
+      "reference_iri": "http://www.iedb.org/reference/1028287",
+      "submission_id": "1000635"
+    },
+    {
+      "allele": "HLA-A*24:02",
+      "reference_iri": "http://www.iedb.org/reference/1028289",
+      "submission_id": "1000636"
+    },
+    {
+      "allele": "HLA-A*26:01",
+      "reference_iri": "http://www.iedb.org/reference/1028290",
+      "submission_id": "1000637"
+    },
+    {
+      "allele": "HLA-B*07:02",
+      "reference_iri": "http://www.iedb.org/reference/1028291",
+      "submission_id": "1000638"
+    },
+    {
+      "allele": "HLA-B*15:01",
+      "reference_iri": "http://www.iedb.org/reference/1028293",
+      "submission_id": "1000639"
+    },
+    {
+      "allele": "HLA-B*35:01",
+      "reference_iri": "http://www.iedb.org/reference/1028292",
+      "submission_id": "1000640"
+    },
+    {
+      "allele": "HLA-B*40:01",
+      "reference_iri": "http://www.iedb.org/reference/1028294",
+      "submission_id": "1000641"
+    }
+  ],
+  "expected_reconciliation": {
+    "n_beyond_48h_rows": 354,
+    "n_constructs": 75,
+    "n_cys_containing_peptide_rows": 1942,
+    "n_mutant_constructs": 3,
+    "n_mutant_rows": 1135,
+    "n_observations": 28166,
+    "n_positive_rows": 22487,
+    "n_total_lines": 28167,
+    "n_wildtype_constructs": 72,
+    "n_zero_rows": 5679,
+    "peptide_length": 9
+  },
+  "revision": "netmhcstabpan_1_0_stability_v1",
+  "schema_version": 1,
+  "source": {
+    "dataset": "netmhcstabpan",
+    "filename": "Stability.txt",
+    "header": "HLA\tPep\tThalf",
+    "license_posture": "author_manuscript_text_mining_fair_use_only_not_bundled_in_wheel",
+    "pmc_xml_sha256": "c1511173c793e678fc620217e32b45597f7f5cca9b00802feb45471b9c238d31",
+    "pmcid": "PMC4976001",
+    "pmid": 27402703,
+    "publication_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4976001/",
+    "reference_title": "Pan-specific prediction of peptide-MHC-I complex stability; a correlate of T cell immunogenicity.",
+    "sha256": "5f2c6e82d198705a66974b4e42a0ed1412124c4b1e8f7033c7cd43bbdac07f67",
+    "size_bytes": 799880,
+    "source_url": "https://services.healthtech.dtu.dk/suppl/immunology/NetMHCstabpan-1.0/Stability.txt",
+    "supplement_index_url": "https://services.healthtech.dtu.dk/suppl/immunology/NetMHCstabpan-1.0/"
+  },
+  "table2_construct_counts": {
+    "HLA-A*01:01": 220,
+    "HLA-A*02:01": 1023,
+    "HLA-A*02:03": 379,
+    "HLA-A*02:05": 21,
+    "HLA-A*02:10": 370,
+    "HLA-A*02:11": 379,
+    "HLA-A*02:12": 372,
+    "HLA-A*02:16": 373,
+    "HLA-A*02:19": 354,
+    "HLA-A*02:50": 375,
+    "HLA-A*03:01": 861,
+    "HLA-A*11:01": 577,
+    "HLA-A*23:01": 372,
+    "HLA-A*24:02": 573,
+    "HLA-A*24:03": 512,
+    "HLA-A*24:07": 352,
+    "HLA-A*24:19": 378,
+    "HLA-A*25:01": 363,
+    "HLA-A*26:01": 272,
+    "HLA-A*26:02": 343,
+    "HLA-A*26:03": 341,
+    "HLA-A*29:02": 383,
+    "HLA-A*30:01": 386,
+    "HLA-A*30:02": 367,
+    "HLA-A*31:01": 382,
+    "HLA-A*32:01": 32,
+    "HLA-A*32:07": 364,
+    "HLA-A*33:03": 371,
+    "HLA-A*43:01": 359,
+    "HLA-A*66:01": 382,
+    "HLA-A*68:01": 387,
+    "HLA-A*68:02": 16,
+    "HLA-A*68:23": 369,
+    "HLA-A*69:01": 15,
+    "HLA-A*74:01": 361,
+    "HLA-A*80:01": 351,
+    "HLA-B*07:02": 647,
+    "HLA-B*08:01": 465,
+    "HLA-B*08:03": 350,
+    "HLA-B*13:02": 7,
+    "HLA-B*14:01(C67S)": 374,
+    "HLA-B*14:02(C67S)": 382,
+    "HLA-B*15:01": 1070,
+    "HLA-B*15:02": 349,
+    "HLA-B*15:10": 363,
+    "HLA-B*15:17": 362,
+    "HLA-B*18:01": 359,
+    "HLA-B*27:02": 359,
+    "HLA-B*27:03": 368,
+    "HLA-B*27:05": 366,
+    "HLA-B*27:20": 368,
+    "HLA-B*35:01": 650,
+    "HLA-B*35:03": 376,
+    "HLA-B*35:08": 27,
+    "HLA-B*39:01": 680,
+    "HLA-B*39:02": 375,
+    "HLA-B*39:06(C67S)": 379,
+    "HLA-B*39:10": 376,
+    "HLA-B*40:01": 302,
+    "HLA-B*40:02": 19,
+    "HLA-B*41:01": 368,
+    "HLA-B*42:01": 350,
+    "HLA-B*42:02": 376,
+    "HLA-B*44:05": 352,
+    "HLA-B*45:01": 368,
+    "HLA-B*46:01": 361,
+    "HLA-B*51:01": 353,
+    "HLA-B*54:01": 357,
+    "HLA-B*55:01": 378,
+    "HLA-B*56:01": 368,
+    "HLA-B*57:01": 349,
+    "HLA-B*57:02": 363,
+    "HLA-B*57:03": 369,
+    "HLA-B*58:01": 379,
+    "HLA-B*81:01": 367
+  }
+}

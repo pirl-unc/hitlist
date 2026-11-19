@@ -34,6 +34,12 @@ from .version import __version__
 # is discoverable via ``dir(hitlist)`` / autocomplete and stable across refactors.
 _PUBLIC_API: dict[str, str] = {
     "fetch_perturbation_sources": ".perturbation_quantities",
+    "fetch_netmhcstabpan_source": ".netmhcstabpan",
+    "netmhcstabpan_source_contract": ".netmhcstabpan",
+    "scan_netmhcstabpan_stability": ".netmhcstabpan",
+    "reconcile_netmhcstabpan_with_iedb": ".netmhcstabpan",
+    "deduplicate_netmhcstabpan_against_binding": ".netmhcstabpan",
+    "load_netmhcstabpan_stability": ".netmhcstabpan",
     "write_perturbation_quantity_package": ".perturbation_quantities",
     "verify_perturbation_quantity_package": ".perturbation_quantities",
     "write_nontryptic_calibration_package": ".nontryptic_calibration",

@@ -177,6 +177,16 @@ def _is_canonical_peptide(seq: str, *, min_len: int, max_len: int) -> tuple[bool
     return True, ""
 
 
+def _is_mutant_mhc_object(parsed: object) -> bool:
+    if parsed is None:
+        return False
+    if bool(getattr(parsed, "mutations", ())):
+        return True
+    alpha = getattr(parsed, "alpha", None)
+    beta = getattr(parsed, "beta", None)
+    return bool(getattr(alpha, "mutations", ())) or bool(getattr(beta, "mutations", ()))
+
+
 def _allele_completeness_and_identity(
     mhc_restriction: str,
     *,
@@ -200,17 +210,23 @@ def _allele_completeness_and_identity(
     parsed = _cached_parse(identity)
     cls = normalize_mhc_class_token(mhc_class_of(identity))
     sp = mhc_species_of(identity)
+    is_mutant = _is_mutant_mhc_object(parsed)
     if isinstance(parsed, Pair):
-        return identity, "complete_class_ii_pair", cls or "II", sp
+        comp = "mutant_class_ii_pair" if is_mutant else "complete_class_ii_pair"
+        return identity, comp, cls or "II", sp
     if isinstance(parsed, Allele):
         if getattr(parsed, "is_class1", False):
-            return identity, "complete_class_i", cls or "I", sp
+            comp = "mutant_class_i" if is_mutant else "complete_class_i"
+            return identity, comp, cls or "I", sp
         if getattr(parsed, "is_class2", False):
             gene = str(getattr(parsed, "gene_name", "") or "")
             if parsed.is_human and gene.startswith("DRB"):
-                return identity, "single_chain_class_ii_dr", cls or "II", sp
+                comp = (
+                    "mutant_single_chain_class_ii_dr" if is_mutant else "single_chain_class_ii_dr"
+                )
+                return identity, comp, cls or "II", sp
             return identity, "single_chain_class_ii_unpaired", cls or "II", sp
-    return identity, "complete_other", cls, sp
+    return identity, "mutant_other" if is_mutant else "complete_other", cls, sp
 
 
 def _load_source_frame(
@@ -466,6 +482,7 @@ def _prepare_quantitative_binding_task(
     species: str | None,
     scorable_class_i_only: bool,
     allow_unpaired_class_ii_chains: bool,
+    allow_mutant_mhc: bool,
     allow_modified_peptides: bool,
     min_peptide_length: int,
     max_peptide_length: int,
@@ -486,6 +503,9 @@ def _prepare_quantitative_binding_task(
     target_species = normalize_species(species) if species else ""
     allowed_endpoint_set = set(allowed_endpoints)
 
+    from .netmhcstabpan import NETMHCSTABPAN_PROVENANCE_COLUMNS
+
+    optional_source_cols = [c for c in NETMHCSTABPAN_PROVENANCE_COLUMNS if c in qualified.columns]
     accepted_columns = [
         "evidence_row_id",
         "evidence_source_id",
@@ -514,6 +534,7 @@ def _prepare_quantitative_binding_task(
         "reference_iri",
         *LINEAGE_COLUMNS,
         *APPLICABILITY_COLUMNS,
+        *optional_source_cols,
     ]
     excluded_columns = [
         "evidence_row_id",
@@ -527,6 +548,7 @@ def _prepare_quantitative_binding_task(
         "measurement_units",
         "measurement_inequality",
         "exclusion_reason",
+        *[c for c in optional_source_cols if c != "mhc_restriction"],
     ]
 
     if qualified.empty:
@@ -634,8 +656,17 @@ def _prepare_quantitative_binding_task(
             resolved_classes.append("")
             resolved_species.append("")
             continue
-        if require_positive_values and not (std_vals[idx] > 0.0 and math.isfinite(std_vals[idx])):
+        if (require_positive_values or fam == "half_life") and not (
+            std_vals[idx] > 0.0 and math.isfinite(std_vals[idx])
+        ):
             reasons.append("non_positive_measurement_value")
+            resolved_alleles.append("")
+            completeness_vals.append("")
+            resolved_classes.append("")
+            resolved_species.append("")
+            continue
+        if not math.isfinite(std_vals[idx]):
+            reasons.append("no_numeric_value")
             resolved_alleles.append("")
             completeness_vals.append("")
             resolved_classes.append("")
@@ -668,6 +699,13 @@ def _prepare_quantitative_binding_task(
         allele, comp, a_cls, a_sp = allele_cache[raw_rest]
         if not allele:
             reasons.append(comp)
+            resolved_alleles.append("")
+            completeness_vals.append("")
+            resolved_classes.append("")
+            resolved_species.append("")
+            continue
+        if comp.startswith("mutant_") and not allow_mutant_mhc:
+            reasons.append("mutant_mhc_construct_excluded")
             resolved_alleles.append("")
             completeness_vals.append("")
             resolved_classes.append("")
@@ -806,6 +844,7 @@ def prepare_affinity_training_data(
     species: str | None = "Homo sapiens",
     scorable_class_i_only: bool = False,
     allow_unpaired_class_ii_chains: bool = False,
+    allow_mutant_mhc: bool = False,
     allow_modified_peptides: bool = False,
     min_peptide_length: int = 5,
     max_peptide_length: int = 45,
@@ -837,6 +876,12 @@ def prepare_affinity_training_data(
         inventing an alpha chain; human ``HLA-DRB*`` remains accepted as
         ``single_chain_class_ii_dr`` because ``HLA-DRA``'s binding groove is
         monomorphic.
+    allow_mutant_mhc
+        When ``False`` (default), engineered point-mutant MHC constructs (e.g.
+        ``HLA-B*14:01 C67S mutant``) are routed to ``excluded`` with
+        ``mutant_mhc_construct_excluded`` so wild-type sequence lookups never
+        consume mutant measurements; set ``True`` only when applying explicit
+        mutant sequence substitutions downstream.
     """
     invalid = set(endpoints) - set(MOLAR_AFFINITY_ENDPOINTS)
     if invalid:
@@ -854,6 +899,7 @@ def prepare_affinity_training_data(
         species=species,
         scorable_class_i_only=scorable_class_i_only,
         allow_unpaired_class_ii_chains=allow_unpaired_class_ii_chains,
+        allow_mutant_mhc=allow_mutant_mhc,
         allow_modified_peptides=allow_modified_peptides,
         min_peptide_length=min_peptide_length,
         max_peptide_length=max_peptide_length,
@@ -871,11 +917,19 @@ def prepare_stability_training_data(
     species: str | None = "Homo sapiens",
     scorable_class_i_only: bool = False,
     allow_unpaired_class_ii_chains: bool = False,
+    allow_mutant_mhc: bool = False,
     allow_modified_peptides: bool = False,
     min_peptide_length: int = 5,
     max_peptide_length: int = 45,
 ) -> TrainingTableSelection:
-    """Prepare pMHC stability rows (half-life in ``min``, Tm in ``celsius``) for Presto."""
+    """Prepare pMHC stability rows (half-life in ``min``, Tm in ``celsius``) for Presto.
+
+    Literal ``0.0`` half-life rows (SPA nondetections / subthreshold dissociation)
+    are routed to ``excluded`` with ``non_positive_measurement_value`` rather than
+    accepted as exact zero half-lives (#875). Engineered mutant MHC constructs are
+    routed to ``excluded`` with ``mutant_mhc_construct_excluded`` unless
+    ``allow_mutant_mhc=True``.
+    """
     invalid = set(endpoints) - set(STABILITY_ENDPOINTS)
     if invalid:
         raise ValueError(
@@ -891,6 +945,7 @@ def prepare_stability_training_data(
         species=species,
         scorable_class_i_only=scorable_class_i_only,
         allow_unpaired_class_ii_chains=allow_unpaired_class_ii_chains,
+        allow_mutant_mhc=allow_mutant_mhc,
         allow_modified_peptides=allow_modified_peptides,
         min_peptide_length=min_peptide_length,
         max_peptide_length=max_peptide_length,

@@ -568,6 +568,16 @@ FETCHABLE_DATASETS: dict[str, dict[str, str | int]] = {
         "terms": "https://cedar.iedb.org/",
         "min_size_bytes": 10_000_000,
     },
+    "netmhcstabpan": {
+        "url": "https://services.healthtech.dtu.dk/suppl/immunology/NetMHCstabpan-1.0/Stability.txt",
+        "filename": "netmhcstabpan-1.0-Stability.txt",
+        "description": "NetMHCstabpan 1.0 pMHC-I half-life archive (PMID 27402703)",
+        "usage": "Source-qualified pMHC-I dissociation half-lives in hours (#875).",
+        "terms": "https://pubmed.ncbi.nlm.nih.gov/27402703/",
+        "min_size_bytes": 799_880,
+        "expected_size": 799_880,
+        "expected_sha256": "5f2c6e82d198705a66974b4e42a0ed1412124c4b1e8f7033c7cd43bbdac07f67",
+    },
 }
 
 # Immutable files from doi:10.25452/figshare.plus.27993248.v1 (CC BY 4.0).
@@ -1431,7 +1441,15 @@ def fetch(name: str, force: bool = False) -> Path:
     # decompress=True unzips/gunzips the IEDB/CEDAR archives into their CSV; it
     # is a no-op for the plain-FASTA viral proteomes (download_to_file only
     # decompresses when the URL is a .zip/.gz the dest filename doesn't carry).
-    download_to_file(ds["url"], dest, label=name, force=force, decompress=True)
+    download_to_file(
+        ds["url"],
+        dest,
+        label=name,
+        force=force,
+        decompress=True,
+        expected_sha256=ds.get("expected_sha256"),
+        expected_size=ds.get("expected_size"),
+    )
     size = dest.stat().st_size
     if size < ds["min_size_bytes"]:
         # Drop it so a later cache hit cannot mistake the empty body for good data.
@@ -1472,9 +1490,14 @@ def _file_sha256(path: Path) -> str:
 def _cached_file_problem(name: str, dest: Path, entry: dict | None) -> str | None:
     """Why the cached file can't be reused, or None; checks the recorded size and sha256."""
     size = dest.stat().st_size
-    floor = FETCHABLE_DATASETS[name]["min_size_bytes"]
+    ds = FETCHABLE_DATASETS[name]
+    floor = ds["min_size_bytes"]
     if size < floor:
         return f"{size:,} bytes, below the {floor:,}-byte minimum"
+    if "expected_size" in ds and size != ds["expected_size"]:
+        return f"{size:,} bytes on disk, {ds['expected_size']:,} pinned"
+    if "expected_sha256" in ds and _file_sha256(dest) != ds["expected_sha256"]:
+        return "sha256 differs from the pinned source value"
     if entry is None or Path(entry["path"]) != dest:
         return None
     if "size_bytes" in entry and entry["size_bytes"] != size:

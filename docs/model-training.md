@@ -96,6 +96,43 @@ stability = prepare_stability_training_data(
 seconds, minutes, or hours) and `thermal_stability` (`50% dissociation
 temperature`, `melting temperature`) to `celsius`. Keep `measurement_kind`
 (`"half_life"` vs `"thermal_stability"`) separate when fitting distinct heads.
+Literal `0.0` half-life rows (scintillation proximity assay nondetections or
+subthreshold dissociation) are routed to `excluded` with
+`non_positive_measurement_value` rather than treated as exact zero half-lives,
+and engineered point-mutant MHC constructs (for example
+`HLA-B*14:01 C67S mutant`) are routed to `excluded` with
+`mutant_mhc_construct_excluded` unless `allow_mutant_mhc=True`.
+
+### Source-qualified NetMHCstabpan 1.0 half-life ingestion (`#875`)
+
+Hitlist can acquire, verify, and reconcile the published NetMHCstabpan 1.0
+`Stability.txt` archive (`28,166` 9-mer measurements across `75` HLA-A/B
+constructs; Rasmussen et al. 2016, `PMID 27402703` / `PMC4976001`) either as part
+of a full `hitlist build observations` index rebuild (`hitlist data fetch
+netmhcstabpan && hitlist build observations`) or directly in memory against an
+existing `binding.parquet` table:
+
+```python
+from hitlist import (
+    fetch_netmhcstabpan_source,
+    load_netmhcstabpan_stability,
+    prepare_stability_training_data,
+)
+from hitlist.observations import load_binding
+
+stability_txt = fetch_netmhcstabpan_source()
+iedb_binding = load_binding()
+
+# Drops only confirmed DTU IEDB direct-submission duplicates (1028282..1028294)
+# while retaining cross-study overlap warnings and full line/construct provenance:
+stab_rows = load_netmhcstabpan_stability(
+    stability_txt,
+    binding_df=iedb_binding,
+    deduplicate_confirmed_iedb=True,
+)
+selection = prepare_stability_training_data(stab_rows)
+print(selection.summary)
+```
 
 ## MS presentation and multi-instance learning (MIL)
 

@@ -322,13 +322,48 @@ def test_prepare_affinity_and_stability_policies_and_row_conservation():
     )
     assert "single_chain_class_ii_unpaired" in set(with_unpaired.accepted["allele_completeness"])
 
-    # Stability selects only half_life / thermal_stability.
+    # Stability selects only half_life / thermal_stability, excluding 0.0 half-life
+    # nondetections and mutant constructs unless allow_mutant_mhc=True (#875).
     stab = prepare_stability_training_data(rows, species=None)
     assert len(stab.accepted) == 1
     assert len(stab.excluded) == 10
     assert stab.accepted.loc[0, "measurement_kind"] == "half_life"
     assert stab.accepted.loc[0, "measurement_unit"] == "min"
     assert stab.accepted.loc[0, "measurement_value"] == pytest.approx(180.0)
+
+    stab_edge_rows = pd.DataFrame(
+        {
+            "evidence_row_id": ["s:zero", "s:mut", "s:tm"],
+            "evidence_source_id": ["s:zero", "s:mut", "s:tm"],
+            "provenance_id": ["p:zero", "p:mut", "p:tm"],
+            "evidence_kind": ["binding", "binding", "binding"],
+            "assay_method": ["purified MHC/direct/radioactivity"] * 3,
+            "pmid": [27402703] * 3,
+            "peptide": ["SLYNTVATL", "GILGFVFTL", "NLVPMVATV"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA-B*14:01 C67S mutant", "HLA-A*02:01"],
+            "response_measured": ["half life", "half life", "50% dissociation temperature"],
+            "quantitative_value": [0.0, 1.5, 56.0],
+            "measurement_units": ["h", "h", "°C"],
+            "measurement_inequality": ["", "", "="],
+        }
+    )
+    stab_default = prepare_stability_training_data(stab_edge_rows, species=None)
+    assert len(stab_default.accepted) == 1
+    assert stab_default.accepted.loc[0, "measurement_kind"] == "thermal_stability"
+    assert set(stab_default.excluded["exclusion_reason"]) == {
+        "non_positive_measurement_value",
+        "mutant_mhc_construct_excluded",
+    }
+    stab_with_mut = prepare_stability_training_data(
+        stab_edge_rows, species=None, allow_mutant_mhc=True
+    )
+    assert len(stab_with_mut.accepted) == 2
+    mut_row = stab_with_mut.accepted.loc[
+        stab_with_mut.accepted["allele"] == "HLA-B*14:01 C67S mutant"
+    ].iloc[0]
+    assert mut_row["allele_completeness"] == "mutant_class_i"
+    assert mut_row["measurement_value"] == pytest.approx(90.0)
+    assert set(stab_with_mut.excluded["exclusion_reason"]) == {"non_positive_measurement_value"}
 
     with pytest.raises(ValueError, match="Unsupported molar affinity endpoints"):
         prepare_affinity_training_data(rows, endpoints=("half_life",))
@@ -608,3 +643,6 @@ def test_real_corpus_binding_qualification_conserves_all_rows():
     stab = prepare_stability_training_data(bdf, species=None)
     assert len(stab.accepted) + len(stab.excluded) == len(bdf)
     assert set(stab.accepted["measurement_kind"]) == {"half_life", "thermal_stability"}
+    hl_accepted = stab.accepted[stab.accepted["measurement_kind"] == "half_life"]
+    assert (hl_accepted["measurement_value"] > 0).all()
+    assert not stab.accepted["allele_completeness"].str.startswith("mutant_").any()

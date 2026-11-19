@@ -77,16 +77,31 @@ _OBSERVATIONS_ARTIFACT_VERSION = 10
 
 
 def _source_paths() -> dict[str, Path]:
-    """Resolve registered IEDB/CEDAR paths."""
+    """Resolve registered IEDB, CEDAR, and NetMHCstabpan paths."""
     from .downloads import get_path
 
     sources: dict[str, Path] = {}
-    for name in ("iedb", "cedar"):
+    for name in ("iedb", "cedar", "netmhcstabpan"):
         with contextlib.suppress(KeyError, FileNotFoundError):
             p = get_path(name)
             if p.exists():
                 sources[name] = p
     return sources
+
+
+_VERIFY_PINNED_NETMHCSTABPAN: bool = True
+
+
+def _scan_netmhcstabpan(path: Path, provenance) -> pd.DataFrame:
+    from .netmhcstabpan import scan_netmhcstabpan_stability
+
+    print(f"Scanning netmhcstabpan ({path.name})...")
+    return scan_netmhcstabpan_stability(
+        path,
+        provenance=provenance,
+        verify_pinned_digest=_VERIFY_PINNED_NETMHCSTABPAN,
+        classify_source=True,
+    )
 
 
 def _stat_fingerprint(path: Path) -> dict:
@@ -954,16 +969,33 @@ def _build_observations(
 
     from ._source_scan import scan_sources
 
-    for _, (ms_table, binding_table, other_table, source_schema) in scan_sources(paths, provenance):
-        empty_schema = source_schema
-        if ms_table is not None:
-            ms_tables.append(ms_table)
-        if binding_table is not None:
-            binding_tables.append(binding_table)
-        if other_table is not None:
-            other_tables.append(other_table)
+    if any(k in paths for k in ("iedb", "cedar")):
+        for _, (ms_table, binding_table, other_table, source_schema) in scan_sources(
+            paths, provenance
+        ):
+            empty_schema = source_schema
+            if ms_table is not None:
+                ms_tables.append(ms_table)
+            if binding_table is not None:
+                binding_tables.append(binding_table)
+            if other_table is not None:
+                other_tables.append(other_table)
 
-    if not ms_tables and not binding_tables and not other_tables:
+    stab_df = pd.DataFrame()
+    if "netmhcstabpan" in paths:
+        stab_df = _scan_netmhcstabpan(paths["netmhcstabpan"], provenance)
+        if empty_schema.empty and not len(empty_schema.columns) and not stab_df.empty:
+            from .netmhcstabpan import NETMHCSTABPAN_PROVENANCE_COLUMNS
+
+            empty_schema = (
+                stab_df.drop(
+                    columns=[c for c in NETMHCSTABPAN_PROVENANCE_COLUMNS if c in stab_df.columns]
+                )
+                .iloc[:0]
+                .copy()
+            )
+
+    if not ms_tables and not binding_tables and not other_tables and stab_df.empty:
         raise RuntimeError("No data scanned.")
 
     # ``pa.concat_tables`` is zero-copy when schemas match (which they do,
@@ -994,6 +1026,24 @@ def _build_observations(
         _compress_categoricals(binding, strict=True)
     else:
         binding = empty_schema.copy()
+
+    if not stab_df.empty:
+        from .netmhcstabpan import deduplicate_netmhcstabpan_against_binding
+
+        retained_stab, stab_summary = deduplicate_netmhcstabpan_against_binding(
+            stab_df, binding, provenance=provenance
+        )
+        del stab_df
+        n_stab_dups = stab_summary["n_dropped_confirmed_dtu_duplicates"]
+        if n_stab_dups:
+            print(
+                f"  Deduplicated {n_stab_dups:,} netmhcstabpan rows "
+                "(confirmed DTU IEDB stability submission overlap)"
+            )
+        print(f"  {len(retained_stab):,} rows from netmhcstabpan (binding stability)")
+        binding = pd.concat([binding, retained_stab], ignore_index=True)
+        del retained_stab
+        _compress_categoricals(binding)
 
     if other_tables:
         other_table = pa.concat_tables(other_tables, promote_options=_CONCAT_PROMOTE_OPTIONS)

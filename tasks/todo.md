@@ -1,3 +1,43 @@
+# Source-qualified NetMHCstabpan 1.0 half-life ingestion — #875, 2026-11-19
+
+Specification: [netmhcstabpan-stability-875-spec.md](netmhcstabpan-stability-875-spec.md).
+
+- [x] Audit `Stability.txt` (`28,166` rows, SHA-256 `5f2c6e82d198705a66974b4e42a0ed1412124c4b1e8f7033c7cd43bbdac07f67`), `PMC4976001` (`PMID 27402703`, Table 2 census), `PMC4341823` (`PMID 21044632`, SPA protocol), and IEDB `half life` rows; write specification and file `pirl-unc/mhcgnomes#268` for parenthesized point-mutation constructs.
+- [x] Author `hitlist/data/evidence_revisions/netmhcstabpan_stability.json` and implement `hitlist/netmhcstabpan.py` (`netmhcstabpan_source_contract`, `fetch_netmhcstabpan_source`, `scan_netmhcstabpan_stability`, `reconcile_netmhcstabpan_with_iedb`, `deduplicate_netmhcstabpan_against_binding`, `load_netmhcstabpan_stability`) with lazy exports in `hitlist/__init__.py`.
+- [x] Wire `FETCHABLE_DATASETS["netmhcstabpan"]` with pinned SHA-256/size verification in `hitlist/downloads.py`, integrate optional NetMHCstabpan scanning + DTU IEDB deduplication + contributor redirects into `hitlist/builder.py`, and add `"netmhcstabpan"` to `hitlist export binding --source` (`hitlist/cli_export.py` + `tests/data/cli_help_snapshot.txt`).
+- [x] Tighten `hitlist/model_training.py` (`prepare_stability_training_data`) so `0.0` half-life nondetections are excluded (`non_positive_measurement_value`) rather than accepted as exact zero half-lives, and engineered point-mutant MHC constructs (`mutant_class_i` / `mutant_class_ii_pair`) are excluded (`mutant_mhc_construct_excluded`) unless `allow_mutant_mhc=True`; update `docs/model-training.md`.
+- [x] Add unit, round-trip, and real-source qualification tests in `tests/test_netmhcstabpan.py` and `tests/test_model_training.py`, plus `.github/workflows/netmhcstabpan-stability.yml` and `.github/workflows/release-build.yml` path triggers; bump version to `2.1.21`; run `./format.sh` and `./lint.sh`.
+- [ ] Open PR (`v2.1.21`), pass hosted CI + source qualification + release gate, merge, deploy `2.1.21` to PyPI from clean `main`, and close `#875`.
+
+## Implementation & real-corpus verification review (`#875`)
+
+- Reconciled all `28,166` rows and `75` constructs in DTU `Stability.txt` against
+  `PMC4976001` `Table 2` with zero per-allotype discrepancies (`22,487` positive in
+  `[0.05, 256.70]` h + `5,679` `0.00` h; `354` extrapolated `> 48.0` h), proving the
+  `75,000` NetMHCpan-2.8 synthetic `0`-hour random negatives are absent from the
+  public archive. Kept `Stability.txt` unbundled (fetched via `datacache` with
+  pinned SHA-256 and byte length) because DTU and `PMC4976001` carry no open
+  redistribution license.
+- Mapped the three engineered `C67S` heavy-chain constructs (`HLA-B*14:01(C67S)`,
+  `HLA-B*14:02(C67S)`, `HLA-B*39:06(C67S)`, `1,135` rows) explicitly to
+  `mhcgnomes` `Allele(..., mutations=(Mutation(67, "C", "S"),))` forms without
+  conflating them with wild-type `HLA-B*14:02` rows in IEDB (`PMID 7528217`), and
+  filed `pirl-unc/mhcgnomes#268` upstream for parenthesized mutation syntax.
+- Verified real-corpus reconciliation against `binding.parquet` (`892,827` rows):
+  drops `5,963` confirmed DTU direct-submission duplicates (`1028282`..`1028294`,
+  `0` value conflicts) while redirecting `PMID 27402703` onto those IEDB rows in
+  `observation_contributors.parquet`, retaining `22,203` rows (`91` exact-value and
+  `33` different-value cross-study overlap warnings preserved, never silently
+  dropped), and adding `16,803` net-new wild-type positive class-I half-life rows
+  across `65` alleles for `pirl-unc/presto#138`.
+- Fixed `prepare_stability_training_data` (`hitlist/model_training.py`) so `0.0`
+  half-life nondetections are excluded (`non_positive_measurement_value`) rather
+  than accepted as exact zero half-lives, and mutant MHC constructs are excluded by
+  default (`mutant_mhc_construct_excluded`) with explicit `allow_mutant_mhc=True`
+  opt-in. Passed all `488` unit/round-trip tests across builder, downloads, export,
+  bundle, CLI snapshot, `model_training`, and `netmhcstabpan`, plus real-source +
+  real-corpus reconciliation.
+
 # Archived pre-2.1.18 `cta_expression` bundle verification — #935, 2026-11-19
 
 - [x] Inspect `#935`, `hitlist/evidence_bundle.py`, `hitlist/training_bundle.py`, `hitlist/species_evidence.py`, and `hitlist/model_training.py` for pre-`2.1.18` `IDENTITY_COLUMNS` / `APPLICABILITY_COLUMNS` replay invariants.
