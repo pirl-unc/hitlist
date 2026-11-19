@@ -1,0 +1,44 @@
+name: Qualify NetMHCstabpan stability source
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/netmhcstabpan-stability.yml
+      - hitlist/netmhcstabpan.py
+      - hitlist/data/evidence_revisions/netmhcstabpan_stability.json
+      - hitlist/model_training.py
+      - hitlist/builder.py
+      - hitlist/downloads.py
+      - tests/test_netmhcstabpan.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: netmhcstabpan-stability-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TEST_SH_MAX: "1"
+      HITLIST_NETMHCSTABPAN_SOURCE_DIR: ${{ github.workspace }}/source-inputs
+      PYTEST_ADDOPTS: "-ra"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install -e '.[dev]'
+          python -m pip check
+      - name: Acquire checksum-pinned NetMHCstabpan Stability.txt
+        run: |
+          python -c 'import os; from hitlist import fetch_netmhcstabpan_source; fetch_netmhcstabpan_source(os.environ["HITLIST_NETMHCSTABPAN_SOURCE_DIR"])'
+      - name: Verify source contract, Table 2 census, and round-trip qualification
+        run: ./test.sh --all tests/test_netmhcstabpan.py

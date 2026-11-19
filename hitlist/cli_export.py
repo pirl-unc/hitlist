@@ -894,7 +894,7 @@ def register(sub: argparse._SubParsersAction) -> None:
     _add_export_species_axis_args(p_bind)
     p_bind.add_argument(
         "--source",
-        choices=["iedb", "cedar"],
+        choices=["iedb", "cedar", "netmhcstabpan"],
         help="Filter by data source (supplementary data is MS-only and never appears here)",
     )
     p_bind.add_argument(

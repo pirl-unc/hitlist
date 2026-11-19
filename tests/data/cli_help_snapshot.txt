@@ -723,7 +723,7 @@ options:
 usage: hitlist export binding [-h] [--class MHC_CLASS] [--species SPECIES]
                               [--source-species SOURCE_SPECIES [SOURCE_SPECIES ...]]
                               [--host-species HOST_SPECIES [HOST_SPECIES ...]]
-                              [--exclude-chimeric] [--source {iedb,cedar}]
+                              [--exclude-chimeric] [--source {iedb,cedar,netmhcstabpan}]
                               [--min-allele-resolution {four_digit,donor_set,two_digit,serological,class_only}]
                               [--mhc-allele MHC_ALLELE [MHC_ALLELE ...]]
                               [--mhc-allele-in-set MHC_ALLELE_IN_SET [MHC_ALLELE_IN_SET ...]]
@@ -749,7 +749,7 @@ options:
   --host-species HOST_SPECIES [HOST_SPECIES ...]
                         Filter by host-cell species (names or aliases)
   --exclude-chimeric    Exclude observations flagged as chimeric
-  --source {iedb,cedar}
+  --source {iedb,cedar,netmhcstabpan}
                         Filter by data source (supplementary data is MS-only and never appears
                         here)
   --min-allele-resolution {four_digit,donor_set,two_digit,serological,class_only}
