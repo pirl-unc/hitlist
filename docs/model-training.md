@@ -25,6 +25,18 @@ standardized to `nM`:
   `kd_approx_ec50`, `kd`, and `ec50`. `IC50` is never relabeled `KD`; pass
   `endpoints=("ic50",)` when a model head requires literal IC50 supervision and
   `MOLAR_AFFINITY_ENDPOINTS` when training pan-allele affinity ensembles.
+- **Source-scoped method conflict reviews (`#871`)**: `review_binding_assay_methods`
+  (automatically attached by `qualify_binding_measurements` and passed through
+  `prepare_affinity_training_data` when `reference_iri`/`assay_comments` are
+  present) flags the `22` IEDB references whose submission/study comments cite
+  Sylvester-Hvid et al. 2002 (`PMID 12135423`, quantitative refolding ELISA)
+  while tagged as `purified MHC/competitive/fluorescence` (`dissociation
+  constant KD`, `18,723` rows across `20` DTU submissions) or `purified
+  MHC/direct/fluorescence` (`dissociation constant KD (~EC50)`, `9,168` rows).
+  Original `assay_method`, `response_measured`, and values remain untouched
+  (never relabeling `KD` to `IC50` or converting LOCI fluorescence assays to
+  ELISA), and upstream tag changes emit `upstream_tag_changed_requires_rereview`
+  instead of silently double-correcting.
 - **Linear-only unit conversion**: converts commensurate molar units (`fM`,
   `pM`, `nM`, `uM`/`µM`, `mM`, `M`) to `nM` while preserving
   `raw_measurement_value` and `raw_measurement_units`. Nonlinear or unitless

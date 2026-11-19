@@ -6,9 +6,11 @@ import json
 import shutil
 import tempfile
 import xml.etree.ElementTree as ET
+from collections import Counter
 from importlib.resources import files
 from pathlib import Path
 
+import pandas as pd
 import pyarrow as pa
 import pyarrow.dataset as ds
 import pyarrow.parquet as pq
@@ -409,3 +411,237 @@ def write_binding_assay_context_package(predecessor_package, source_xml, destina
     except Exception:
         shutil.rmtree(staging, ignore_errors=True)
         raise
+
+
+METHOD_REVIEW_REVISION = "binding_assay_method_reviews_v1"
+METHOD_REVIEW_LEDGER_SOURCE = files("hitlist").joinpath(
+    "data/evidence_revisions/binding_assay_method_reviews.json"
+)
+METHOD_REVIEW_STATUSES: frozenset[str] = frozenset(
+    {
+        "not_source_reviewed",
+        "source_method_conflict_submission_scope",
+        "source_detector_conflict_submission_scope",
+        "source_detector_conflict_study_scope",
+        "upstream_tag_changed_requires_rereview",
+        "uncataloged_citation_requires_review",
+    }
+)
+METHOD_REVIEW_COLUMNS: tuple[str, ...] = (
+    "method_review_status",
+    "method_review_protocol_id",
+    "method_review_revision",
+    "method_review_evidence_scope",
+    "reviewed_preparation",
+    "reviewed_mechanism",
+    "reviewed_detector",
+    "method_review_cited_pmid",
+    "method_review_source_locator",
+    "upstream_inconsistency_status",
+)
+
+
+def binding_method_review_contract(path=METHOD_REVIEW_LEDGER_SOURCE) -> dict:
+    """Load and validate the source-linked binding assay method review ledger (#871)."""
+    contract = json.loads(Path(path).read_text(encoding="utf-8"))
+    if contract.get("schema_version") != 1 or contract.get("revision") != METHOD_REVIEW_REVISION:
+        raise ValueError("Unsupported binding assay method review revision")
+    cited = contract.get("cited_protocols")
+    if not isinstance(cited, dict) or not cited:
+        raise ValueError("Binding assay method review ledger missing cited_protocols")
+    reviews = contract.get("reviews")
+    if not isinstance(reviews, list) or not reviews:
+        raise ValueError("Binding assay method review ledger missing reviews")
+
+    seen_protocols: set[str] = set()
+    seen_refs: set[str] = set()
+    for review in reviews:
+        protocol_id = review.get("protocol_id")
+        if not protocol_id or protocol_id in seen_protocols:
+            raise ValueError(f"Duplicate or missing method review protocol_id: {protocol_id!r}")
+        seen_protocols.add(protocol_id)
+        if review.get("method_review_status") not in METHOD_REVIEW_STATUSES:
+            raise ValueError(
+                f"Unknown method_review_status: {review.get('method_review_status')!r}"
+            )
+        if str(review.get("cited_pmid", "")) not in cited:
+            raise ValueError(f"Uncataloged cited_pmid in {protocol_id!r}")
+        refs = review.get("references")
+        if not isinstance(refs, list) or not refs:
+            raise ValueError(f"Review {protocol_id!r} must list at least one source reference")
+        row_total = 0
+        for ref in refs:
+            ref_iri = ref.get("reference_iri")
+            if not ref_iri or ref_iri in seen_refs:
+                raise ValueError(f"Duplicate or missing reference_iri: {ref_iri!r}")
+            seen_refs.add(ref_iri)
+            row_total += int(ref.get("n_ci_corpus_v4_rows", 0))
+        expected_rows = review.get("expected_ci_corpus_v4_rows")
+        if expected_rows is not None and row_total != int(expected_rows):
+            raise ValueError(
+                f"Review {protocol_id!r} per-reference count sum {row_total} "
+                f"!= expected_ci_corpus_v4_rows {expected_rows}"
+            )
+    return contract
+
+
+def review_binding_assay_methods(df: pd.DataFrame, *, contract: dict | None = None) -> pd.DataFrame:
+    """Attach source-scoped binding method conflict annotations without altering raw fields.
+
+    Preserves all original assay identifiers, reported ``assay_method`` and
+    ``response_measured`` strings, raw quantitative values, units, inequalities,
+    and comments verbatim. Only explicitly reviewed submission/reference panels
+    receive conflict annotations, and if upstream IEDB tags later change away
+    from the reviewed strings, rows are flagged
+    ``upstream_tag_changed_requires_rereview`` rather than double-corrected.
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("df must be a pandas DataFrame")
+    ledger = binding_method_review_contract() if contract is None else contract
+    result = df.copy()
+    n_rows = len(result)
+    if n_rows == 0:
+        for col in METHOD_REVIEW_COLUMNS:
+            result[col] = pd.Series(dtype="string")
+        return result
+
+    revision = str(ledger["revision"])
+    empty_str = pd.Series("", index=result.index, dtype="string")
+    refs = (
+        result["reference_iri"].astype("string").fillna("").str.strip()
+        if "reference_iri" in result.columns
+        else empty_str
+    )
+    subs = (
+        result["submission_id"].astype("string").fillna("").str.strip()
+        if "submission_id" in result.columns
+        else empty_str
+    )
+    methods = (
+        result["assay_method"].astype("string").fillna("").str.strip()
+        if "assay_method" in result.columns
+        else empty_str
+    )
+    endpoints = (
+        result["response_measured"].astype("string").fillna("").str.strip()
+        if "response_measured" in result.columns
+        else empty_str
+    )
+    has_comments_col = "assay_comments" in result.columns
+    comments = (
+        result["assay_comments"].astype("string").fillna("") if has_comments_col else empty_str
+    )
+
+    status = pd.Series("not_source_reviewed", index=result.index, dtype="string")
+    protocol_id = pd.Series("", index=result.index, dtype="string")
+    rev_col = pd.Series(revision, index=result.index, dtype="string")
+    evidence_scope = pd.Series("unreviewed", index=result.index, dtype="string")
+    reviewed_prep = pd.Series("", index=result.index, dtype="string")
+    reviewed_mech = pd.Series("", index=result.index, dtype="string")
+    reviewed_det = pd.Series("", index=result.index, dtype="string")
+    cited_pmid = pd.Series("", index=result.index, dtype="string")
+    source_locator = pd.Series("", index=result.index, dtype="string")
+    inconsistency = pd.Series("", index=result.index, dtype="string")
+
+    matched_any = pd.Series(False, index=result.index, dtype=bool)
+    for review in ledger["reviews"]:
+        ref_set = {r["reference_iri"] for r in review["references"]}
+        sub_set = {r["submission_id"] for r in review["references"] if r.get("submission_id")}
+        in_panel = refs.isin(ref_set)
+        if sub_set:
+            in_panel = in_panel | (refs.eq("") & subs.isin(sub_set))
+        if not in_panel.any():
+            continue
+
+        matched_any = matched_any | in_panel
+        tags_match = methods.eq(review["expected_assay_method"]) & endpoints.eq(
+            review["expected_response_measured"]
+        )
+        expected_substr = review.get("expected_comment_substring") or ""
+        if has_comments_col and expected_substr:
+            non_empty_comment = comments.str.strip().ne("")
+            comment_mismatch = non_empty_comment & ~comments.str.contains(
+                expected_substr, regex=False
+            )
+            tags_match = tags_match & ~comment_mismatch
+
+        exact_mask = in_panel & tags_match
+        drift_mask = in_panel & ~tags_match
+
+        if exact_mask.any():
+            status.loc[exact_mask] = review["method_review_status"]
+            protocol_id.loc[exact_mask] = review["protocol_id"]
+            evidence_scope.loc[exact_mask] = review["evidence_scope"]
+            reviewed_prep.loc[exact_mask] = review["reviewed_preparation"]
+            reviewed_mech.loc[exact_mask] = review["reviewed_mechanism"]
+            reviewed_det.loc[exact_mask] = review["reviewed_detector"]
+            cited_pmid.loc[exact_mask] = str(review["cited_pmid"])
+            source_locator.loc[exact_mask] = review["source_locator"]
+            inconsistency.loc[exact_mask] = review["upstream_inconsistency_status"]
+
+        if drift_mask.any():
+            status.loc[drift_mask] = "upstream_tag_changed_requires_rereview"
+            protocol_id.loc[drift_mask] = review["protocol_id"]
+            evidence_scope.loc[drift_mask] = "requires_rereview"
+            cited_pmid.loc[drift_mask] = str(review["cited_pmid"])
+            source_locator.loc[drift_mask] = review["source_locator"]
+            inconsistency.loc[drift_mask] = "upstream_tag_changed_requires_rereview"
+
+    # Detect newly appearing uncataloged fluorescence rows citing a reviewed ELISA protocol
+    # (excluding explicit LOCI assays, which are a distinct luminescent readout).
+    if has_comments_col:
+        is_fluor = methods.str.contains("fluorescence", case=False, regex=False)
+        is_loci = comments.str.contains("LOCI", case=False, regex=False)
+        for pmid_key, proto in ledger["cited_protocols"].items():
+            if proto.get("detector") != "elisa":
+                continue
+            uncataloged = (
+                ~matched_any
+                & is_fluor
+                & ~is_loci
+                & comments.str.contains(str(pmid_key), regex=False)
+            )
+            if uncataloged.any():
+                status.loc[uncataloged] = "uncataloged_citation_requires_review"
+                evidence_scope.loc[uncataloged] = "requires_review"
+                cited_pmid.loc[uncataloged] = str(pmid_key)
+                source_locator.loc[uncataloged] = str(proto.get("source_locator", ""))
+                inconsistency.loc[uncataloged] = "uncataloged_fluorescence_elisa_citation"
+
+    result["method_review_status"] = status
+    result["method_review_protocol_id"] = protocol_id
+    result["method_review_revision"] = rev_col
+    result["method_review_evidence_scope"] = evidence_scope
+    result["reviewed_preparation"] = reviewed_prep
+    result["reviewed_mechanism"] = reviewed_mech
+    result["reviewed_detector"] = reviewed_det
+    result["method_review_cited_pmid"] = cited_pmid
+    result["method_review_source_locator"] = source_locator
+    result["upstream_inconsistency_status"] = inconsistency
+    return result
+
+
+def summarize_binding_method_reviews(df: pd.DataFrame) -> dict:
+    """Summarize binding method review counts across a reviewed or raw binding frame."""
+    reviewed = df if "method_review_status" in df.columns else review_binding_assay_methods(df)
+    return {
+        "review_revision": METHOD_REVIEW_REVISION,
+        "n_rows": len(reviewed),
+        "by_status": dict(
+            sorted(Counter(reviewed["method_review_status"].astype("string")).items())
+        ),
+        "by_protocol_id": dict(
+            sorted(
+                Counter(
+                    val for val in reviewed["method_review_protocol_id"].astype("string") if val
+                ).items()
+            )
+        ),
+        "by_upstream_inconsistency_status": dict(
+            sorted(
+                Counter(
+                    val for val in reviewed["upstream_inconsistency_status"].astype("string") if val
+                ).items()
+            )
+        ),
+    }

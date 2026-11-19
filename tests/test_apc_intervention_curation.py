@@ -1,6 +1,9 @@
-"""Regression tests for APC intervention curations (#899, #900, #856, #593)."""
+"""Regression tests for APC intervention curations (#899, #900, #856, #593, #926)."""
 
 from __future__ import annotations
+
+import json
+from importlib.resources import files
 
 import pandas as pd
 import pytest
@@ -529,3 +532,71 @@ def test_laghmouchi_k562_hla_dp_heterodimers_and_hilton_shla_engineering(monkeyp
     assert obs.loc["DPUNVERIF", "condition_id"] == ""
     assert obs.loc["DPUNVERIF", "supported_condition_ids"] == ""
     assert obs.loc["DPUNVERIF", "mhc_restriction"] == "HLA-DPA1*02:02/DPB1*19:01"
+
+
+def test_pmid_35251023_dpb1_19_01_reconciliation_receipt_matches_curation():
+    receipt_path = files("hitlist").joinpath(
+        "data/evidence_revisions/pmid_35251023_dpb1_19_01_reconciliation.json"
+    )
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert receipt["pmid"] == 35251023
+    assert receipt["pmcid"] == "PMC8888658"
+    assert receipt["extra_deposited_restriction"] == "HLA-DPA1*02:02/DPB1*19:01"
+    assert (
+        receipt["primary_sources_verified"]["supplementary_appendix_pdf"]["sha256"]
+        == "4ce9351b45bc32390dacf0e53c578050f8ce697d31adb29dc8b598f89295ff42"
+    )
+    assert receipt["primary_sources_verified"]["pride_dataset"]["accession"] == "PXD030591"
+    assert receipt["primary_sources_verified"]["pride_dataset"]["n_dpb1_19_01_files"] == 0
+    assert receipt["corpus_inventory"]["n_affected_observations"] == 1_322
+    assert receipt["corpus_inventory"]["n_unique_peptides"] == 1_280
+    assert (
+        receipt["assessment"]["reconciliation_status"]
+        == "unresolved_extra_iedb_restriction_absent_from_primary_paper_and_pride"
+    )
+    assert receipt["assessment"]["is_alias_or_duplicate_of_published_pair"] is False
+    assert (
+        receipt["assessment"]["disposition"] == "preserve_observations_without_curated_sample_arm"
+    )
+
+    dp_entry = load_pmid_overrides()[35251023]
+    curated_pairs = [sample["mhc"] for sample in dp_entry["ms_samples"]]
+    assert sorted(curated_pairs) == sorted(receipt["published_k562_constructs"])
+    assert receipt["extra_deposited_restriction"] not in curated_pairs
+
+
+@pytest.mark.integration
+def test_pmid_35251023_dpb1_19_01_corpus_reconciliation():
+    import pyarrow.dataset as ds
+
+    from hitlist.observations import is_built, observations_path
+
+    if not is_built():
+        pytest.skip("Observations corpus not built")
+
+    receipt_path = files("hitlist").joinpath(
+        "data/evidence_revisions/pmid_35251023_dpb1_19_01_reconciliation.json"
+    )
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    inv = receipt["corpus_inventory"]
+
+    dset = ds.dataset(observations_path(), format="parquet")
+    cols = [
+        c
+        for c in ("provenance_id", "assay_iri", "peptide", "mhc_restriction")
+        if c in dset.schema.names
+    ]
+    obs = dset.to_table(columns=cols, filter=ds.field("pmid") == 35251023).to_pandas()
+    assert len(obs) == inv["n_total_pmid_observations"]
+    assert obs["mhc_restriction"].nunique() == inv["n_deposited_restrictions"]
+
+    dp19 = obs[obs["mhc_restriction"] == receipt["extra_deposited_restriction"]]
+    assert len(dp19) == inv["n_affected_observations"]
+    assert dp19["peptide"].nunique() == inv["n_unique_peptides"]
+    iris = sorted(dp19["assay_iri"].astype(str))
+    assert iris[0] == inv["first_assay_iri"]
+    assert iris[-1] == inv["last_assay_iri"]
+    if "provenance_id" in dp19.columns:
+        pids = sorted(dp19["provenance_id"].astype(str))
+        assert pids[0] == inv["first_provenance_id"]
+        assert pids[-1] == inv["last_provenance_id"]

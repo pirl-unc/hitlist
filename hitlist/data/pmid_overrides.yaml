@@ -9723,11 +9723,15 @@
     ip_antibody: "B7/21"
     arm_resolution: no_row_discriminator
     arm_resolution_note: >
-      The deposit contains 14 distinct paired restrictions, but the primary paper and
-      Supplementary Table 1 list only 13 K562 constructs. Curated arms follow those
-      13 source-listed pairs. DPA1*02:02/DPB1*19:01 remains a reported restriction
-      without a source-qualified matching construct; do not infer an additional
-      arm from that restriction alone (#921).
+      The deposit contains 14 distinct paired restrictions (45,961 rows in ci-corpus-v4),
+      but the primary paper (PMC8888658), Supplementary Table 1 (SHA-256 4ce9351b...),
+      and PRIDE PXD030591 (16 .msf / 17 .raw files + SDRF) list only 13 K562 constructs.
+      Curated arms follow those 13 source-listed pairs. The 1,322 extra IEDB rows
+      (1,280 unique peptides; assay/18870849..18917801, reference/1040629) carrying
+      HLA-DPA1*02:02/DPB1*19:01 are not an alias or copy of any published pair, yet have
+      no primary paper or PRIDE provenance; preserve all reported restrictions verbatim
+      without inferring a 14th sample arm (#921, #926; see receipt
+      hitlist/data/evidence_revisions/pmid_35251023_dpb1_19_01_reconciliation.json).
     note: >
       HLA class I and II-negative K562 human myelogenous leukemia cells were retrovirally
       transduced (MP71/pLZRS vectors) with individual HLA-DPA1 and HLA-DPB1 allele pairs and

@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "revision": "binding_assay_method_reviews_v1",
+  "issue": "pirl-unc/hitlist#871",
+  "consumer_audit": "pirl-unc/presto#131",
+  "cited_protocols": {
+    "12135423": {
+      "pmid": 12135423,
+      "citation": "Sylvester-Hvid et al., Tissue Antigens 2002;59(4):251-258",
+      "title": "Establishment of a quantitative ELISA capable of determining peptide - MHC class I interaction.",
+      "doi": "10.1034/j.1399-0039.2002.590402.x",
+      "publication_url": "https://onlinelibrary.wiley.com/doi/10.1034/j.1399-0039.2002.590402.x",
+      "source_locator": "PMID:12135423#abstract",
+      "protocol_summary": "Peptide-dependent refolding of denatured preoxidized recombinant MHC class I heavy chains with beta-2 microglobulin in aqueous buffer, quantified by conformation-specific ELISA (not competitive displacement and not fluorescence).",
+      "preparation": "purified_recombinant_mhc_class_i",
+      "physical_mechanism": "peptide_dependent_refolding_assembly",
+      "detector": "elisa"
+    }
+  },
+  "controls": {
+    "ci_corpus_version": "v4",
+    "ci_corpus_manifest_sha256": "2318bc53cdae228285218991d58fbcc2bd7266327cec1dd3ed9a03b1c944a5b7",
+    "n_loci_fluorescence_rows_not_converted": 20267,
+    "policy_note": "LOCI luminescence-channeling assays and unreviewed competitive/fluorescence or literal-KD panels are never blanket-converted to ELISA or IC50; only explicitly reviewed submission/reference panels with matching upstream tags receive conflict annotations."
+  },
+  "reviews": [
+    {
+      "protocol_id": "iedb:pmid:12135423:dtu_competitive_fluorescence_kd:v1",
+      "cited_pmid": "12135423",
+      "source_locator": "PMID:12135423#abstract",
+      "scope_kind": "iedb_direct_submission_panel",
+      "evidence_scope": "submission_comment_citation_only",
+      "method_review_status": "source_method_conflict_submission_scope",
+      "upstream_inconsistency_status": "iedb_method_tag_conflicts_with_cited_elisa_protocol",
+      "expected_source_dataset": "iedb",
+      "expected_assay_method": "purified MHC/competitive/fluorescence",
+      "expected_response_measured": "dissociation constant KD",
+      "expected_measurement_unit": "nM",
+      "expected_comment_substring": "12135423",
+      "reviewed_preparation": "purified_recombinant_mhc_class_i",
+      "reviewed_mechanism": "conflicting_reported_competitive_vs_cited_refolding_assembly",
+      "reviewed_detector": "conflicting_reported_fluorescence_vs_cited_elisa",
+      "expected_ci_corpus_v4_rows": 18723,
+      "expected_corrected_cohort_rows": 743,
+      "representative_assay_iris": [
+        "http://www.iedb.org/assay/1715424",
+        "http://www.iedb.org/assay/1715425",
+        "http://www.iedb.org/assay/1715426"
+      ],
+      "live_iedb_verified_date": "2026-11-19",
+      "rationale": "Twenty DTU/Buus direct submissions ('Large scale analysis of peptide-HLA class I interactions') are tagged by IEDB as purified MHC/competitive/fluorescence measuring dissociation constant KD (nM), while their submission-level assay comment states 'In general, this data has been generated using a quantitative biochemical peptide-HLA interaction assay (see PMID: 12135423)'. PMID 12135423 describes a peptide-dependent MHC-I refolding ELISA, conflicting with both the 'competitive' mechanism and 'fluorescence' detector tags. Because the citation is a general submission comment rather than per-assay protocol proof, original IEDB tags and KD values are preserved verbatim with a submission-scoped conflict flag.",
+      "references": [
+        {"reference_iri": "http://www.iedb.org/reference/1019353", "submission_id": "1000446", "n_ci_corpus_v4_rows": 445},
+        {"reference_iri": "http://www.iedb.org/reference/1019354", "submission_id": "1000447", "n_ci_corpus_v4_rows": 1000},
+        {"reference_iri": "http://www.iedb.org/reference/1019507", "submission_id": "1000450", "n_ci_corpus_v4_rows": 997},
+        {"reference_iri": "http://www.iedb.org/reference/1019508", "submission_id": "1000451", "n_ci_corpus_v4_rows": 981},
+        {"reference_iri": "http://www.iedb.org/reference/1019509", "submission_id": "1000452", "n_ci_corpus_v4_rows": 969},
+        {"reference_iri": "http://www.iedb.org/reference/1019510", "submission_id": "1000453", "n_ci_corpus_v4_rows": 980},
+        {"reference_iri": "http://www.iedb.org/reference/1019511", "submission_id": "1000454", "n_ci_corpus_v4_rows": 961},
+        {"reference_iri": "http://www.iedb.org/reference/1019512", "submission_id": "1000455", "n_ci_corpus_v4_rows": 982},
+        {"reference_iri": "http://www.iedb.org/reference/1019513", "submission_id": "1000456", "n_ci_corpus_v4_rows": 998},
+        {"reference_iri": "http://www.iedb.org/reference/1019514", "submission_id": "1000457", "n_ci_corpus_v4_rows": 991},
+        {"reference_iri": "http://www.iedb.org/reference/1019515", "submission_id": "1000458", "n_ci_corpus_v4_rows": 994},
+        {"reference_iri": "http://www.iedb.org/reference/1019516", "submission_id": "1000459", "n_ci_corpus_v4_rows": 997},
+        {"reference_iri": "http://www.iedb.org/reference/1019517", "submission_id": "1000460", "n_ci_corpus_v4_rows": 986},
+        {"reference_iri": "http://www.iedb.org/reference/1019518", "submission_id": "1000461", "n_ci_corpus_v4_rows": 999},
+        {"reference_iri": "http://www.iedb.org/reference/1019519", "submission_id": "1000462", "n_ci_corpus_v4_rows": 900},
+        {"reference_iri": "http://www.iedb.org/reference/1019520", "submission_id": "1000463", "n_ci_corpus_v4_rows": 999},
+        {"reference_iri": "http://www.iedb.org/reference/1019521", "submission_id": "1000464", "n_ci_corpus_v4_rows": 999},
+        {"reference_iri": "http://www.iedb.org/reference/1019522", "submission_id": "1000465", "n_ci_corpus_v4_rows": 996},
+        {"reference_iri": "http://www.iedb.org/reference/1019523", "submission_id": "1000466", "n_ci_corpus_v4_rows": 997},
+        {"reference_iri": "http://www.iedb.org/reference/1019524", "submission_id": "1000467", "n_ci_corpus_v4_rows": 552}
+      ]
+    },
+    {
+      "protocol_id": "iedb:pmid:12135423:dtu_direct_fluorescence_kd_ec50:v1",
+      "cited_pmid": "12135423",
+      "source_locator": "PMID:12135423#abstract",
+      "scope_kind": "iedb_direct_submission_panel",
+      "evidence_scope": "submission_comment_citation_only",
+      "method_review_status": "source_detector_conflict_submission_scope",
+      "upstream_inconsistency_status": "iedb_detector_tag_conflicts_with_cited_elisa_protocol",
+      "expected_source_dataset": "iedb",
+      "expected_assay_method": "purified MHC/direct/fluorescence",
+      "expected_response_measured": "dissociation constant KD (~EC50)",
+      "expected_measurement_unit": "nM",
+      "expected_comment_substring": "12135423",
+      "reviewed_preparation": "purified_recombinant_mhc_class_i",
+      "reviewed_mechanism": "direct_refolding_assembly_ec50_approx_kd",
+      "reviewed_detector": "conflicting_reported_fluorescence_vs_cited_elisa",
+      "expected_ci_corpus_v4_rows": 9150,
+      "expected_corrected_cohort_rows": 0,
+      "representative_assay_iris": [
+        "http://www.iedb.org/assay/1607390"
+      ],
+      "live_iedb_verified_date": "2026-11-19",
+      "rationale": "DTU/Buus direct submission 1000422 (reference/1014017) is tagged purified MHC/direct/fluorescence measuring dissociation constant KD (~EC50) (nM), while citing PMID 12135423 (quantitative ELISA) with no LOCI mention. The direct refolding EC50 (~KD) mechanism aligns with PMID 12135423, while the reported 'fluorescence' detector conflicts with ELISA.",
+      "references": [
+        {"reference_iri": "http://www.iedb.org/reference/1014017", "submission_id": "1000422", "n_ci_corpus_v4_rows": 9150}
+      ]
+    },
+    {
+      "protocol_id": "iedb:pmid:12135423:tang_2011_direct_fluorescence_kd_ec50:v1",
+      "cited_pmid": "12135423",
+      "source_locator": "PMID:12135423#abstract",
+      "scope_kind": "iedb_literature_reference",
+      "evidence_scope": "study_comment_citation_only",
+      "method_review_status": "source_detector_conflict_study_scope",
+      "upstream_inconsistency_status": "iedb_detector_tag_conflicts_with_cited_elisa_protocol",
+      "expected_source_dataset": "iedb",
+      "expected_assay_method": "purified MHC/direct/fluorescence",
+      "expected_response_measured": "dissociation constant KD (~EC50)",
+      "expected_measurement_unit": "nM",
+      "expected_comment_substring": "12135423",
+      "reviewed_preparation": "purified_recombinant_mhc_class_i",
+      "reviewed_mechanism": "direct_refolding_assembly_ec50_approx_kd",
+      "reviewed_detector": "conflicting_reported_fluorescence_vs_cited_elisa",
+      "expected_ci_corpus_v4_rows": 18,
+      "expected_corrected_cohort_rows": 0,
+      "representative_assay_iris": [
+        "http://www.iedb.org/assay/1810181"
+      ],
+      "live_iedb_verified_date": "2026-11-19",
+      "rationale": "Literature reference/1021191 (PMID 21169544, Tang et al. 2011) is tagged purified MHC/direct/fluorescence measuring dissociation constant KD (~EC50) (nM), while assay comments explicitly cite Sylvester-Hvid et al. 2002 (PMID 12135423, quantitative ELISA).",
+      "references": [
+        {"reference_iri": "http://www.iedb.org/reference/1021191", "submission_id": "", "pmid": 21169544, "n_ci_corpus_v4_rows": 18}
+      ]
+    }
+  ]
+}
