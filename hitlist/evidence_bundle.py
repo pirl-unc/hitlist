@@ -499,7 +499,12 @@ def verify_evidence_bundle(directory):
     if len(blacklist) != manifest["n_blacklisted_peptides"]:
         raise ValueError("Evidence bundle blacklist count mismatch")
     if kind == "cta_expression":
-        from .training_bundle import _CONTRIBUTOR_SUMMARY_COLUMNS
+        from .lineage import APPLICABILITY_COLUMNS
+        from .training_bundle import (
+            _BASE_IDENTITY_COLUMNS,
+            _CONTRIBUTOR_SUMMARY_COLUMNS,
+            IDENTITY_COLUMNS,
+        )
 
         reference = read("cta_reference")
         if set(reference.loc[reference.included_in_definition, "Ensembl_Gene_ID"]) != set(
@@ -511,13 +516,30 @@ def verify_evidence_bundle(directory):
             directory / "contributors.parquet", columns=_CONTRIBUTOR_SUMMARY_COLUMNS
         )
         presentation, excluded = read("presentation"), read("excluded_observations")
+        available_columns = set(presentation.columns) | set(excluded.columns)
+        has_applicability = bool(
+            (set(APPLICABILITY_COLUMNS) & set(identities.columns))
+            or (set(APPLICABILITY_COLUMNS) & available_columns)
+            or ("applicability" in manifest.get("coverage", {}))
+        )
+        if has_applicability and (
+            not (set(APPLICABILITY_COLUMNS) <= set(identities.columns))
+            or not (set(APPLICABILITY_COLUMNS) <= set(presentation.columns))
+            or not (set(APPLICABILITY_COLUMNS) <= set(excluded.columns))
+        ):
+            raise ValueError("Incomplete applicability columns in bundle identities")
+        verified_identity_columns = (
+            IDENTITY_COLUMNS if has_applicability else _BASE_IDENTITY_COLUMNS
+        )
         nonempty = [frame for frame in (presentation, excluded) if len(frame)]
         observations = pd.concat(nonempty, ignore_index=True) if nonempty else presentation.copy()
         if identities.evidence_row_id.duplicated().any() or set(
             observations.evidence_row_id
         ) != set(identities.evidence_row_id):
             raise ValueError("Evidence bundle observation identities mismatch")
-        expected_identities = _contributor_identities(_identity_table(observations), contributors)
+        expected_identities = _contributor_identities(
+            _identity_table(observations, columns=verified_identity_columns), contributors
+        )
         _equal_frame(
             identities.sort_values("evidence_row_id"),
             expected_identities.sort_values("evidence_row_id"),

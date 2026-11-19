@@ -437,3 +437,64 @@ def test_unknown_outcome_new_admission_and_saved_policy_replay(
         rehash(target, "excluded_observations.parquet")
         with pytest.raises(ValueError, match="MS exclusion reasons"):
             verify_evidence_bundle(target)
+
+
+@pytest.mark.parametrize("built_index", [False, True], indirect=True)
+def test_archived_pre_applicability_cta_bundle_verifies_offline_and_partial_applicability_fails(
+    mapped_index, reference, atlas_dir, tmp_path
+):
+    from hitlist.lineage import APPLICABILITY_COLUMNS
+    from hitlist.provenance import file_digest
+
+    def strip_to_pre_2_1_18(directory):
+        for name in ("presentation.parquet", "excluded_observations.parquet"):
+            frame = pd.read_parquet(directory / name)
+            assert "assay_method" in frame.columns
+            frame.drop(columns=[c for c in APPLICABILITY_COLUMNS if c in frame.columns]).to_parquet(
+                directory / name, index=False
+            )
+            rehash(directory, name)
+        identities = pd.read_parquet(directory / "identities.parquet")
+        identities.drop(
+            columns=[c for c in ("assay_method", *APPLICABILITY_COLUMNS) if c in identities.columns]
+        ).to_parquet(directory / "identities.parquet", index=False)
+        manifest_path = directory / "manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["coverage"].pop("applicability", None)
+        manifest["artifacts"]["identities.parquet"] = file_digest(directory / "identities.parquet")
+        manifest_path.write_text(json.dumps(manifest))
+
+    # 1. Nonempty archived pre-2.1.18 bundle (both MS-only and MS + excluded other_assays).
+    expression = tmp_path / "expression.tsv"
+    expression.write_text("gene\ttpm\nPRAME\t10\n")
+    archived = tmp_path / "archived"
+    write_cta_evidence_bundle(
+        archived, expression, atlas_dir=atlas_dir, id_column="gene", tpm_column="tpm"
+    )
+    strip_to_pre_2_1_18(archived)
+    verified = verify_evidence_bundle(archived)
+    assert "applicability" not in verified["coverage"]
+
+    # 2. Empty-selection archived pre-2.1.18 bundle.
+    empty_expr = tmp_path / "empty_expression.tsv"
+    empty_expr.write_text("gene\ttpm\nMAGEA3\t10\n")
+    archived_empty = tmp_path / "archived_empty"
+    write_cta_evidence_bundle(
+        archived_empty, empty_expr, atlas_dir=atlas_dir, id_column="gene", tpm_column="tpm"
+    )
+    strip_to_pre_2_1_18(archived_empty)
+    verified_empty = verify_evidence_bundle(archived_empty)
+    assert "applicability" not in verified_empty["coverage"]
+
+    # 3. Partial applicability columns (or applicability present in observations/manifest
+    # while stripped from identities) must fail verification.
+    partial = tmp_path / "partial"
+    write_cta_evidence_bundle(
+        partial, expression, atlas_dir=atlas_dir, id_column="gene", tpm_column="tpm"
+    )
+    pd.read_parquet(partial / "identities.parquet").drop(
+        columns=["donor_applicability"]
+    ).to_parquet(partial / "identities.parquet", index=False)
+    rehash(partial, "identities.parquet")
+    with pytest.raises(ValueError, match="Incomplete applicability columns"):
+        verify_evidence_bundle(partial)

@@ -136,9 +136,9 @@ def _inputs(*, proteome_release=None):
     return {"files": files, "build_metadata": _cache_meta(), "current_curation": curation}
 
 
-def _identity_table(training):
-    columns = [c for c in IDENTITY_COLUMNS if c in training]
-    identities = training[columns].drop_duplicates().reset_index(drop=True)
+def _identity_table(training, *, columns=IDENTITY_COLUMNS):
+    selected = [c for c in columns if c in training]
+    identities = training[selected].drop_duplicates().reset_index(drop=True)
     # Empty/legacy evidence IDs can collide; do not silently discard differing
     # biological contexts under the same ID and then certify their split.
     if identities["evidence_row_id"].duplicated().any():
