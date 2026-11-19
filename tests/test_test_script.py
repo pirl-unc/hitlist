@@ -363,3 +363,117 @@ def test_serial_fallback_obeys_memory_guard_without_retry_optin(tmp_path):
     assert result.returncode == 1
     assert not result.stdout
     assert "need ~2.5GB for 1 worker(s)" in result.stderr
+
+
+def test_default_omits_positional_tests_and_explicit_selectors_pass_through(tmp_path):
+    env = _stub_env(tmp_path, 600_000, 0, probe_fails=False, worker_min=1, worker_max=2)
+    shells = ["bash"]
+    if Path("/bin/bash").is_file():
+        shells.append("/bin/bash")
+    for shell in dict.fromkeys(shells):
+        default_res = subprocess.run([shell, str(SCRIPT)], env=env, capture_output=True, text=True)
+        assert default_res.returncode == 0, default_res.stderr
+        (default_inv,) = _split_invocations(default_res.stdout.splitlines())
+        assert "tests" not in default_inv
+
+        explicit_res = subprocess.run(
+            [
+                shell,
+                str(SCRIPT),
+                "tests/test_foo.py",
+                "tests/test_bar.py::test_node[a]",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        assert explicit_res.returncode == 0, explicit_res.stderr
+        (explicit_inv,) = _split_invocations(explicit_res.stdout.splitlines())
+        assert "tests" not in explicit_inv
+        assert explicit_inv[-2:] == ["tests/test_foo.py", "tests/test_bar.py::test_node[a]"]
+
+
+def test_caller_marker_composes_with_phase_markers_and_rejects_empty_marker(tmp_path):
+    env = _stub_env(tmp_path, 600_000, 0, probe_fails=False, worker_min=1, worker_max=2)
+    single = subprocess.run(
+        ["bash", str(SCRIPT), "-m", "slow"], env=env, capture_output=True, text=True
+    )
+    assert single.returncode == 0, single.stderr
+    (inv,) = _split_invocations(single.stdout.splitlines())
+    assert _marker(inv) == "(not integration) and (slow)"
+    assert inv.count("-m") == 2  # python -m pytest and one composed pytest -m
+
+    both = subprocess.run(
+        ["bash", str(SCRIPT), "--all", "-m=slow", "-m", "not flaky"],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert both.returncode == 0, both.stderr
+    light, integration = _split_invocations(both.stdout.splitlines())
+    assert _marker(light) == "(not integration) and (slow) and (not flaky)"
+    assert _marker(integration) == "(integration) and (slow) and (not flaky)"
+    assert "-vv" in integration
+
+    for bad_args in (["-m"], ["-m", ""], ["-m="]):
+        bad = subprocess.run(
+            ["bash", str(SCRIPT), *bad_args], env=env, capture_output=True, text=True
+        )
+        assert bad.returncode == 2
+        assert bad.stdout == ""
+        assert "marker expression" in bad.stderr
+
+
+@pytest.mark.parametrize(
+    ("extra_args", "light_exit", "integration_exit", "expected_exit", "expect_second_pass"),
+    [
+        (["tests/test_integration_only.py"], 5, 0, 0, True),
+        (["tests/test_unit_only.py"], 0, 5, 0, True),
+        (["-k", "matches_nothing"], 5, 5, 5, True),
+        (["tests/test_failing.py"], 1, 0, 1, False),
+        ([], 5, 0, 5, False),
+        ([], 0, 5, 5, True),
+    ],
+)
+def test_all_exit_five_handling_requires_explicit_selector_and_at_least_one_match(
+    tmp_path, extra_args, light_exit, integration_exit, expected_exit, expect_second_pass
+):
+    env = _stub_env(tmp_path, 600_000, 0, probe_fails=False, worker_min=1, worker_max=2)
+    (tmp_path / "python").write_text(
+        '#!/bin/sh\nif [ "$1" = "-c" ]; then exit 0; fi\nprintf "%s\\n" "$@"\n'
+        'prev=""\n'
+        'for arg in "$@"; do\n'
+        '  if [ "$prev" = "-m" ] && [ "$arg" != "pytest" ]; then\n'
+        '    case "$arg" in\n'
+        f"      'not integration'*|'(not integration)'*) exit {light_exit} ;;\n"
+        f"      'integration'*|'(integration)'*) exit {integration_exit} ;;\n"
+        "    esac\n"
+        "  fi\n"
+        '  prev="$arg"\n'
+        "done\n"
+        "exit 0\n"
+    )
+    result = subprocess.run(
+        ["bash", str(SCRIPT), "--all", *extra_args], env=env, capture_output=True, text=True
+    )
+    assert result.returncode == expected_exit
+    invocations = _split_invocations(result.stdout.splitlines())
+    assert len(invocations) == (2 if expect_second_pass else 1)
+
+
+def test_real_pytest_collection_honors_explicit_file_without_full_suite(tmp_path):
+    import sys
+
+    env = _stub_env(tmp_path, 600_000, 0, probe_fails=False, worker_min=1, worker_max=1)
+    # Delegate python to the real interpreter so pytest parses pyproject.toml and collects.
+    (tmp_path / "python").write_text(f'#!/bin/sh\nexec "{sys.executable}" "$@"\n')
+    result = subprocess.run(
+        ["bash", str(SCRIPT), "--collect-only", "-q", "--no-cov", "tests/test_cli_version.py"],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr + result.stdout
+    collected_lines = [line for line in result.stdout.splitlines() if line.startswith("tests/")]
+    assert collected_lines
+    assert all(line.startswith("tests/test_cli_version.py::") for line in collected_lines)

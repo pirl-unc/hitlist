@@ -1,3 +1,31 @@
+# Explicit test selection & bounded PyPI visibility verification — #929, #867, 2026-11-18
+
+Specification: [release-and-test-harness-867-929-spec.md](release-and-test-harness-867-929-spec.md).
+
+- [x] Inspect `test.sh`, `scripts/release_artifacts.py`, live PyPI PEP 691 Simple JSON, and isolated `pip --dry-run --report -` schemas; write specification.
+- [x] Implement `#929` in `test.sh` (delegate default `testpaths` to `pyproject.toml`, compose caller `-m` safely with per-phase markers, handle single-phase pytest exit `5` under filtered `--all` without weakening unfiltered `--all`) and add regressions in `tests/test_test_script.py`.
+- [x] Implement `#867` in `scripts/release_artifacts.py` (bounded monotonic wait across Project JSON + byte verification, PEP 691 Simple JSON, and isolated uncached `pip install --dry-run` resolution without repeating uploads) and add deterministic regressions in `tests/test_release_artifacts.py` and `docs/release-integrity.md`.
+- [x] Bump version to `2.1.19`, refresh `.venv` editable metadata, and pass `./format.sh`, `./lint.sh`, and `./test.sh`.
+- [ ] Open PR (`v2.1.19`), pass hosted CI + release gate, merge, and deploy `2.1.19` to PyPI from clean `main` (exercising the new `#867` visibility verifier live).
+
+## Implementation review (`#929`, `#867`)
+
+- `test.sh` now omits the hardcoded positional `tests` argument so `pyproject.toml`
+  `testpaths = ["tests"]` handles default runs while explicit file/node selectors
+  collect only the requested targets. Caller `-m` expressions are composed with
+  each phase's marker (`(not integration) and (...)` / `(integration) and (...)`)
+  so a trailing `-m` cannot overwrite phase separation or bypass the integration
+  memory guard. Filtered `--all` calls tolerate pytest exit `5` (`no tests
+  collected`) in one phase when the other phase exits `0`, while unfiltered
+  `./test.sh --all` (`deploy.sh`) still requires `0` on both phases.
+- `scripts/release_artifacts.py` now polls within a bounded monotonic deadline
+  (`HITLIST_PYPI_VISIBILITY_TIMEOUT_SECONDS=300`, `HITLIST_PYPI_POLL_INTERVAL_SECONDS=5`)
+  across uncached Project JSON + `files.pythonhosted.org` byte verification,
+  PEP 691 Simple JSON (`application/vnd.pypi.simple.v1+json`), and an isolated
+  uncached `python -I -m pip install --dry-run --ignore-installed --no-deps
+  --no-cache-dir --report -` check without repeating uploads or masking
+  integrity/4xx/5xx failures. Verified live against `hitlist==2.1.18`.
+
 # Presto & MHCflurry training usability and assay applicability — #706, #931, 2026-11-18
 
 Specification: [training-usability-presto-mhcflurry-spec.md](training-usability-presto-mhcflurry-spec.md).
@@ -7,7 +35,7 @@ Specification: [training-usability-presto-mhcflurry-spec.md](training-usability-
 - [x] Implement `hitlist/model_training.py` (`qualify_binding_measurements`, `prepare_affinity_training_data`, `prepare_stability_training_data`, `prepare_ms_training_data`, `to_mhcflurry_presentation_inputs`) with lazy top-level exports and zero-drop row conservation.
 - [x] Fix `#931` in `docs/training-provenance.md` and `docs/index.md`, add `docs/model-training.md` to `mkdocs.yml`, and verify `mkdocs build --strict`.
 - [x] Add unit and `ci-corpus-v4` integration regressions; verify against `human-cohort-corrected-v1`; bump to `2.1.18`; pass `./format.sh`, `./lint.sh`, and `./test.sh`.
-- [ ] Open PR (`v2.1.18`), pass hosted CI + release gate, merge, and deploy to PyPI from clean `main`.
+- [x] Open PR (`v2.1.18`), pass hosted CI + release gate, merge, and deploy to PyPI from clean `main`.
 
 ## Implementation & real-corpus verification review
 

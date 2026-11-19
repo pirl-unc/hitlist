@@ -19,13 +19,32 @@ clean main checkout at that exact commit:
 The publication command verifies the successful manual main workflow, fetches
 its artifact independently, and compares the manifest and both distributions.
 It snapshots the verified bytes for upload, checks any existing PyPI files,
-uploads only missing matching-version files, then downloads and hashes both
-public files. It writes `pypi-<version>-verified.json` beside the artifact directory.
+uploads only missing matching-version files once, and then waits within a
+bounded monotonic deadline (`HITLIST_PYPI_VISIBILITY_TIMEOUT_SECONDS`, default
+`300` seconds; poll interval `HITLIST_PYPI_POLL_INTERVAL_SECONDS`, default `5`
+seconds) for three public checks to succeed:
 
-A matching partial upload can be resumed with the same command. A partial pair
-is never accepted as a completed release. A conflicting file, unexpected file,
-yanked file, or failed metadata/download request stops publication. In particular,
-403/429/500 responses are not treated as an unused version. Never use
+1. Uncached project JSON (`https://pypi.org/pypi/hitlist/<version>/json`) and
+   direct SHA-256/size verification of both downloaded `files.pythonhosted.org`
+   artifacts,
+2. Uncached PEP 691 Simple JSON (`https://pypi.org/simple/hitlist/`) listing
+   both non-yanked files with matching digests and sizes, and
+3. An isolated, uncached installer dry run (`python -I -m pip install --dry-run
+   --ignore-installed --no-deps --no-cache-dir --index-url
+   https://pypi.org/simple/ --report - hitlist==<version>`), without modifying
+   any local or shared Python environment.
+
+Only after all three checks pass does it write `pypi-<version>-verified.json`
+beside the artifact directory (recording observed visibility timestamps and
+noting that one publisher endpoint does not guarantee global CDN propagation).
+
+A matching partial upload can be resumed with the same command, and uploads
+already completed in the current invocation are never repeated while waiting for
+CDN visibility. A partial pair is never accepted as a completed release. Every
+visible file is validated immediately: a conflicting file, unexpected file,
+yanked file, or failed metadata/download request stops publication without
+waiting for remaining files. In particular, 401/403/429/5xx responses are never
+treated as an unused version or retried as missing inventory. Never use
 `--skip-existing` to mask a collision. A conflicting published version requires a
 new version and its own complete gate; public files are immutable.
 
