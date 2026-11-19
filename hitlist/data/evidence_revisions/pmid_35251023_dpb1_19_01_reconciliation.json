@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "revision": "pmid_35251023_dpb1_19_01_reconciliation_v1",
+  "issue": "pirl-unc/hitlist#926",
+  "pmid": 35251023,
+  "pmcid": "PMC8888658",
+  "doi": "10.3389/fimmu.2022.831822",
+  "iedb_reference_iri": "http://www.iedb.org/reference/1040629",
+  "study_label": "Laghmouchi 2022 — HLA-DP promiscuity",
+  "primary_sources_verified": {
+    "article_xml": {
+      "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC8888658/fullTextXML",
+      "size_bytes": 113249,
+      "sha256": "c650f06dd56be6d786bb497c81ee0f5ea66ba319a883d59c3d29cd7c36f7381d",
+      "n_published_k562_lines": 13,
+      "reported_peptide_median": 3131,
+      "reported_peptide_range": [2172, 4449],
+      "n_mentions_dpb1_19_01": 0
+    },
+    "supplementary_appendix_pdf": {
+      "doi": "10.3389/fimmu.2022.831822.s001",
+      "url": "https://ndownloader.figshare.com/files/34077722",
+      "size_bytes": 1010928,
+      "sha256": "4ce9351b45bc32390dacf0e53c578050f8ce697d31adb29dc8b598f89295ff42",
+      "table_locator": "Supplementary Table 1 (page 2)",
+      "n_listed_constructs": 13,
+      "n_mentions_dpb1_19_01": 0,
+      "contains_peptide_list_table": false
+    },
+    "pride_dataset": {
+      "accession": "PXD030591",
+      "sdrf_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2022/02/PXD030591/PXD030591_community_annotated.sdrf.tsv",
+      "sdrf_size_bytes": 12861,
+      "sdrf_sha256": "23895b42403e8cfa7166dc565d98a18047f426f559d43bd7668c0da17850d835",
+      "n_total_files": 34,
+      "n_msf_search_files": 16,
+      "n_raw_files": 17,
+      "n_alleles_in_pride": 13,
+      "n_dpb1_19_01_files": 0,
+      "omitted_run_slot_note": "L2172688 is absent between L2172687a (DPB1*01:01) and L2172689a (DPB1*03:01); no primary metadata links L2172688 to DPB1*19:01."
+    }
+  },
+  "published_k562_constructs": [
+    "HLA-DPA1*01:03/DPB1*02:01",
+    "HLA-DPA1*01:03/DPB1*03:01",
+    "HLA-DPA1*01:03/DPB1*04:01",
+    "HLA-DPA1*01:03/DPB1*04:02",
+    "HLA-DPA1*01:03/DPB1*06:01",
+    "HLA-DPA1*02:01/DPB1*01:01",
+    "HLA-DPA1*02:01/DPB1*09:01",
+    "HLA-DPA1*02:01/DPB1*10:01",
+    "HLA-DPA1*02:01/DPB1*11:01",
+    "HLA-DPA1*02:01/DPB1*13:01",
+    "HLA-DPA1*02:01/DPB1*14:01",
+    "HLA-DPA1*02:01/DPB1*17:01",
+    "HLA-DPA1*02:02/DPB1*05:01"
+  ],
+  "extra_deposited_restriction": "HLA-DPA1*02:02/DPB1*19:01",
+  "corpus_inventory": {
+    "ci_corpus_version": "v4",
+    "ci_corpus_manifest_sha256": "2318bc53cdae228285218991d58fbcc2bd7266327cec1dd3ed9a03b1c944a5b7",
+    "n_total_pmid_observations": 45961,
+    "n_deposited_restrictions": 14,
+    "n_affected_observations": 1322,
+    "n_unique_peptides": 1280,
+    "source_datasets": ["iedb"],
+    "first_provenance_id": "observation:record:iedb:row:4521146",
+    "last_provenance_id": "observation:record:iedb:row:4568080",
+    "first_assay_iri": "http://www.iedb.org/assay/18870849",
+    "last_assay_iri": "http://www.iedb.org/assay/18917801",
+    "n_other_pmids_with_dpb1_19_01": 0,
+    "top_unique_peptide_overlaps_within_pmid": {
+      "HLA-DPA1*02:02/DPB1*05:01": 393,
+      "HLA-DPA1*02:01/DPB1*09:01": 307,
+      "HLA-DPA1*02:01/DPB1*17:01": 305,
+      "HLA-DPA1*02:01/DPB1*10:01": 295,
+      "HLA-DPA1*02:01/DPB1*14:01": 249,
+      "HLA-DPA1*02:01/DPB1*13:01": 153,
+      "HLA-DPA1*02:01/DPB1*01:01": 81
+    }
+  },
+  "assessment": {
+    "reconciliation_status": "unresolved_extra_iedb_restriction_absent_from_primary_paper_and_pride",
+    "is_alias_or_duplicate_of_published_pair": false,
+    "disposition": "preserve_observations_without_curated_sample_arm",
+    "summary": "All 1,322 HLA-DPA1*02:02/DPB1*19:01 observations (1,280 unique peptides) originate exclusively from IEDB reference/1040629. They are not an alias or copy of any of the 13 published alleles (max overlap 393/1,280 with DPB1*05:01), and their count (1,280) falls below the paper's reported 2,172-4,449 range. Because neither PMC8888658, Supplementary Table 1, nor PRIDE PXD030591 documents a DPB1*19:01 construct or search file, Hitlist preserves all 1,322 rows and reported restrictions verbatim while omitting a curated K562 ms_samples arm until primary-source documentation exists."
+  }
+}

@@ -1,3 +1,37 @@
+# Binding method conflict review & PMID 35251023 DPB1*19:01 reconciliation — #871, #926, 2026-11-19
+
+Specification: [binding-and-dp-reconciliation-871-926-spec.md](binding-and-dp-reconciliation-871-926-spec.md).
+
+- [x] Audit `PMID 35251023` (`PMC8888658.xml`, Figshare `34077722` PDF `SHA-256 4ce9351b...`, `PRIDE PXD030591` + SDRF, and `ci-corpus-v4` `observations.parquet`) and `PMID 12135423` (`ci-corpus-v4` `binding.parquet`, live IEDB `1715424`/`1607390`, `corrected-human-cohort`, and `20,267` LOCI controls); write specification.
+- [x] Add `#926` pinned reconciliation receipt `hitlist/data/evidence_revisions/pmid_35251023_dpb1_19_01_reconciliation.json`, update `pmid: 35251023` `arm_resolution_note` in `hitlist/data/pmid_overrides.yaml`, and add unit + `ci-corpus-v4` integration tests in `tests/test_apc_intervention_curation.py`.
+- [x] Add `#871` pinned review ledger `hitlist/data/evidence_revisions/binding_assay_method_reviews.json`, implement `binding_method_review_contract` / `review_binding_assay_methods` / `summarize_binding_method_reviews` in `hitlist/binding_assay_context.py` (lazy exports in `hitlist/__init__.py`), surface optional review columns through `hitlist/model_training.py`, update `docs/model-training.md`, and add unit + `ci-corpus-v4` integration tests in `tests/test_binding_assay_context.py`.
+- [x] Bump version to `2.1.22`, refresh `.venv` editable metadata, run `./format.sh`, `./lint.sh`, and `./test.sh` (plus `mkdocs build --strict`).
+- [ ] Open PR (`v2.1.22`), pass hosted CI + release gate, merge, deploy `2.1.22` to PyPI from clean `main`, and close `#926` and `#871`.
+
+## Implementation & real-corpus verification review (`#871`, `#926`)
+
+- **`#926` (`PMID 35251023`)**: Verified all `1,322` `HLA-DPA1*02:02/DPB1*19:01`
+  observations (`1,280` unique peptides, `assay/18870849..18917801`,
+  `reference/1040629`) in `ci-corpus-v4` against `PMC8888658.xml`, Figshare
+  `34077722` `Supplementary Table 1` (`SHA-256 4ce9351b...`), and `PRIDE
+  PXD030591` (`34` files + SDRF). Confirmed it is not an alias/copy of any of
+  the `13` published constructs (max overlap `393/1,280` with `DPB1*05:01`) and
+  has zero primary-paper or PRIDE construct provenance. Preserved all `1,322`
+  rows verbatim without fabricating a 14th `ms_samples` arm and shipped the
+  pinned reconciliation receipt at
+  `hitlist/data/evidence_revisions/pmid_35251023_dpb1_19_01_reconciliation.json`.
+- **`#871` (`PMID 12135423`)**: Audited all `27,891` `PMID 12135423`-citing
+  rows across `22` IEDB references in `ci-corpus-v4/binding.parquet` (`18,723`
+  `purified MHC/competitive/fluorescence` + `dissociation constant KD` across
+  `20` DTU submissions; `9,150` `purified MHC/direct/fluorescence` + `KD
+  (~EC50)` in `1000422`; `18` in `reference/1021191` `PMID 21169544`) and
+  verified live IEDB tags (`1715424`, `1607390`). Exposed source-scoped conflict
+  annotations, upstream tag-drift detection
+  (`upstream_tag_changed_requires_rereview`), and uncataloged citation guards
+  via `hitlist.binding_assay_context.review_binding_assay_methods` and
+  `hitlist.model_training` without altering raw values, relabeling `KD` to
+  `IC50`, or touching the `20,267` LOCI fluorescence assays.
+
 # Source-qualified NetMHCstabpan 1.0 half-life ingestion — #875, 2026-11-19
 
 Specification: [netmhcstabpan-stability-875-spec.md](netmhcstabpan-stability-875-spec.md).

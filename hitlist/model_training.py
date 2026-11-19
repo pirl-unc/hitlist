@@ -468,6 +468,12 @@ def qualify_binding_measurements(df: pd.DataFrame) -> pd.DataFrame:
     result["normalized_inequality"] = pd.Series(
         np.array(norm_ineqs, dtype=object)[row_idx], index=result.index, dtype="string"
     )
+    if "method_review_status" not in result.columns and any(
+        col in result.columns for col in ("reference_iri", "submission_id", "assay_comments")
+    ):
+        from .binding_assay_context import review_binding_assay_methods
+
+        result = review_binding_assay_methods(result)
     return result
 
 
@@ -503,9 +509,14 @@ def _prepare_quantitative_binding_task(
     target_species = normalize_species(species) if species else ""
     allowed_endpoint_set = set(allowed_endpoints)
 
+    from .binding_assay_context import METHOD_REVIEW_COLUMNS
     from .netmhcstabpan import NETMHCSTABPAN_PROVENANCE_COLUMNS
 
-    optional_source_cols = [c for c in NETMHCSTABPAN_PROVENANCE_COLUMNS if c in qualified.columns]
+    optional_source_cols = [
+        c
+        for c in (*METHOD_REVIEW_COLUMNS, *NETMHCSTABPAN_PROVENANCE_COLUMNS)
+        if c in qualified.columns
+    ]
     accepted_columns = [
         "evidence_row_id",
         "evidence_source_id",
