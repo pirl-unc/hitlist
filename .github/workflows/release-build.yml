@@ -21,6 +21,7 @@ on:
       - tests/test_xdist_cache.py
       - tests/xdist_cache.py
       - test.sh
+      - tests/test_test_script.py
       - hitlist/curation_yaml.py
       - hitlist/supplement.py
       - tests/conftest.py

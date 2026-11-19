@@ -179,18 +179,53 @@ worker_count() {
 }
 
 # Argument parsing: --all expands to include integration tests.
+# Caller -m expressions are composed with each phase's marker so a trailing -m
+# cannot overwrite phase separation or bypass the integration memory guard (#929).
 run_all=0
 retry_memory=0
+has_user_selection=0
+user_markers=()
 extra=()
+expect_marker_arg=0
+past_double_dash=0
 for arg in "$@"; do
-    if [[ "$arg" == "--all" ]]; then
+    if (( expect_marker_arg )); then
+        if [[ -z "$arg" ]]; then
+            log "-m requires a non-empty marker expression"
+            exit 2
+        fi
+        user_markers+=("($arg)")
+        has_user_selection=1
+        expect_marker_arg=0
+    elif (( past_double_dash )); then
+        extra+=("$arg")
+        has_user_selection=1
+    elif [[ "$arg" == "--" ]]; then
+        past_double_dash=1
+        extra+=("$arg")
+    elif [[ "$arg" == "--all" ]]; then
         run_all=1
     elif [[ "$arg" == "--retry-memory" ]]; then
         retry_memory=1
+    elif [[ "$arg" == "-m" ]]; then
+        expect_marker_arg=1
+    elif [[ "$arg" == -m=* ]]; then
+        marker_val="${arg#-m=}"
+        if [[ -z "$marker_val" ]]; then
+            log "-m= requires a non-empty marker expression"
+            exit 2
+        fi
+        user_markers+=("($marker_val)")
+        has_user_selection=1
     else
         extra+=("$arg")
+        has_user_selection=1
     fi
 done
+if (( expect_marker_arg )); then
+    log "-m requires a marker expression"
+    exit 2
+fi
 
 use_xdist=0
 if python -c "import xdist" 2>/dev/null; then
@@ -207,9 +242,22 @@ run_pytest() {
     local per_worker_gb=$1
     local marker=$2
     shift 2
+    local effective_marker="$marker"
+    if (( ${#user_markers[@]} > 0 )); then
+        local joined_user_marker="${user_markers[0]}"
+        local idx
+        for (( idx = 1; idx < ${#user_markers[@]}; idx++ )); do
+            joined_user_marker="${joined_user_marker} and ${user_markers[idx]}"
+        done
+        if [[ -n "$effective_marker" ]]; then
+            effective_marker="(${effective_marker}) and ${joined_user_marker}"
+        else
+            effective_marker="${joined_user_marker}"
+        fi
+    fi
     local filter_args=()
-    if [[ -n "$marker" ]]; then
-        filter_args=(-m "$marker")
+    if [[ -n "$effective_marker" ]]; then
+        filter_args=(-m "$effective_marker")
     fi
     local progress_args=()
     if [[ "$marker" == "integration" ]]; then
@@ -235,15 +283,24 @@ run_pytest() {
             return 1
         fi
         log "Memory preflight for '${marker}' refused; waiting ${TEST_SH_MEMORY_RETRY_DELAY_SECONDS}s and retrying once (#526)"
-        sleep "$TEST_SH_MEMORY_RETRY_DELAY_SECONDS"
+        sleep "$TEST_SH_MEMORY_RETRY_DELAY_SECONDS" || return $?
         attempted_retry=1
     done
     log "cpus=${CPUS} cpu_cap=${CPU_CAP} ${mem_note} per_worker=${per_worker_gb}GB workers=${workers}"
     if (( use_xdist )); then
         xdist_flags=(-n "$workers")
     fi
-    log "→ exec python -m pytest ${xdist_flags[*]:-} ${filter_args[*]:-} ${progress_args[*]:-} $* tests ${extra[*]:-}"
-    local pytest_command=(python -m pytest "${xdist_flags[@]}" "${filter_args[@]}" "${progress_args[@]}" "$@" tests "${extra[@]}")
+    # Delegate default testpaths=["tests"] to pyproject.toml so explicit file
+    # and node selectors do not also collect the entire tests/ tree (#929).
+    log "→ exec python -m pytest ${xdist_flags[*]:-} ${filter_args[*]:-} ${progress_args[*]:-} $* ${extra[*]:-}"
+    local pytest_command=(
+        python -m pytest
+        ${xdist_flags[@]+"${xdist_flags[@]}"}
+        ${filter_args[@]+"${filter_args[@]}"}
+        ${progress_args[@]+"${progress_args[@]}"}
+        "$@"
+        ${extra[@]+"${extra[@]}"}
+    )
     if [[ "$TEST_SH_PROFILE" == "1" && -x /usr/bin/time ]]; then
         log "Resource profile for '${marker}' (peak RSS is a process peak, not summed worker RAM)"
         case "$OS" in
@@ -261,8 +318,27 @@ if (( run_all )); then
     # clean interpreter instead of inheriting whatever ~1500 preceding
     # non-integration tests left allocated, and gets its own (higher)
     # per-worker memory budget rather than the light pass's.
-    run_pytest "$PER_WORKER_GB" "not integration" --cov=hitlist/
-    run_pytest "$INTEGRATION_PER_WORKER_GB" "integration" --cov=hitlist/ --cov-append --cov-report=term-missing
+    if (( has_user_selection )); then
+        # Explicit selectors may match only non-integration or only integration
+        # tests (pytest exit 5 = no tests collected). Allow exit 5 in one phase
+        # when the other phase exits 0; propagate 5 if neither collects tests.
+        light_rc=0
+        run_pytest "$PER_WORKER_GB" "not integration" --cov=hitlist/ || light_rc=$?
+        if (( light_rc != 0 && light_rc != 5 )); then
+            exit "$light_rc"
+        fi
+        integration_rc=0
+        run_pytest "$INTEGRATION_PER_WORKER_GB" "integration" --cov=hitlist/ --cov-append --cov-report=term-missing || integration_rc=$?
+        if (( integration_rc != 0 && integration_rc != 5 )); then
+            exit "$integration_rc"
+        fi
+        if (( light_rc == 5 && integration_rc == 5 )); then
+            exit 5
+        fi
+    else
+        run_pytest "$PER_WORKER_GB" "not integration" --cov=hitlist/
+        run_pytest "$INTEGRATION_PER_WORKER_GB" "integration" --cov=hitlist/ --cov-append --cov-report=term-missing
+    fi
 else
     run_pytest "$PER_WORKER_GB" "not integration" --cov=hitlist/ --cov-report=term-missing
 fi

@@ -399,6 +399,40 @@ def publication(tmp_path, monkeypatch):
             "yanked": False,
         }
 
+    def simple_item(name):
+        entry = public[name]
+        return {
+            "filename": name,
+            "hashes": {"sha256": entry["digests"]["sha256"]},
+            "size": entry["size"],
+            "url": entry["url"],
+            "yanked": entry["yanked"],
+        }
+
+    def installer_report(version):
+        wheel_name = f"hitlist-{version}-py3-none-any.whl"
+        if wheel_name not in public:
+            raise release_artifacts.IncompleteInventoryError(
+                f"Uncached public installer cannot yet resolve hitlist=={version}"
+            )
+        entry = public[wheel_name]
+        return {
+            "version": "1",
+            "pip_version": "24.2",
+            "install": [
+                {
+                    "is_yanked": bool(entry["yanked"]),
+                    "metadata": {"name": "hitlist", "version": version},
+                    "download_info": {
+                        "url": entry["url"],
+                        "archive_info": {
+                            "hashes": {"sha256": entry["digests"]["sha256"]},
+                        },
+                    },
+                }
+            ],
+        }
+
     def run(command, **kwargs):
         calls.append(command)
         if command[:2] == ["twine", "upload"]:
@@ -407,6 +441,12 @@ def publication(tmp_path, monkeypatch):
                 public[Path(path).name] = item(Path(path).name)
 
     monkeypatch.setattr(release_artifacts, "public_files", lambda version: public.copy())
+    monkeypatch.setattr(
+        release_artifacts,
+        "simple_files",
+        lambda version: {name: simple_item(name) for name in public},
+    )
+    monkeypatch.setattr(release_artifacts, "run_installer_dry_run", installer_report)
     monkeypatch.setattr(
         release_artifacts.urllib.request, "urlopen", lambda *a, **k: io.BytesIO(payload)
     )
@@ -421,6 +461,16 @@ def test_publication_uploads_only_tested_pair_and_verifies_downloads(publication
     assert [command[:2] for command in calls] == [["twine", "check"], ["twine", "upload"]]
     receipt = json.loads((directory.parent / "pypi-1.2.3-verified.json").read_text())
     assert receipt["public_files"] == manifest["files"]
+    assert set(receipt["visibility"]) == {
+        "project_json",
+        "simple_json",
+        "installer_dry_run",
+        "scope",
+    }
+    assert (
+        receipt["visibility"]["installer_dry_run"]["resolved_filename"]
+        == "hitlist-1.2.3-py3-none-any.whl"
+    )
     # Repeating a successful publication does not upload anything again.
     calls.clear()
     release_artifacts.publish_distributions(directory, manifest)
@@ -486,3 +536,324 @@ def test_only_pypi_not_found_means_unpublished(monkeypatch, status):
     else:
         with pytest.raises(urllib.error.HTTPError):
             release_artifacts.public_files("1.2.3")
+
+
+def test_delayed_visibility_across_project_simple_and_installer_waits_without_reupload(
+    publication, monkeypatch, capsys
+):
+    import io
+
+    directory, manifest, _public, calls, item = publication
+    wheel = "hitlist-1.2.3-py3-none-any.whl"
+    sdist = "hitlist-1.2.3.tar.gz"
+    payload = (directory / wheel).read_bytes()
+
+    uploaded = False
+
+    def run_upload(command, **kwargs):
+        nonlocal uploaded
+        calls.append(command)
+        if command[:2] == ["twine", "upload"]:
+            uploaded = True
+
+    monkeypatch.setattr(release_artifacts.subprocess, "run", run_upload)
+
+    project_states = iter(
+        [
+            {},  # pre-upload check
+            {},  # post-upload poll 1: 404
+            {wheel: item(wheel)},  # poll 2: partial (wheel only)
+            {wheel: item(wheel), sdist: item(sdist)},  # poll 3: complete
+        ]
+    )
+    monkeypatch.setattr(release_artifacts, "public_files", lambda version: next(project_states))
+
+    def to_simple(entry):
+        return {
+            "filename": entry["filename"],
+            "hashes": {"sha256": entry["digests"]["sha256"]},
+            "size": entry["size"],
+            "url": entry["url"],
+            "yanked": False,
+        }
+
+    simple_states = iter(
+        [
+            {wheel: to_simple(item(wheel))},  # poll 3: simple still missing sdist
+            {wheel: to_simple(item(wheel)), sdist: to_simple(item(sdist))},  # poll 4: complete
+        ]
+    )
+    monkeypatch.setattr(release_artifacts, "simple_files", lambda version: next(simple_states))
+
+    installer_calls = 0
+
+    def delayed_installer(version):
+        nonlocal installer_calls
+        installer_calls += 1
+        if installer_calls == 1:
+            raise release_artifacts.IncompleteInventoryError(
+                f"Uncached public installer cannot yet resolve hitlist=={version}"
+            )
+        return {
+            "version": "1",
+            "pip_version": "26.3",
+            "install": [
+                {
+                    "is_yanked": False,
+                    "metadata": {"name": "hitlist", "version": version},
+                    "download_info": {
+                        "url": item(wheel)["url"],
+                        "archive_info": {
+                            "hashes": {"sha256": item(wheel)["digests"]["sha256"]},
+                        },
+                    },
+                }
+            ],
+        }
+
+    monkeypatch.setattr(release_artifacts, "run_installer_dry_run", delayed_installer)
+
+    downloaded_urls = []
+
+    def track_downloads(url_or_req, *args, **kwargs):
+        downloaded_urls.append(str(url_or_req))
+        return io.BytesIO(payload)
+
+    monkeypatch.setattr(release_artifacts.urllib.request, "urlopen", track_downloads)
+
+    now = 100.0
+    slept = []
+
+    def fake_sleep(seconds):
+        nonlocal now
+        slept.append(seconds)
+        now += seconds
+
+    release_artifacts.publish_distributions(
+        directory,
+        manifest,
+        timeout_seconds=60.0,
+        poll_interval_seconds=5.0,
+        sleep_fn=fake_sleep,
+        monotonic_fn=lambda: now,
+    )
+    assert uploaded
+    assert [command[:2] for command in calls] == [["twine", "check"], ["twine", "upload"]]
+    # Wheel downloaded once during partial poll and not re-downloaded on complete poll; sdist once.
+    assert downloaded_urls == [item(wheel)["url"], item(sdist)["url"]]
+    assert slept == [5.0, 5.0, 5.0, 5.0]
+    err = capsys.readouterr().err
+    assert "project_json" in err and "simple_json" in err and "installer_dry_run" in err
+    receipt = json.loads((directory.parent / "pypi-1.2.3-verified.json").read_text())
+    assert receipt["visibility"]["installer_dry_run"]["pip_version"] == "26.3"
+
+
+def test_visibility_wait_respects_bounded_deadline_and_leaves_no_receipt(publication, monkeypatch):
+    directory, manifest, _, calls, _ = publication
+    monkeypatch.setattr(release_artifacts, "public_files", lambda version: {})
+    now = 0.0
+    slept = []
+
+    def fake_sleep(seconds):
+        nonlocal now
+        slept.append(seconds)
+        now += seconds
+
+    with pytest.raises(ValueError, match=r"Timed out after 12\.0s.*project_json"):
+        release_artifacts.publish_distributions(
+            directory,
+            manifest,
+            timeout_seconds=12.0,
+            poll_interval_seconds=5.0,
+            sleep_fn=fake_sleep,
+            monotonic_fn=lambda: now,
+        )
+    assert [command[:2] for command in calls] == [["twine", "check"], ["twine", "upload"]]
+    assert slept == [5.0, 5.0, 2.0]
+    assert not (directory.parent / "pypi-1.2.3-verified.json").exists()
+
+
+@pytest.mark.parametrize("conflict", ["yanked_partial", "bad_hash_partial", "http_503"])
+def test_conflicts_and_server_errors_during_wait_fail_immediately_without_sleeping(
+    publication, monkeypatch, conflict
+):
+    import urllib.error
+
+    directory, manifest, _, calls, item = publication
+    wheel = "hitlist-1.2.3-py3-none-any.whl"
+    poll_count = 0
+
+    def post_upload_conflict(version):
+        nonlocal poll_count
+        poll_count += 1
+        if poll_count == 1:
+            return {}
+        if conflict == "http_503":
+            raise urllib.error.HTTPError("https://pypi.org", 503, "unavailable", {}, None)
+        entry = item(wheel)
+        if conflict == "yanked_partial":
+            entry["yanked"] = True
+        else:
+            entry["digests"]["sha256"] = "f" * 64
+        return {wheel: entry}
+
+    monkeypatch.setattr(release_artifacts, "public_files", post_upload_conflict)
+    slept = []
+    expected_exc = urllib.error.HTTPError if conflict == "http_503" else ValueError
+    with pytest.raises(expected_exc):
+        release_artifacts.publish_distributions(
+            directory,
+            manifest,
+            timeout_seconds=60.0,
+            poll_interval_seconds=5.0,
+            sleep_fn=slept.append,
+        )
+    assert slept == []
+    assert [command[:2] for command in calls] == [["twine", "check"], ["twine", "upload"]]
+    assert not (directory.parent / "pypi-1.2.3-verified.json").exists()
+
+
+def test_simple_files_and_installer_dry_run_enforce_version_isolation_and_integrity(monkeypatch):
+    import io
+    import urllib.error
+
+    wheel = "hitlist-1.2.3-py3-none-any.whl"
+    sdist = "hitlist-1.2.3.tar.gz"
+    manifest = {
+        "version": "1.2.3",
+        "files": {
+            wheel: {"sha256": "a" * 64, "size_bytes": 100},
+            sdist: {"sha256": "b" * 64, "size_bytes": 200},
+        },
+    }
+
+    class FakeSimpleResponse(io.StringIO):
+        headers = {"Content-Type": "application/vnd.pypi.simple.v1+json"}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    seen_requests = []
+
+    def fake_urlopen(req, timeout=30):
+        seen_requests.append(req)
+        payload = {
+            "files": [
+                # Neighbouring versions (including prefix-overlapping 1.2.30) must be ignored.
+                {
+                    "filename": "hitlist-1.2.30-py3-none-any.whl",
+                    "hashes": {"sha256": "c" * 64},
+                    "size": 999,
+                    "url": "https://files.pythonhosted.org/hitlist-1.2.30-py3-none-any.whl",
+                    "yanked": False,
+                },
+                {
+                    "filename": wheel,
+                    "hashes": {"sha256": "a" * 64},
+                    "size": 100,
+                    "url": f"https://files.pythonhosted.org/{wheel}",
+                    "yanked": False,
+                },
+                {
+                    "filename": sdist,
+                    "hashes": {"sha256": "b" * 64},
+                    "size": 200,
+                    "url": f"https://files.pythonhosted.org/{sdist}",
+                    "yanked": False,
+                },
+            ]
+        }
+        return FakeSimpleResponse(json.dumps(payload))
+
+    monkeypatch.setattr(release_artifacts.urllib.request, "urlopen", fake_urlopen)
+    verified_simple = release_artifacts.verify_simple_files(manifest)
+    assert set(verified_simple) == {wheel, sdist}
+    assert seen_requests[0].headers["Accept"] == "application/vnd.pypi.simple.v1+json"
+    assert seen_requests[0].headers["Cache-control"] == "no-cache"
+
+    # HTML fallback must be rejected rather than silently parsed.
+    class HTMLResponse(FakeSimpleResponse):
+        headers = {"Content-Type": "text/html"}
+
+    monkeypatch.setattr(
+        release_artifacts.urllib.request, "urlopen", lambda *a, **k: HTMLResponse("<html></html>")
+    )
+    with pytest.raises(ValueError, match="Unexpected Simple index content type"):
+        release_artifacts.simple_files("1.2.3")
+
+    # HTTP 404 -> {}, HTTP 429 -> HTTPError.
+    monkeypatch.setattr(
+        release_artifacts.urllib.request,
+        "urlopen",
+        lambda *a, **k: (_ for _ in ()).throw(
+            urllib.error.HTTPError("https://pypi.org/simple/hitlist/", 404, "missing", {}, None)
+        ),
+    )
+    assert release_artifacts.simple_files("1.2.3") == {}
+
+    # Real run_installer_dry_run command shape & error classification:
+    seen_commands = []
+
+    def fake_pip_missing(command, **kwargs):
+        seen_commands.append(command)
+        return subprocess.CompletedProcess(
+            command,
+            1,
+            stdout="",
+            stderr="ERROR: No matching distribution found for hitlist==1.2.3",
+        )
+
+    monkeypatch.setattr(release_artifacts.subprocess, "run", fake_pip_missing)
+    with pytest.raises(release_artifacts.IncompleteInventoryError):
+        release_artifacts.run_installer_dry_run("1.2.3")
+    cmd = seen_commands[0]
+    for required_flag in ("-I", "--dry-run", "--ignore-installed", "--no-deps", "--no-cache-dir"):
+        assert required_flag in cmd
+    assert cmd[-1] == "hitlist==1.2.3"
+
+    # HTTP 403 inside pip output must NOT be misclassified as IncompleteInventoryError.
+    monkeypatch.setattr(
+        release_artifacts.subprocess,
+        "run",
+        lambda command, **kw: subprocess.CompletedProcess(
+            command,
+            1,
+            stdout="",
+            stderr="WARNING: HTTP error 403\nERROR: No matching distribution found for hitlist==1.2.3",
+        ),
+    )
+    with pytest.raises(ValueError) as exc_info:
+        release_artifacts.run_installer_dry_run("1.2.3")
+    assert not isinstance(exc_info.value, release_artifacts.IncompleteInventoryError)
+
+    # Hash mismatch in pip report must fail closed.
+    monkeypatch.setattr(
+        release_artifacts.subprocess,
+        "run",
+        lambda command, **kw: subprocess.CompletedProcess(
+            command,
+            0,
+            stdout=json.dumps(
+                {
+                    "version": "1",
+                    "pip_version": "26.3",
+                    "install": [
+                        {
+                            "is_yanked": False,
+                            "metadata": {"name": "hitlist", "version": "1.2.3"},
+                            "download_info": {
+                                "url": f"https://files.pythonhosted.org/{wheel}",
+                                "archive_info": {"hashes": {"sha256": "0" * 64}},
+                            },
+                        }
+                    ],
+                }
+            ),
+            stderr="",
+        ),
+    )
+    with pytest.raises(ValueError, match="conflicting sha256"):
+        release_artifacts.verify_installer_resolution(manifest)
