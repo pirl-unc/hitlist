@@ -45,6 +45,22 @@ reservation only after removing its files. If a child exhausts a reservation bef
 any import, the builder cleans up both children and explicitly retries serially.
 Other errors abort publication. Existing published data remains intact.
 
+### Parent-only `SIGTERM` cleanup contract ([#881](https://github.com/pirl-unc/hitlist/issues/881))
+
+When running on the main thread with Python's default `SIGTERM` handler
+(`signal.SIG_DFL`), both parallel source scanning (`hitlist._source_scan`) and
+mapping worker pools (`hitlist.mappings` supervised prefetch and
+`ProcessPoolExecutor`) install a scoped handler via
+`hitlist._worker_lifecycle.graceful_sigterm_scope()` that converts a parent-only
+`SIGTERM` into `ParentTerminated` (`SystemExit(128 + SIGTERM)`). All `finally`
+blocks run, promptly terminating owned worker children, deleting owned scratch
+directories, and leaving the previous published generation intact without
+advertising partial output as complete. Custom caller `SIGTERM` handlers,
+`signal.SIG_IGN`, and non-main-thread execution are preserved without
+modification. Uncatchable termination (`SIGKILL`, kernel OOM killer, or abrupt
+container/host stop) cannot run Python cleanup; transactional generation
+publication still ensures the previous published generation stays intact.
+
 ## Controlled full-build comparison
 
 The complete `a71f2e9` candidate and baseline `ff5247f` run in

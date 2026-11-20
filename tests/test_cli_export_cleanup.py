@@ -127,3 +127,55 @@ def test_legacy_export_subcommands_emit_deprecation_notices(monkeypatch, capsys)
         captured = capsys.readouterr()
         assert "deprecated" in captured.err
         assert hint in captured.err
+
+
+def test_promoted_top_level_commands_do_not_emit_export_deprecation_notice(monkeypatch, capsys):
+    """#893: `hitlist samples`, `proteomics`, and `expression` must not warn
+    the user to switch away from `hitlist export ...` when they already used
+    the canonical top-level command."""
+    import pandas as pd
+
+    from hitlist import cli
+
+    monkeypatch.setattr("hitlist.cli.legacy_data_dir_notice", lambda: None)
+    monkeypatch.setattr("hitlist.export.generate_ms_samples_table", lambda **kw: pd.DataFrame())
+    monkeypatch.setattr("hitlist.cli_export._export_bulk", lambda args: pd.DataFrame())
+    monkeypatch.setattr("hitlist.line_expression.load_line_expression", lambda **kw: pd.DataFrame())
+
+    for argv in (
+        ["hitlist", "samples"],
+        ["hitlist", "proteomics"],
+        ["hitlist", "expression"],
+    ):
+        monkeypatch.setattr(sys, "argv", argv)
+        cli.main()
+        captured = capsys.readouterr()
+        assert "deprecated" not in captured.err, (
+            f"{argv} emitted unexpected deprecation: {captured.err!r}"
+        )
+
+
+def test_legacy_export_aliases_for_promoted_commands_still_emit_deprecation_notice(
+    monkeypatch, capsys
+):
+    """`hitlist export samples/bulk-proteomics/line-expression` must still emit
+    deprecation notices pointing to the promoted top-level commands (#893)."""
+    import pandas as pd
+
+    from hitlist import cli
+
+    monkeypatch.setattr("hitlist.cli.legacy_data_dir_notice", lambda: None)
+    monkeypatch.setattr("hitlist.export.generate_ms_samples_table", lambda **kw: pd.DataFrame())
+    monkeypatch.setattr("hitlist.cli_export._export_bulk", lambda args: pd.DataFrame())
+    monkeypatch.setattr("hitlist.line_expression.load_line_expression", lambda **kw: pd.DataFrame())
+
+    for subcmd, replacement in (
+        ("samples", "hitlist samples"),
+        ("bulk-proteomics", "hitlist proteomics"),
+        ("line-expression", "hitlist expression"),
+    ):
+        monkeypatch.setattr(sys, "argv", ["hitlist", "export", subcmd])
+        cli.main()
+        captured = capsys.readouterr()
+        assert f"`hitlist export {subcmd}` is deprecated" in captured.err
+        assert replacement in captured.err

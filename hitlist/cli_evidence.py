@@ -25,6 +25,15 @@ def add_evidence_parsers(sub, export_sub):
     )
     cta.add_argument("--min-tpm", type=float, default=2.0)
     cta.add_argument("--cta-definition", choices=["strict", "extended"], default="strict")
+    cta.add_argument(
+        "--cta-policy",
+        choices=["legacy", "target_sets", "cta_selection", "target_selection"],
+        default="legacy",
+        help=(
+            "Explicit OncoRef CTA policy selector (default: legacy historical oncoref.cta; "
+            "upgrading oncoref never implicitly switches policies)"
+        ),
+    )
     cta.add_argument("--ensembl-release", type=int, default=112)
     exclusions = cta.add_mutually_exclusive_group()
     exclusions.add_argument(
@@ -89,6 +98,7 @@ def handle_evidence(args):
                 level=args.expression_level,
                 min_tpm=args.min_tpm,
                 definition=args.cta_definition,
+                cta_policy=args.cta_policy,
                 ensembl_release=args.ensembl_release,
                 exclude_gene_patterns=()
                 if args.no_gene_exclusions
@@ -96,8 +106,10 @@ def handle_evidence(args):
                 allow_genes=tuple(args.allow_gene or ["MAGEA4"]),
             )
             expression = json.loads(path.read_text())["expression"]
+            policy_label = (expression.get("cta_policy") or {}).get("policy_id", "")
+            policy_note = f"; policy={policy_label}" if policy_label else ""
             print(
-                f"Expression: {expression['input']['path']} ({expression['level']}; ID={expression['id_column']}; TPM={expression['tpm_column']})"
+                f"Expression: {expression['input']['path']} ({expression['level']}; ID={expression['id_column']}; TPM={expression['tpm_column']}{policy_note})"
             )
         print(f"Wrote verified evidence bundle: {path}")
     except (ValueError, OSError, ImportError) as error:

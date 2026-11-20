@@ -482,15 +482,23 @@ def _export_peptide_summary(args: argparse.Namespace):
 
 def _export(args: argparse.Namespace) -> None:
     """Dispatch ``hitlist export <subcommand>``."""
-    run_export(args, args.export_command)
+    run_export(args, args.export_command, via_export=True)
 
 
-def run_export(args: argparse.Namespace, cmd: str | None) -> None:
+def run_export(
+    args: argparse.Namespace,
+    cmd: str | None,
+    *,
+    via_export: bool | None = None,
+) -> None:
     """Run export subcommand *cmd* against parsed *args* and emit the table.
 
     Public so the promoted ``hitlist samples`` / ``proteomics`` / ``expression``
     commands (:mod:`hitlist.cli_samples`) share the implementation of the legacy
     ``hitlist export`` subcommands without rewriting ``args.export_command``.
+    Set ``via_export=False`` when invoked through a promoted top-level command so
+    users are not told to switch away from ``hitlist export`` when they already
+    invoked the canonical command (#893).
     """
     import time as _time
 
@@ -510,6 +518,10 @@ def run_export(args: argparse.Namespace, cmd: str | None) -> None:
         return
     t0 = _time.perf_counter()
 
+    invoked_via_export = (
+        getattr(args, "command", "export") == "export" if via_export is None else bool(via_export)
+    )
+
     # Deprecation notices for legacy export subcommands.  Behavior is
     # preserved for one release; these notices steer users at the
     # canonical replacement for historical 1.x export commands.
@@ -523,7 +535,7 @@ def run_export(args: argparse.Namespace, cmd: str | None) -> None:
         "bulk-proteomics": "hitlist proteomics",
         "line-expression": "hitlist expression",
     }
-    if cmd in _deprecated_export:
+    if invoked_via_export and cmd in _deprecated_export:
         print(
             f"Note: `hitlist export {cmd}` is deprecated; use `{_deprecated_export[cmd]}` instead.",
             file=sys.stderr,

@@ -59,8 +59,21 @@ same defaults. Actual expression measurements must be supplied: no patient
 values are synthesized. Values must be TPM; counts and FPKM are never inferred
 as TPM. The default minimum is 2 TPM (`--min-tpm`).
 
-The default definition is OncoRef's strict CTA set; `--cta-definition extended`
-selects its extended set. Original cells, input row numbers, file hashes,
+The default policy (`--cta-policy legacy`, `cta_policy="legacy"`) keeps
+OncoRef's historical 624-gene `oncoref.cta` strict CTA set (`--cta-definition
+extended` selects its extended set) so upgrading `oncoref` never implicitly
+changes a cached target or exclusion set ([#852](https://github.com/pirl-unc/hitlist/issues/852)).
+Pass `--cta-policy cta_selection`, `--cta-policy target_sets`, or
+`--cta-policy target_selection` to adopt an explicit versioned OncoRef owner
+policy (`oncoref.cta_selection`, `oncoref.target_sets`/`oncoref.cta_policy`, or
+`oncoref.target_selection`). Non-legacy policies record `policy_id`,
+`reference_id`, `source_snapshot_id`, and category counts in
+`manifest.json["expression"]["cta_policy"]`, retain independent profile columns
+in `cta_reference.parquet`, and annotate `peptides.parquet` with
+`has_policy_unsafe_match` strictly from `Unsafe` genes (`Other`, `Neither`, and
+`Unassessed` are never folded into `Unsafe`). Donor-resolved observed-peptide
+tissue blacklists remain independent hard exclusions regardless of the chosen
+CTA policy. Original cells, input row numbers, file hashes,
 canonical identities, measured TPM and selection reasons are retained.
 Missing TPM is unmeasured. Duplicate resolved identifiers fail rather than
 silently sum aliases. A gene TPM does not establish an expressed isoform.

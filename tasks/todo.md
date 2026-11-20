@@ -1,3 +1,21 @@
+# Small high-leverage fixes: OncoRef CTA policy (#852), CLI deprecation notice (#893), build-worker parent-only SIGTERM cleanup (#881) — 2026-11-20
+
+Specification: [small-fixes-852-893-881-spec.md](small-fixes-852-893-881-spec.md).
+
+- [x] `#852`: Add explicit `cta_policy` selection (`legacy`, `target_sets`, `cta_selection`, `target_selection`) to `hitlist/cta_expression.py`, `hitlist/evidence_bundle.py`, and `hitlist/cli_evidence.py`, recording policy/reference receipts and verifying them in `verify_evidence_bundle()` while preserving backward compatibility and independent tissue blacklists.
+- [x] `#893`: Make `hitlist export <cmd>` deprecation notice in `hitlist/cli_export.py` conditional on being invoked via `hitlist export ...`, and pass `via_export=False` from `hitlist/cli_samples.py`.
+- [x] `#881`: Implement `hitlist/_worker_lifecycle.py` (`ParentTerminated`, `graceful_sigterm_scope`, `terminate_process_pool`) and wire it into `hitlist/_source_scan.py` and `hitlist/mappings.py`, documenting graceful-termination boundaries.
+- [x] Add unit and bounded real-subprocess regressions (`tests/test_cta_evidence_bundle.py`, `tests/test_cli_export_cleanup.py`, `tests/test_worker_sigterm.py`), regenerate CLI help snapshot, bump `hitlist/version.py` to `2.1.24`, update `.github/workflows/release-build.yml`, and pass ruff lint/format, strict docs build, and focused + live OncoRef tests.
+- [ ] Open PR (`v2.1.24`), pass hosted CI + release gate, merge, deploy `2.1.24` to PyPI from clean `main`, and post receipts on `#852`, `#893`, and `#881`.
+
+## Review (`#852`, `#893`, `#881`)
+
+- **`#852` (OncoRef CTA policy choice)**: Verified default `cta_policy="legacy"` preserves the historical 624-gene `oncoref.cta` provider and archived bundle verification; verified live against local OncoRef (`target_sets` 213 CTA / 2,179 Neither / 17,705 Unsafe; `cta_selection` 655 CTA / 1,034 Other / 18,410 Unsafe; `target_selection` 358 CTA / 130 RA-only / 74 CA-only / 1,130 Other / 18,407 Unsafe) with full Parquet round-trip and tamper-rejection verifier checks.
+- **`#893` (CLI deprecation notice)**: `hitlist samples`, `hitlist proteomics`, and `hitlist expression` no longer emit misleading `'hitlist export ... is deprecated'` notices, while `hitlist export samples/bulk-proteomics/line-expression` and older aliases continue emitting them.
+- **`#881` (Build-worker parent-only SIGTERM cleanup)**: Bounded real-subprocess regressions confirm parent-only `SIGTERM` exits with `143`, stops owned source-scan, prefetch, and mapping `ProcessPoolExecutor` workers promptly, deletes owned scratch, and preserves pre-existing published generations while preserving custom caller handlers, `SIG_IGN`, and non-main-thread execution.
+
+---
+
 # APC/cytokine contrast qualification & DLBCL dose-unit conflict preservation — #904, #930, 2026-11-19
 
 Specification: [apc-cytokine-contrasts-904-930-spec.md](apc-cytokine-contrasts-904-930-spec.md).
