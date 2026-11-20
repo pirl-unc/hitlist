@@ -11684,7 +11684,7 @@
         - cells_untreated
         - cells_flucloxacillin
     ms_samples:
-      - sample_label: "cells (untreated)"
+      - sample_label: "B721-5701 cells (untreated)"
         sample_group: "B721-5701"
         n_samples: 2
         source: "721.221 transduced with HLA-B*57:01 (B721-5701)"
@@ -11698,7 +11698,7 @@
         condition_mhc_context: "monoallelic"
         mhc_class: "I"
         mhc: "HLA-B*57:01"
-      - sample_label: "cells + flucloxacillin"
+      - sample_label: "B721-5701 cells + flucloxacillin"
         sample_group: "B721-5701"
         n_samples: 2
         source: "721.221 transduced with HLA-B*57:01 (B721-5701)"

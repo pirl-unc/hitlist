@@ -15,9 +15,9 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-import yaml
 
 from .apc_contrasts import dlbcl_treatment_conflict_contract
+from .curation_yaml import load_curation_yaml
 from .provenance import file_digest
 
 _DATA_DIR = Path(__file__).parent / "data"
@@ -47,7 +47,7 @@ def dlbcl_supplement_contract() -> dict[str, Any]:
 
 def abelin_dm_source_contract() -> dict[str, Any]:
     """Return a fresh copy of the pinned Abelin 2019 MAPTAC Class-II ±DM (#853) source receipt."""
-    return yaml.safe_load(_ABELIN_DM_SOURCE_PATH.read_text(encoding="utf-8"))
+    return load_curation_yaml(_ABELIN_DM_SOURCE_PATH)
 
 
 def _string_col(df: pd.DataFrame, name: str) -> pd.Series:
