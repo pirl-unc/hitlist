@@ -238,6 +238,41 @@ IL-2/OKT3-expanded melanoma TILs in `PMID 28832583`).
   peptide detection) and annotated via `dose_conflict_status` without dropping
   usable Figure 5 detection evidence.
 
+### Drug perturbation, HLA-DM arm recovery, and Atlas prediction provenance (`#901`, `#902`, `#853`, `#855`)
+
+- **Abelin 2019 MAPTAC Class-II ±HLA-DM (`PMID 31495665`, `#853`)**:
+  Condition-resolved arms recovered directly from `DataS1B` of
+  `1-s2.0-S1074761319303632-mmc2.xlsx` ship in
+  `abelin_2019_maptac_class2_dm_arms.csv.gz` (`45,636` rows including `2,133`
+  peptides shared across `dm-` and `dm+`, preserving complete
+  `HLA-DPA1*01:03/DPB1*06:01` and `HLA-DQA1*01:02/DQB1*06:04` pairs). Use
+  `prepare_hla_dm_contrast_data()` to query paired ±HLA-DM contrasts across
+  both Abelin 2019 (`31495665`) and Meurer 2021 (`33025005`) while distinguishing
+  no added HLA-DM co-transfection from genetic DM knockout and keeping
+  single-arm DM-only studies (`37301199`) out of fabricated pairings.
+- **HLA Ligand Atlas computational restriction provenance (`PMID 33858848`, `#855`)**:
+  Scoped `restriction_evidence_rules` mark resolved single-allele MS rows as
+  `predicted` (documenting `NetMHCpan-4.1`/`SYFPEITHI` for HLA-I and
+  `NetMHCIIpan-4.0`/`MixMHC2pred` for HLA-II in
+  `atlas_prediction_provenance_contract()`), while keeping multi-allele donor
+  candidate sets at `unknown` and preserving `experimental` on any separately
+  measured binding assay.
+- **Flucloxacillin condition membership and peptide adducts (`PMID 33633747`, `#902`)**:
+  `prepare_flucloxacillin_evidence_views()` separates an unmodified-only
+  training subset from a modification-aware view preserving confirmed Table 1
+  covalent `+453.06 Da` FLX-haptenated lysine sites (`KAAKLKEKY@K4`,
+  `RTKKVGIVGKY@K4`, `TAAQITQRKW@K9`), alternative-site IEDB
+  `Filler Assay - delete.` rows, and shared `Untreated; FLX-Treated` rows
+  without collapsing modified and unmodified molecular forms.
+- **DLBCL Tables 3 & 5 supplement reconciliation (`PMID 35561310`, `#901`)**:
+  `load_dlbcl_supplement_rows()` and `reconcile_dlbcl_supplements_with_iedb()`
+  recover all `10,507` Class I + `5,203` Class II worksheet rows (including
+  `DB_untreated` `7` Class I + `20` Class II controls) with NetMHCpan 4.0
+  `predicted` provenance, literal header variants (`lengtg`, `Query #:z`),
+  same-line `IFNG` conditional comparators for `IFNG+DAC`/`IFNG+TAZ`, and
+  explicit `no_public_intensity_or_replicate_export` status alongside `#925`'s
+  Stopfer palbociclib reporter quantities.
+
 ## Assay preparation and biological-independence audits
 
 Every table returned by `generate_training_table`, `qualify_binding_measurements`,

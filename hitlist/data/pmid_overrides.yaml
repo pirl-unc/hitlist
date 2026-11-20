@@ -227,6 +227,11 @@
       axes are orthogonal, so no matcher can bridge them. 255,179 rows, the single largest
       block of arm-ambiguity in the corpus. The donor arms are still correct and useful --
       they carry the genotypes -- they simply cannot be matched per row.
+    restriction_evidence_rules:
+      - condition:
+          Assay Method: cellular MHC/mass spectrometry
+          Response Measured: ligand presentation
+        evidence: predicted
     study_label: Marcu 2021 — HLA Ligand Atlas
     title: "HLA Ligand Atlas: a benign reference of HLA-presented peptides to improve T-cell-based cancer immunotherapy"
     override: healthy
@@ -234,9 +239,15 @@
       21 subjects (14 autopsy + 5 living thymus + 2 living ovary), 227 samples across 29 tissues (abstract
       says 227, Results section says 225 — likely 2 excluded after QC). Gold standard benign reference. None
       of the subjects was diagnosed with any malignant disease. Paired HLA-I (198 samples) and HLA-II (220
-      samples). Per-donor HLA from hla-ligand-atlas.org/rel/2020.12/donors.tsv.gz. Class II mhc entries
-      include only DRB alleles (not DP/DQ) to match the DRB-only resolution in the IEDB mhc_restriction
-      column for this PMID.
+      samples). Per-donor HLA from hla-ligand-atlas.org/rel/2020.12/donors.tsv.gz. PMC8054196 Methods
+      ('HLA binding prediction') establishes that single-allele peptide-HLA associations in the MS ligandome
+      deposit are computational predictions (SYFPEITHI sSYF>=0.5 / NetMHCpan-4.1 srank<=2.0 for HLA-I;
+      NetMHCIIpan-4.0 srank<=5.0 / MixMHC2pred srank<=5.0 for HLA-II), not experimental binding measurements
+      (#855; hitlist/data/evidence_revisions/hla_ligand_atlas_33858848_prediction_provenance.json). Scoped
+      restriction_evidence_rules mark only resolved single-allele MS rows as predicted while preserving
+      unknown on multi-allele donor candidate sets and experimental on any separately measured binding assays.
+      Class II mhc entries include only DRB alleles (not DP/DQ) to match the DRB-only resolution in the
+      IEDB mhc_restriction column for this PMID.
     # Count fields carry an explicit unit suffix (house rule); these were
     # bare `tissues:`/`samples:` and, like `donors:`, are read by nothing (#444).
     donors: 21
@@ -4894,8 +4905,11 @@
         condition: "unperturbed — mono-allelic; no HLA-DM co-transfection"
         condition_id: "maptac_hla_drb1_12_01_dm"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "Immunity 2019 Table S1B DataS1B (MAPTAC_DRB1*12:01_dm-)"
         condition_control: "untreated"
+        condition_control_for: "maptac_hla_drb1_12_01_dm_2"
+        condition_background: "MAPTAC_tagged_HLA_transfection"
         condition_transfection: "none"
         condition_mhc_context: "monoallelic"
         mhc_class: II
@@ -4908,8 +4922,10 @@
         condition: "HLA-DM co-transfection — mono-allelic peptide editing"
         condition_id: "maptac_hla_drb1_12_01_dm_2"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "Immunity 2019 Table S1B DataS1B (MAPTAC_DRB1*12:01_dm+)"
         condition_combination: "single"
+        condition_background: "MAPTAC_tagged_HLA_transfection"
         condition_transfection: "HLA-DM"
         condition_mhc_context: "monoallelic"
         mhc_class: II
@@ -4935,8 +4951,11 @@
         condition: "unperturbed — mono-allelic; no HLA-DM co-transfection"
         condition_id: "maptac_hla_drb3_01_01_dm"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "Immunity 2019 Table S1B DataS1B (MAPTAC_DRB3*01:01_dm-)"
         condition_control: "untreated"
+        condition_control_for: "maptac_hla_drb3_01_01_dm_2"
+        condition_background: "MAPTAC_tagged_HLA_transfection"
         condition_transfection: "none"
         condition_mhc_context: "monoallelic"
         mhc_class: II
@@ -4949,8 +4968,10 @@
         condition: "HLA-DM co-transfection — mono-allelic peptide editing"
         condition_id: "maptac_hla_drb3_01_01_dm_2"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "Immunity 2019 Table S1B DataS1B (MAPTAC_DRB3*01:01_dm+)"
         condition_combination: "single"
+        condition_background: "MAPTAC_tagged_HLA_transfection"
         condition_transfection: "HLA-DM"
         condition_mhc_context: "monoallelic"
         mhc_class: II
@@ -4963,8 +4984,11 @@
         condition: "unperturbed — mono-allelic; no HLA-DM co-transfection"
         condition_id: "maptac_hla_dpb1_06_01_dpa1_01_03_dm"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "Immunity 2019 Table S1B DataS1B (MAPTAC_DPB1*06:01/DPA1*01:03_dm-)"
         condition_control: "untreated"
+        condition_control_for: "maptac_hla_dpb1_06_01_dpa1_01_03_dm_2"
+        condition_background: "MAPTAC_tagged_HLA_transfection"
         condition_transfection: "none"
         condition_mhc_context: "monoallelic"
         mhc_class: II
@@ -4977,8 +5001,10 @@
         condition: "HLA-DM co-transfection — mono-allelic peptide editing"
         condition_id: "maptac_hla_dpb1_06_01_dpa1_01_03_dm_2"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "Immunity 2019 Table S1B DataS1B (MAPTAC_DPB1*06:01/DPA1*01:03_dm+)"
         condition_combination: "single"
+        condition_background: "MAPTAC_tagged_HLA_transfection"
         condition_transfection: "HLA-DM"
         condition_mhc_context: "monoallelic"
         mhc_class: II
@@ -4991,8 +5017,11 @@
         condition: "unperturbed — mono-allelic; no HLA-DM co-transfection"
         condition_id: "maptac_hla_dqb1_06_04_dqa1_01_02_dm"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "Immunity 2019 Table S1B DataS1B (MAPTAC_DQB1*06:04/DQA1*01:02_dm-)"
         condition_control: "untreated"
+        condition_control_for: "maptac_hla_dqb1_06_04_dqa1_01_02_dm_2"
+        condition_background: "MAPTAC_tagged_HLA_transfection"
         condition_transfection: "none"
         condition_mhc_context: "monoallelic"
         mhc_class: II
@@ -5005,8 +5034,10 @@
         condition: "HLA-DM co-transfection — mono-allelic peptide editing"
         condition_id: "maptac_hla_dqb1_06_04_dqa1_01_02_dm_2"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "Immunity 2019 Table S1B DataS1B (MAPTAC_DQB1*06:04/DQA1*01:02_dm+)"
         condition_combination: "single"
+        condition_background: "MAPTAC_tagged_HLA_transfection"
         condition_transfection: "HLA-DM"
         condition_mhc_context: "monoallelic"
         mhc_class: II
@@ -11608,36 +11639,77 @@
         mhc_basis: "sample_typing"
 
   - pmid: 33633747
-    # Arm-resolution verdict (#366).
-    arm_resolution: curation_gap
+    # Arm-resolution verdict (#366, resolved #902): exact statement map reconciles
+    # all 2,490 enumerated membrane/sHLA rows (1,142 FLX-only, 226 untreated-only,
+    # 1,122 shared both-arm rows) while keeping 3 IEDB "Filler Assay - delete."
+    # alternative-lysine rows and 3 blank-comment sHLA rows explicitly unattributed.
+    arm_resolution: multi_arm_evidence
     arm_resolution_note: >
-      1,128 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
-      unfinished curation rather than a limit of the deposit. Measured: elution-condition
-      enumeration on 2,488 rows; varying per-row fields: antigen_processing_comments (3
-      distinct), assay_comments (7 distinct). Whether that field varies WITH THE ARM (rather
-      than being study-level boilerplate that names every arm on every row) still needs per-
-      study checking -- that check is the work this verdict marks, and #366 records narrative
-      fields as a known dead end for exactly this reason.
+      All 2,496 ci-corpus-v4 rows come from mono-allelic HLA-B*57:01-transduced 721.221
+      cells (B721-5701; 2,487 membrane HLA + 9 soluble HLA bioreactor). Exact
+      elution_condition_ids assign 1,142 FLX-only rows to cells_flucloxacillin and
+      226 untreated-only rows to cells_untreated, while retaining 1,122 shared rows
+      (1,120 "Untreated; FLX-Treated." + 2 sHLA "both untreated and treated with FLX.")
+      at condition_id="" with supported_condition_ids="cells_flucloxacillin;cells_untreated".
+      Three IEDB "Filler Assay - delete." rows (alternative-lysine MCM sites K6/K8/K10)
+      and three blank-comment sHLA rows remain unattributed with original peptide_modifications
+      intact (#902).
     study_label: "Puig 2021 — HLA-B*57:01 + flucloxacillin"
     title: "Alterations in the HLA-B*57:01 Immunopeptidome by Flucloxacillin and Immunogenicity of Drug-Haptenated Peptides"
     override: cell_line
-    perturbations: ["Flucloxacillin (antibiotic, DILI model)"]
+    note: >
+      PMC7900192 (DOI 10.3389/fimmu.2020.629399): HLA class I-negative EBV-LCL 721.221
+      lentivirally transduced with HLA-B*57:01 (B721-5701, membrane mHLA and continuous
+      bioreactor soluble sHLA), cultured 5 days in antibiotic-free G-Rex 6-well plates
+      in duplicate without drug (aqueous medium control) or with 150 ug/mL flucloxacillin
+      (FLX), purified via W6/32. Main Table 1 confirms three covalently FLX-haptenated
+      (+453.06 Da on lysine) peptides: KAAK(+453.06)LKEKY (HMGB1 K150/K4),
+      RTKK(+453.06)VGIVGKY (RL37A K7/K4), and TAAQITQRK(+453.06)W (HLA-B57 K145/K9),
+      alongside unmodified counterparts. Separate HLA-B*57:01 Tg/H2-KbDb KO mouse
+      immunization IFN-gamma ELISA assays are distinct from MS elution. See
+      hitlist/data/evidence_revisions/flucloxacillin_33633747_adduct_contract.json (#902).
+    perturbations: ["Flucloxacillin (150 ug/mL, 5d, antibiotic DILI model)"]
+    elution_condition_ids:
+      "The epitope was eluted from the following experimental conditions(s): Untreated.":
+        - cells_untreated
+      "The epitope was eluted from the following experimental conditions(s): FLX-Treated.":
+        - cells_flucloxacillin
+      "The epitope was eluted from the following experimental conditions(s): Untreated; FLX-Treated.":
+        - cells_untreated
+        - cells_flucloxacillin
+      "The epitope was also eluted from 721.221 cells both untreated and treated with FLX.":
+        - cells_untreated
+        - cells_flucloxacillin
+      "The epitope was also eluted from 721.221 cells, both untreated and treated with FLX.":
+        - cells_untreated
+        - cells_flucloxacillin
     ms_samples:
       - sample_label: "cells (untreated)"
-        condition: "unperturbed"
+        sample_group: "B721-5701"
+        n_samples: 2
+        source: "721.221 transduced with HLA-B*57:01 (B721-5701)"
+        condition: "unperturbed — antibiotic-free medium control (5 days, duplicate)"
         condition_id: "cells_untreated"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC7900192 Methods (Generation, Isolation, and Identification of HLA-Bound Peptides)"
         condition_control: "untreated"
+        condition_control_for: "cells_flucloxacillin"
+        condition_mhc_context: "monoallelic"
         mhc_class: "I"
         mhc: "HLA-B*57:01"
       - sample_label: "cells + flucloxacillin"
-        condition: "flucloxacillin treatment"
+        sample_group: "B721-5701"
+        n_samples: 2
+        source: "721.221 transduced with HLA-B*57:01 (B721-5701)"
+        condition: "flucloxacillin 150 ug/mL for 5 days (duplicate cultures)"
         condition_id: "cells_flucloxacillin"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC7900192 Methods (Generation, Isolation, and Identification of HLA-Bound Peptides)"
         condition_combination: "single"
         condition_drugs: "flucloxacillin"
+        condition_mhc_context: "monoallelic"
         mhc_class: "I"
         mhc: "HLA-B*57:01"
 

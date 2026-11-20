@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "issue": "pirl-unc/hitlist#855",
+  "pmid": 33858848,
+  "pmcid": "PMC8054196",
+  "doi": "10.1136/jitc-2020-002071",
+  "study_label": "Marcu 2021 — HLA Ligand Atlas",
+  "primary_xml_sha256": "f302ba1c3875286420c1dac49c1da21bf43bc8c96f51c71f804489730f814d0a",
+  "primary_atlas_release": "2020.12",
+  "ms_detection_vs_restriction_contract": {
+    "observed_positive_ms_label": "established_by_primary_atlas_ms_elution",
+    "peptide_specific_restriction_basis": "computational_prediction_over_donor_hla_allotypes",
+    "independent_experimental_binding_evidence": false,
+    "multi_allele_rows_preserve_unknown_restriction_evidence": true,
+    "unassigned_peptides_are_not_negatives": true,
+    "missing_alpha_partners_not_invented": true,
+    "blanket_pmid_relabeling_prohibited": true
+  },
+  "prediction_methods": {
+    "class_i": {
+      "tools": [
+        {
+          "name": "NetMHCpan-4.1",
+          "mode": "ligand_mode_default",
+          "strong_binder_threshold": "srank <= 0.5",
+          "weak_binder_threshold": "srank <= 2.0"
+        },
+        {
+          "name": "SYFPEITHI",
+          "mode": "normalized_score_sSYF",
+          "weak_binder_threshold": "sSYF >= 0.5"
+        }
+      ],
+      "multi_allotype_assignment": "All donor HLA-I allotypes passing either tool threshold are retained; a single peptide may associate with multiple donor allotypes.",
+      "qc_filter": "Technical replicates excluded if predicted binder fraction < 50% or length mode != 9 aa."
+    },
+    "class_ii": {
+      "tools": [
+        {
+          "name": "NetMHCIIpan-4.0",
+          "mode": "default",
+          "strong_binder_threshold": "srank <= 1.0",
+          "weak_binder_threshold": "srank <= 5.0"
+        },
+        {
+          "name": "MixMHC2pred",
+          "mode": "default",
+          "strong_binder_threshold": "srank <= 1.0",
+          "weak_binder_threshold": "srank <= 5.0"
+        }
+      ],
+      "multi_allotype_assignment": "All donor HLA-II allotypes passing either tool threshold are retained; a single peptide may associate with multiple donor allotypes. Analyses without specified allele associations include detected peptides classified as non-binders.",
+      "qc_filter": "Technical replicates excluded if predicted binder fraction < 10% or length mode outside [12, 18] aa."
+    }
+  },
+  "donor_hla_typing_provenance": [
+    {
+      "subjects": ["AUT-DN08", "AUT-DN16", "OVA-DN278", "OVA-DN281"],
+      "method": "NGS GS Junior Sequencer with Roche GS GType HLA Primer Sets (University Hospital Tuebingen)",
+      "completeness": "HLA-A/B/C complete; HLA-II reliable for HLA-DR only, incomplete for HLA-DP and HLA-DQ."
+    },
+    {
+      "subjects": ["remaining_autopsy_subjects"],
+      "method": "Lung tissue exome sequencing + modified OptiType (github.com/FRED-2/OptiType tag hla-ligand-atlas)",
+      "completeness": "HLA-I and HLA-II inferred from exome sequencing."
+    },
+    {
+      "subjects": ["5_thymus_samples", "3_glioblastoma_samples"],
+      "method": "Sequence-based typing (Histogenetics: exons 1-8 for HLA-I, exons 2-6 for HLA-II)",
+      "completeness": "High-resolution SBT across HLA-I and HLA-II."
+    }
+  ],
+  "ci_corpus_v4_reconciliation": {
+    "n_total_ms_rows": 901613,
+    "n_binding_rows": 0,
+    "n_class_i_rows": 406678,
+    "n_class_i_single_allele_predicted": 203992,
+    "n_class_i_multi_allele_unknown": 202686,
+    "n_class_ii_rows": 494935,
+    "n_class_ii_single_allele_predicted": 161050,
+    "n_class_ii_multi_allele_unknown": 333885,
+    "scoped_rule": {
+      "Assay Method": "cellular MHC/mass spectrometry",
+      "Response Measured": "ligand presentation",
+      "evidence": "predicted",
+      "applies_only_when_single_resolved_allele": true
+    }
+  }
+}

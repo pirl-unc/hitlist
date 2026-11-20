@@ -72,8 +72,14 @@ on:
       - scripts/build_uniprot_reference.py
       - hitlist/model_training.py
       - hitlist/apc_contrasts.py
+      - hitlist/drug_dm_qualification.py
       - hitlist/data/evidence_revisions/apc_stimulus_protocol_context.json
       - hitlist/data/evidence_revisions/dlbcl_35561310_treatment_conflicts.json
+      - hitlist/data/evidence_revisions/dlbcl_35561310_supplements.json
+      - hitlist/data/evidence_revisions/flucloxacillin_33633747_adduct_contract.json
+      - hitlist/data/evidence_revisions/hla_ligand_atlas_33858848_prediction_provenance.json
+      - hitlist/data/supplementary/abelin_2019_maptac_class2_dm_arms.csv.gz
+      - hitlist/data/supplementary/abelin_2019_maptac_class2_source.yaml
       - hitlist/netmhcstabpan.py
       - hitlist/data/evidence_revisions/netmhcstabpan_stability.json
       - hitlist/lineage.py
@@ -81,6 +87,7 @@ on:
       - hitlist/training_bundle.py
       - tests/test_model_training.py
       - tests/test_apc_cytokine_contrasts.py
+      - tests/test_drug_dm_atlas_qualification.py
       - tests/test_netmhcstabpan.py
       - tests/test_lineage_audit.py
       - tests/test_training_bundle.py

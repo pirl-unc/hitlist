@@ -1,3 +1,16 @@
+# APC/drug perturbation, HLA-DM arm recovery & Atlas prediction provenance — #901, #902, #853, #855 (v2.2.0), 2026-11-20
+
+Specification: [apc-drug-dm-atlas-2-2-0-spec.md](apc-drug-dm-atlas-2-2-0-spec.md).
+
+- [x] `#853`: Generate checksum-pinned `abelin_2019_maptac_class2_dm_arms.csv.gz` (`45,636` rows including `2,133` shared `dm-`/`dm+` peptides and full DP/DQ heterodimers) + `abelin_2019_maptac_class2_source.yaml` from `1-s2.0-S1074761319303632-mmc2.xlsx`, update `hitlist/supplement.py` IRI disambiguation and `supplementary.yaml`, wire `condition_control_for`/`condition_background` in `pmid_overrides.yaml`, and add `prepare_hla_dm_contrast_data()` converging Abelin (`31495665`) + Meurer (`33025005`).
+- [x] `#855`: Add scoped `restriction_evidence_rules` for `PMID 33858848` (HLA Ligand Atlas) and pin `hla_ligand_atlas_33858848_prediction_provenance.json` + `atlas_prediction_provenance_contract()`.
+- [x] `#902`: Curate `PMID 33633747` (flucloxacillin) exact `elution_condition_ids` (`1,142` FLX-only, `226` untreated-only, `1,122` shared, `3` `Filler Assay - delete.`, `3` blank sHLA), pin `flucloxacillin_33633747_adduct_contract.json`, and add `prepare_flucloxacillin_evidence_views()` (unmodified-only + modification-aware).
+- [x] `#901`: Pin `dlbcl_35561310_supplements.json` (`suppl3.xlsx` `10,507` Class I + `suppl5.xlsx` `5,203` Class II including `DB_untreated` `7` + `20`) and add `load_dlbcl_supplement_rows()` + `reconcile_dlbcl_supplements_with_iedb()`.
+- [x] Bump version to `2.2.0`, update `docs/model-training.md` and `.github/workflows/release-build.yml`, and verify ruff lint/format, strict docs build, `640` unit tests, real-corpus integration tests, and live DLBCL workbook parsing.
+- [ ] Open PR (`v2.2.0`), pass hosted CI + release gate, merge, deploy `2.2.0` to PyPI from clean `main`, and post receipts on `#901`, `#902`, `#853`, and `#855`.
+
+---
+
 # Small high-leverage fixes: OncoRef CTA policy (#852), CLI deprecation notice (#893), build-worker parent-only SIGTERM cleanup (#881) — 2026-11-20
 
 Specification: [small-fixes-852-893-881-spec.md](small-fixes-852-893-881-spec.md).

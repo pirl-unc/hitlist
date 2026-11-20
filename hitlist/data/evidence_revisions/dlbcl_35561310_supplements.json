@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "issue": "pirl-unc/hitlist#901",
+  "related_issues": ["pirl-unc/hitlist#930", "pirl-unc/hitlist#925"],
+  "pmid": 35561310,
+  "pmcid": "PMC9327544",
+  "doi": "10.1182/bloodadvances.2021006069",
+  "study_label": "Bourne 2022 — DLBCL + EZH2i + decitabine + IFNg",
+  "treatment_conflict_contract": "hitlist/data/evidence_revisions/dlbcl_35561310_treatment_conflicts.json",
+  "quantity_availability": {
+    "status": "no_public_intensity_or_replicate_export",
+    "contains_search_scores_masses_scan_times": true,
+    "contains_peptide_intensity_or_area": false,
+    "contains_biological_replicate_or_run_ids": false,
+    "data_availability_note": "PMC9327544 offers underlying raw immunopeptidomics data on request; do not fabricate quantitative abundance from search scores or counts."
+  },
+  "restriction_provenance": {
+    "table_3_class_i": {
+      "method": "NetMHCpan 4.0",
+      "restriction_evidence": "predicted",
+      "filtering": "Byonic log-probability filtering; NetMHCpan 4.0 allele scores are computational predictions, not experimental binding restrictions."
+    },
+    "table_5_class_ii": {
+      "method": "none_reported_per_peptide",
+      "restriction_evidence": "unknown",
+      "filtering": "No per-peptide HLA-II prediction columns in Table 5."
+    }
+  },
+  "workbooks": {
+    "table_3_class_i": {
+      "filename": "advancesADV2021006069-suppl3.xlsx",
+      "source_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC9327544/supplementaryFiles",
+      "sha256": "dba6c6af93b3eef9d27f2154d12552812e7ee255629552000fcb7da592eb6349",
+      "size_bytes": 1721184,
+      "mhc_class": "I",
+      "n_sheets": 15,
+      "n_rows": 10507,
+      "sheet_row_counts": {
+        "SUDHL4_untreated": 24,
+        "SUDHL4_IFN": 1066,
+        "SUDHL4_IFN_DAC": 881,
+        "SUDHL4_IFN_TAZ": 1642,
+        "SUDHL4_IFN_DAC_TAZ": 943,
+        "DB_untreated": 7,
+        "DB_IFN": 1113,
+        "DB_IFN_DAC": 658,
+        "DB_IFN_TAZ": 914,
+        "DB_IFN_DAC_TAZ": 1918,
+        "SUDHL6_untreated": 21,
+        "SUDHL6_IFN": 251,
+        "SUDHL6_IFN_TAZ": 431,
+        "SUDHL6_IFN_DAC": 387,
+        "SUDHL6_IFN_DAC_TAZ": 251
+      }
+    },
+    "table_5_class_ii": {
+      "filename": "advancesADV2021006069-suppl5.xlsx",
+      "source_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC9327544/supplementaryFiles",
+      "sha256": "3ff0e09ff5aa11c59e6f1c1596ee4489bcd31eb04257a877bb343fae722ce2a6",
+      "size_bytes": 954411,
+      "mhc_class": "II",
+      "n_sheets": 15,
+      "n_rows": 5203,
+      "literal_header_variants": {
+        "SUDHL4_IFN_DAC_TAZ": {"col_0": "lengtg", "semantic_note": "source typo for length; preserved verbatim"},
+        "SUDHL6_IFN": {"col_0": "Query #:z", "semantic_note": "source query/charge header instead of length; preserved verbatim"},
+        "SUDHL6_IFN_TAZ": {"col_0": "Query #:z", "semantic_note": "source query/charge header instead of length; 610 native rows / 466 distinct modified-form labels preserved without silent collapse"}
+      },
+      "sheet_row_counts": {
+        "SUDHL4_untreated": 173,
+        "SUDHL4_IFN": 220,
+        "SUDHL4_IFN_DAC": 357,
+        "SUDHL4_IFN_TAZ": 200,
+        "SUDHL4_IFN_DAC_TAZ": 390,
+        "DB_untreated": 20,
+        "DB_IFN": 29,
+        "DB_IFN_DAC": 60,
+        "DB_IFN_TAZ": 29,
+        "DB_IFN_DAC_TAZ": 65,
+        "SUDHL6_untreated": 580,
+        "SUDHL6_IFN": 618,
+        "SUDHL6_IFN_DAC": 877,
+        "SUDHL6_IFN_TAZ": 610,
+        "SUDHL6_IFN_DAC_TAZ": 975
+      }
+    }
+  },
+  "sheet_to_condition_map": {
+    "DB_untreated": {"cell_line": "DB", "condition_id": "db_dmso", "comparator_condition_id": null, "contrast_role": "vehicle_control", "background": "none"},
+    "DB_IFN": {"cell_line": "DB", "condition_id": "db_ifng", "comparator_condition_id": "db_dmso", "contrast_role": "cytokine_vs_vehicle", "background": "DMSO_vehicle"},
+    "DB_IFN_DAC": {"cell_line": "DB", "condition_id": "db_ifng_dac", "comparator_condition_id": "db_ifng", "contrast_role": "added_drug_on_ifng_background", "background": "IFNG"},
+    "DB_IFN_TAZ": {"cell_line": "DB", "condition_id": "db_ifng_taz", "comparator_condition_id": "db_ifng", "contrast_role": "added_drug_on_ifng_background", "background": "IFNG"},
+    "DB_IFN_DAC_TAZ": {"cell_line": "DB", "condition_id": "db_ifng_dac_taz", "comparator_condition_id": "db_ifng", "contrast_role": "added_drug_combination_on_ifng_background", "background": "IFNG"},
+    "SUDHL4_untreated": {"cell_line": "SU-DHL-4", "condition_id": "su_dhl_4_dmso", "comparator_condition_id": null, "contrast_role": "vehicle_control", "background": "none"},
+    "SUDHL4_IFN": {"cell_line": "SU-DHL-4", "condition_id": "su_dhl_4_ifng", "comparator_condition_id": "su_dhl_4_dmso", "contrast_role": "cytokine_vs_vehicle", "background": "DMSO_vehicle"},
+    "SUDHL4_IFN_DAC": {"cell_line": "SU-DHL-4", "condition_id": "su_dhl_4_ifng_dac", "comparator_condition_id": "su_dhl_4_ifng", "contrast_role": "added_drug_on_ifng_background", "background": "IFNG"},
+    "SUDHL4_IFN_TAZ": {"cell_line": "SU-DHL-4", "condition_id": "su_dhl_4_ifng_taz", "comparator_condition_id": "su_dhl_4_ifng", "contrast_role": "added_drug_on_ifng_background", "background": "IFNG"},
+    "SUDHL4_IFN_DAC_TAZ": {"cell_line": "SU-DHL-4", "condition_id": "su_dhl_4_ifng_dac_taz", "comparator_condition_id": "su_dhl_4_ifng", "contrast_role": "added_drug_combination_on_ifng_background", "background": "IFNG"},
+    "SUDHL6_untreated": {"cell_line": "SU-DHL-6", "condition_id": "su_dhl_6_dmso", "comparator_condition_id": null, "contrast_role": "vehicle_control", "background": "none"},
+    "SUDHL6_IFN": {"cell_line": "SU-DHL-6", "condition_id": "su_dhl_6_ifng", "comparator_condition_id": "su_dhl_6_dmso", "contrast_role": "cytokine_vs_vehicle", "background": "DMSO_vehicle"},
+    "SUDHL6_IFN_DAC": {"cell_line": "SU-DHL-6", "condition_id": "su_dhl_6_ifng_dac", "comparator_condition_id": "su_dhl_6_ifng", "contrast_role": "added_drug_on_ifng_background", "background": "IFNG"},
+    "SUDHL6_IFN_TAZ": {"cell_line": "SU-DHL-6", "condition_id": "su_dhl_6_ifng_taz", "comparator_condition_id": "su_dhl_6_ifng", "contrast_role": "added_drug_on_ifng_background", "background": "IFNG"},
+    "SUDHL6_IFN_DAC_TAZ": {"cell_line": "SU-DHL-6", "condition_id": "su_dhl_6_ifng_dac_taz", "comparator_condition_id": "su_dhl_6_ifng", "contrast_role": "added_drug_combination_on_ifng_background", "background": "IFNG"}
+  },
+  "stopfer_palbociclib_companion": {
+    "pmid": 32488085,
+    "status": "source_qualified_in_hitlist_perturbation_quantities_#925",
+    "module": "hitlist.perturbation_quantities",
+    "contrast_module": "hitlist.perturbation_contrast",
+    "mda_mb_231_never_borrowed_as_melanoma_control": true
+  }
+}

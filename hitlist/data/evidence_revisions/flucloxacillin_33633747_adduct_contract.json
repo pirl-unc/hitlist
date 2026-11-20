@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "issue": "pirl-unc/hitlist#902",
+  "pmid": 33633747,
+  "pmcid": "PMC7900192",
+  "doi": "10.3389/fimmu.2020.629399",
+  "study_label": "Puig 2021 — HLA-B*57:01 + flucloxacillin",
+  "primary_sources": {
+    "xml": {
+      "filename": "PMC7900192.xml",
+      "sha256": "8202f666ceadceeb76e8be39af18bc86cd75f993191b19596e77c24b88866ebb"
+    },
+    "supplement_table_2": {
+      "filename": "Table_2.xlsx",
+      "sha256": "e462c09bac74d721688874c121dec9065991fc2747773522065b5a2941a626bc",
+      "size_bytes": 433049,
+      "sheets": {
+        "Table S2A-Unt": {
+          "n_peptidoforms": 1347,
+          "n_modified_forms": 178,
+          "description": "Curated B721-5701 untreated control immunopeptidome (duplicate cultures)"
+        },
+        "Table S2B-FLX": {
+          "n_peptidoforms": 2263,
+          "n_modified_forms": 258,
+          "description": "Curated B721-5701 150 ug/mL FLX (5 days) immunopeptidome (duplicate cultures)"
+        }
+      }
+    }
+  },
+  "protocol": {
+    "cell_line": "721.221 (EBV-transformed HLA class I-negative B-LCL)",
+    "constructs": {
+      "mHLA": "Lentiviral full-length membrane-bound HLA-B*57:01 (B721-5701)",
+      "sHLA": "Continuous bioreactor soluble HLA-B*57:01 in 721.221"
+    },
+    "mhc_restriction": "HLA-B*57:01",
+    "mhc_context": "monoallelic",
+    "ip_antibody": "W6/32",
+    "drug": "flucloxacillin",
+    "dose": "150 ug/mL",
+    "duration": "5 days",
+    "vehicle_control": "antibiotic-free culture medium (untreated; no organic solvent vehicle)",
+    "n_replicates": 2,
+    "t_cell_immunogenicity_scope": "Separate HLA-B*57:01 Tg / H2-KbDb KO mouse immunization with 100 ug synthetic FLX-peptide and IFN-gamma ELISA; distinct from MS elution and chemical exposure."
+  },
+  "confirmed_flx_covalent_adducts": [
+    {
+      "unmodified_sequence": "KAAKLKEKY",
+      "modified_sequence_table1": "KAAK(+453.06)LKEKY",
+      "iedb_modification_code": "MCM:K4",
+      "adduct_mass_shift_da": 453.06,
+      "adduct_residue": "K",
+      "adduct_peptide_position": 4,
+      "protein_accession": "P09429|HMGB1_HUMAN",
+      "protein_site": "K150",
+      "localization_evidence": "primary_table_1_confirmed_msms_and_synthetic_standard"
+    },
+    {
+      "unmodified_sequence": "RTKKVGIVGKY",
+      "modified_sequence_table1": "RTKK(+453.06)VGIVGKY",
+      "iedb_modification_code": "MCM:K4",
+      "adduct_mass_shift_da": 453.06,
+      "adduct_residue": "K",
+      "adduct_peptide_position": 4,
+      "protein_accession": "P61513|RL37A_HUMAN",
+      "protein_site": "K7",
+      "localization_evidence": "primary_table_1_confirmed_msms_and_synthetic_standard"
+    },
+    {
+      "unmodified_sequence": "TAAQITQRKW",
+      "modified_sequence_table1": "TAAQITQRK(+453.06)W",
+      "iedb_modification_code": "MCM:K9",
+      "adduct_mass_shift_da": 453.06,
+      "adduct_residue": "K",
+      "adduct_peptide_position": 9,
+      "protein_accession": "P18465|1B57_HUMAN",
+      "protein_site": "K145",
+      "localization_evidence": "primary_table_1_confirmed_msms_and_synthetic_standard"
+    }
+  ],
+  "iedb_filler_assay_rows": {
+    "assay_comment_literal": "Filler Assay - delete.",
+    "n_rows_in_ci_corpus_v4": 3,
+    "observed_alternative_sites": [
+      {"peptide": "KAAKLKEKY", "iedb_modification_code": "MCM:K6"},
+      {"peptide": "KAAKLKEKY", "iedb_modification_code": "MCM:K8"},
+      {"peptide": "RTKKVGIVGKY", "iedb_modification_code": "MCM:K10"}
+    ],
+    "disposition": "excluded_from_unmodified_and_clean_adduct_training_retained_in_modification_audit"
+  },
+  "ci_corpus_v4_reconciliation": {
+    "n_total_rows": 2496,
+    "n_unmodified_rows": 2214,
+    "n_modified_rows": 282,
+    "n_flx_only_attributed": 1142,
+    "n_untreated_only_attributed": 226,
+    "n_shared_both_arms": 1122,
+    "n_blank_shla_ambiguous": 3,
+    "n_filler_assay_delete": 3
+  },
+  "deduplication_invariants": {
+    "never_collapse_modified_with_unmodified": true,
+    "never_infer_adduct_site_from_mass_alone": true,
+    "preserve_unknown_localization_separately": true,
+    "t_cell_immunogenicity_separate_from_ms": true
+  }
+}
