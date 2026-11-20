@@ -316,16 +316,20 @@ def test_scan_supplementary_synthetic_iri(full_supplementary_df):
 
 
 def test_scan_supplementary_dedup_within(full_supplementary_df):
-    """No duplicate rows within a single supplementary file.
+    """No duplicate rows within a single supplementary file and attributed arm.
 
     Issue #147: the dedupe key used to be ``(peptide, mhc_restriction, pmid)``,
     which collapsed the same peptide / allele seen in multiple sample CSVs
-    under one PMID.  Now the key includes ``supplementary_file``, so
-    within one CSV no duplicates remain but the *same* pair can still
-    appear in distinct CSVs (one row per sample).
+    under one PMID.  Now the key includes ``supplementary_file`` and, when
+    present, ``attributed_sample_label`` (mirroring ``supplement.py`` so one
+    multi-arm file such as Abelin 2019 ±HLA-DM retains distinct arm rows
+    without collapsing shared peptides; #853).
     """
     df = full_supplementary_df
-    dupes = df.duplicated(subset=["peptide", "mhc_restriction", "pmid", "supplementary_file"])
+    subset = ["peptide", "mhc_restriction", "pmid", "supplementary_file"]
+    if "attributed_sample_label" in df.columns:
+        subset.append("attributed_sample_label")
+    dupes = df.duplicated(subset=subset)
     assert not dupes.any(), f"Found {dupes.sum()} within-file duplicate rows"
 
 
