@@ -67,12 +67,16 @@ on:
       - tests/test_build_uniprot_reference.py
       - scripts/build_uniprot_reference.py
       - hitlist/model_training.py
+      - hitlist/apc_contrasts.py
+      - hitlist/data/evidence_revisions/apc_stimulus_protocol_context.json
+      - hitlist/data/evidence_revisions/dlbcl_35561310_treatment_conflicts.json
       - hitlist/netmhcstabpan.py
       - hitlist/data/evidence_revisions/netmhcstabpan_stability.json
       - hitlist/lineage.py
       - hitlist/split_audit.py
       - hitlist/training_bundle.py
       - tests/test_model_training.py
+      - tests/test_apc_cytokine_contrasts.py
       - tests/test_netmhcstabpan.py
       - tests/test_lineage_audit.py
       - tests/test_training_bundle.py

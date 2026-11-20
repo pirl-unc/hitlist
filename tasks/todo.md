@@ -1,3 +1,41 @@
+# APC/cytokine contrast qualification & DLBCL dose-unit conflict preservation — #904, #930, 2026-11-19
+
+Specification: [apc-cytokine-contrasts-904-930-spec.md](apc-cytokine-contrasts-904-930-spec.md).
+
+- [x] Audit primary XMLs (`PMC9327544`, `PMC7485268`, `PMC7773052`, `PMC6387973`, `PMC11203340`, `PMC5584980`), `ci-corpus-v4` observations, and all 20 curated cytokine/stimulation PMIDs; write specification.
+- [x] Add `#930` pinned DLBCL dose-unit conflict ledger (`hitlist/data/evidence_revisions/dlbcl_35561310_treatment_conflicts.json`) and `#904` APC/stimulus protocol ledger (`hitlist/data/evidence_revisions/apc_stimulus_protocol_context.json`).
+- [x] Add declarative `elution_token_condition_ids` support to `hitlist/curation.py` and `hitlist/export.py`, and update `hitlist/data/pmid_overrides.yaml` for `PMID 32983136`, `33392160`, `35561310`, and verified matched cytokine/stimulus `condition_control_for` links.
+- [x] Implement `hitlist/apc_contrasts.py` (`dlbcl_treatment_conflict_contract`, `apc_stimulus_protocol_contract`, `build_stimulus_contrast_catalog`, `prepare_stimulus_contrast_data`) with lazy exports in `hitlist/__init__.py` and docs in `docs/model-training.md`.
+- [x] Add unit and `ci-corpus-v4` integration regressions in `tests/test_apc_cytokine_contrasts.py`, bump version to `2.1.23`, and pass `./format.sh`, `./lint.sh`, `mkdocs build --strict`, and focused + integration pytest.
+- [ ] Open PR (`v2.1.23`), pass hosted CI + release gate, merge, deploy `2.1.23` to PyPI from clean `main`, and close `#904` and `#930`.
+
+## Implementation & real-corpus verification review (`#904`, `#930`)
+
+- **`#930` (`PMID 35561310` / `PMC9327544`)**: Verified exact literal quotes in
+  `PMC9327544.xml` (`SHA-256 78f96efc...`) and Supplemental Figure 10
+  (`advancesADV2021006069-suppl6.pdf`, `SHA-256 bfae2561...`), pinning `nmol/mL`
+  (`1 nmol/mL == 1 uM`, never `nM`), `100 ug/ml` vs `100 ng/mL` (`1000x`), and
+  `Figures 2-3` transcription assays (`transcript_expression`) separately from
+  `Figure 5` immunopeptidomics (`peptide_detection`) in
+  `hitlist/data/evidence_revisions/dlbcl_35561310_treatment_conflicts.json`.
+- **`#904` (APC/cytokine/stimulus contrasts)**:
+  - Added validated declarative `elution_token_condition_ids` to `curation.py` and
+    `StatementMap` (`export.py`), reconciling 100% of all `34,606` `PMID 32983136`
+    rows (`0` unmapped; `6,819` exact single-subset attributions + `27,787` shared
+    multi-subset rows with explicit `supported_condition_ids`, fixing `2,954` false
+    `cd8_t_cells_activated` rows).
+  - Split `PMID 33392160` (`PMC7773052`, `9,900` rows) into its real untreated,
+    biomaterial-contact, and LPS (`50 ng/mL`) positive-control arms with
+    `arm_resolution: no_row_discriminator` so unattributed IEDB rows never acquire
+    a guessed simultaneous `LPS;biomaterial_contact` label.
+  - Added `hitlist.apc_contrasts` (`build_stimulus_contrast_catalog`,
+    `prepare_stimulus_contrast_data`) separating isolated cytokine/stimulus
+    contrasts from differentiation cocktails (`32983136` `immature_dcs`), acute
+    maturation cocktails (`32983136` `mature_dcs`), constant backgrounds
+    (`30484775`, `34129938`), constant cocktails (`38920720`), non-APC expanded
+    melanoma TILs (`28832583`), and class-pool/unattributed rows with 100% row
+    conservation.
+
 # Binding method conflict review & PMID 35251023 DPB1*19:01 reconciliation — #871, #926, 2026-11-19
 
 Specification: [binding-and-dp-reconciliation-871-926-spec.md](binding-and-dp-reconciliation-871-926-spec.md).

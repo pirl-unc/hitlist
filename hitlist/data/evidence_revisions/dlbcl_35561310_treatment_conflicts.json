@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "revision": "dlbcl_35561310_treatment_conflicts_v1",
+  "issue": "pirl-unc/hitlist#930",
+  "parent_issue": "pirl-unc/hitlist#901",
+  "pmid": 35561310,
+  "pmcid": "PMC9327544",
+  "doi": "10.1182/bloodadvances.2021006069",
+  "study_label": "Bourne 2022 — DLBCL + EZH2i + decitabine + IFNg",
+  "primary_sources_verified": {
+    "article_xml": {
+      "url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id=9327544&retmode=xml",
+      "size_bytes": 119741,
+      "sha256": "78f96efc3dbc9412ee3cb3fc3249271efe54ba84c6ec2f3b338804f83e64b444"
+    },
+    "supplemental_pdf": {
+      "filename": "advancesADV2021006069-suppl6.pdf",
+      "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC9327544/supplementaryFiles",
+      "sha256": "bfae2561be9bf6e031cdc3d420d52ef00a30908435d3bf60d0e4a821cece06f1",
+      "visual_locator": "Supplemental Figure 10 caption (PDF page 11 / printed page 43)"
+    }
+  },
+  "immunopeptidomics_primary_interpretation": {
+    "source_basis": "PMC9327544 Figure 5 (immunopeptidomics experiment); Drug treatments schedule (48 h then refreshed 48 h)",
+    "decitabine": {"literal_value": "125", "literal_unit": "nM"},
+    "tazemetostat": {"literal_value": "1", "literal_unit": "uM"},
+    "ifng": {"literal_value": "100", "literal_unit": "ng/mL"},
+    "schedule": "48 h treatment followed by media refresh and renewed drug treatment for 48 h",
+    "endpoint_kind": "peptide_detection",
+    "acquisition_limit_note": "Public Tables 3/5 report peptide identities and search scores rather than quantitative MS abundance/intensity targets (#901); keep peptide_detection strictly separate from transcript_expression."
+  },
+  "unit_conversion_invariants": {
+    "nmol_per_ml_equals_uM": true,
+    "nmol_per_ml_equals_nM": false,
+    "ug_per_ml_to_ng_per_ml_factor": 1000.0,
+    "policy": "Never normalize nmol/mL as nM (1 nmol/mL == 1 uM == 1000 nM) and never silently repair ug/ml to ng/mL (1000x discrepancy)."
+  },
+  "treatment_statements": [
+    {
+      "statement_id": "pmc9327544:fig5:decitabine",
+      "agent": "decitabine",
+      "agent_class": "small_molecule_drug",
+      "literal_value": "125",
+      "literal_unit": "nM",
+      "equivalent_nM": 125.0,
+      "equivalent_ng_per_ml": null,
+      "assay_scope": "immunopeptidomics_ms_figure_5",
+      "endpoint_kind": "peptide_detection",
+      "source_locator": "PMC9327544#Figure 5",
+      "source_excerpt": "Cells were treated with 125 nM decitabine, 1 μM tazemetostat or the combination of both in the presence of 100 ng/mL IFN-γ.",
+      "conflict_status": "figure_5_immunopeptidomics_primary",
+      "conflicts_with": ["pmc9327544:methods_drug_treatments:decitabine"]
+    },
+    {
+      "statement_id": "pmc9327544:fig5:tazemetostat",
+      "agent": "tazemetostat",
+      "agent_class": "small_molecule_drug",
+      "literal_value": "1",
+      "literal_unit": "μM",
+      "equivalent_nM": 1000.0,
+      "equivalent_ng_per_ml": null,
+      "assay_scope": "immunopeptidomics_ms_figure_5",
+      "endpoint_kind": "peptide_detection",
+      "source_locator": "PMC9327544#Figure 5",
+      "source_excerpt": "Cells were treated with 125 nM decitabine, 1 μM tazemetostat or the combination of both in the presence of 100 ng/mL IFN-γ.",
+      "conflict_status": "figure_5_immunopeptidomics_primary",
+      "conflicts_with": ["pmc9327544:methods_drug_treatments:tazemetostat"]
+    },
+    {
+      "statement_id": "pmc9327544:fig5:ifng",
+      "agent": "IFNG",
+      "agent_class": "cytokine",
+      "literal_value": "100",
+      "literal_unit": "ng/mL",
+      "equivalent_nM": null,
+      "equivalent_ng_per_ml": 100.0,
+      "assay_scope": "immunopeptidomics_ms_figure_5",
+      "endpoint_kind": "peptide_detection",
+      "source_locator": "PMC9327544#Figure 5",
+      "source_excerpt": "Cells were treated with 125 nM decitabine, 1 μM tazemetostat or the combination of both in the presence of 100 ng/mL IFN-γ.",
+      "conflict_status": "figure_5_immunopeptidomics_primary",
+      "conflicts_with": ["pmc9327544:suppl_fig10:ifng"]
+    },
+    {
+      "statement_id": "pmc9327544:methods_drug_treatments:decitabine",
+      "agent": "decitabine",
+      "agent_class": "small_molecule_drug",
+      "literal_value": "125-2000",
+      "literal_unit": "nmol/mL",
+      "equivalent_nM_range": [125000.0, 2000000.0],
+      "equivalent_ng_per_ml": null,
+      "assay_scope": "methods_drug_treatments_general",
+      "endpoint_kind": "study_methods_general",
+      "source_locator": "PMC9327544#Drug treatments",
+      "source_excerpt": "cells were treated with noted concentrations (decitabine 125-2000 nmol/mL, tazemetostat 312.5-5000 nmol/mL, IFN-γ 1-100 ng/mL) of each drug for 48 hours.",
+      "conflict_status": "conflicting_unit_1000x_nmol_per_ml_vs_nM",
+      "conflicts_with": ["pmc9327544:fig5:decitabine"]
+    },
+    {
+      "statement_id": "pmc9327544:methods_drug_treatments:tazemetostat",
+      "agent": "tazemetostat",
+      "agent_class": "small_molecule_drug",
+      "literal_value": "312.5-5000",
+      "literal_unit": "nmol/mL",
+      "equivalent_nM_range": [312500.0, 5000000.0],
+      "equivalent_ng_per_ml": null,
+      "assay_scope": "methods_drug_treatments_general",
+      "endpoint_kind": "study_methods_general",
+      "source_locator": "PMC9327544#Drug treatments",
+      "source_excerpt": "cells were treated with noted concentrations (decitabine 125-2000 nmol/mL, tazemetostat 312.5-5000 nmol/mL, IFN-γ 1-100 ng/mL) of each drug for 48 hours.",
+      "conflict_status": "conflicting_unit_1000x_nmol_per_ml_vs_nM",
+      "conflicts_with": ["pmc9327544:fig5:tazemetostat"]
+    },
+    {
+      "statement_id": "pmc9327544:suppl_fig10:ifng",
+      "agent": "IFNG",
+      "agent_class": "cytokine",
+      "literal_value": "100",
+      "literal_unit": "ug/ml",
+      "equivalent_nM": null,
+      "equivalent_ng_per_ml": 100000.0,
+      "assay_scope": "immunopeptidomics_ms_supplemental_figure_10",
+      "endpoint_kind": "peptide_detection",
+      "source_locator": "advancesADV2021006069-suppl6.pdf#page=11 (printed page 43, Supplemental Figure 10)",
+      "source_excerpt": "100 ug/ml IFNg",
+      "conflict_status": "conflicting_unit_1000x_ug_per_ml_vs_ng_per_ml",
+      "conflicts_with": ["pmc9327544:fig5:ifng"]
+    },
+    {
+      "statement_id": "pmc9327544:figs2_3:decitabine",
+      "agent": "decitabine",
+      "agent_class": "small_molecule_drug",
+      "literal_value": "100",
+      "literal_unit": "nM",
+      "equivalent_nM": 100.0,
+      "equivalent_ng_per_ml": null,
+      "assay_scope": "transcription_rtqpcr_figures_2_3",
+      "endpoint_kind": "transcript_expression",
+      "source_locator": "PMC9327544#Figures 2-3",
+      "source_excerpt": "SUDHL-6, DB, and SUDHL-4 cells were treated with indicated drugs (decitabine, 100 nM; tazemetostat, 1 μM; IFN-γ, 10 ng/mL).",
+      "conflict_status": "distinct_assay_scope_transcription_not_ms",
+      "conflicts_with": []
+    },
+    {
+      "statement_id": "pmc9327544:figs2_3:ifng",
+      "agent": "IFNG",
+      "agent_class": "cytokine",
+      "literal_value": "10",
+      "literal_unit": "ng/mL",
+      "equivalent_nM": null,
+      "equivalent_ng_per_ml": 10.0,
+      "assay_scope": "transcription_rtqpcr_figures_2_3",
+      "endpoint_kind": "transcript_expression",
+      "source_locator": "PMC9327544#Figures 2-3",
+      "source_excerpt": "SUDHL-6, DB, and SUDHL-4 cells were treated with indicated drugs (decitabine, 100 nM; tazemetostat, 1 μM; IFN-γ, 10 ng/mL).",
+      "conflict_status": "distinct_assay_scope_transcription_not_ms",
+      "conflicts_with": []
+    }
+  ]
+}
