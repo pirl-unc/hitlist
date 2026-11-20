@@ -254,7 +254,7 @@ def scan_supplementary(
         # and doesn't get collapsed by the ``drop_duplicates`` below (issue
         # #147).  The filename doubles as a per-sample provenance column.
         supp_file = entry["file"]
-        synth_iri = (
+        synth_iri_series = (
             "supplement:"
             + str(pmid)
             + ":"
@@ -263,7 +263,13 @@ def scan_supplementary(
             + df["peptide"]
             + ":"
             + df["mhc_restriction"]
-        ).to_numpy()
+        )
+        if "attributed_sample_label" in df.columns:
+            sample_labels = df["attributed_sample_label"].str.strip()
+            synth_iri_series = synth_iri_series.where(
+                sample_labels.eq(""), synth_iri_series + ":" + sample_labels
+            )
+        synth_iri = synth_iri_series.to_numpy()
         synth_iri = synth_iri + peptidoforms["_peptidoform_suffix"].to_numpy()
         record = pd.DataFrame(
             {

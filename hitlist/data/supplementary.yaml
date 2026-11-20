@@ -52,15 +52,20 @@
     disease: "healthy"
 
 - pmid: 31495665
-  file: abelin_2019_maptac_class2.csv
-  study_label: "Abelin 2019 — MAPTAC class II (10 alleles)"
-  source: "Immunity 2019 Table S1B, sheet DataS1B"
+  file: abelin_2019_maptac_class2_dm_arms.csv.gz
+  sha256: 68f05349c5d765ac5cfd508388f5b0fd511e46dbc3c78831e324848514683951
+  size_bytes: 419578
+  study_label: "Abelin 2019 — MAPTAC class II (10 alleles, condition-resolved ±HLA-DM)"
+  source: "Immunity 2019 Table S1B, sheet DataS1B (1-s2.0-S1074761319303632-mmc2.xlsx; SHA-256 78b551cecd395d8650c9696ebdb34f78066f351b83f27d043e0e57880420adbe)"
   note: >
-    10 mono-allelic MAPTAC class II alleles: 6 DRB1, 1 DRB3, 1 DPB1, 1 DQB1.
-    Some alleles profiled ± HLA-DM co-transfection (dm+ vs dm-); peptides
-    from both conditions are merged per allele. Expressed via tagged HLA-II in
-    the MAPTAC cell-line host(s); peptides reflect the host mixture, not a
-    single named line.
+    10 mono-allelic MAPTAC class II alleles (6 DRB1, 1 DRB3, 1 DPB1/DPA1, 1 DQB1/DQA1)
+    recovered directly from DataS1B with per-condition attributed_sample_label and exact
+    source_column/source_row locators (#853). Preserves separate dm- (no added HLA-DM
+    co-transfection; endogenous host DM status unmeasured) and dm+ (HLA-DM co-transfection)
+    arms for all four paired alleles (45,636 rows total including 2,133 peptides shared
+    across dm-/dm+, replacing the superseded 43,503-row merged CSV without double counting)
+    and retains complete DP/DQ heterodimer pairs (HLA-DPA1*01:03/DPB1*06:01 and
+    HLA-DQA1*01:02/DQB1*06:04). See abelin_2019_maptac_class2_source.yaml.
   defaults:
     host: "Homo sapiens (human)"
     species: "Homo sapiens"

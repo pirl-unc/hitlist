@@ -1,0 +1,71 @@
+pmid: 31495665
+accession: MSV000083991 / PXD014293
+primary_supplement: https://ars.els-cdn.com/content/image/1-s2.0-S1074761319303632-mmc2.xlsx
+workbook_filename: 1-s2.0-S1074761319303632-mmc2.xlsx
+workbook_sheet: DataS1B
+workbook_sha256: 78b551cecd395d8650c9696ebdb34f78066f351b83f27d043e0e57880420adbe
+workbook_size_bytes: 998734
+derived_asset:
+  file: abelin_2019_maptac_class2_dm_arms.csv.gz
+  sha256: 68f05349c5d765ac5cfd508388f5b0fd511e46dbc3c78831e324848514683951
+  size_bytes: 419578
+  n_rows: 45636
+  n_distinct_peptides: 37456
+  n_paired_dm_rows: 13317
+  n_paired_dm_shared_peptides: 2133
+  n_paired_dm_union_rows: 11184
+historical_merged_asset:
+  file: abelin_2019_maptac_class2.csv
+  sha256: a9b6454f05c24c11113bde92d35f3222d60eb0746ef8e6ac34ed2b0b6daa1c47
+  n_rows: 43503
+  status: superseded_in_supplementary_yaml_to_prevent_double_counting
+biological_interpretation:
+  dm_minus_meaning: no_added_hla_dm_cotransfection
+  endogenous_dm_status: unknown_not_measured_knockout
+  introduced_hla_construct: MAPTAC_tagged_HLA_II_transfection
+  dm_intervention: HLA-DM_cotransfection_on_top_of_MAPTAC_HLA_II_construct
+  absence_is_not_measured_negative: true
+paired_dm_alleles:
+  HLA-DRB1*12:01:
+    dm_minus_label: MAPTAC-HLA-DRB1*12:01 (dm-)
+    dm_plus_label: MAPTAC-HLA-DRB1*12:01 (dm+)
+    n_dm_minus_peptides: 1396
+    n_dm_plus_peptides: 1113
+    n_shared_peptides: 233
+    n_union_peptides: 2276
+  HLA-DRB3*01:01:
+    dm_minus_label: MAPTAC-HLA-DRB3*01:01 (dm-)
+    dm_plus_label: MAPTAC-HLA-DRB3*01:01 (dm+)
+    n_dm_minus_peptides: 1931
+    n_dm_plus_peptides: 688
+    n_shared_peptides: 262
+    n_union_peptides: 2357
+  HLA-DPA1*01:03/DPB1*06:01:
+    dm_minus_label: MAPTAC-HLA-DPB1*06:01/DPA1*01:03 (dm-)
+    dm_plus_label: MAPTAC-HLA-DPB1*06:01/DPA1*01:03 (dm+)
+    n_dm_minus_peptides: 3503
+    n_dm_plus_peptides: 2464
+    n_shared_peptides: 1380
+    n_union_peptides: 4587
+  HLA-DQA1*01:02/DQB1*06:04:
+    dm_minus_label: MAPTAC-HLA-DQB1*06:04/DQA1*01:02 (dm-)
+    dm_plus_label: MAPTAC-HLA-DQB1*06:04/DQA1*01:02 (dm+)
+    n_dm_minus_peptides: 912
+    n_dm_plus_peptides: 1310
+    n_shared_peptides: 258
+    n_union_peptides: 1964
+arm_row_counts:
+  MAPTAC-HLA-DRB1*12:01 (dm-): 1396
+  MAPTAC-HLA-DRB1*12:01 (dm+): 1113
+  MAPTAC-HLA-DRB3*01:01 (dm-): 1931
+  MAPTAC-HLA-DRB3*01:01 (dm+): 688
+  MAPTAC-HLA-DPB1*06:01/DPA1*01:03 (dm-): 3503
+  MAPTAC-HLA-DPB1*06:01/DPA1*01:03 (dm+): 2464
+  MAPTAC-HLA-DQB1*06:04/DQA1*01:02 (dm-): 912
+  MAPTAC-HLA-DQB1*06:04/DQA1*01:02 (dm+): 1310
+  MAPTAC-HLA-DRB1*01:01: 8081
+  MAPTAC-HLA-DRB1*03:01: 2604
+  MAPTAC-HLA-DRB1*04:01: 2459
+  MAPTAC-HLA-DRB1*07:01: 5694
+  MAPTAC-HLA-DRB1*11:01: 10041
+  MAPTAC-HLA-DRB1*15:01: 3440
