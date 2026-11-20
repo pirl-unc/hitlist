@@ -13,6 +13,7 @@ import tempfile
 import time
 from pathlib import Path
 
+from ._worker_lifecycle import graceful_sigterm_scope
 from .provenance import ContributorCollector, ProvenanceStorageError
 
 _GIB = 1024**3
@@ -239,11 +240,12 @@ def _stop_workers(jobs):
     for process, _ in jobs:
         if process.is_alive():
             process.terminate()
+    deadline = time.monotonic() + 5.0
     for process, _ in jobs:
-        process.join(timeout=5)
+        process.join(timeout=max(0.0, deadline - time.monotonic()))
         if process.is_alive():
             process.kill()
-            process.join()
+            process.join(timeout=2.0)
         process.close()
 
 
@@ -253,9 +255,12 @@ def _parallel_sources(sources, provenance, quota, original_limit):
     from .downloads import data_dir
 
     results = []
-    with tempfile.TemporaryDirectory(
-        prefix="hitlist-scan-", dir=provenance.scratch_dir
-    ) as temporary:
+    with (
+        graceful_sigterm_scope(),
+        tempfile.TemporaryDirectory(
+            prefix="hitlist-scan-", dir=provenance.scratch_dir
+        ) as temporary,
+    ):
         root = Path(temporary)
         jobs = []
         try:

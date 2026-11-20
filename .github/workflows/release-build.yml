@@ -49,6 +49,10 @@ on:
       - scripts/verify_canine_peptide_evidence.py
       - hitlist/observations.py
       - hitlist/mappings.py
+      - hitlist/_source_scan.py
+      - hitlist/_worker_lifecycle.py
+      - tests/test_source_scan.py
+      - tests/test_worker_sigterm.py
       - tests/test_assays.py
       - tests/test_provenance.py
       - hitlist/cta_expression.py

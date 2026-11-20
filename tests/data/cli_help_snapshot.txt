@@ -813,6 +813,7 @@ usage: hitlist export cta-evidence [-h] [--expression EXPRESSION] [--id-column I
                                    [--tpm-column TPM_COLUMN]
                                    [--expression-level {auto,gene,transcript}] [--min-tpm MIN_TPM]
                                    [--cta-definition {strict,extended}]
+                                   [--cta-policy {legacy,target_sets,cta_selection,target_selection}]
                                    [--ensembl-release ENSEMBL_RELEASE]
                                    [--exclude-gene-pattern EXCLUDE_GENE_PATTERN | --no-gene-exclusions]
                                    [--allow-gene ALLOW_GENE] --atlas-dir ATLAS_DIR --bundle BUNDLE
@@ -830,6 +831,9 @@ options:
                         Default: infer from identifier headers, values or quantifier format
   --min-tpm MIN_TPM
   --cta-definition {strict,extended}
+  --cta-policy {legacy,target_sets,cta_selection,target_selection}
+                        Explicit OncoRef CTA policy selector (default: legacy historical
+                        oncoref.cta; upgrading oncoref never implicitly switches policies)
   --ensembl-release ENSEMBL_RELEASE
   --exclude-gene-pattern EXCLUDE_GENE_PATTERN
                         Replace default MAGE* exclusions with repeatable gene-symbol globs

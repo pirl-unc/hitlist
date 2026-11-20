@@ -498,3 +498,363 @@ def test_archived_pre_applicability_cta_bundle_verifies_offline_and_partial_appl
     rehash(partial, "identities.parquet")
     with pytest.raises(ValueError, match="Incomplete applicability columns"):
         verify_evidence_bundle(partial)
+
+
+def test_cta_policy_defaults_to_legacy_and_archived_manifest_without_policy_verifies(
+    mapped_index, reference, atlas_dir, tmp_path
+):
+    """#852: default remains legacy historical oncoref.cta; pre-2.1.24 manifests
+    without cta_policy remain verifiable."""
+    expression = tmp_path / "expression.tsv"
+    expression.write_text("gene\ttpm\nPRAME\t10\n")
+    target = tmp_path / "legacy-policy"
+    write_cta_evidence_bundle(
+        target, expression, atlas_dir=atlas_dir, id_column="gene", tpm_column="tpm"
+    )
+    manifest = verify_evidence_bundle(target)
+    policy = manifest["expression"]["cta_policy"]
+    assert policy["selector"] == "legacy"
+    assert policy["provider"] == "oncoref.cta"
+    assert policy["policy_id"] == "oncoref.cta.legacy.strict"
+    assert policy["implicit_upgrade"] is False
+    assert policy["observed_peptide_blacklist_independent"] is True
+    assert policy["unsafe_gene_ids"] is None
+    assert "has_policy_unsafe_match" not in pd.read_parquet(target / "peptides.parquet").columns
+
+    # Strip cta_policy to simulate a pre-2.1.24 archived bundle.
+    manifest_path = target / "manifest.json"
+    archived = json.loads(manifest_path.read_text())
+    archived["expression"].pop("cta_policy")
+    manifest_path.write_text(json.dumps(archived))
+    verified = verify_evidence_bundle(target)
+    assert "cta_policy" not in verified["expression"]
+
+
+def test_explicit_oncoref_cta_selection_policy_records_receipt_and_keeps_other_non_forbidden(
+    mapped_index, reference, atlas_dir, tmp_path, monkeypatch
+):
+    """#852: explicit cta_selection policy records policy_id/reference_id and
+    independent profile fields, keeps Other/Unassessed out of Unsafe, and keeps
+    donor-resolved observed-peptide blacklists independent."""
+    import sys
+    import types
+
+    from hitlist import cta_expression
+
+    fake_selection = types.ModuleType("oncoref.cta_selection")
+    fake_selection.profiles = lambda *, species="human": pd.DataFrame(
+        [
+            {
+                "entity_id": "prot:PRAME",
+                "label": "PRAME",
+                "gene_ids": ("G1",),
+                "category": "CTA",
+                "subtype": pd.NA,
+                "classification": "CTA",
+                "assessment_status": "assessed",
+                "policy_id": "oncoref.cta-selection.2026-10-31.1",
+                "reference_id": "ensembl-112-human",
+                "source_snapshot_id": "snap-2026-10-31",
+                "tumor_max_tpm": 45.0,
+                "replicated_tumor_rna": True,
+                "normal_max_ntpm": 0.4,
+                "adult_disposable_expression": False,
+                "adult_disposable_only": False,
+                "developmental_measured": True,
+            },
+            {
+                "entity_id": "prot:ACTB",
+                "label": "ACTB",
+                "gene_ids": ("G4",),
+                "category": "Unsafe",
+                "subtype": pd.NA,
+                "classification": "Unsafe",
+                "assessment_status": "assessed",
+                "policy_id": "oncoref.cta-selection.2026-10-31.1",
+                "reference_id": "ensembl-112-human",
+                "source_snapshot_id": "snap-2026-10-31",
+                "tumor_max_tpm": 900.0,
+                "replicated_tumor_rna": True,
+                "normal_max_ntpm": 850.0,
+                "adult_disposable_expression": False,
+                "adult_disposable_only": False,
+                "developmental_measured": True,
+            },
+            {
+                "entity_id": "prot:TCHHL1",
+                "label": "TCHHL1",
+                "gene_ids": ("G5",),
+                "category": "Other",
+                "subtype": "Nonreproductive",
+                "classification": "Other:Nonreproductive",
+                "assessment_status": "assessed",
+                "policy_id": "oncoref.cta-selection.2026-10-31.1",
+                "reference_id": "ensembl-112-human",
+                "source_snapshot_id": "snap-2026-10-31",
+                "tumor_max_tpm": 2.0,
+                "replicated_tumor_rna": False,
+                "normal_max_ntpm": 0.1,
+                "adult_disposable_expression": True,
+                "adult_disposable_only": True,
+                "developmental_measured": False,
+            },
+            {
+                "entity_id": "prot:OR10A4",
+                "label": "OR10A4",
+                "gene_ids": ("G6",),
+                "category": pd.NA,
+                "subtype": pd.NA,
+                "classification": "Unassessed",
+                "assessment_status": "unassessed",
+                "policy_id": "oncoref.cta-selection.2026-10-31.1",
+                "reference_id": "ensembl-112-human",
+                "source_snapshot_id": "snap-2026-10-31",
+                "tumor_max_tpm": 1.0,
+                "replicated_tumor_rna": False,
+                "normal_max_ntpm": 0.0,
+                "adult_disposable_expression": False,
+                "adult_disposable_only": False,
+                "developmental_measured": False,
+            },
+        ]
+    )
+    fake_selection.sequence_dispositions = lambda *, species="human": pd.DataFrame(
+        [
+            {"entity_id": "prot:PRAME", "overlap_role": "allow", "direct_target_eligible": True},
+            {"entity_id": "prot:ACTB", "overlap_role": "exclude", "direct_target_eligible": False},
+            {"entity_id": "prot:TCHHL1", "overlap_role": "allow", "direct_target_eligible": False},
+            {"entity_id": "prot:OR10A4", "overlap_role": "review", "direct_target_eligible": False},
+        ]
+    )
+    fake_selection.contract = lambda *, species="human": {
+        "selection_policy_id": "oncoref.cta-selection.2026-10-31.1",
+        "reference_id": "ensembl-112-human",
+    }
+    fake_selection.coverage = lambda *, species="human": {
+        "counts": {"CTA": 1, "Unsafe": 1, "Other": 1, "Unassigned": 1}
+    }
+    import oncoref
+
+    monkeypatch.setitem(sys.modules, "oncoref.cta_selection", fake_selection)
+    monkeypatch.setattr(oncoref, "cta_selection", fake_selection, raising=False)
+    monkeypatch.setattr(
+        cta_expression,
+        "_gene_identity",
+        lambda name: {
+            "PRAME": ("G1", "PRAME"),
+            "ACTB": ("G4", "ACTB"),
+            "TCHHL1": ("G5", "TCHHL1"),
+            "OR10A4": ("G6", "OR10A4"),
+        }.get(name, ("", "")),
+    )
+
+    expression = tmp_path / "expression.tsv"
+    expression.write_text("gene\ttpm\nPRAME\t10\nTCHHL1\t15\nOR10A4\t12\nACTB\t50\n")
+    target = tmp_path / "cta-selection-bundle"
+    write_cta_evidence_bundle(
+        target,
+        expression,
+        atlas_dir=atlas_dir,
+        id_column="gene",
+        tpm_column="tpm",
+        cta_policy="cta_selection",
+    )
+    manifest = verify_evidence_bundle(target)
+    policy = manifest["expression"]["cta_policy"]
+    assert policy["selector"] == "cta_selection"
+    assert policy["policy_id"] == "oncoref.cta-selection.2026-10-31.1"
+    assert policy["reference_id"] == "ensembl-112-human"
+    assert policy["source_snapshot_id"] == "snap-2026-10-31"
+    assert policy["n_cta_genes"] == 1
+    assert policy["n_unsafe_genes"] == 1
+    assert policy["unsafe_gene_ids"] == ["G4"]  # ONLY Unsafe; never Other (G5) or Unassessed (G6)
+    assert policy["other_is_not_forbidden"] is True
+    assert policy["observed_peptide_blacklist_independent"] is True
+
+    # Independent profile attributes survive in cta_reference.parquet.
+    ref = pd.read_parquet(target / "cta_reference.parquet").set_index("Ensembl_Gene_ID")
+    assert ref.loc["G5", "policy_classification"] == "Other:Nonreproductive"
+    assert bool(ref.loc["G5", "adult_disposable_only"]) is True
+    assert bool(ref.loc["G5", "developmental_measured"]) is False
+    assert ref.loc["G6", "policy_category"] == "Unassessed"
+    assert ref.loc["G6", "overlap_role"] == "review"
+
+    # Peptide SLYNTVATL maps to G1 (CTA) and G4 (Unsafe) AND is Atlas-blacklisted.
+    peptides = pd.read_parquet(target / "peptides.parquet")
+    row = peptides.iloc[0]
+    assert bool(row.has_policy_unsafe_match) is True
+    assert json.loads(row.policy_categories) == ["CTA", "Unsafe"]
+    assert "policy_unsafe_reference_match" in row.avoid_reasons
+    assert "essential_tissue_blacklist" in row.avoid_reasons
+    assert (target / "forbidden_sequences.txt").read_text() == "SLYNTVATL\n"
+
+    # Verifier rejects leaking Other (G5) into unsafe_gene_ids or tampering policy_id.
+    manifest_path = target / "manifest.json"
+    tampered = json.loads(manifest_path.read_text())
+    tampered["expression"]["cta_policy"]["unsafe_gene_ids"] = ["G4", "G5"]
+    tampered["expression"]["cta_policy"]["n_unsafe_genes"] = 2
+    manifest_path.write_text(json.dumps(tampered))
+    with pytest.raises(ValueError, match="Unsafe partition mismatch"):
+        verify_evidence_bundle(target)
+
+    tampered = json.loads(manifest_path.read_text())
+    tampered["expression"]["cta_policy"]["unsafe_gene_ids"] = ["G4"]
+    tampered["expression"]["cta_policy"]["n_unsafe_genes"] = 1
+    tampered["expression"]["cta_policy"]["policy_id"] = "oncoref.cta-selection.tampered"
+    manifest_path.write_text(json.dumps(tampered))
+    with pytest.raises(ValueError, match="policy_id mismatch"):
+        verify_evidence_bundle(target)
+
+
+@pytest.mark.parametrize("selector", ["target_sets", "target_selection"])
+def test_target_sets_and_target_selection_policies_never_treat_neither_or_other_as_unsafe(
+    tmp_path, monkeypatch, selector
+):
+    """#852: target_sets (1.20.0) and target_selection (1.37+) keep Neither/Other
+    separate from Unsafe and reject definition='extended'."""
+    import sys
+    import types
+
+    import oncoref
+
+    from hitlist import cta_expression
+
+    if selector == "target_sets":
+        fake_ts = types.ModuleType("oncoref.target_sets")
+        fake_ts.POLICY_ID = "oncoref.target-sets.2026-10-25.2"
+        fake_ts.results = lambda: pd.DataFrame(
+            [
+                {"Gene": "CTAG1B", "Gene ID": "G1", "Category": "CTA", "Detail": "Pass"},
+                {"Gene": "MAGEA4", "Gene ID": "G2", "Category": "Neither", "Detail": "Variable"},
+                {"Gene": "PRAME", "Gene ID": "G3", "Category": "Unsafe", "Detail": "Protein"},
+            ]
+        )
+        fake_pol = types.ModuleType("oncoref.cta_policy")
+        fake_pol.POLICY_ID = "oncoref.target-sets.2026-10-25.2"
+        fake_pol.manifest = lambda: {
+            "policy_id": "oncoref.target-sets.2026-10-25.2",
+            "reference": "ensembl-112",
+        }
+        monkeypatch.setitem(sys.modules, "oncoref.target_sets", fake_ts)
+        monkeypatch.setitem(sys.modules, "oncoref.cta_policy", fake_pol)
+        monkeypatch.setattr(oncoref, "target_sets", fake_ts, raising=False)
+        monkeypatch.setattr(oncoref, "cta_policy", fake_pol, raising=False)
+    else:
+        fake_tsel = types.ModuleType("oncoref.target_selection")
+        fake_tsel.POLICY_ID = "oncoref.target-selection.2026-11-19.4"
+        fake_tsel.definition = lambda: {"policy_id": "oncoref.target-selection.2026-11-19.4"}
+        fake_tsel.metadata = lambda: {"reference_id": "ensembl-112-rebuilt"}
+        fake_tsel.results = lambda: pd.DataFrame(
+            [
+                {
+                    "protein_group_label": "CTAG1B",
+                    "member_gene_ids": json.dumps(["G1"]),
+                    "category": "CTA",
+                    "subtype": "",
+                },
+                {
+                    "protein_group_label": "CA_ONLY",
+                    "member_gene_ids": json.dumps(["G2"]),
+                    "category": "Cancer Antigen only",
+                    "subtype": "",
+                },
+                {
+                    "protein_group_label": "PRAME",
+                    "member_gene_ids": json.dumps(["G3"]),
+                    "category": "Unsafe",
+                    "subtype": "",
+                },
+            ]
+        )
+        monkeypatch.setitem(sys.modules, "oncoref.target_selection", fake_tsel)
+        monkeypatch.setattr(oncoref, "target_selection", fake_tsel, raising=False)
+
+    monkeypatch.setattr(
+        cta_expression,
+        "_gene_identity",
+        lambda name: {"CTAG1B": ("G1", "CTAG1B"), "G2": ("G2", "G2"), "PRAME": ("G3", "PRAME")}.get(
+            name, ("", "")
+        ),
+    )
+    expr_path = tmp_path / "expr.tsv"
+    expr_path.write_text("gene\ttpm\nCTAG1B\t10\nG2\t10\nPRAME\t10\n")
+
+    with pytest.raises(ValueError, match="only applies to cta_policy='legacy'"):
+        cta_expression.resolve_expression_table(
+            expr_path,
+            id_column="gene",
+            tpm_column="tpm",
+            cta_policy=selector,
+            definition="extended",
+        )
+
+    audit, ref, meta = cta_expression.resolve_expression_table(
+        expr_path, id_column="gene", tpm_column="tpm", cta_policy=selector
+    )
+    assert meta["cta_gene_ids"] == ["G1"]
+    assert meta["cta_policy"]["selector"] == selector
+    assert meta["cta_policy"]["unsafe_gene_ids"] == ["G3"]
+    assert "G2" not in meta["cta_policy"]["unsafe_gene_ids"]
+    assert audit.set_index("gene_id")["selection_reason"].to_dict() == {
+        "G1": "selected",
+        "G2": "not_cta",
+        "G3": "not_cta",
+    }
+    assert set(ref["Ensembl_Gene_ID"]) == {"G1", "G2", "G3"}
+
+
+def test_cta_evidence_cli_accepts_cta_policy_flag(
+    mapped_index, reference, atlas_dir, tmp_path, monkeypatch, capsys
+):
+    import sys
+
+    from hitlist.cli import main
+
+    expression = tmp_path / "expression.tsv"
+    expression.write_text("gene\ttpm\nPRAME\t10\n")
+    target = tmp_path / "cli-cta-policy"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "hitlist",
+            "export",
+            "cta-evidence",
+            "--expression",
+            str(expression),
+            "--id-column",
+            "gene",
+            "--tpm-column",
+            "tpm",
+            "--cta-policy",
+            "legacy",
+            "--atlas-dir",
+            str(atlas_dir),
+            "--bundle",
+            str(target),
+        ],
+    )
+    main()
+    out = capsys.readouterr().out
+    assert "policy=oncoref.cta.legacy.strict" in out
+    assert verify_evidence_bundle(target)["expression"]["cta_policy"]["selector"] == "legacy"
+
+
+def test_live_installed_oncoref_cta_selection_policy_if_available():
+    """Smoke-test real oncoref.cta_selection when installed (e.g. CI oncoref>=1.27)."""
+    import importlib
+
+    try:
+        importlib.import_module("oncoref.cta_selection")
+    except ImportError:
+        pytest.skip("Installed oncoref predates oncoref.cta_selection")
+
+    from hitlist.cta_expression import _resolve_cta_policy
+
+    ref, cta_ids, receipt = _resolve_cta_policy("cta_selection", "strict")
+    assert receipt["selector"] == "cta_selection"
+    assert receipt["policy_id"]
+    assert receipt["n_cta_genes"] == len(cta_ids) > 0
+    assert receipt["n_unsafe_genes"] > 0
+    assert set(cta_ids).isdisjoint(set(receipt["unsafe_gene_ids"]))
+    assert {"Ensembl_Gene_ID", "policy_category", "policy_id", "reference_id"} <= set(ref.columns)

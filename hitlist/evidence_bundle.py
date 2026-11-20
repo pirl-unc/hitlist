@@ -10,7 +10,11 @@ from pathlib import Path
 import pandas as pd
 
 from .assays import MS_POLICY_VERSION, annotate_assays, ms_exclusion_reasons
-from .cta_expression import resolve_expression_table, summarize_cta_mappings
+from .cta_expression import (
+    CTA_POLICY_SELECTORS,
+    resolve_expression_table,
+    summarize_cta_mappings,
+)
 from .dataset import dataset_snapshot
 from .provenance import file_digest
 from .tissue_blacklist import (
@@ -232,11 +236,32 @@ def _expression_links(expression, mappings, level):
 
 
 def _peptide_summary(
-    mappings, cta_ids, evidence, tissue_risk, *, use_captured_identities=False, tissue_policy=None
+    mappings,
+    cta_ids,
+    evidence,
+    tissue_risk,
+    *,
+    use_captured_identities=False,
+    tissue_policy=None,
+    unsafe_gene_ids=None,
+    gene_categories=None,
 ):
     summary, annotated = summarize_cta_mappings(
         mappings, cta_ids, use_captured_identities=use_captured_identities
     )
+    if unsafe_gene_ids is not None:
+        categories_map = gene_categories or {}
+        unsafe_flags = []
+        policy_cats = []
+        for raw_ids in summary.human_gene_ids:
+            genes = json.loads(raw_ids)
+            unsafe_flags.append(any(gene in unsafe_gene_ids for gene in genes))
+            cats = sorted({str(categories_map.get(gene, "Unlisted")) for gene in genes})
+            policy_cats.append(json.dumps(cats))
+        summary["has_policy_unsafe_match"] = pd.Series(
+            unsafe_flags, index=summary.index, dtype="bool"
+        )
+        summary["policy_categories"] = pd.Series(policy_cats, index=summary.index, dtype="string")
     counts = evidence.groupby("peptide").size()
     summary["n_ms_observations"] = summary.peptide.map(counts).fillna(0).astype(int)
     risk = tissue_risk.set_index("peptide")
@@ -287,6 +312,10 @@ def _peptide_summary(
             reason
             for condition, reason in (
                 (row.has_non_cta_match, "non_cta_reference_match"),
+                (
+                    bool(getattr(row, "has_policy_unsafe_match", False)),
+                    "policy_unsafe_reference_match",
+                ),
                 (not row.cta_specific and not row.has_non_cta_match, "unresolved_reference"),
                 (row.blacklisted, "essential_tissue_blacklist"),
                 (
@@ -363,8 +392,24 @@ def write_cta_evidence_bundle(
         )
         identities = _contributor_identities(identities, contributors)
         risk, atlas = _write_tissues(staging, atlas_dir)
+        policy_receipt = options.get("cta_policy") or {}
+        unsafe_ids = (
+            set(policy_receipt["unsafe_gene_ids"])
+            if policy_receipt.get("unsafe_gene_ids") is not None
+            else None
+        )
+        gene_categories = (
+            dict(zip(reference["Ensembl_Gene_ID"], reference["policy_category"]))
+            if unsafe_ids is not None and "policy_category" in reference.columns
+            else None
+        )
         summary, mappings = _peptide_summary(
-            mappings, set(options["cta_gene_ids"]), presentation, risk
+            mappings,
+            set(options["cta_gene_ids"]),
+            presentation,
+            risk,
+            unsafe_gene_ids=unsafe_ids,
+            gene_categories=gene_categories,
         )
         links = _expression_links(expression, mappings, options["level"])
         tables = {
@@ -507,10 +552,77 @@ def verify_evidence_bundle(directory):
         )
 
         reference = read("cta_reference")
-        if set(reference.loc[reference.included_in_definition, "Ensembl_Gene_ID"]) != set(
-            manifest["expression"]["cta_gene_ids"]
+        manifest_cta_ids = set(manifest["expression"]["cta_gene_ids"])
+        if (
+            set(reference.loc[reference.included_in_definition, "Ensembl_Gene_ID"])
+            != manifest_cta_ids
         ):
             raise ValueError("Evidence bundle CTA reference membership mismatch")
+        cta_policy = manifest["expression"].get("cta_policy")
+        unsafe_ids = None
+        gene_categories = None
+        if cta_policy is not None:
+            selector = cta_policy.get("selector")
+            if (
+                selector not in CTA_POLICY_SELECTORS
+                or not str(cta_policy.get("policy_id") or "").strip()
+                or cta_policy.get("n_cta_genes") != len(manifest_cta_ids)
+                or cta_policy.get("observed_peptide_blacklist_independent") is not True
+            ):
+                raise ValueError("Evidence bundle CTA policy metadata mismatch")
+            if selector != "legacy":
+                required_cols = {"policy_category", "policy_id", "reference_id"}
+                if not required_cols <= set(reference.columns):
+                    raise ValueError("Evidence bundle CTA policy reference columns missing")
+                ref_policies = {
+                    str(v) for v in reference["policy_id"].dropna().unique() if str(v).strip()
+                }
+                if ref_policies != {str(cta_policy["policy_id"])}:
+                    raise ValueError("Evidence bundle CTA policy_id mismatch")
+                expected_ref = str(cta_policy.get("reference_id") or "")
+                if expected_ref:
+                    ref_ids = {
+                        str(v)
+                        for v in reference["reference_id"].dropna().unique()
+                        if str(v).strip()
+                    }
+                    if ref_ids != {expected_ref}:
+                        raise ValueError("Evidence bundle CTA reference_id mismatch")
+                ref_cta = set(
+                    reference.loc[reference["policy_category"].eq("CTA"), "Ensembl_Gene_ID"]
+                )
+                if ref_cta != manifest_cta_ids:
+                    raise ValueError("Evidence bundle CTA policy category membership mismatch")
+                if cta_policy.get("unsafe_gene_ids") is None:
+                    raise ValueError("Evidence bundle CTA policy missing unsafe_gene_ids")
+                unsafe_ids = set(cta_policy["unsafe_gene_ids"])
+                ref_unsafe = set(
+                    reference.loc[reference["policy_category"].eq("Unsafe"), "Ensembl_Gene_ID"]
+                )
+                ref_non_unsafe = set(
+                    reference.loc[
+                        reference["policy_category"].isin(
+                            [
+                                "Other",
+                                "Neither",
+                                "Unassessed",
+                                "Cancer Antigen only",
+                                "Reproductive Antigen only",
+                            ]
+                        ),
+                        "Ensembl_Gene_ID",
+                    ]
+                )
+                if (
+                    unsafe_ids != ref_unsafe
+                    or not unsafe_ids.isdisjoint(manifest_cta_ids)
+                    or not unsafe_ids.isdisjoint(ref_non_unsafe)
+                    or cta_policy.get("n_unsafe_genes") != len(unsafe_ids)
+                ):
+                    raise ValueError("Evidence bundle CTA policy Unsafe partition mismatch")
+                gene_categories = dict(
+                    zip(reference["Ensembl_Gene_ID"], reference["policy_category"])
+                )
         identities = read("identities")
         contributors = pd.read_parquet(
             directory / "contributors.parquet", columns=_CONTRIBUTOR_SUMMARY_COLUMNS
@@ -576,11 +688,13 @@ def verify_evidence_bundle(directory):
             )
         expected, mappings = _peptide_summary(
             read("mappings"),
-            set(manifest["expression"]["cta_gene_ids"]),
+            manifest_cta_ids,
             read("presentation"),
             summary,
             use_captured_identities=True,
             tissue_policy=manifest["policy"],
+            unsafe_gene_ids=unsafe_ids,
+            gene_categories=gene_categories,
         )
         _equal_frame(read("peptides"), expected, "peptide specificity and tissue risk")
         _equal_frame(read("mappings"), mappings, "mapping CTA annotations")

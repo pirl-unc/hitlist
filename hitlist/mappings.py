@@ -840,6 +840,7 @@ def build_peptide_mappings(
         import multiprocessing as mp
         from concurrent.futures import ProcessPoolExecutor
 
+        from ._worker_lifecycle import graceful_sigterm_scope, terminate_process_pool
         from .proteome import proteome_index_cache_dir
 
         # chunksize=2 keeps adjacent FASTA-clustered tasks on the same
@@ -847,32 +848,41 @@ def build_peptide_mappings(
         # default chunksize=1 round-robin would scatter.  Strain-variant
         # clusters of size ≥ 2 (the common case) get the 2nd member's
         # index from the same-process cache rather than rebuilding.
-        with ProcessPoolExecutor(
-            max_workers=effective_workers,
-            # Forking a multithreaded parent can leave child locks unusable.
-            # Match supervised prefetch's fresh-process startup on every OS.
-            mp_context=mp.get_context("spawn"),
-            initializer=_initialize_mapping_worker,
-            initargs=(str(data_dir()), str(proteome_index_cache_dir())),
-        ) as pool:
-            for result in pool.map(_per_canonical_mapping_worker, mapping_tasks, chunksize=2):
-                if not result.proteome_available:
-                    unavailable_proteomes.add(result.canonical)
-                if result.mapping_frame is not None:
-                    all_mapping_dfs.append(result.mapping_frame)
-                per_proteome_stats.append(
-                    (
-                        result.canonical,
-                        result.n_input_peptides,
-                        result.n_matched_peptides,
+        with graceful_sigterm_scope():
+            pool = ProcessPoolExecutor(
+                max_workers=effective_workers,
+                # Forking a multithreaded parent can leave child locks unusable.
+                # Match supervised prefetch's fresh-process startup on every OS.
+                mp_context=mp.get_context("spawn"),
+                initializer=_initialize_mapping_worker,
+                initargs=(str(data_dir()), str(proteome_index_cache_dir())),
+            )
+            completed = False
+            try:
+                for result in pool.map(_per_canonical_mapping_worker, mapping_tasks, chunksize=2):
+                    if not result.proteome_available:
+                        unavailable_proteomes.add(result.canonical)
+                    if result.mapping_frame is not None:
+                        all_mapping_dfs.append(result.mapping_frame)
+                    per_proteome_stats.append(
+                        (
+                            result.canonical,
+                            result.n_input_peptides,
+                            result.n_matched_peptides,
+                        )
                     )
-                )
-                if verbose:
-                    print(
-                        f"    [{result.canonical}] matched "
-                        f"{result.n_matched_peptides:,} / "
-                        f"{result.n_input_peptides:,} peptides"
-                    )
+                    if verbose:
+                        print(
+                            f"    [{result.canonical}] matched "
+                            f"{result.n_matched_peptides:,} / "
+                            f"{result.n_input_peptides:,} peptides"
+                        )
+                completed = True
+            finally:
+                if completed:
+                    pool.shutdown(wait=True)
+                else:
+                    terminate_process_pool(pool)
 
     # ── Extra proteomes (per-PMID reference_proteomes overrides) ─────────────
     if upid_to_peptides:
@@ -1144,6 +1154,7 @@ def _supervise_prefetch_tasks(
 
     import multiprocessing as mp
 
+    from ._worker_lifecycle import graceful_sigterm_scope
     from .downloads import data_dir
 
     target = worker_target or _prefetch_worker
@@ -1151,75 +1162,81 @@ def _supervise_prefetch_tasks(
     unavailable: set[str] = set()
     pool = None
     aborted = False
+    completed = False
 
-    try:
-        pool = context.Pool(processes=1)
-        # The clock starts once a worker process exists, not before (#468).
-        # This is the spawn context, so building the pool starts a fresh
-        # interpreter, and its cost tracks how busy the machine is rather
-        # than anything the deadline is meant to bound: the budget exists
-        # to stop a *network* stall from hanging a build (#402, #407).
-        # Charging local startup to it let a loaded box burn the whole
-        # phase without attempting a single fetch.
-        started = time.monotonic()
-        for i, (label, canonicals, entry) in enumerate(tasks, 1):
-            elapsed = time.monotonic() - started
-            remaining_seconds = deadline_seconds - elapsed
-            if remaining_seconds <= 0:
-                unavailable.update(c for _, keys, _ in tasks[i - 1 :] for c in keys)
-                print(
-                    f"    prefetch deadline of {deadline_seconds:.0f}s exhausted; "
-                    f"skipping {len(unavailable)} proteome(s).",
-                    flush=True,
-                )
-                aborted = True
-                break
+    with graceful_sigterm_scope():
+        try:
+            pool = context.Pool(processes=1)
+            # The clock starts once a worker process exists, not before (#468).
+            # This is the spawn context, so building the pool starts a fresh
+            # interpreter, and its cost tracks how busy the machine is rather
+            # than anything the deadline is meant to bound: the budget exists
+            # to stop a *network* stall from hanging a build (#402, #407).
+            # Charging local startup to it let a loaded box burn the whole
+            # phase without attempting a single fetch.
+            started = time.monotonic()
+            for i, (label, canonicals, entry) in enumerate(tasks, 1):
+                elapsed = time.monotonic() - started
+                remaining_seconds = deadline_seconds - elapsed
+                if remaining_seconds <= 0:
+                    unavailable.update(c for _, keys, _ in tasks[i - 1 :] for c in keys)
+                    print(
+                        f"    prefetch deadline of {deadline_seconds:.0f}s exhausted; "
+                        f"skipping {len(unavailable)} proteome(s).",
+                        flush=True,
+                    )
+                    aborted = True
+                    break
 
-            if verbose:
-                print(f"    [{i}/{len(tasks)}] {label} ...", flush=True)
-            try:
-                result = pool.apply_async(
-                    target,
-                    (label, entry, str(data_dir()), release),
-                )
-                returned_label, succeeded, error_text = result.get(timeout=remaining_seconds)
-            except mp.TimeoutError:
-                unavailable.update(c for _, keys, _ in tasks[i - 1 :] for c in keys)
-                print(
-                    f"    [{label}] prefetch timed out at the {deadline_seconds:.0f}s "
-                    f"phase deadline; skipping it and {len(tasks) - i} remaining "
-                    "cache request(s).",
-                    flush=True,
-                )
-                aborted = True
-                break
-            except Exception as error:
-                unavailable.update(canonicals)
-                print(
-                    f"    [{label}] prefetch worker failed ({error}); skipped.",
-                    flush=True,
-                )
-                continue
-            if returned_label != label:
-                unavailable.update(canonicals)
-                print(
-                    f"    [{label}] prefetch protocol mismatch ({returned_label!r}); skipped.",
-                    flush=True,
-                )
-            elif not succeeded:
-                unavailable.update(canonicals)
-                print(f"    [{label}] prefetch skipped: {error_text}", flush=True)
-    except (OSError, RuntimeError) as error:
-        unavailable.update(c for _, canonicals, _ in tasks for c in canonicals)
-        print(f"    prefetch worker could not start: {error}; skipping all proteomes.", flush=True)
-        aborted = True
-    finally:
-        if pool is not None:
-            if aborted:
-                pool.terminate()
-            else:
-                pool.close()
-            pool.join()
+                if verbose:
+                    print(f"    [{i}/{len(tasks)}] {label} ...", flush=True)
+                try:
+                    result = pool.apply_async(
+                        target,
+                        (label, entry, str(data_dir()), release),
+                    )
+                    returned_label, succeeded, error_text = result.get(timeout=remaining_seconds)
+                except mp.TimeoutError:
+                    unavailable.update(c for _, keys, _ in tasks[i - 1 :] for c in keys)
+                    print(
+                        f"    [{label}] prefetch timed out at the {deadline_seconds:.0f}s "
+                        f"phase deadline; skipping it and {len(tasks) - i} remaining "
+                        "cache request(s).",
+                        flush=True,
+                    )
+                    aborted = True
+                    break
+                except Exception as error:
+                    unavailable.update(canonicals)
+                    print(
+                        f"    [{label}] prefetch worker failed ({error}); skipped.",
+                        flush=True,
+                    )
+                    continue
+                if returned_label != label:
+                    unavailable.update(canonicals)
+                    print(
+                        f"    [{label}] prefetch protocol mismatch ({returned_label!r}); skipped.",
+                        flush=True,
+                    )
+                elif not succeeded:
+                    unavailable.update(canonicals)
+                    print(f"    [{label}] prefetch skipped: {error_text}", flush=True)
+            completed = not aborted
+        except (OSError, RuntimeError) as error:
+            unavailable.update(c for _, canonicals, _ in tasks for c in canonicals)
+            print(
+                f"    prefetch worker could not start: {error}; skipping all proteomes.",
+                flush=True,
+            )
+            aborted = True
+        finally:
+            if pool is not None:
+                if completed:
+                    pool.close()
+                else:
+                    pool.terminate()
+                pool.join()
 
     return unavailable
 
