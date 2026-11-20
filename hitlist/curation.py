@@ -187,6 +187,11 @@ PMID_ENTRY_FIELDS = MappingProxyType(
             "not_detected) condition IDs; export._select_by_elution_conditions and "
             "export.StatementMap read this (#512, #900)"
         ),
+        "elution_token_condition_ids": (
+            "declarative prefix + closed comma-separated token map from deposited "
+            "assay comments to supported condition IDs; export.StatementMap reads "
+            "this and declines any statement containing an unmapped token (#904)"
+        ),
         "tissue_overrides": "per-tissue overrides; rendered by hitlist.report",
         "arm_resolution": (
             "why this study's rows can or cannot reach a specific arm; one of "
@@ -398,6 +403,31 @@ def validate_elution_condition_ids(entry: Mapping[str, object]) -> None:
             pmid=pmid,
             allowed_condition_ids=condition_ids,
         )
+    token_spec = entry.get("elution_token_condition_ids")
+    if token_spec is not None:
+        if not isinstance(token_spec, dict) or set(token_spec) != {"prefix", "tokens"}:
+            raise ValueError(
+                f"PMID {pmid}: elution_token_condition_ids must be a mapping with keys "
+                "'prefix' and 'tokens'"
+            )
+        prefix = token_spec["prefix"]
+        tokens = token_spec["tokens"]
+        if not isinstance(prefix, str) or not prefix.strip() or prefix != prefix.strip():
+            raise ValueError(
+                f"PMID {pmid}: elution_token_condition_ids.prefix must be nonempty, stripped text"
+            )
+        if not isinstance(tokens, dict) or not tokens:
+            raise ValueError(
+                f"PMID {pmid}: elution_token_condition_ids.tokens must be a nonempty mapping"
+            )
+        for token, target in tokens.items():
+            if not isinstance(token, str) or not token.strip() or token != token.strip():
+                raise ValueError(f"PMID {pmid}: elution token must be nonempty, stripped text")
+            if not isinstance(target, str) or target not in condition_ids:
+                raise ValueError(
+                    f"PMID {pmid}: elution token {token!r} references unknown or unprofiled "
+                    f"condition_id {target!r}"
+                )
 
 
 @lru_cache(maxsize=1)

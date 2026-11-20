@@ -210,6 +210,34 @@ hits_df, sample_alleles = to_mhcflurry_presentation_inputs(ms_selection)
 lineage columns), and `sample_alleles` maps each `sample_id` to `1..6` two-field
 human class-I allele strings.
 
+## APC, cytokine, and stimulus contrasts (`#904`, `#930`)
+
+`build_stimulus_contrast_catalog` and `prepare_stimulus_contrast_data` (in
+`hitlist.apc_contrasts`, lazily re-exported from `hitlist`) separate true
+matched single-factor cytokine/stimulus contrasts (`isolated_cytokine_contrast`,
+`isolated_stimulus_contrast`) from differentiation cocktails
+(`differentiation_cocktail_contrast`), acute maturation cocktails on a fixed
+differentiated background
+(`multifactor_maturation_contrast_on_differentiated_background`), constant
+cytokine backgrounds (`constant_cytokine_background_other_contrast`), unpaired
+constant cocktails (`constant_cocktail_context_only`), and non-APC expanded
+T-cell populations (`expansion_protocol_non_apc_context_only`, such as
+IL-2/OKT3-expanded melanoma TILs in `PMID 28832583`).
+
+- Class-pool (`sample_mhc_origin="class_pool"` / `pmid_class_pool`) and
+  unattributed/mixed-population rows are never assigned a guessed treatment;
+  multi-arm shared rows (`supported_condition_ids` with 2+ arms, such as shared
+  subsets in `PMID 32983136`) are routed to `excluded` with
+  `shared_multi_arm_requires_edge_expansion` for explicit expansion via
+  `expand_condition_memberships`.
+- Documented primary-source dose-unit and assay-scope conflicts in DLBCL
+  (`PMID 35561310` / `PMC9327544`, `#930`) are preserved verbatim in
+  `dlbcl_treatment_conflict_contract()` (`nmol/mL` is never normalized as `nM`,
+  `100 ug/ml` in Supplemental Figure 10 is never silently repaired to
+  `100 ng/mL`, and Figures 2–3 transcript assays stay separate from Figure 5
+  peptide detection) and annotated via `dose_conflict_status` without dropping
+  usable Figure 5 detection evidence.
+
 ## Assay preparation and biological-independence audits
 
 Every table returned by `generate_training_table`, `qualify_binding_measurements`,

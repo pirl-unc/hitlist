@@ -1001,20 +1001,18 @@
         reason: Healthy donor blood controls
   - pmid: 32983136
     study_label: Marino 2020 — activated immune cell subsets
-    # Arm-resolution verdict (#451): recorded so this study is not
-    # re-investigated. Describes the deposited evidence, not the curation.
-    arm_resolution: curation_gap
+    # Arm-resolution verdict (#451, resolved #904): 100% of all 34,606 rows carry
+    # "The epitope was eluted from the following cell types: <tokens>." across
+    # exactly 7 tokens (CD14, ImDC/ImmDC, MaDC, CD19, CD4, CD8).
+    arm_resolution: multi_arm_evidence
     arm_resolution_note: >
-      cell_name takes 5 distinct values that partition the rows onto the curated subsets
-      ('Dendritic cell' 13,740; 'Macrophage' 10,456, the CD14+ monocyte arm; 'B cell' 6,143;
-      'T cell CD8+' 3,067; 'T cell CD4+' 1,200), and assay_comments takes 503 distinct values,
-      many of which name a single subset ('The epitope was eluted from the following cell
-      types: MaDC.' on 4,730 rows, 'CD19.' on 1,046). Only 3,067 of 34,606 rows currently
-      reach an arm, so the field that separates ImDC from MaDC and monocytes from B cells is
-      deposited and unexploited. Per-arm mhc is 'unknown' while rows carry 40 distinct donor
-      genotypes, so allele matching cannot substitute. A minority of rows do enumerate several
-      subsets at once ('CD14, CD19, CD4, CD8, ImDC, MaDC', 3,251 rows) and those are ambiguous
-      by fact; the single-subset rows are the remaining work.
+      All 34,606 ci-corpus-v4 rows carry a closed comma-separated subset enumeration
+      ('The epitope was eluted from the following cell types: ...') across 7 exact tokens
+      (CD14, ImDC, ImmDC, MaDC, CD19, CD4, CD8). Declarative elution_token_condition_ids
+      recovers all 6,819 single-subset rows (4,730 MaDC; 1,046 CD19; 370 ImDC/ImmDC;
+      363 CD14; 197 CD4; 113 CD8) to their exact condition_id while keeping all 27,787
+      multi-subset shared rows at condition_id="" with explicit supported_condition_ids
+      for expand_condition_memberships (#904).
     title: Biogenesis of HLA Ligand Presentation in Immune Cells Upon Activation Reveals Changes in Peptide Length Preference
     override: activated_apc
     note: >
@@ -1039,6 +1037,16 @@
         - "HLA-B*44:03"
         - "HLA-B*51:01"
     ip_antibody: "HB95 (I) + HB145 (II)"
+    elution_token_condition_ids:
+      prefix: "The epitope was eluted from the following cell types:"
+      tokens:
+        CD14: cd14_monocytes_resting
+        ImDC: immature_dcs
+        ImmDC: immature_dcs
+        MaDC: mature_dcs
+        CD19: cd19_b_cells_activated
+        CD4: cd4_t_cells_activated
+        CD8: cd8_t_cells_activated
     ms_samples:
       - sample_label: CD14+ monocytes (resting)
         n_samples: 4
@@ -1046,8 +1054,10 @@
         condition: unperturbed
         condition_id: "cd14_monocytes_resting"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC7485268 Materials and Methods, Isolation of Primary Human Immune Cells"
         condition_control: "untreated"
+        condition_control_for: "immature_dcs"
         mhc_class: I+II
         mhc: unknown
       - sample_label: immature DCs
@@ -1056,7 +1066,9 @@
         condition: GM-CSF (500 IU/mL) + IL-4 (250 IU/mL) 6d
         condition_id: "immature_dcs"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC7485268 Materials and Methods, Differentiation and Maturation of DCs"
+        condition_control_for: "mature_dcs"
         condition_combination: "simultaneous"
         condition_cytokines: "CSF2;IL4"
         mhc_class: I+II
@@ -1067,7 +1079,8 @@
         condition: GM-CSF + IL-4 6d → LPS (60 EU/mL) + IFN-gamma (2000 IU/mL) 24h
         condition_id: "mature_dcs"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC7485268 Materials and Methods, Differentiation and Maturation of DCs"
         condition_combination: "sequential"
         condition_cytokines: "CSF2;IFNG;IL4"
         condition_stimulation: "LPS"
@@ -1079,7 +1092,8 @@
         condition: PMA (10 ng/mL) + Ionomycin (1 ug/mL) 48h
         condition_id: "cd8_t_cells_activated"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC7485268 Materials and Methods, Activation of T and B Cells"
         condition_combination: "simultaneous"
         condition_stimulation: "PMA;ionomycin"
         mhc_class: I+II
@@ -1090,7 +1104,8 @@
         condition: PMA (10 ng/mL) + Ionomycin (1 ug/mL) 48h
         condition_id: "cd4_t_cells_activated"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC7485268 Materials and Methods, Activation of T and B Cells"
         condition_combination: "simultaneous"
         condition_stimulation: "PMA;ionomycin"
         mhc_class: I+II
@@ -1101,7 +1116,8 @@
         condition: IL-4 (2 ng/mL) + CD40L-Tri (1 ug/mL) 48h
         condition_id: "cd19_b_cells_activated"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC7485268 Materials and Methods, Activation of T and B Cells"
         condition_combination: "simultaneous"
         condition_cytokines: "CD40LG;IL4"
         mhc_class: I+II
@@ -5617,6 +5633,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_control_for: "mda_mb_231_ifn_gamma_class_i"
         condition_culture: "DMEM"
         mhc_class: "I"
         ip_antibody: W6/32
@@ -5681,6 +5698,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_control_for: "b_lcls_jy_cd165_pd42_cm467_ra957_ifn_gamma"
         mhc_class: "I+II"
         ip_antibody: "W6/32 (I) + HB145/L243 (II)"
         reference_proteomes:
@@ -5706,6 +5724,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_control_for: "uwb_1_289_ovarian_carcinoma_ifn_gamma"
         mhc_class: "I+II"
         ip_antibody: "W6/32 (I) + HB145/L243 (II)"
         classification: cancer
@@ -5810,6 +5829,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_control_for: "lm_mel_44_ifn_gamma"
         mhc_class: "I"
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-B*44:02 HLA-C*03:04 HLA-C*05:01"
       - sample_label: "LM-MEL-44 + IFN-gamma"
@@ -5833,6 +5853,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_control_for: "lm_mel_33_ifn_gamma"
         mhc: "HLA-A*02:01 HLA-A*03:01 HLA-B*40:02 HLA-B*47 HLA-C*03:04 HLA-C*06:02"
         mhc_class: "I"
       - sample_label: "LM-MEL-33 + IFN-gamma"
@@ -5856,6 +5877,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_control_for: "lm_mel_53_ifn_gamma"
         mhc_class: "I"
         mhc: "HLA class I"
       - sample_label: "LM-MEL-53 + IFN-gamma"
@@ -8031,6 +8053,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_control_for: "granta_519_ifn_gamma"
         mhc_class: "I+II"
         mhc: "HLA-A*02:01 HLA-A*02:05 HLA-B*07:02 HLA-B*50:01 HLA-C*06:02 HLA-C*07:02 HLA-DRB1*11:03 HLA-DRB1*15:01 HLA-DRB3*02:02 HLA-DRB5*01:01"
       - sample_label: "GRANTA-519 + IFN-gamma"
@@ -9188,6 +9211,7 @@
       condition_reference: doi:10.1038/s41467-020-16588-9, Figures 4/6, Methods; Supplementary Data
         3 and 5 sample/file maps
       condition_control: vehicle
+      condition_control_for: sk_mel_5_ifng;sk_mel_5_palbociclib_10um;sk_mel_5_palbociclib_1um
       mhc_class: I
       mhc: HLA-A*02:01 HLA-A*11:01 HLA-B*07:02 HLA-B*40:01 HLA-C*03:04 HLA-C*07:02
     - sample_label: SK-MEL-5 (palbociclib (CDK4/6i), 1 uM, 72 h)
@@ -9235,6 +9259,7 @@
       condition_reference: doi:10.1038/s41467-020-16588-9, Figures 4/6, Methods; Supplementary Data
         3 and 5 sample/file maps
       condition_control: vehicle
+      condition_control_for: sk_mel_28_ifng;sk_mel_28_palbociclib_10um;sk_mel_28_palbociclib_1um
       mhc_class: I
       mhc: HLA-A*11:01 HLA-B*40:01 HLA-C*03:04
     - sample_label: SK-MEL-28 (palbociclib (CDK4/6i), 1 uM, 72 h)
@@ -9282,6 +9307,7 @@
       condition_reference: doi:10.1038/s41467-020-16588-9, Figures 4/6, Methods; Supplementary Data
         3 and 5 sample/file maps
       condition_control: vehicle
+      condition_control_for: sk_mel_2_ifng;sk_mel_2_palbociclib_10um;sk_mel_2_palbociclib_1um
       mhc_class: I
       mhc: HLA-A*03:01 HLA-A*26:01 HLA-B*35:08 HLA-B*38:01 HLA-C*04:01 HLA-C*12:03
     - sample_label: SK-MEL-2 (palbociclib (CDK4/6i), 1 uM, 72 h)
@@ -9329,6 +9355,7 @@
       condition_reference: doi:10.1038/s41467-020-16588-9, Figures 4/6, Methods; Supplementary Data
         3 and 5 sample/file maps
       condition_control: vehicle
+      condition_control_for: ipc_298_ifng;ipc_298_palbociclib_10um;ipc_298_palbociclib_1um
       mhc_class: I
       mhc: HLA-A*03:01 HLA-A*24:02 HLA-B*07:02 HLA-B*35:02 HLA-C*04:01 HLA-C*07:02
     - sample_label: IPC-298 (palbociclib (CDK4/6i), 1 uM, 72 h)
@@ -10114,6 +10141,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_control_for: "breast_adenocarcinoma_cell_line_ifn"
         mhc_class: "I"
         mhc: "HLA class I"
       - sample_label: "breast adenocarcinoma cell line + IFN"
@@ -10229,6 +10257,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_control_for: "dcs_borrelia_restimulation"
         mhc_class: "II"
         mhc: "HLA class II"
       - sample_label: "DCs + Borrelia restimulation"
@@ -10473,6 +10502,15 @@
             proteome_label: Human immunodeficiency virus 1
   - pmid: 33392160
     study_label: "Ghosh 2020 — THP-1 + biomaterials + LPS"
+    arm_resolution: arm_not_recorded
+    arm_resolution_note: >
+      All 9,900 ci-corpus-v4 rows (4,650 class I + 5,250 class II) identify the single
+      THP-1 cellular system (cell_name='THP-1-Monocyte', source_tissue='Blood'), which
+      sample_group='THP-1' resolves. assay_comments varies only by MHC class (the L243
+      pan-DR immunoprecipitation note on all 5,250 class II rows versus blank on all
+      4,650 class I rows) and never records whether a peptide came from the untreated
+      control, LPS (50 ng/mL, 24h) positive control, or biomaterial contact arms (#904).
+      Do not assign a guessed LPS or biomaterial treatment to unattributed rows.
     title: "The Impact of Biomaterial Cell Contact on the Immunopeptidome"
     override: cell_line
     note: >
@@ -10480,21 +10518,48 @@
       Tu-39 plus DR-specific L243), and separate MS mass ranges per class. Class-II peptides are a
       headline result — "HLA class II peptides were mainly induced by stainless steel".
       THP-1 here is undifferentiated suspension culture (DSMZ ACC 16), not PMA-differentiated, and
-      still yielded class-II peptides in bulk. Class-II typing is from the paper's Results and matches
-      DSMZ ACC-16 exactly; Cellosaurus additionally carries DPA1*01:03/*02:02 and DRB5*01, which the
-      paper does not report and which are therefore not curated here.
+      still yielded class-II peptides in bulk. PMC7773052 Materials and Methods tested separate
+      biomaterial contact arms (stainless steel, aluminum, zinc, HDPE, polyurethane, copper) alongside
+      a separate E. coli 055:B5 LPS (50 ng/mL, 24h) inflammatory positive control and unstimulated
+      control — NOT simultaneous biomaterial + LPS (#904). Class-II typing is from the paper's Results
+      and matches DSMZ ACC-16 exactly; Cellosaurus additionally carries DPA1*01:03/*02:02 and DRB5*01,
+      which the paper does not report and which are therefore not curated here.
       PMID 35051231 types its THP-1 culture homozygous A*02:01/B*15:11/C*03:03. Because THP-1 HLA
       typing varies by source/sub-line, each study retains its own reported genotype rather than a
       registry-wide superset.
-    perturbations: ["Biomaterial contact (steel, aluminum, zinc, polyethylene)", "LPS stimulation"]
+    perturbations: ["Biomaterial contact (steel, aluminum, zinc, polyethylene)", "LPS stimulation (50 ng/mL positive control)"]
     ms_samples:
-      - sample_label: "THP-1 + biomaterial contact"
-        condition: "biomaterial contact + LPS"
-        condition_id: "thp_1_biomaterial_contact"
+      - sample_label: "THP-1 (untreated control)"
+        sample_group: "THP-1"
+        condition: "unperturbed — undifferentiated THP-1 suspension control"
+        condition_id: "thp_1_untreated_control"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_combination: "simultaneous"
-        condition_stimulation: "LPS;biomaterial_contact"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC7773052 Materials and Methods (ISO 10993-12 biomaterial and LPS incubation)"
+        condition_control: "untreated"
+        condition_control_for: "thp_1_biomaterial_contact;thp_1_lps_positive_control"
+        mhc_class: "I+II"
+        mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03 HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQA1*01:01 HLA-DQA1*01:02 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*04:02"
+      - sample_label: "THP-1 + biomaterial contact"
+        sample_group: "THP-1"
+        condition: "biomaterial contact (steel, aluminum, zinc, HDPE, polyurethane, copper; 24h)"
+        condition_id: "thp_1_biomaterial_contact"
+        condition_status: "partial"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC7773052 Materials and Methods (ISO 10993-12 biomaterial incubation)"
+        condition_combination: "single"
+        condition_stimulation: "biomaterial_contact"
+        mhc_class: "I+II"
+        mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03 HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQA1*01:01 HLA-DQA1*01:02 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*04:02"
+      - sample_label: "THP-1 + LPS positive control (50 ng/mL, 24h)"
+        sample_group: "THP-1"
+        condition: "E. coli 055:B5 LPS 50 ng/mL 24h inflammatory positive control"
+        condition_id: "thp_1_lps_positive_control"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC7773052 Materials and Methods (LPS positive control 50 ng/mL)"
+        condition_combination: "single"
+        condition_stimulation: "LPS"
         mhc_class: "I+II"
         mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03 HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQA1*01:01 HLA-DQA1*01:02 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*04:02"
 
@@ -11001,7 +11066,13 @@
       PMC9327544 Cell culture and sources reports American Red Cross HLA
       typing for each line. Figure 5 profiles five treatment arms in duplicate;
       Drug treatments specifies 48 h followed by renewed treatment for 48 h.
-      Figure 5 gives 125 nM decitabine, 1 uM tazemetostat and 100 ng/mL IFN-gamma.
+      Figure 5 gives 125 nM decitabine, 1 uM tazemetostat and 100 ng/mL IFN-gamma
+      for the immunopeptidomics experiment. Documented source dose-unit and
+      assay-scope conflicts (#930; hitlist/data/evidence_revisions/dlbcl_35561310_treatment_conflicts.json):
+      Drug treatments lists 125-2000 nmol/mL decitabine and 312.5-5000 nmol/mL
+      tazemetostat (1 nmol/mL == 1 uM, not nM), Supplemental Figure 10 (PDF p.11)
+      states 100 ug/ml IFNg vs Figure 5's 100 ng/mL (1000x discrepancy), and
+      Figures 2-3 transcription assays use 100 nM decitabine and 10 ng/mL IFN-gamma.
       DMSO is the vehicle control, not an untreated clinical lymphoma sample.
       Cell-culture genotypes are kept per line and are never pooled.
     perturbations: ["EZH2 inhibitor (tazemetostat)", "Decitabine", "IFN-gamma"]

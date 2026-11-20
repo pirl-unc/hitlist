@@ -1,0 +1,198 @@
+{
+  "schema_version": 1,
+  "revision": "apc_stimulus_protocol_context_v1",
+  "issue": "pirl-unc/hitlist#904",
+  "factor_classes": {
+    "cytokines": ["CD40LG", "CSF2", "IFN", "IFNG", "IL2", "IL4", "TNF"],
+    "non_cytokine_stimuli": [
+      "LPS",
+      "OKT3",
+      "PMA",
+      "antigen_restimulation",
+      "biomaterial_contact",
+      "dc_maturation",
+      "in_vitro_activation",
+      "ionomycin",
+      "til_expansion"
+    ],
+    "small_molecule_drugs": [
+      "DMSO",
+      "dTAG-13",
+      "decitabine",
+      "doxycycline",
+      "tazemetostat"
+    ]
+  },
+  "arm_protocols": {
+    "32983136:cd14_monocytes_resting": {
+      "measured_population": "cd14_monocyte",
+      "cell_ontology_id": "CL:0000576",
+      "is_measured_apc": true,
+      "partner_cell_population": "",
+      "differentiation_protocol": "",
+      "acute_stimulus_protocol": "",
+      "protocol_role": "baseline_monocyte",
+      "source_locator": "PMC7485268#Materials and Methods"
+    },
+    "32983136:immature_dcs": {
+      "measured_population": "immature_monocyte_derived_dc",
+      "cell_ontology_id": "CL:0000451",
+      "is_measured_apc": true,
+      "partner_cell_population": "",
+      "differentiation_protocol": "GM-CSF 500 IU/mL + IL-4 250 IU/mL for 6d (replenished day 2-3)",
+      "acute_stimulus_protocol": "",
+      "protocol_role": "differentiation_cocktail_with_baseline_comparator",
+      "source_locator": "PMC7485268#Differentiation and Maturation of DCs"
+    },
+    "32983136:mature_dcs": {
+      "measured_population": "mature_monocyte_derived_dc",
+      "cell_ontology_id": "CL:0000451",
+      "is_measured_apc": true,
+      "partner_cell_population": "",
+      "differentiation_protocol": "GM-CSF 500 IU/mL + IL-4 250 IU/mL for 6d",
+      "acute_stimulus_protocol": "LPS 60 EU/mL + IFN-gamma 2000 IU/mL for 24h",
+      "protocol_role": "maturation_cocktail_on_differentiated_background",
+      "source_locator": "PMC7485268#Differentiation and Maturation of DCs"
+    },
+    "32983136:cd19_b_cells_activated": {
+      "measured_population": "activated_b_cell",
+      "cell_ontology_id": "CL:0000236",
+      "is_measured_apc": true,
+      "partner_cell_population": "",
+      "differentiation_protocol": "",
+      "acute_stimulus_protocol": "IL-4 2 ng/mL + CD40L-Tri 1 ug/mL for 48h",
+      "protocol_role": "constant_cocktail_no_comparator",
+      "source_locator": "PMC7485268#Activation of T and B Cells"
+    },
+    "32983136:cd4_t_cells_activated": {
+      "measured_population": "activated_cd4_t_cell",
+      "cell_ontology_id": "CL:0000624",
+      "is_measured_apc": false,
+      "partner_cell_population": "",
+      "differentiation_protocol": "",
+      "acute_stimulus_protocol": "PMA 10 ng/mL + ionomycin 1 ug/mL for 48h",
+      "protocol_role": "non_cytokine_activation_no_comparator",
+      "source_locator": "PMC7485268#Activation of T and B Cells"
+    },
+    "32983136:cd8_t_cells_activated": {
+      "measured_population": "activated_cd8_t_cell",
+      "cell_ontology_id": "CL:0000625",
+      "is_measured_apc": false,
+      "partner_cell_population": "",
+      "differentiation_protocol": "",
+      "acute_stimulus_protocol": "PMA 10 ng/mL + ionomycin 1 ug/mL for 48h",
+      "protocol_role": "non_cytokine_activation_no_comparator",
+      "source_locator": "PMC7485268#Activation of T and B Cells"
+    },
+    "38920720:mature_modcs_pulsed_with_synthetic_tsa_peptides": {
+      "measured_population": "mature_monocyte_derived_dc",
+      "cell_ontology_id": "CL:0000451",
+      "is_measured_apc": true,
+      "partner_cell_population": "",
+      "differentiation_protocol": "IL-4 50 IU/mL + GM-CSF 800 IU/mL for 5d (replenished 72h)",
+      "acute_stimulus_protocol": "IFN-gamma 100 IU/mL + LPS 10 ng/mL overnight -> synthetic peptide pulse 10 ug/mL 2h",
+      "protocol_role": "constant_cocktail_no_comparator",
+      "source_locator": "PMC11203340#Materials and Methods"
+    },
+    "33392160:thp_1_untreated_control": {
+      "measured_population": "thp1_monocyte_line",
+      "cell_ontology_id": "CL:0000576",
+      "is_measured_apc": true,
+      "partner_cell_population": "",
+      "differentiation_protocol": "",
+      "acute_stimulus_protocol": "",
+      "protocol_role": "baseline_monocyte_line",
+      "source_locator": "PMC7773052#Materials and Methods"
+    },
+    "33392160:thp_1_biomaterial_contact": {
+      "measured_population": "thp1_monocyte_line",
+      "cell_ontology_id": "CL:0000576",
+      "is_measured_apc": true,
+      "partner_cell_population": "",
+      "differentiation_protocol": "",
+      "acute_stimulus_protocol": "biomaterial contact (steel, aluminum, zinc, HDPE, polyurethane, copper) 24h",
+      "protocol_role": "non_cytokine_stimulus_study_design_only_unattributed_in_iedb",
+      "source_locator": "PMC7773052#Materials and Methods"
+    },
+    "33392160:thp_1_lps_positive_control": {
+      "measured_population": "thp1_monocyte_line",
+      "cell_ontology_id": "CL:0000576",
+      "is_measured_apc": true,
+      "partner_cell_population": "",
+      "differentiation_protocol": "",
+      "acute_stimulus_protocol": "E. coli 055:B5 LPS 50 ng/mL 24h positive control",
+      "protocol_role": "non_cytokine_stimulus_study_design_only_unattributed_in_iedb",
+      "source_locator": "PMC7773052#Materials and Methods"
+    },
+    "30833945:a549_lung_cancer_untreated": {
+      "measured_population": "a549_lung_epithelial_line",
+      "cell_ontology_id": "CL:0000066",
+      "is_measured_apc": false,
+      "partner_cell_population": "",
+      "differentiation_protocol": "",
+      "acute_stimulus_protocol": "",
+      "protocol_role": "baseline_cell_line",
+      "source_locator": "PMC6387973#Cell Culture and Treatments"
+    },
+    "30833945:a549_lung_cancer_tnfa_ifng": {
+      "measured_population": "a549_lung_epithelial_line",
+      "cell_ontology_id": "CL:0000066",
+      "is_measured_apc": false,
+      "partner_cell_population": "",
+      "differentiation_protocol": "",
+      "acute_stimulus_protocol": "TNF-alpha 400 U/mL + IFN-gamma 200 U/mL for 24h",
+      "protocol_role": "multifactor_cytokine_combination_unattributed_in_iedb",
+      "source_locator": "PMC6387973#Cell Culture and Treatments"
+    },
+    "28832583:til1_melanoma_til_expanded": {
+      "measured_population": "expanded_t_lymphocyte",
+      "cell_ontology_id": "CL:0000084",
+      "is_measured_apc": false,
+      "partner_cell_population": "irradiated_feeder_cells",
+      "differentiation_protocol": "",
+      "acute_stimulus_protocol": "IL-2 6000 IU/mL 3-5 wk -> REP irradiated feeders + OKT3 30 ng/mL + IL-2 3000 IU/mL 14d",
+      "protocol_role": "expansion_protocol_non_apc_context_only",
+      "source_locator": "PMC5584980#Materials and Methods"
+    },
+    "28832583:til3_melanoma_til_expanded": {
+      "measured_population": "expanded_t_lymphocyte",
+      "cell_ontology_id": "CL:0000084",
+      "is_measured_apc": false,
+      "partner_cell_population": "irradiated_feeder_cells",
+      "differentiation_protocol": "",
+      "acute_stimulus_protocol": "IL-2 6000 IU/mL 3-5 wk -> REP irradiated feeders + OKT3 30 ng/mL + IL-2 3000 IU/mL 14d",
+      "protocol_role": "expansion_protocol_non_apc_context_only",
+      "source_locator": "PMC5584980#Materials and Methods"
+    },
+    "29242379:melanoma_tils_expanded": {
+      "measured_population": "expanded_t_lymphocyte",
+      "cell_ontology_id": "CL:0000084",
+      "is_measured_apc": false,
+      "partner_cell_population": "irradiated_feeder_cells",
+      "differentiation_protocol": "",
+      "acute_stimulus_protocol": "TIL rapid expansion protocol",
+      "protocol_role": "expansion_protocol_non_apc_context_only",
+      "source_locator": "PMID:29242379#Methods"
+    },
+    "29493099:primary_activated_t_cells": {
+      "measured_population": "activated_t_lymphocyte",
+      "cell_ontology_id": "CL:0000084",
+      "is_measured_apc": false,
+      "partner_cell_population": "",
+      "differentiation_protocol": "",
+      "acute_stimulus_protocol": "in vitro T-cell activation",
+      "protocol_role": "expansion_protocol_non_apc_context_only",
+      "source_locator": "PMID:29493099#Methods"
+    },
+    "35051231:modc_cross_presentation_wisconsin_infected_a549": {
+      "measured_population": "mature_monocyte_derived_dc",
+      "cell_ontology_id": "CL:0000451",
+      "is_measured_apc": true,
+      "partner_cell_population": "uv_irradiated_apoptotic_a549_cells",
+      "differentiation_protocol": "PromoCell DC medium (GM-CSF + IL-4) 6d",
+      "acute_stimulus_protocol": "DC activation supplement 4h + apoptotic Wisconsin-infected A549 feeding",
+      "protocol_role": "constant_cocktail_no_comparator",
+      "source_locator": "PMID:35051231#Methods"
+    }
+  }
+}

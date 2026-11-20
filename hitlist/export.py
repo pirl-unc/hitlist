@@ -436,6 +436,7 @@ def _select_by_elution_conditions(
     assay_comments: str,
     *,
     curated_condition_ids: dict[str, object] | None = None,
+    statement_map: StatementMap | None = None,
 ) -> dict | None:
     """Resolve an arm from IEDB's elution-condition enumeration.
 
@@ -447,8 +448,11 @@ def _select_by_elution_conditions(
     including distinct doses of one drug. Unmapped statements retain the
     existing generic enumeration rules; arbitrary narrative is not admitted.
     """
-    raw_spec = (curated_condition_ids or {}).get(str(assay_comments).strip())
-    targets = _detected_elution_targets(raw_spec)
+    if statement_map is not None:
+        targets = statement_map.allowed(assay_comments)
+    else:
+        raw_spec = (curated_condition_ids or {}).get(str(assay_comments).strip())
+        targets = _detected_elution_targets(raw_spec)
     if targets is not None:
         matching = [c for c in candidates if c[2].get("condition_id") in targets]
     else:
@@ -486,10 +490,27 @@ class StatementMap(NamedTuple):
     excluded_targets: dict[str, list[str]] | None = None
     arm_groups: dict[str, str] | None = None
     arm_mhcs: dict[str, str] | None = None
+    token_prefix: str | None = None
+    token_map: dict[str, str] | None = None
 
     def allowed(self, assay_comments: str) -> list[str] | None:
         """The arms this statement names as detected, or ``None`` if unmapped."""
-        return self.targets.get(str(assay_comments).strip())
+        stmt = str(assay_comments).strip()
+        exact = self.targets.get(stmt)
+        if exact is not None:
+            return exact
+        if self.token_prefix and self.token_map and stmt.startswith(self.token_prefix):
+            rest = stmt[len(self.token_prefix) :].strip().rstrip(".").strip()
+            if not rest:
+                return None
+            resolved: list[str] = []
+            for raw_token in rest.split(","):
+                tok = raw_token.strip()
+                if not tok or tok not in self.token_map:
+                    return None
+                resolved.append(self.token_map[tok])
+            return sorted(set(resolved))
+        return None
 
     def excluded(self, assay_comments: str) -> list[str]:
         """The arms this statement explicitly states as not detected."""
@@ -537,11 +558,12 @@ def _statement_maps(overrides: dict[int, dict], samples: pd.DataFrame) -> dict[i
     maps: dict[int, StatementMap] = {}
     for pmid, entry in overrides.items():
         raw_map = entry.get("elution_condition_ids")
-        if not raw_map:
+        token_spec = entry.get("elution_token_condition_ids")
+        if not raw_map and not token_spec:
             continue
         targets: dict[str, list[str]] = {}
         excluded_targets: dict[str, list[str]] = {}
-        for stmt, spec in raw_map.items():
+        for stmt, spec in (raw_map or {}).items():
             det, not_det = parse_elution_condition_targets(spec, pmid=pmid)
             targets[stmt] = det
             if not_det:
@@ -561,6 +583,8 @@ def _statement_maps(overrides: dict[int, dict], samples: pd.DataFrame) -> dict[i
             excluded_targets=excluded_targets,
             arm_groups=arm_groups,
             arm_mhcs=arm_mhcs,
+            token_prefix=token_spec["prefix"] if token_spec else None,
+            token_map=dict(token_spec["tokens"]) if token_spec else None,
         )
     return maps
 
@@ -2152,7 +2176,7 @@ def generate_observations_table(
                 best = _select_by_elution_conditions(
                     cands,
                     r["assay_comments"],
-                    curated_condition_ids=_smap_row.targets if _smap_row else {},
+                    statement_map=_smap_row,
                 )
                 _attr = "elution_conditions"
                 _mapped = (
@@ -2458,7 +2482,7 @@ def generate_observations_table(
                             _elution := _select_by_elution_conditions(
                                 _cands,
                                 _r["assay_comments"],
-                                curated_condition_ids=_smap_pool.targets if _smap_pool else {},
+                                statement_map=_smap_pool,
                             )
                         )
                         is not None

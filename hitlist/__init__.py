@@ -127,6 +127,10 @@ _PUBLIC_API: dict[str, str] = {
     "prepare_stability_training_data": ".model_training",
     "prepare_ms_training_data": ".model_training",
     "to_mhcflurry_presentation_inputs": ".model_training",
+    "dlbcl_treatment_conflict_contract": ".apc_contrasts",
+    "apc_stimulus_protocol_contract": ".apc_contrasts",
+    "build_stimulus_contrast_catalog": ".apc_contrasts",
+    "prepare_stimulus_contrast_data": ".apc_contrasts",
     # Public enumerations shared by scanners, APIs, and CLIs.
     "MHC_ALLELE_PROVENANCE_VALUES": ".curation",
     "normalize_serotype_query": ".curation",
