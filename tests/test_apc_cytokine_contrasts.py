@@ -245,6 +245,10 @@ def test_elution_token_condition_ids_validation_and_marino_ghosh_attribution(mon
     assert obs.loc["MARINOSHARED", "supported_condition_ids"] == "cd8_t_cells_activated;mature_dcs"
     assert obs.loc["GHOSHTHP1A", "condition_id"] == ""
     assert obs.loc["GHOSHTHP1B", "condition_id"] == ""
+    assert obs.loc["GHOSHTHP1A", "sample_group"] == "THP-1"
+    assert obs.loc["GHOSHTHP1B", "sample_group"] == "THP-1"
+    assert obs.loc["GHOSHTHP1A", "arm_resolution"] == "arm_not_recorded"
+    assert obs.loc["GHOSHTHP1B", "arm_resolution"] == "arm_not_recorded"
 
     edges = expand_condition_memberships(obs.reset_index())
     shared_edges = edges[edges["peptide"] == "MARINOSHARED"]

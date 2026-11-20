@@ -10502,13 +10502,15 @@
             proteome_label: Human immunodeficiency virus 1
   - pmid: 33392160
     study_label: "Ghosh 2020 — THP-1 + biomaterials + LPS"
-    arm_resolution: no_row_discriminator
+    arm_resolution: arm_not_recorded
     arm_resolution_note: >
-      All 9,900 ci-corpus-v4 rows (4,650 class I + 5,250 class II) carry constant
-      THP-1-Monocyte cell_name and only an L243 antibody note on class II rows;
-      nothing separates untreated THP-1, LPS (50 ng/mL, 24h) positive control, and
-      biomaterial contact arms in IEDB (#904). Do not assign a guessed LPS or
-      biomaterial treatment to unattributed rows.
+      All 9,900 ci-corpus-v4 rows (4,650 class I + 5,250 class II) identify the single
+      THP-1 cellular system (cell_name='THP-1-Monocyte', source_tissue='Blood'), which
+      sample_group='THP-1' resolves. assay_comments varies only by MHC class (the L243
+      pan-DR immunoprecipitation note on all 5,250 class II rows versus blank on all
+      4,650 class I rows) and never records whether a peptide came from the untreated
+      control, LPS (50 ng/mL, 24h) positive control, or biomaterial contact arms (#904).
+      Do not assign a guessed LPS or biomaterial treatment to unattributed rows.
     title: "The Impact of Biomaterial Cell Contact on the Immunopeptidome"
     override: cell_line
     note: >
@@ -10528,6 +10530,7 @@
     perturbations: ["Biomaterial contact (steel, aluminum, zinc, polyethylene)", "LPS stimulation (50 ng/mL positive control)"]
     ms_samples:
       - sample_label: "THP-1 (untreated control)"
+        sample_group: "THP-1"
         condition: "unperturbed — undifferentiated THP-1 suspension control"
         condition_id: "thp_1_untreated_control"
         condition_status: "annotated"
@@ -10538,6 +10541,7 @@
         mhc_class: "I+II"
         mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03 HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQA1*01:01 HLA-DQA1*01:02 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*04:02"
       - sample_label: "THP-1 + biomaterial contact"
+        sample_group: "THP-1"
         condition: "biomaterial contact (steel, aluminum, zinc, HDPE, polyurethane, copper; 24h)"
         condition_id: "thp_1_biomaterial_contact"
         condition_status: "partial"
@@ -10548,6 +10552,7 @@
         mhc_class: "I+II"
         mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03 HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQA1*01:01 HLA-DQA1*01:02 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*04:02"
       - sample_label: "THP-1 + LPS positive control (50 ng/mL, 24h)"
+        sample_group: "THP-1"
         condition: "E. coli 055:B5 LPS 50 ng/mL 24h inflammatory positive control"
         condition_id: "thp_1_lps_positive_control"
         condition_status: "annotated"
