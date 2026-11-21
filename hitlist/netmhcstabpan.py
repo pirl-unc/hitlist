@@ -178,16 +178,20 @@ def fetch_netmhcstabpan_source(
     force: bool = False,
     verbose: bool = True,
 ) -> Path:
-    """Fetch checksum-pinned NetMHCstabpan ``Stability.txt`` via ``datacache``."""
-    from .downloads import data_dir, download_to_file
+    """Fetch checksum-pinned NetMHCstabpan ``Stability.txt`` via ``datacache``.
+
+    When ``cache_directory`` is omitted, delegates to :func:`hitlist.downloads.fetch`
+    so the file lands in the standard registered cache path resolved by
+    :func:`load_netmhcstabpan_stability` and :func:`scan_netmhcstabpan_stability`.
+    """
+    from .downloads import download_to_file, fetch
+
+    if cache_directory is None:
+        return fetch(DATASET_NAME, force=force)
 
     contract = netmhcstabpan_source_contract()
     src = contract["source"]
-    directory = (
-        Path(cache_directory)
-        if cache_directory is not None
-        else data_dir() / "netmhcstabpan_sources"
-    )
+    directory = Path(cache_directory)
     check_cache_path(directory, directory)
     directory.mkdir(parents=True, exist_ok=True)
     if shutil.disk_usage(directory).free < _MIN_FREE_BYTES:

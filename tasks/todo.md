@@ -1,3 +1,22 @@
+# Uniform Data Download Registry, CLI & Python API (v2.4.0), 2026-11-21
+
+Specification: [uniform-downloads-2-4-0-spec.md](uniform-downloads-2-4-0-spec.md).
+
+- [x] Add `atlas_crosswalk_sources()` to `hitlist/atlas.py` and `fetch_dlbcl_supplements()` + auto-resolution (`source_directory=None`) to `hitlist/drug_dm_qualification.py`.
+- [x] Fix `netmhcstabpan` default-cache split in `hitlist/netmhcstabpan.py::fetch_netmhcstabpan_source()`.
+- [x] Implement `hitlist/_dataset_catalog.py` unifying `uniprot/*`, `hla-ligand-atlas`, `hla-ligand-atlas-crosswalk`, `tcell-assays`, `perturbation-quantities`, `canine-bulk/*`, `pxd013455`, `pxd013455-sources`, and `dlbcl-35561310-supplements` into `downloads.py` and `cache_inventory.py`.
+- [x] Add composite bundle `preflight("depmap")` and mirrored-asset/bundle `remove()` in `hitlist/downloads.py`, plus `hitlist data preflight <name>` and `hitlist data available --json` + dynamic column widths in `hitlist/cli_data.py`.
+- [x] Export symmetric download APIs in `hitlist/__init__.py`, update `docs/downloads.md`, regenerate `tests/data/cli_help_snapshot.txt`, add comprehensive tests in `tests/test_uniform_downloads.py`, update `tests/test_fetch_preflight.py`, update `.github/workflows/release-build.yml`, and bump `hitlist/version.py` to `2.4.0`.
+- [ ] Pass ruff format/lint, strict `mkdocs build --strict`, unit tests, PR CI + release gate, merge, deploy `2.4.0` to PyPI from clean `main`, and verify live PyPI hashes.
+
+## Review (Uniform Downloads, v2.4.0)
+
+- Every auto-downloadable dataset and managed bundle (`iedb`, `cedar`, `netmhcstabpan`, viral proteomes, `depmap` + its 5 files, mirrored `data_assets()`, `uniprot/*`, `hla-ligand-atlas`, `hla-ligand-atlas-crosswalk`, `tcell-assays`, `perturbation-quantities`, `dlbcl-35561310-supplements`, `canine-bulk/*`, `pxd013455`, `pxd013455-sources`) is now uniformly addressable via `available_datasets()`, `preflight()`, `fetch()`, `refresh()`, `info()`, `get_path()`, `remove()`, `list_cache_files()`, and `hitlist data {available,preflight,fetch,refresh,info,path,list,remove}`.
+- Fixed `netmhcstabpan.fetch_netmhcstabpan_source()` default-cache split so it writes/registers through `downloads.fetch("netmhcstabpan")` where `load_netmhcstabpan_stability()` resolves it.
+- Added `hitlist data preflight <name> [--force]`, `hitlist data available --json`, dynamic column width alignment, and symmetric top-level exports in `hitlist/__init__.py`.
+
+---
+
 # `fetch()` Size/Space Preflight, Early Terms Notice & Stale Reporting — #884 (v2.3.0), 2026-11-20
 
 Specification: [fetch-preflight-884-spec.md](fetch-preflight-884-spec.md).

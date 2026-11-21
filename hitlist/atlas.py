@@ -13,6 +13,7 @@ from .downloads import data_dir
 from .tissue_blacklist import ATLAS_RELEASE, _load_atlas_evidence
 
 CATALOG_PATH = Path(__file__).parent / "data" / "hla_ligand_atlas.yaml"
+CROSSWALK_CATALOG_PATH = Path(__file__).parent / "data" / "atlas_community_crosswalk.yaml"
 
 
 def atlas_sources(*, data_root=None):
@@ -22,6 +23,16 @@ def atlas_sources(*, data_root=None):
         Path(data_root or data_dir()) / "hla-ligand-atlas" / ATLAS_RELEASE / "sources",
         catalog["files"],
         download_options={"timeout": 60, "show_progress": False},
+    )
+
+
+def atlas_crosswalk_sources(*, data_root=None):
+    """Install the pinned PXD019643 community SDRF crosswalk tables via datacache."""
+    catalog = load_curation_yaml(CROSSWALK_CATALOG_PATH)
+    return install_bundle(
+        Path(data_root or data_dir()) / "hla-ligand-atlas" / ATLAS_RELEASE / "community-crosswalk",
+        catalog["files"],
+        download_options={"timeout": 120, "show_progress": False},
     )
 
 

@@ -36,16 +36,18 @@ options:
 
 ===== hitlist data --help =====
 usage: hitlist data [-h]
-                    {uniprot,list,available,dirs,register,fetch,fetch-all,refresh,info,path,remove,build,fetch-proteomes,list-proteomes}
+                    {uniprot,list,available,dirs,register,preflight,fetch,fetch-all,refresh,info,path,remove,build,fetch-proteomes,list-proteomes}
                     ...
 
 positional arguments:
-  {uniprot,list,available,dirs,register,fetch,fetch-all,refresh,info,path,remove,build,fetch-proteomes,list-proteomes}
+  {uniprot,list,available,dirs,register,preflight,fetch,fetch-all,refresh,info,path,remove,build,fetch-proteomes,list-proteomes}
     uniprot             Manage release-pinned UniProt references
     list                Show registered datasets or the complete cache inventory
     available           Show all known datasets
     dirs                Show every directory hitlist reads/writes, and why it resolved there
     register            Register a local file
+    preflight           Print where a dataset would land, its expected size and free space;
+                        download nothing
     fetch               Download a fetchable dataset
     fetch-all           Fetch ALL mirrored data-asset CSVs (paper-derived) into the cache dir
     refresh             Re-download a fetchable dataset
@@ -132,10 +134,11 @@ options:
   --json      Print the complete inventory as JSON
 
 ===== hitlist data available --help =====
-usage: hitlist data available [-h]
+usage: hitlist data available [-h] [--json]
 
 options:
   -h, --help  show this help message and exit
+  --json      Print available datasets as JSON
 
 ===== hitlist data dirs --help =====
 usage: hitlist data dirs [-h]
@@ -154,6 +157,16 @@ options:
   -h, --help            show this help message and exit
   --description DESCRIPTION, -d DESCRIPTION
                         Optional description
+
+===== hitlist data preflight --help =====
+usage: hitlist data preflight [-h] [--force] name
+
+positional arguments:
+  name         Dataset name
+
+options:
+  -h, --help   show this help message and exit
+  --force, -f  Plan as if forcing re-download
 
 ===== hitlist data fetch --help =====
 usage: hitlist data fetch [-h] [--force] [--dry-run] name
