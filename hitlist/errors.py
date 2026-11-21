@@ -14,12 +14,22 @@
 
 ``hitlist.cli.main`` catches :class:`HitlistError` once, prints ``Error: ...``
 to stderr and exits 1; any other exception is a bug and keeps its traceback.
-All classes subclass ``RuntimeError`` so pre-existing ``except RuntimeError``
-callers keep working. Raise these with ``raise ... from cause`` so the original
-exception type stays inspectable via ``__cause__``.
+All classes subclass ``RuntimeError`` (``DatasetError`` also ``ValueError``) so
+pre-existing ``except`` callers keep working. Raise these with ``raise ... from cause``
+so the original exception type stays inspectable via ``__cause__``.
 """
 
-__all__ = ["DownloadError", "HitlistError", "IntegrityError"]
+from __future__ import annotations
+
+from pathlib import Path
+
+__all__ = [
+    "DatasetError",
+    "DownloadError",
+    "HitlistError",
+    "InsufficientSpaceError",
+    "IntegrityError",
+]
 
 
 class HitlistError(RuntimeError):
@@ -30,5 +40,31 @@ class DownloadError(HitlistError):
     """A network or filesystem failure while fetching a file (HTTP, timeout, disk)."""
 
 
+class InsufficientSpaceError(DownloadError):
+    """Target filesystem does not have enough free space for the planned download (#884).
+
+    Subclasses :class:`DownloadError` (and therefore :class:`HitlistError` and
+    ``RuntimeError``) and exposes ``path``, ``required_bytes`` and ``available_bytes``
+    so programmatic callers can act on space shortfalls without parsing messages.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        path: Path | str | None = None,
+        required_bytes: int | None = None,
+        available_bytes: int | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.path = Path(path) if path is not None else None
+        self.required_bytes = required_bytes
+        self.available_bytes = available_bytes
+
+
 class IntegrityError(HitlistError):
     """Fetched or cached bytes failed validation (size, SHA-256, corrupt archive)."""
+
+
+class DatasetError(HitlistError, ValueError):
+    """A dataset name cannot be fetched as asked (unknown, manual, or multi-file bundle)."""

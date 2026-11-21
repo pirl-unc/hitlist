@@ -9,6 +9,16 @@ recipe so the same handoff problem cannot recur.
 
 # Lessons
 
+## 2026-10-31
+
+- Snapshot tests of argparse output must normalize what the stdlib reformats between
+  Python versions (3.13 re-wraps usage and prints `--out, -o OUT`); run them on every
+  supported interpreter locally before pushing, not first in CI.
+- A sidecar file written into a cache directory (lock, temp) must be dot-prefixed, or
+  the cache inventory lists it as an unregistered dataset.
+- Rebasing stacked PRs can merge cleanly yet break tests that patch a function the
+  other PR replaced; rerun the affected tests after every rebase, not just the conflict.
+
 ## 2026-10-21
 
 - A source availability count does not make the counted assays usable through

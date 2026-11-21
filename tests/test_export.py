@@ -600,6 +600,8 @@ def test_generate_observations_table_not_built(tmp_path, monkeypatch):
     from hitlist.export import generate_observations_table
 
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    # Offline: gene resolution must not call the real HGNC service.
+    monkeypatch.setattr("hitlist.genes._fetch_hgnc", lambda query, timeout=10: [])
     with pytest.raises(FileNotFoundError, match="not built"):
         generate_observations_table()
 
@@ -873,6 +875,8 @@ def test_attach_peptide_origin_demotes_engineered_rows_to_parent_rna(tmp_path, m
     from hitlist.line_expression import write_line_expression_index
 
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    # Offline: gene resolution must not call the real HGNC service.
+    monkeypatch.setattr("hitlist.genes._fetch_hgnc", lambda query, timeout=10: [])
     write_line_expression_index(
         pd.DataFrame({"line_key": ["HeLa"], "source_id": ["DepMap_24Q4_gene"]})
     )
@@ -1202,6 +1206,8 @@ def test_species_summary_empty_when_not_built(tmp_path, monkeypatch):
     from hitlist import downloads
 
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    # Offline: gene resolution must not call the real HGNC service.
+    monkeypatch.setattr("hitlist.genes._fetch_hgnc", lambda query, timeout=10: [])
     df = generate_species_summary()
     assert len(df) == 0
     assert set(df.columns) == {"species", "mhc_class", "n_pmids", "n_peptides", "n_observations"}
@@ -1419,6 +1425,8 @@ def test_generate_observations_gene_filter_requires_mappings(tmp_path, monkeypat
     monkeypatch.setattr(
         "hitlist.mappings.mappings_path", lambda: tmp_path / "peptide_mappings.parquet"
     )
+    monkeypatch.setattr("hitlist.downloads._override_data_dir", tmp_path)
+    monkeypatch.setattr("hitlist.genes._fetch_hgnc", lambda query, timeout=10: [])
 
     with pytest.raises(FileNotFoundError, match=r"peptide_mappings\.parquet"):
         generate_observations_table(gene="PRAME")
@@ -1437,6 +1445,8 @@ def test_generate_observations_gene_filter_matches(tmp_path, monkeypatch):
     from hitlist.export import generate_observations_table
 
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    # Offline: gene resolution must not call the real HGNC service.
+    monkeypatch.setattr("hitlist.genes._fetch_hgnc", lambda query, timeout=10: [])
 
     obs_data = pd.DataFrame(
         {
@@ -1503,6 +1513,8 @@ def mixed_gene_indexes(tmp_path, monkeypatch):
     from hitlist import downloads, genes
 
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    # Offline: gene resolution must not call the real HGNC service.
+    monkeypatch.setattr("hitlist.genes._fetch_hgnc", lambda query, timeout=10: [])
     monkeypatch.setattr(genes, "resolve_hgnc_symbol", lambda query: ())
     peptides = ["AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD"]
     for kind, filename in (("ms", "observations.parquet"), ("binding", "binding.parquet")):
@@ -2261,6 +2273,8 @@ def test_generate_training_table_explodes_mappings(tmp_path, monkeypatch):
     from hitlist.export import generate_training_table
 
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    # Offline: gene resolution must not call the real HGNC service.
+    monkeypatch.setattr("hitlist.genes._fetch_hgnc", lambda query, timeout=10: [])
 
     obs_data = pd.DataFrame(
         {
@@ -2340,6 +2354,8 @@ def test_generate_training_table_exploded_mappings_respect_gene_filter(tmp_path,
     from hitlist.export import generate_training_table
 
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    # Offline: gene resolution must not call the real HGNC service.
+    monkeypatch.setattr("hitlist.genes._fetch_hgnc", lambda query, timeout=10: [])
 
     obs_data = pd.DataFrame(
         {
