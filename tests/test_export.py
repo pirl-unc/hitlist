@@ -627,7 +627,7 @@ def test_ms_samples_preserves_original_condition():
     unperturbed = df[df["perturbation"] == ""]
     assert not unperturbed.empty
     # Some unperturbed rows must have a non-empty condition string.
-    assert (unperturbed["condition"].astype(str).str.len() > 0).any(), (
+    assert (unperturbed["condition"].str.len() > 0).any(), (
         "expected at least one unperturbed sample to carry a non-empty "
         "raw condition string after issue #149"
     )

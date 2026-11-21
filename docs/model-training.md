@@ -298,4 +298,33 @@ from cellular assays with unresolved donor/specimen lineage in
 without altering historical `<axis>_status` values or falsely certifying an
 unreviewed partition split as `pass`. See
 [Training provenance and split audits](training-provenance.md) for full bundle
+rules.
+
+## Canonical assay schemas and structured condition columns
+
+`hitlist.schema_conventions` (`ASSAY_SCHEMA_CONVENTIONS`, `COLUMN_SYNONYM_MAP`,
+`canonical_assay_columns`, `normalize_assay_frame`) defines the canonical column
+names across assay families (`presentation_ms`, `binding_affinity`, `stability`,
+`tcell`, `perturbation_contrast`, `bulk_proteomics`, `line_expression`) and lets
+consumers normalize historical/evidence-store aliases (`peptide_sequence`,
+`measurement_units`, `source_pmid`, `control_condition_id`, `treatment_dose`,
+etc.) non-destructively.
+
+- **Structured condition separation**:
+  - `condition_vehicle` records solvent/carrier vehicles (`DMSO`, `PBS`, etc.),
+    keeping `condition_drugs` strictly for active compounds (`none` on pure
+    vehicle controls).
+  - `condition_baseline_engineering` records baseline/parental genetic host
+    engineering (e.g., `TAPBPR_KO`, `MAPTAC_tagged_HLA_transfection`,
+    `CD74_transduced`), keeping `condition_background` strictly for intrinsic
+    biological background (e.g., `ERAP1_hap10`, `TAP_deficient`).
+  - `condition_dose`, `condition_dose_unit`, and `condition_duration_hours`
+    record validated numeric exposure parameters on single-dose/single-duration
+    arms.
+- **Training-table alignment**: `prepare_ms_training_data()` propagates all
+  `CONDITION_COLUMNS` alongside canonical `mhc_restriction` and
+  `mhc_allele_set`, and `prepare_affinity_training_data()` /
+  `prepare_stability_training_data()` expose canonical `mhc_restriction`,
+  `measurement_value`, `measurement_unit`, `measurement_inequality`, and `pmid`
+  on both `accepted` and `excluded` frames.
 and split-audit contracts.

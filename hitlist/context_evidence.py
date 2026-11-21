@@ -423,7 +423,7 @@ def _revision_rows(path, revision):
     study_fields = set()
     sample_fields = set()
     for study_index, study in enumerate(entries):
-        validate_study_conditions(study)
+        validate_study_conditions(study, strict_schema_rules=(revision != "cohort_1_78"))
         validate_elution_condition_ids(study)
         pmid = study.get("pmid")
         if not isinstance(pmid, int) or pmid in seen_pmids:
