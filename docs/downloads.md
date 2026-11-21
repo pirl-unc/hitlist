@@ -18,8 +18,9 @@ Overlapping paths appear once. Missing named files remain visible. Hidden
 transfer state, temporary files and cache metadata are omitted. Directory
 enumeration failures are reported; symlink directories are not traversed.
 Listing never creates directories, downloads files, repairs an installation or
-moves old caches. `list_datasets()` retains its registered-dataset dictionary;
-`downloads.list_cache_files()` supplies the new inventory.
+moves old caches. `list_datasets()` retains its registered-dataset dictionary, each
+entry now carrying `exists` (is the registered file still on disk); `info()` reports
+the same field. `downloads.list_cache_files()` supplies the complete inventory.
 
 `available` means the file is readable and matches any supplied size metadata.
 It does not imply checksum verification. `verified` requires a trusted SHA-256
@@ -56,8 +57,33 @@ downloads without arranging a separate raw acquisition step.
 Retries use datacache's bounded policy, including transient 408/429/5xx statuses
 and Retry-After handling. Socket inactivity remains bounded at 300 seconds.
 Empty responses are rejected. Failed acquisition, validation or decompression
-leaves an existing destination intact. `download_to_file` returns a `Path` and
-wraps failures in `RuntimeError` with the original exception as its cause.
+leaves an existing destination intact. `download_to_file` returns a `Path` and raises
+`hitlist.errors.DownloadError` (`InsufficientSpaceError` for space shortfalls;
+`IntegrityError` for size, checksum or corrupt-file failures) with the original
+exception as `__cause__`; all are `RuntimeError` subclasses, and `hitlist` prints
+them as one `Error: ...` line with exit status 1.
+
+## Before a large download
+
+```console
+hitlist data fetch iedb --dry-run   # JSON plan: nothing is downloaded
+```
+
+`hitlist.preflight(name, force=False)` (the same JSON) reports where the file
+would land, whether it is registered, whether it exists, whether the registration
+is `stale` (registered but the file is gone), `would_download`,
+`expected_size_bytes` when the dataset declares a size, `free_bytes` on the target
+filesystem, `enough_space` (`None` when no size is declared) and any `terms` URL.
+`fetch()` and `fetch_data_asset()` use the same plan: they refuse to start with
+`hitlist.errors.InsufficientSpaceError` (a `DownloadError` subclass carrying
+`path`, `required_bytes` and `available_bytes`) when a declared size will not fit,
+print the terms-of-use notice before the transfer, and report when re-downloading
+a stale registration. Datasets without a declared `size_bytes` or `expected_size`
+make no space claim.
+
+An unknown dataset, a manual-download dataset, or the multi-file `depmap` bundle
+in `preflight()` raises `hitlist.errors.DatasetError` (a `HitlistError` and a
+`ValueError`, so existing `except ValueError` callers keep working).
 
 ## Versioned registry compatibility
 

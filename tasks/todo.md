@@ -1,3 +1,22 @@
+# `fetch()` Size/Space Preflight, Early Terms Notice & Stale Reporting — #884 (v2.3.0), 2026-11-20
+
+Specification: [fetch-preflight-884-spec.md](fetch-preflight-884-spec.md).
+
+- [x] Add `DatasetError(HitlistError, ValueError)` and `InsufficientSpaceError(DownloadError)` to `hitlist/errors.py` and export them alongside `preflight`, `list_cache_files`, `fetch_all_data_assets`, and `list_proteomes` in `hitlist/__init__.py`.
+- [x] Add `size_bytes` for IEDB (`7_800_000_000`), `preflight(name, *, force=False)`, pre-download space refusal (`InsufficientSpaceError`) in `fetch()` and `fetch_data_asset()`, pre-download terms notice, stale-registration reporting, `exists` in `list_datasets()`/`info()`, and `IntegrityError` for `min_size_bytes` violations in `hitlist/downloads.py`.
+- [x] Wire `--dry-run` into `hitlist data fetch` and remove redundant per-handler `except ValueError` wrappers in `hitlist/cli_data.py`; regenerate `tests/data/cli_help_snapshot.txt`.
+- [x] Update `docs/downloads.md`, `docs/legacy-1x.md`, `tests/test_fetch_preflight.py`, offline/disk-hermetic guards in `tests/test_export.py`, `tests/test_pmhc_query.py`, and `tests/test_versioned_datasets.py`, `.github/workflows/release-build.yml`, and bump `hitlist/version.py` to `2.3.0`.
+- [x] Pass ruff format/lint, strict `mkdocs build --strict`, and focused + data/CLI/export unit tests.
+- [ ] Open PR (`v2.3.0`), pass hosted CI + release gate, merge, deploy `2.3.0` to PyPI from clean `main`, and post receipt on `#884`.
+
+## Review (`#884`)
+
+- `downloads.preflight(name, force=False)` and `hitlist data fetch <name> --dry-run` produce identical read-only JSON plans without touching the network or creating target directories, measuring free space on the nearest existing ancestor directory and supporting both `FETCHABLE_DATASETS` (`size_bytes`/`expected_size`) and mirrored `data_assets()`.
+- `fetch()` and `fetch_data_asset()` refuse to start with `InsufficientSpaceError(DownloadError)` (carrying `.path`, `.required_bytes`, `.available_bytes`) when free space is below the declared size, print `ds["terms"]` before downloading, report stale registrations before re-downloading, and translate any future upstream `datacache` `InsufficientSpace` exception in `_typed_download_errors()`.
+- `list_datasets()` and `info()` report `"exists"` across every branch; `DatasetError(HitlistError, ValueError)` preserves `except ValueError` compatibility while giving `hitlist data fetch`/`refresh` single-line `Error:` CLI reporting without tracebacks.
+
+---
+
 # APC/drug perturbation, HLA-DM arm recovery & Atlas prediction provenance — #901, #902, #853, #855 (v2.2.0), 2026-11-20
 
 Specification: [apc-drug-dm-atlas-2-2-0-spec.md](apc-drug-dm-atlas-2-2-0-spec.md).

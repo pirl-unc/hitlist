@@ -156,7 +156,7 @@ options:
                         Optional description
 
 ===== hitlist data fetch --help =====
-usage: hitlist data fetch [-h] [--force] name
+usage: hitlist data fetch [-h] [--force] [--dry-run] name
 
 positional arguments:
   name         Dataset name
@@ -164,6 +164,7 @@ positional arguments:
 options:
   -h, --help   show this help message and exit
   --force, -f  Re-download
+  --dry-run    Print where the file would land, its expected size and free space; download nothing
 
 ===== hitlist data fetch-all --help =====
 usage: hitlist data fetch-all [-h] [--force]

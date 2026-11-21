@@ -39,6 +39,10 @@ on:
       - hitlist/canine_orfdata.py
       - hitlist/canine_peptide_evidence.py
       - hitlist/managed_assets.py
+      - hitlist/downloads.py
+      - hitlist/cli_data.py
+      - hitlist/errors.py
+      - tests/test_fetch_preflight.py
       - hitlist/data/canine_bulk.yaml
       - tests/test_canine_bulk.py
       - tests/test_canine_orfdata.py

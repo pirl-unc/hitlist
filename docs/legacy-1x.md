@@ -516,7 +516,7 @@ Every observation is classified by mutually-exclusive biological source category
 
 ```bash
 hitlist data register <name> <path> [-d DESCRIPTION]    # register a local file
-hitlist data fetch <name> [--force]                     # download a known dataset (IEDB/CEDAR/viral FASTAs)
+hitlist data fetch <name> [--force] [--dry-run]         # download a known dataset (IEDB/CEDAR/viral FASTAs)
 hitlist data refresh <name>                             # re-download
 hitlist data info <name>                                # detailed metadata (JSON)
 hitlist data path <name>                                # print the registered path

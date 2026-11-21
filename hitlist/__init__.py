@@ -177,6 +177,7 @@ _PUBLIC_API: dict[str, str] = {
     "list_gene_sets": ".genes",
     # Dataset registry (download / register / resolve).
     "fetch": ".downloads",
+    "preflight": ".downloads",
     "refresh": ".downloads",
     "register": ".downloads",
     "remove": ".downloads",
@@ -184,8 +185,14 @@ _PUBLIC_API: dict[str, str] = {
     "info": ".downloads",
     "list_datasets": ".downloads",
     "available_datasets": ".downloads",
+    "list_cache_files": ".downloads",
+    "fetch_all_data_assets": ".downloads",
+    "list_proteomes": ".downloads",
     "download_to_file": ".downloads",
     "VersionedDatasetRegistry": ".downloads",
+    # Public typed errors (#884, #886).
+    "DatasetError": ".errors",
+    "InsufficientSpaceError": ".errors",
 }
 
 __all__ = ["__version__", *sorted(_PUBLIC_API)]
