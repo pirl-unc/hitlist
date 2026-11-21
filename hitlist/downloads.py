@@ -1468,6 +1468,10 @@ def fetch(name: str, force: bool = False) -> Path:
     if name not in FETCHABLE_DATASETS:
         if name in data_assets():
             return fetch_data_asset(name, force=force)
+        from ._dataset_catalog import fetch_managed, get_managed_dataset
+
+        if get_managed_dataset(name) is not None:
+            return fetch_managed(name, force=force)
         raise _unfetchable(name)
 
     ds = FETCHABLE_DATASETS[name]
@@ -1562,10 +1566,45 @@ def preflight(name: str, *, force: bool = False) -> dict:
         dest = data_asset_dir() / name
         expected, terms = data_assets()[name]["size_bytes"], None
     elif name == "depmap":
-        raise DatasetError(
-            f"'depmap' is a multi-file bundle; run preflight on its files: {sorted(_DEPMAP_FILES)}"
-        )
+        from .line_expression import line_expression_path
+
+        output = line_expression_path()
+        files = []
+        for key in sorted(_DEPMAP_FILES):
+            member_plan = preflight(key, force=force)
+            files.append(
+                {
+                    "name": key,
+                    "path": member_plan["path"],
+                    "exists": member_plan["exists"],
+                    "would_download": member_plan["would_download"],
+                    "expected_size_bytes": member_plan["expected_size_bytes"],
+                }
+            )
+        sizes = [f["expected_size_bytes"] for f in files]
+        expected_total = sum(sizes) if sizes and all(s is not None for s in sizes) else None
+        free = _free_bytes_for_path(output)
+        entry = load_manifest().get("datasets", {}).get("depmap")
+        exists = output.exists()
+        return {
+            "name": "depmap",
+            "kind": "bundle",
+            "path": str(output),
+            "registered": entry is not None,
+            "exists": exists,
+            "stale": entry is not None and not Path(entry["path"]).exists(),
+            "would_download": force or not exists or any(f["would_download"] for f in files),
+            "expected_size_bytes": expected_total,
+            "free_bytes": free,
+            "enough_space": None if expected_total is None else free >= expected_total,
+            "terms": "https://doi.org/10.25452/figshare.plus.27993248.v1",
+            "files": files,
+        }
     else:
+        from ._dataset_catalog import get_managed_dataset, preflight_managed
+
+        if get_managed_dataset(name) is not None:
+            return preflight_managed(name, force=force)
         raise _unfetchable(name)
     entry = load_manifest().get("datasets", {}).get(name)
     free = _free_bytes_for_path(dest)
@@ -1615,6 +1654,10 @@ def get_path(name: str) -> Path:
             )
         return path
     if entry is None:
+        from ._dataset_catalog import get_managed_dataset, get_managed_path
+
+        if get_managed_dataset(name) is not None:
+            return get_managed_path(name)
         hint = ""
         if name in FETCHABLE_DATASETS:
             hint = f"\n  Fetch with: hitlist data fetch {name}"
@@ -1683,6 +1726,11 @@ def info(name: str) -> dict:
                 "status": "not installed",
                 "type": "manual download",
             }
+        from ._dataset_catalog import get_managed_dataset
+
+        managed = get_managed_dataset(name)
+        if managed is not None:
+            return managed.info_fn()
         raise KeyError(f"Unknown dataset '{name}'")
     result = dict(entry)
     state = datacache.inspect_file(entry["path"])
@@ -1722,6 +1770,8 @@ def list_cache_files(*, verify: bool = False, include_unregistered: bool = True)
 
 def available_datasets() -> dict[str, str]:
     """Return all known dataset names with descriptions."""
+    from ._dataset_catalog import managed_datasets
+
     result = {
         "depmap": "DepMap 24Q4 gene/transcript expression + companions (~4.7 GB) [bundle + build]"
     }
@@ -1731,6 +1781,8 @@ def available_datasets() -> dict[str, str]:
         result[name] = ds["description"] + " [manual download]"
     for name, asset in data_assets().items():
         result.setdefault(name, asset["source"] + " [mirrored asset]")
+    for name, managed in managed_datasets().items():
+        result.setdefault(name, f"{managed.description} [{managed.cache_kind}]")
     return result
 
 
@@ -1752,20 +1804,33 @@ def remove(name: str, delete_file: bool = False) -> bool:
     Returns
     -------
     bool
-        ``True`` if a dataset was registered under *name* and removed,
+        ``True`` if a dataset was registered or cached under *name* and removed,
         ``False`` if no such dataset existed (so callers can distinguish a real
         removal from a typo instead of silently reporting success).
     """
     with manifest_transaction() as manifest:
         entry = manifest.get("datasets", {}).pop(name, None)
-    if entry is None:
-        return False
-    if delete_file:
-        p = Path(entry["path"])
-        if p.exists():
+    if entry is not None:
+        if delete_file:
+            p = Path(entry["path"])
+            if p.exists():
+                p.unlink()
+                print(f"Deleted {p}")
+        return True
+    if name in data_assets():
+        p = data_asset_dir() / name
+        if not p.exists():
+            return False
+        if delete_file:
             p.unlink()
             print(f"Deleted {p}")
-    return True
+        return True
+    from ._dataset_catalog import get_managed_dataset
+
+    managed = get_managed_dataset(name)
+    if managed is not None:
+        return managed.remove_fn(delete_file)
+    return False
 
 
 # ── Versioned dataset registry ───────────────────────────────────────────────

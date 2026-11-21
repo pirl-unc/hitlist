@@ -66,24 +66,31 @@ them as one `Error: ...` line with exit status 1.
 ## Before a large download
 
 ```console
-hitlist data fetch iedb --dry-run   # JSON plan: nothing is downloaded
+hitlist data available --json           # catalog of all auto-fetch, mirrored & managed datasets
+hitlist data preflight iedb             # JSON plan: nothing is downloaded
+hitlist data fetch iedb --dry-run       # equivalent dry-run JSON plan
 ```
 
-`hitlist.preflight(name, force=False)` (the same JSON) reports where the file
-would land, whether it is registered, whether it exists, whether the registration
-is `stale` (registered but the file is gone), `would_download`,
-`expected_size_bytes` when the dataset declares a size, `free_bytes` on the target
-filesystem, `enough_space` (`None` when no size is declared) and any `terms` URL.
-`fetch()` and `fetch_data_asset()` use the same plan: they refuse to start with
-`hitlist.errors.InsufficientSpaceError` (a `DownloadError` subclass carrying
-`path`, `required_bytes` and `available_bytes`) when a declared size will not fit,
-print the terms-of-use notice before the transfer, and report when re-downloading
-a stale registration. Datasets without a declared `size_bytes` or `expected_size`
-make no space claim.
+`hitlist.preflight(name, force=False)` (the same JSON) works across single-file
+datasets (`iedb`, `cedar`, `netmhcstabpan`, viral proteomes, mirrored assets,
+`uniprot/*`, `canine-bulk/<source>/<asset>`) and composite managed bundles
+(`depmap`, `hla-ligand-atlas`, `hla-ligand-atlas-crosswalk`, `tcell-assays`,
+`perturbation-quantities`, `dlbcl-35561310-supplements`, `canine-bulk/<source>`,
+`pxd013455`, `pxd013455-sources`). It reports where the file or bundle lands,
+whether it is registered, whether it exists, whether the registration is `stale`
+(registered but the file is gone), `would_download`, `expected_size_bytes` when
+declared, `free_bytes` on the target filesystem, `enough_space` (`None` when no
+size is declared), any `terms` URL, and per-member `files` for composite bundles.
+`fetch()`, `fetch_data_asset()`, and managed bundle fetches use the same plan:
+they refuse to start with `hitlist.errors.InsufficientSpaceError` (a
+`DownloadError` subclass carrying `path`, `required_bytes` and `available_bytes`)
+when a declared size will not fit, print the terms-of-use notice before the
+transfer, and report when re-downloading a stale registration. Datasets without a
+declared `size_bytes` or `expected_size` make no space claim.
 
-An unknown dataset, a manual-download dataset, or the multi-file `depmap` bundle
-in `preflight()` raises `hitlist.errors.DatasetError` (a `HitlistError` and a
-`ValueError`, so existing `except ValueError` callers keep working).
+An unknown dataset or manual-download dataset raises
+`hitlist.errors.DatasetError` (a `HitlistError` and a `ValueError`, so existing
+`except ValueError` callers keep working).
 
 ## Versioned registry compatibility
 

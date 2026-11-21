@@ -49,12 +49,21 @@ def list_cache_files(*, verify: bool = False, include_unregistered: bool = True)
                 f"uniprot/{reference['collection']}/{reference['release']}",
                 reference,
             )
+    from ._dataset_catalog import installed_managed_cache_entries
 
-    roots = [(data_dir(), "built data"), (assets_root, "data asset cache")]
-    legacy = Path.home() / ".hitlist"
-    if legacy.exists():
-        roots.append((legacy, "legacy cache"))
-    roots.append((proteome_index_cache_dir(), "proteome index"))
+    for path, cache_kind, dataset_name, metadata in installed_managed_cache_entries():
+        add(path, cache_kind, dataset_name, metadata or None)
+
+    roots = (
+        [
+            (data_dir(), "built data"),
+            (assets_root, "data asset cache"),
+            (Path.home() / ".hitlist", "legacy cache"),
+            (proteome_index_cache_dir(), "proteome index"),
+        ]
+        if include_unregistered
+        else []
+    )
     errors = []
     visited = set()
 

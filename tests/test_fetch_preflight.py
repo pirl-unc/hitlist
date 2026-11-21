@@ -116,11 +116,21 @@ def test_preflight_measures_the_nearest_existing_parent(data_dir, monkeypatch):
     assert not (data_dir / "not").exists()
 
 
-@pytest.mark.parametrize("name", ["no-such-dataset", "hpa_bulk", "depmap"])
+@pytest.mark.parametrize("name", ["no-such-dataset", "hpa_bulk"])
 def test_preflight_refuses_what_fetch_cannot_do_automatically(data_dir, name):
     with pytest.raises(DatasetError) as raised:
         downloads.preflight(name)
     assert isinstance(raised.value, ValueError) and isinstance(raised.value, HitlistError)
+
+
+def test_preflight_depmap_returns_composite_bundle_plan(data_dir, monkeypatch):
+    _free_space(monkeypatch, 50 * 10**9)
+    plan = downloads.preflight("depmap")
+    assert plan["name"] == "depmap"
+    assert plan["kind"] == "bundle"
+    assert plan["would_download"] is True
+    assert len(plan["files"]) == len(downloads._DEPMAP_FILES)
+    assert plan["terms"] == "https://doi.org/10.25452/figshare.plus.27993248.v1"
 
 
 def test_fetch_refuses_to_start_when_the_dataset_will_not_fit(data_dir, fake_download, monkeypatch):

@@ -199,13 +199,30 @@ def _data_available(args: argparse.Namespace) -> None:
         if row["status"] == "available"
         for name in row["names"]
     }
-    print(f"{'Name':<12} {'Status':<12} Description")
-    print("-" * 75)
+    if getattr(args, "json", False):
+        payload = [
+            {
+                "name": name,
+                "installed": name in registered,
+                "description": desc,
+            }
+            for name, desc in sorted(datasets.items())
+        ]
+        print(json.dumps(payload, indent=2))
+        return
+    width = max((len(name) for name in datasets), default=12)
+    width = max(width, 12)
+    print(f"{'Name':<{width}} {'Status':<12} Description")
+    print("-" * max(75, width + 30))
     for name, desc in sorted(datasets.items()):
         status = "installed" if name in registered else ""
-        print(f"{name:<12} {status:<12} {desc}")
+        print(f"{name:<{width}} {status:<12} {desc}")
     print()
     _print_data_locations()
+
+
+def _data_preflight(args: argparse.Namespace) -> None:
+    print(json.dumps(preflight(args.name, force=args.force), indent=2))
 
 
 def _data_register(args: argparse.Namespace) -> None:
@@ -293,7 +310,8 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     p.add_argument("--all", action="store_true", help="Inspect files across all cache locations")
     p.add_argument("--verify", action="store_true", help="Verify trusted mirrored-asset hashes")
     p.add_argument("--json", action="store_true", help="Print the complete inventory as JSON")
-    ds.add_parser("available", help="Show all known datasets")
+    p = ds.add_parser("available", help="Show all known datasets")
+    p.add_argument("--json", action="store_true", help="Print available datasets as JSON")
     ds.add_parser(
         "dirs",
         help="Show every directory hitlist reads/writes, and why it resolved there",
@@ -303,6 +321,13 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     p.add_argument("name", help="Dataset name")
     p.add_argument("path", help="Path to the file")
     p.add_argument("--description", "-d", help="Optional description")
+
+    p = ds.add_parser(
+        "preflight",
+        help="Print where a dataset would land, its expected size and free space; download nothing",
+    )
+    p.add_argument("name", help="Dataset name")
+    p.add_argument("--force", "-f", action="store_true", help="Plan as if forcing re-download")
 
     p = ds.add_parser("fetch", help="Download a fetchable dataset")
     p.add_argument("name", help="Dataset name")
@@ -362,6 +387,7 @@ def _handle_data(args: argparse.Namespace) -> None:
         "available": _data_available,
         "dirs": _data_dirs,
         "register": _data_register,
+        "preflight": _data_preflight,
         "fetch": _data_fetch,
         "fetch-all": _data_fetch_all,
         "refresh": _data_refresh,

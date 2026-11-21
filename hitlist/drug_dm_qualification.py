@@ -182,13 +182,86 @@ def prepare_flucloxacillin_evidence_views(observations: pd.DataFrame) -> dict[st
     }
 
 
+def fetch_dlbcl_supplements(
+    cache_directory: str | Path | None = None,
+    *,
+    force: bool = False,
+    verbose: bool = True,
+) -> dict[str, Path]:
+    """Fetch and SHA-256-verify PMC9327544 Tables 3 and 5 from Europe PMC (#901).
+
+    Extracts the two pinned workbooks atomically into ``cache_directory`` (default:
+    ``data_dir() / 'dlbcl_35561310_supplements'``) and removes the temporary ZIP.
+    """
+    import os
+    import shutil
+    import tempfile
+    import zipfile
+
+    from .downloads import data_dir, download_to_file
+    from .errors import IntegrityError
+
+    contract = dlbcl_supplement_contract()
+    workbooks = contract["workbooks"]
+    directory = (
+        Path(cache_directory)
+        if cache_directory is not None
+        else data_dir() / "dlbcl_35561310_supplements"
+    )
+    directory.mkdir(parents=True, exist_ok=True)
+    targets = {wb_key: (directory / meta["filename"], meta) for wb_key, meta in workbooks.items()}
+    if not force and all(
+        path.is_file()
+        and file_digest(path) == {"sha256": meta["sha256"], "size_bytes": meta["size_bytes"]}
+        for path, meta in targets.values()
+    ):
+        return {meta["filename"]: path for path, meta in targets.values()}
+
+    source_url = workbooks["table_3_class_i"]["source_url"]
+    with tempfile.TemporaryDirectory(dir=directory, prefix=".dlbcl-fetch-") as tmp:
+        archive_path = Path(tmp) / "PMC9327544_supplementaryFiles.zip"
+        download_to_file(
+            source_url,
+            archive_path,
+            label="dlbcl-35561310-supplements",
+            force=True,
+            verbose=verbose,
+            decompress=False,
+        )
+        with zipfile.ZipFile(archive_path) as zf:
+            members = {Path(name).name: name for name in zf.namelist()}
+            staged: list[tuple[Path, Path]] = []
+            for path, meta in targets.values():
+                member = members.get(meta["filename"])
+                if member is None:
+                    raise IntegrityError(
+                        f"Archive from {source_url} does not contain {meta['filename']!r}"
+                    )
+                staged_path = Path(tmp) / meta["filename"]
+                with zf.open(member) as src_stream, staged_path.open("wb") as dst_stream:
+                    shutil.copyfileobj(src_stream, dst_stream)
+                digest = file_digest(staged_path)
+                if digest["sha256"] != meta["sha256"] or digest["size_bytes"] != meta["size_bytes"]:
+                    raise IntegrityError(
+                        f"DLBCL supplement checksum/size mismatch for {meta['filename']}: "
+                        f"expected sha256={meta['sha256']} size={meta['size_bytes']}, got {digest}"
+                    )
+                staged.append((staged_path, path))
+            for staged_path, final_path in staged:
+                os.replace(staged_path, final_path)
+    return {meta["filename"]: path for path, meta in targets.values()}
+
+
 def load_dlbcl_supplement_rows(
-    suppl3_path: str | Path,
-    suppl5_path: str | Path,
+    suppl3_path: str | Path | None = None,
+    suppl5_path: str | Path | None = None,
     *,
     verify_checksums: bool = True,
 ) -> pd.DataFrame:
     """Parse checksum-pinned PMC9327544 Tables 3 (Class I) and 5 (Class II) (#901).
+
+    When both paths are omitted, resolves the cached bundle via
+    ``hitlist.get_path('dlbcl-35561310-supplements')``.
 
     Preserves native rows (including repeated forms in SUDHL6_IFN_TAZ), literal
     source header variants (``lengtg``, ``Query #:z``), NetMHCpan 4.0 prediction
@@ -200,6 +273,15 @@ def load_dlbcl_supplement_rows(
     contract = dlbcl_supplement_contract()
     conflicts = dlbcl_treatment_conflict_contract()
     sheet_map = contract["sheet_to_condition_map"]
+
+    if suppl3_path is None and suppl5_path is None:
+        from .downloads import get_path
+
+        bundle_dir = get_path("dlbcl-35561310-supplements")
+        suppl3_path = bundle_dir / contract["workbooks"]["table_3_class_i"]["filename"]
+        suppl5_path = bundle_dir / contract["workbooks"]["table_5_class_ii"]["filename"]
+    elif suppl3_path is None or suppl5_path is None:
+        raise ValueError("Provide both suppl3_path and suppl5_path, or omit both to use cache")
 
     workbook_specs = [
         ("table_3_class_i", Path(suppl3_path), "I", "predicted"),
