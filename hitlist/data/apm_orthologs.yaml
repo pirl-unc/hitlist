@@ -1,0 +1,555 @@
+schema_version: 1
+description: >-
+  Cross-species ortholog mapping for core antigen processing and presentation
+  (APM) genes across Homo sapiens (HGNC), Mus musculus (MGI), Rattus norvegicus
+  (RGD), Macaca mulatta, Canis lupus familiaris, Bos taurus, Sus scrofa, and
+  Gallus gallus (#944). Explicit absent_in_species records biologically absent
+  orthologs (notably ERAP2 in rodents).
+
+ortholog_groups:
+  PSMB5:
+    pathway: constitutive_proteasome
+    mhc_class_scope: I
+    aliases: [X, MB1, beta5]
+    species_symbols:
+      Homo sapiens: [PSMB5]
+      Mus musculus: [Psmb5]
+      Rattus norvegicus: [Psmb5]
+      Macaca mulatta: [PSMB5]
+      Canis lupus familiaris: [PSMB5]
+      Bos taurus: [PSMB5]
+      Sus scrofa: [PSMB5]
+      Gallus gallus: [PSMB5]
+    absent_in_species: []
+
+  PSMB6:
+    pathway: constitutive_proteasome
+    mhc_class_scope: I
+    aliases: [Y, delta, beta1]
+    species_symbols:
+      Homo sapiens: [PSMB6]
+      Mus musculus: [Psmb6]
+      Rattus norvegicus: [Psmb6]
+      Macaca mulatta: [PSMB6]
+      Canis lupus familiaris: [PSMB6]
+      Bos taurus: [PSMB6]
+      Sus scrofa: [PSMB6]
+      Gallus gallus: [PSMB6]
+    absent_in_species: []
+
+  PSMB7:
+    pathway: constitutive_proteasome
+    mhc_class_scope: I
+    aliases: [Z, beta2]
+    species_symbols:
+      Homo sapiens: [PSMB7]
+      Mus musculus: [Psmb7]
+      Rattus norvegicus: [Psmb7]
+      Macaca mulatta: [PSMB7]
+      Canis lupus familiaris: [PSMB7]
+      Bos taurus: [PSMB7]
+      Sus scrofa: [PSMB7]
+      Gallus gallus: [PSMB7]
+    absent_in_species: []
+
+  PSMB8:
+    pathway: immunoproteasome
+    mhc_class_scope: I
+    aliases: [LMP7, RING10, beta5i]
+    species_symbols:
+      Homo sapiens: [PSMB8]
+      Mus musculus: [Psmb8]
+      Rattus norvegicus: [Psmb8]
+      Macaca mulatta: [PSMB8]
+      Canis lupus familiaris: [PSMB8]
+      Bos taurus: [PSMB8]
+      Sus scrofa: [PSMB8]
+    absent_in_species: [Gallus gallus]
+
+  PSMB9:
+    pathway: immunoproteasome
+    mhc_class_scope: I
+    aliases: [LMP2, RING12, beta1i]
+    species_symbols:
+      Homo sapiens: [PSMB9]
+      Mus musculus: [Psmb9]
+      Rattus norvegicus: [Psmb9]
+      Macaca mulatta: [PSMB9]
+      Canis lupus familiaris: [PSMB9]
+      Bos taurus: [PSMB9]
+      Sus scrofa: [PSMB9]
+    absent_in_species: [Gallus gallus]
+
+  PSMB10:
+    pathway: immunoproteasome
+    mhc_class_scope: I
+    aliases: [MECL-1, MECL1, LMP10, beta2i]
+    species_symbols:
+      Homo sapiens: [PSMB10]
+      Mus musculus: [Psmb10]
+      Rattus norvegicus: [Psmb10]
+      Macaca mulatta: [PSMB10]
+      Canis lupus familiaris: [PSMB10]
+      Bos taurus: [PSMB10]
+      Sus scrofa: [PSMB10]
+    absent_in_species: [Gallus gallus]
+
+  PSMB11:
+    pathway: thymoproteasome
+    mhc_class_scope: I
+    aliases: [beta5t]
+    species_symbols:
+      Homo sapiens: [PSMB11]
+      Mus musculus: [Psmb11]
+      Rattus norvegicus: [Psmb11]
+      Macaca mulatta: [PSMB11]
+      Canis lupus familiaris: [PSMB11]
+      Bos taurus: [PSMB11]
+      Sus scrofa: [PSMB11]
+    absent_in_species: []
+
+  PSME1:
+    pathway: proteasome_regulator
+    mhc_class_scope: I
+    aliases: [PA28A, PA28alpha, REGalpha]
+    species_symbols:
+      Homo sapiens: [PSME1]
+      Mus musculus: [Psme1]
+      Rattus norvegicus: [Psme1]
+      Macaca mulatta: [PSME1]
+      Canis lupus familiaris: [PSME1]
+      Bos taurus: [PSME1]
+      Sus scrofa: [PSME1]
+      Gallus gallus: [PSME1]
+    absent_in_species: []
+
+  PSME2:
+    pathway: proteasome_regulator
+    mhc_class_scope: I
+    aliases: [PA28B, PA28beta, REGbeta]
+    species_symbols:
+      Homo sapiens: [PSME2]
+      Mus musculus: [Psme2]
+      Rattus norvegicus: [Psme2]
+      Macaca mulatta: [PSME2]
+      Canis lupus familiaris: [PSME2]
+      Bos taurus: [PSME2]
+      Sus scrofa: [PSME2]
+      Gallus gallus: [PSME2]
+    absent_in_species: []
+
+  ERAP1:
+    pathway: er_trimming
+    mhc_class_scope: I
+    aliases: [ERAAP, ARTS1, A-LAP, PILS-AP]
+    species_symbols:
+      Homo sapiens: [ERAP1]
+      Mus musculus: [Erap1]
+      Rattus norvegicus: [Erap1]
+      Macaca mulatta: [ERAP1]
+      Canis lupus familiaris: [ERAP1]
+      Bos taurus: [ERAP1]
+      Sus scrofa: [ERAP1]
+      Gallus gallus: [ERAP1]
+    absent_in_species: []
+
+  ERAP2:
+    pathway: er_trimming
+    mhc_class_scope: I
+    aliases: [L-RAP, LRAP]
+    species_symbols:
+      Homo sapiens: [ERAP2]
+      Macaca mulatta: [ERAP2]
+      Canis lupus familiaris: [ERAP2]
+      Bos taurus: [ERAP2]
+      Sus scrofa: [ERAP2]
+      Gallus gallus: [ERAP2]
+    absent_in_species: [Mus musculus, Rattus norvegicus]
+
+  NPEPPS:
+    pathway: cytosolic_trimming
+    mhc_class_scope: I
+    aliases: [PSA, puromycin-sensitive aminopeptidase]
+    species_symbols:
+      Homo sapiens: [NPEPPS]
+      Mus musculus: [Npepps]
+      Rattus norvegicus: [Npepps]
+      Macaca mulatta: [NPEPPS]
+      Canis lupus familiaris: [NPEPPS]
+      Bos taurus: [NPEPPS]
+      Sus scrofa: [NPEPPS]
+      Gallus gallus: [NPEPPS]
+    absent_in_species: []
+
+  TPP2:
+    pathway: cytosolic_trimming
+    mhc_class_scope: I
+    aliases: [TPPII]
+    species_symbols:
+      Homo sapiens: [TPP2]
+      Mus musculus: [Tpp2]
+      Rattus norvegicus: [Tpp2]
+      Macaca mulatta: [TPP2]
+      Canis lupus familiaris: [TPP2]
+      Bos taurus: [TPP2]
+      Sus scrofa: [TPP2]
+      Gallus gallus: [TPP2]
+    absent_in_species: []
+
+  LNPEP:
+    pathway: endosomal_trimming
+    mhc_class_scope: I
+    aliases: [IRAP]
+    species_symbols:
+      Homo sapiens: [LNPEP]
+      Mus musculus: [Lnpep]
+      Rattus norvegicus: [Lnpep]
+      Macaca mulatta: [LNPEP]
+      Canis lupus familiaris: [LNPEP]
+      Bos taurus: [LNPEP]
+      Sus scrofa: [LNPEP]
+      Gallus gallus: [LNPEP]
+    absent_in_species: []
+
+  TAP1:
+    pathway: peptide_loading_complex
+    mhc_class_scope: I
+    aliases: [ABCB2, RING4]
+    species_symbols:
+      Homo sapiens: [TAP1]
+      Mus musculus: [Tap1]
+      Rattus norvegicus: [Tap1]
+      Macaca mulatta: [TAP1]
+      Canis lupus familiaris: [TAP1]
+      Bos taurus: [TAP1]
+      Sus scrofa: [TAP1]
+      Gallus gallus: [TAP1]
+    absent_in_species: []
+
+  TAP2:
+    pathway: peptide_loading_complex
+    mhc_class_scope: I
+    aliases: [ABCB3, RING11]
+    species_symbols:
+      Homo sapiens: [TAP2]
+      Mus musculus: [Tap2]
+      Rattus norvegicus: [Tap2]
+      Macaca mulatta: [TAP2]
+      Canis lupus familiaris: [TAP2]
+      Bos taurus: [TAP2]
+      Sus scrofa: [TAP2]
+      Gallus gallus: [TAP2]
+    absent_in_species: []
+
+  TAPBP:
+    pathway: peptide_loading_complex
+    mhc_class_scope: I
+    aliases: [tapasin, TPN, NGS17]
+    species_symbols:
+      Homo sapiens: [TAPBP]
+      Mus musculus: [Tapbp]
+      Rattus norvegicus: [Tapbp]
+      Macaca mulatta: [TAPBP]
+      Canis lupus familiaris: [TAPBP]
+      Bos taurus: [TAPBP]
+      Sus scrofa: [TAPBP]
+      Gallus gallus: [TAPBP]
+    absent_in_species: []
+
+  TAPBPL:
+    pathway: peptide_editing_class_i
+    mhc_class_scope: I
+    aliases: [TAPBPR, tapasin-related]
+    species_symbols:
+      Homo sapiens: [TAPBPL]
+      Mus musculus: [Tapbpl]
+      Rattus norvegicus: [Tapbpl]
+      Macaca mulatta: [TAPBPL]
+      Canis lupus familiaris: [TAPBPL]
+      Bos taurus: [TAPBPL]
+      Sus scrofa: [TAPBPL]
+      Gallus gallus: [TAPBPL]
+    absent_in_species: []
+
+  B2M:
+    pathway: mhc_class_i_assembly
+    mhc_class_scope: I
+    aliases: [beta2m, beta-2-microglobulin]
+    species_symbols:
+      Homo sapiens: [B2M]
+      Mus musculus: [B2m]
+      Rattus norvegicus: [B2m]
+      Macaca mulatta: [B2M]
+      Canis lupus familiaris: [B2M]
+      Bos taurus: [B2M]
+      Sus scrofa: [B2M]
+      Gallus gallus: [B2M]
+    absent_in_species: []
+
+  CALR:
+    pathway: peptide_loading_complex
+    mhc_class_scope: I
+    aliases: [calreticulin, CRT]
+    species_symbols:
+      Homo sapiens: [CALR]
+      Mus musculus: [Calr]
+      Rattus norvegicus: [Calr]
+      Macaca mulatta: [CALR]
+      Canis lupus familiaris: [CALR]
+      Bos taurus: [CALR]
+      Sus scrofa: [CALR]
+      Gallus gallus: [CALR]
+    absent_in_species: []
+
+  CANX:
+    pathway: peptide_loading_complex
+    mhc_class_scope: I
+    aliases: [calnexin, CNX]
+    species_symbols:
+      Homo sapiens: [CANX]
+      Mus musculus: [Canx]
+      Rattus norvegicus: [Canx]
+      Macaca mulatta: [CANX]
+      Canis lupus familiaris: [CANX]
+      Bos taurus: [CANX]
+      Sus scrofa: [CANX]
+      Gallus gallus: [CANX]
+    absent_in_species: []
+
+  PDIA3:
+    pathway: peptide_loading_complex
+    mhc_class_scope: I
+    aliases: [ERp57, GRP58]
+    species_symbols:
+      Homo sapiens: [PDIA3]
+      Mus musculus: [Pdia3]
+      Rattus norvegicus: [Pdia3]
+      Macaca mulatta: [PDIA3]
+      Canis lupus familiaris: [PDIA3]
+      Bos taurus: [PDIA3]
+      Sus scrofa: [PDIA3]
+      Gallus gallus: [PDIA3]
+    absent_in_species: []
+
+  NLRC5:
+    pathway: mhc_class_i_transcription
+    mhc_class_scope: I
+    aliases: [CITA]
+    species_symbols:
+      Homo sapiens: [NLRC5]
+      Mus musculus: [Nlrc5]
+      Rattus norvegicus: [Nlrc5]
+      Macaca mulatta: [NLRC5]
+      Canis lupus familiaris: [NLRC5]
+      Bos taurus: [NLRC5]
+      Sus scrofa: [NLRC5]
+      Gallus gallus: [NLRC5]
+    absent_in_species: []
+
+  IRF2:
+    pathway: mhc_class_i_transcription
+    mhc_class_scope: I
+    aliases: []
+    species_symbols:
+      Homo sapiens: [IRF2]
+      Mus musculus: [Irf2]
+      Rattus norvegicus: [Irf2]
+      Macaca mulatta: [IRF2]
+      Canis lupus familiaris: [IRF2]
+      Bos taurus: [IRF2]
+      Sus scrofa: [IRF2]
+      Gallus gallus: [IRF2]
+    absent_in_species: []
+
+  SPPL3:
+    pathway: mhc_class_i_regulation
+    mhc_class_scope: I
+    aliases: []
+    species_symbols:
+      Homo sapiens: [SPPL3]
+      Mus musculus: [Sppl3]
+      Rattus norvegicus: [Sppl3]
+      Macaca mulatta: [SPPL3]
+      Canis lupus familiaris: [SPPL3]
+      Bos taurus: [SPPL3]
+      Sus scrofa: [SPPL3]
+      Gallus gallus: [SPPL3]
+    absent_in_species: []
+
+  CIITA:
+    pathway: mhc_class_ii_transcription
+    mhc_class_scope: II
+    aliases: [MHC2TA]
+    species_symbols:
+      Homo sapiens: [CIITA]
+      Mus musculus: [Ciita]
+      Rattus norvegicus: [Ciita]
+      Macaca mulatta: [CIITA]
+      Canis lupus familiaris: [CIITA]
+      Bos taurus: [CIITA]
+      Sus scrofa: [CIITA]
+      Gallus gallus: [CIITA]
+    absent_in_species: []
+
+  CD74:
+    pathway: mhc_class_ii_chaperone
+    mhc_class_scope: II
+    aliases: [Ii, invariant chain, DHLAG]
+    species_symbols:
+      Homo sapiens: [CD74]
+      Mus musculus: [Cd74]
+      Rattus norvegicus: [Cd74]
+      Macaca mulatta: [CD74]
+      Canis lupus familiaris: [CD74]
+      Bos taurus: [CD74]
+      Sus scrofa: [CD74]
+      Gallus gallus: [CD74]
+    absent_in_species: []
+
+  HLA-DMA:
+    pathway: mhc_class_ii_editing
+    mhc_class_scope: II
+    aliases: [DMA, D6S222E]
+    species_symbols:
+      Homo sapiens: [HLA-DMA]
+      Mus musculus: [H2-DMa]
+      Rattus norvegicus: [RT1-DMa]
+      Macaca mulatta: [Mamu-DMA]
+      Canis lupus familiaris: [DLA-DMA]
+      Bos taurus: [BoLA-DMA]
+      Sus scrofa: [SLA-DMA]
+      Gallus gallus: [DMA]
+    absent_in_species: []
+
+  HLA-DMB:
+    pathway: mhc_class_ii_editing
+    mhc_class_scope: II
+    aliases: [DMB, RING7]
+    species_symbols:
+      Homo sapiens: [HLA-DMB]
+      Mus musculus: [H2-DMb1, H2-DMb2]
+      Rattus norvegicus: [RT1-DMb]
+      Macaca mulatta: [Mamu-DMB]
+      Canis lupus familiaris: [DLA-DMB]
+      Bos taurus: [BoLA-DMB]
+      Sus scrofa: [SLA-DMB]
+      Gallus gallus: [DMB1, DMB2]
+    absent_in_species: []
+
+  HLA-DOA:
+    pathway: mhc_class_ii_editing
+    mhc_class_scope: II
+    aliases: [DOA, HLA-DNA]
+    species_symbols:
+      Homo sapiens: [HLA-DOA]
+      Mus musculus: [H2-Oa]
+      Rattus norvegicus: [RT1-DOa]
+      Macaca mulatta: [Mamu-DOA]
+      Canis lupus familiaris: [DLA-DOA]
+      Bos taurus: [BoLA-DOA]
+      Sus scrofa: [SLA-DOA]
+    absent_in_species: [Gallus gallus]
+
+  HLA-DOB:
+    pathway: mhc_class_ii_editing
+    mhc_class_scope: II
+    aliases: [DOB]
+    species_symbols:
+      Homo sapiens: [HLA-DOB]
+      Mus musculus: [H2-Ob]
+      Rattus norvegicus: [RT1-DOb]
+      Macaca mulatta: [Mamu-DOB]
+      Canis lupus familiaris: [DLA-DOB]
+      Bos taurus: [BoLA-DOB]
+      Sus scrofa: [SLA-DOB]
+    absent_in_species: [Gallus gallus]
+
+  IFI30:
+    pathway: endolysosomal_processing
+    mhc_class_scope: II
+    aliases: [GILT, IP30]
+    species_symbols:
+      Homo sapiens: [IFI30]
+      Mus musculus: [Ifi30]
+      Rattus norvegicus: [Ifi30]
+      Macaca mulatta: [IFI30]
+      Canis lupus familiaris: [IFI30]
+      Bos taurus: [IFI30]
+      Sus scrofa: [IFI30]
+      Gallus gallus: [IFI30]
+    absent_in_species: []
+
+  CTSS:
+    pathway: endolysosomal_processing
+    mhc_class_scope: II
+    aliases: [cathepsin S, CatS]
+    species_symbols:
+      Homo sapiens: [CTSS]
+      Mus musculus: [Ctss]
+      Rattus norvegicus: [Ctss]
+      Macaca mulatta: [CTSS]
+      Canis lupus familiaris: [CTSS]
+      Bos taurus: [CTSS]
+      Sus scrofa: [CTSS]
+      Gallus gallus: [CTSS]
+    absent_in_species: []
+
+  CTSL:
+    pathway: endolysosomal_processing
+    mhc_class_scope: II
+    aliases: [cathepsin L, CatL, CTSL1]
+    species_symbols:
+      Homo sapiens: [CTSL]
+      Mus musculus: [Ctsl]
+      Rattus norvegicus: [Ctsl]
+      Macaca mulatta: [CTSL]
+      Canis lupus familiaris: [CTSL]
+      Bos taurus: [CTSL]
+      Sus scrofa: [CTSL]
+      Gallus gallus: [CTSL]
+    absent_in_species: []
+
+  CTSB:
+    pathway: endolysosomal_processing
+    mhc_class_scope: II
+    aliases: [cathepsin B, CatB]
+    species_symbols:
+      Homo sapiens: [CTSB]
+      Mus musculus: [Ctsb]
+      Rattus norvegicus: [Ctsb]
+      Macaca mulatta: [CTSB]
+      Canis lupus familiaris: [CTSB]
+      Bos taurus: [CTSB]
+      Sus scrofa: [CTSB]
+      Gallus gallus: [CTSB]
+    absent_in_species: []
+
+  LGMN:
+    pathway: endolysosomal_processing
+    mhc_class_scope: II
+    aliases: [AEP, legumain, PRSC1]
+    species_symbols:
+      Homo sapiens: [LGMN]
+      Mus musculus: [Lgmn]
+      Rattus norvegicus: [Lgmn]
+      Macaca mulatta: [LGMN]
+      Canis lupus familiaris: [LGMN]
+      Bos taurus: [LGMN]
+      Sus scrofa: [LGMN]
+      Gallus gallus: [LGMN]
+    absent_in_species: []
+
+  IFNG:
+    pathway: cytokine_signaling
+    mhc_class_scope: I+II
+    aliases: [IFN-gamma, IFNg, interferon-gamma]
+    species_symbols:
+      Homo sapiens: [IFNG]
+      Mus musculus: [Ifng]
+      Rattus norvegicus: [Ifng]
+      Macaca mulatta: [IFNG]
+      Canis lupus familiaris: [IFNG]
+      Bos taurus: [IFNG]
+      Sus scrofa: [IFNG]
+      Gallus gallus: [IFNG]
+    absent_in_species: []

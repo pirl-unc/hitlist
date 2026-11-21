@@ -14,11 +14,13 @@ host genotypes.
 from __future__ import annotations
 
 import re
+from collections import Counter
 from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
 
 import mhcgnomes
+import pandas as pd
 from mhcgnomes import Allele, MhcClass, Pair
 
 from .cell_name_parser import parse_cell_name
@@ -161,23 +163,27 @@ def _mhc_class_from_parsed(parsed) -> str | None:
 def _allele_is_exact_molecule(allele: Allele) -> bool:
     """Return True when ``allele`` names a single sequence-resolved MHC molecule.
 
-    Covers both 2-field HLA/NHP/canine/bovine alleles (``HLA-A*02:01``,
-    ``Mamu-A1*001:01``) and single-field haplotype-designated rodent alleles
-    (``H2-Kb``, ``H2-Db``, ``H2-IAb``, ``RT1-Al``) whose nomenclature has no
-    finer field.
+    Uses ``mhcgnomes``' species haplotype roster and ``get_known_allele`` table
+    (matching :func:`hitlist.curation._names_one_molecule`), so typos such as
+    ``H2-K*nonsense`` are rejected while canonical two-field alleles
+    (``HLA-A*02:01``, ``Mamu-A1*001:01``, ``DLA-88*501:01``, ``BoLA-2*026:01``)
+    and single-field haplotype-designated rodent alleles (``H2-Kb``, ``H2-Db``,
+    ``H2-IAb``, ``RT1-Al``) resolve as exact molecules.
     """
     fields = getattr(allele, "allele_fields", ()) or ()
-    if len(fields) >= 2:
+    if len(fields) != 1:
+        return len(fields) >= 2
+    field = str(fields[0])
+    species = getattr(allele, "species", None)
+    if species is None:
+        return False
+    if field in getattr(species, "haplotypes", ()):
         return True
-    if len(fields) == 1:
-        # Haplotype-letter rodent alleles (e.g. H2-Kb -> ('b',), RT1-Al -> ('l',),
-        # H2-IAg7 -> ('g7',)) are exact molecules, whereas numeric single-field
-        # HLA groups like HLA-A*02 -> ('02',) are two-digit allele families.
-        token = str(fields[0])
-        species_prefix = getattr(getattr(allele, "species", None), "mhc_prefix", "") or ""
-        if species_prefix in {"H2", "RT1"} and any(ch.isalpha() for ch in token):
-            return True
-    return False
+    gene = getattr(allele, "gene", None)
+    gene_name = getattr(gene, "name", "") if gene is not None else ""
+    return bool(
+        not field.isdigit() and gene_name and species.get_known_allele(gene_name, field) is not None
+    )
 
 
 def _canonical_allele_string(parsed) -> str:
@@ -698,3 +704,214 @@ def resolve_condition_mhc_genotype(
         experimental_mhc_allele=experimental_allele,
         is_predicted_restriction=is_predicted,
     )
+
+
+_PRESERVED_PROVENANCE_MAP: dict[str, str] = {
+    "exact": "reported_single_allele",
+    "reported_single_allele": "reported_single_allele",
+    "sample_allele_match": "host_mhc_types",
+    "sample_locus_match": "host_mhc_types",
+    "sample_serotype_match": "host_mhc_types",
+    "host_mhc_types": "host_mhc_types",
+    "peptide_attribution": "paper_donor_table",
+    "peptide_locus_match": "paper_donor_table",
+    "peptide_serotype_match": "paper_donor_table",
+    "paper_donor_table": "paper_donor_table",
+    "haplotype_roster": "inbred_strain_haplotype",
+    "inbred_strain_haplotype": "inbred_strain_haplotype",
+    "curated_cell_line_hla": "curated_cell_line_hla",
+    "transgenic_mhc_construct": "transgenic_mhc_construct",
+}
+
+
+def _first_present_series(df: pd.DataFrame, candidates: tuple[str, ...]) -> pd.Series:
+    for col in candidates:
+        if col in df.columns:
+            return df[col].astype("string").fillna("")
+    return pd.Series("", index=df.index, dtype="string")
+
+
+def recover_mhc_genotypes_for_frame(
+    df: pd.DataFrame,
+    *,
+    overwrite_resolved: bool = False,
+    registry_path: Path | None = None,
+) -> pd.DataFrame:
+    """Enrich an MS, perturbed MS, binding, or T-cell frame with condition-level MHC bags (#943).
+
+    Deduplicates unique metadata tuples before resolving so multi-million-row
+    DataFrames process quickly. Emits canonical columns:
+    - ``mhc_allele_set`` (semicolon-joined canonical alleles)
+    - ``mhc_allele_set_size`` (``int64``)
+    - ``mhc_allele_cardinality`` (``monoallelic`` / ``multi_allelic_bag`` / ``class_only_unknown``)
+    - ``mhc_allele_set_provenance`` (``reported_single_allele`` / ``host_mhc_types`` /
+      ``curated_cell_line_hla`` / ``inbred_strain_haplotype`` / ``transgenic_mhc_construct`` /
+      ``paper_donor_table`` / ``unknown``)
+    - ``mhc_species`` (MHC groove species)
+    - ``host_species`` (host/APC processing species)
+    - ``is_chimeric_mhc_host`` (``bool``)
+
+    Already-resolved primary rows (non-empty ``mhc_allele_set`` with non-pool provenance
+    such as ``exact``, ``sample_allele_match``, ``peptide_attribution``) are preserved
+    verbatim unless ``overwrite_resolved=True``.
+    """
+    out = df.copy()
+    if out.empty:
+        out["mhc_allele_set"] = pd.Series(dtype="string")
+        out["mhc_allele_set_size"] = pd.Series(dtype="int64")
+        out["mhc_allele_cardinality"] = pd.Series(dtype="string")
+        out["mhc_allele_set_provenance"] = pd.Series(dtype="string")
+        out["mhc_species"] = pd.Series(dtype="string")
+        out["host_species"] = pd.Series(dtype="string")
+        out["is_chimeric_mhc_host"] = pd.Series(dtype="bool")
+        return out
+
+    reported_s = _first_present_series(out, ("mhc_restriction", "reported_mhc_name"))
+    ev_s = _first_present_series(out, ("restriction_evidence", "restriction_evidence_code"))
+    cls_s = _first_present_series(out, ("mhc_class", "reported_mhc_class"))
+    existing_set_s = _first_present_series(out, ("mhc_allele_set",))
+    existing_prov_s = _first_present_series(
+        out, ("mhc_allele_set_provenance", "mhc_allele_provenance")
+    )
+    host_mhc_s = _first_present_series(out, ("host_mhc_types", "Host | MHC Present"))
+    cell_line_s = _first_present_series(out, ("cell_line_name",))
+    cell_name_s = _first_present_series(out, ("cell_name",))
+    apc_s = _first_present_series(out, ("apc_name",))
+    host_s = _first_present_series(out, ("host", "host_name", "species"))
+    existing_mhc_sp_s = _first_present_series(out, ("mhc_species",))
+
+    keys = list(
+        zip(
+            reported_s.tolist(),
+            ev_s.tolist(),
+            cls_s.tolist(),
+            existing_set_s.tolist(),
+            existing_prov_s.tolist(),
+            host_mhc_s.tolist(),
+            cell_line_s.tolist(),
+            cell_name_s.tolist(),
+            apc_s.tolist(),
+            host_s.tolist(),
+            existing_mhc_sp_s.tolist(),
+        )
+    )
+    unique_cache: dict[tuple, tuple[str, int, str, str, str, str, bool]] = {}
+    for key in set(keys):
+        (
+            reported,
+            ev,
+            mhc_cls,
+            existing_set,
+            existing_prov,
+            host_mhc,
+            cell_line,
+            cell_name,
+            apc_name,
+            host_raw,
+            existing_mhc_sp,
+        ) = key
+        mapped_prov = _PRESERVED_PROVENANCE_MAP.get(existing_prov.strip(), "")
+        if not overwrite_resolved and existing_set.strip() and mapped_prov:
+            tokens = [t.strip() for t in existing_set.split(";") if t.strip()]
+            norm_tokens = sorted({normalize_mhc_token(t).canonical or t for t in tokens if t})
+            allele_set_str = ";".join(norm_tokens)
+            size = len(norm_tokens)
+            cardinality = (
+                "monoallelic"
+                if size == 1
+                else "multi_allelic_bag"
+                if size > 1
+                else "class_only_unknown"
+            )
+            species_set = {
+                normalize_mhc_token(t).mhc_species
+                for t in norm_tokens
+                if normalize_mhc_token(t).mhc_species
+            }
+            mhc_sp = (
+                next(iter(species_set))
+                if len(species_set) == 1
+                else existing_mhc_sp.strip() or infer_host_species(host_raw)
+            )
+            host_sp = infer_host_species(host_raw) or mhc_sp
+            unique_cache[key] = (
+                allele_set_str,
+                size,
+                cardinality,
+                mapped_prov,
+                mhc_sp,
+                host_sp,
+                bool(mhc_sp and host_sp and mhc_sp != host_sp),
+            )
+            continue
+
+        resolved = resolve_condition_mhc_genotype(
+            reported_mhc_name=reported,
+            restriction_evidence_code=ev,
+            reported_mhc_class=mhc_cls,
+            host_mhc_types=host_mhc,
+            cell_name=cell_line or cell_name,
+            apc_name=apc_name or cell_line,
+            host_name=host_raw,
+            registry_path=registry_path,
+        )
+        mhc_sp = resolved.mhc_species or existing_mhc_sp.strip()
+        host_sp = resolved.host_species or infer_host_species(host_raw) or mhc_sp
+        unique_cache[key] = (
+            resolved.mhc_allele_set,
+            resolved.mhc_allele_set_size,
+            resolved.mhc_allele_cardinality,
+            resolved.mhc_allele_set_provenance,
+            mhc_sp,
+            host_sp,
+            bool(mhc_sp and host_sp and mhc_sp != host_sp),
+        )
+
+    rows = [unique_cache[k] for k in keys]
+    out["mhc_allele_set"] = pd.Series([r[0] for r in rows], index=out.index, dtype="string")
+    out["mhc_allele_set_size"] = pd.Series([r[1] for r in rows], index=out.index, dtype="int64")
+    out["mhc_allele_cardinality"] = pd.Series([r[2] for r in rows], index=out.index, dtype="string")
+    out["mhc_allele_set_provenance"] = pd.Series(
+        [r[3] for r in rows], index=out.index, dtype="string"
+    )
+    out["mhc_species"] = pd.Series([r[4] for r in rows], index=out.index, dtype="string")
+    out["host_species"] = pd.Series([r[5] for r in rows], index=out.index, dtype="string")
+    out["is_chimeric_mhc_host"] = pd.Series([r[6] for r in rows], index=out.index, dtype="bool")
+    return out
+
+
+def summarize_mhc_genotype_recovery(df: pd.DataFrame) -> dict:
+    """Summarize condition-level MHC genotype recovery coverage on an enriched frame."""
+    if df.empty:
+        return {
+            "n_rows": 0,
+            "n_resolved_rows": 0,
+            "n_monoallelic_rows": 0,
+            "n_multi_allelic_bag_rows": 0,
+            "n_class_only_unknown_rows": 0,
+            "n_chimeric_mhc_host_rows": 0,
+            "by_provenance": {},
+            "by_cardinality": {},
+            "by_mhc_species": {},
+            "by_host_species": {},
+        }
+    cardinality = df["mhc_allele_cardinality"].astype("string").fillna("class_only_unknown")
+    provenance = df["mhc_allele_set_provenance"].astype("string").fillna("unknown")
+    mhc_sp = df["mhc_species"].astype("string").fillna("")
+    host_sp = df["host_species"].astype("string").fillna("")
+    chimeric = df["is_chimeric_mhc_host"].astype("bool")
+    card_counts = Counter(cardinality.tolist())
+    return {
+        "n_rows": len(df),
+        "n_resolved_rows": int(
+            card_counts.get("monoallelic", 0) + card_counts.get("multi_allelic_bag", 0)
+        ),
+        "n_monoallelic_rows": int(card_counts.get("monoallelic", 0)),
+        "n_multi_allelic_bag_rows": int(card_counts.get("multi_allelic_bag", 0)),
+        "n_class_only_unknown_rows": int(card_counts.get("class_only_unknown", 0)),
+        "n_chimeric_mhc_host_rows": int(chimeric.sum()),
+        "by_provenance": dict(sorted(Counter(provenance.tolist()).items())),
+        "by_cardinality": dict(sorted(card_counts.items())),
+        "by_mhc_species": dict(sorted(Counter(s or "unknown" for s in mhc_sp.tolist()).items())),
+        "by_host_species": dict(sorted(Counter(s or "unknown" for s in host_sp.tolist()).items())),
+    }
