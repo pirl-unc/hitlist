@@ -11687,7 +11687,7 @@
       øG30L leucine-lever reconstitution, M29), treated with IFN-gamma, and profiled by W6/32
       MHC-I immunoaffinity LC-MS/MS (PMC6307860, Materials and Methods; Dryad
       doi:10.5061/dryad.p5k0156). Endogenous TAPBPR knockout is curated in
-      condition_background ("TAPBPR_KO") and IFN-gamma in condition_cytokines ("IFNG") so
+      condition_baseline_engineering ("TAPBPR_KO") and IFN-gamma in condition_cytokines ("IFNG") so
       the reconstituted arms are never conflated with a simple TAPBPR-absent knockout or
       numeric overexpression (#899).
     perturbations: ["TAPBPR overexpression/mutation"]
@@ -11715,7 +11715,6 @@
         condition_control: "positive"
         condition_control_for: "helam_tapbpr_ko_ifng_tapbpr_m29;helam_tapbpr_ko_ifng_tapbpr_og30l;helam_tapbpr_ko_ifng_tapbpr_oloop"
         condition_combination: "sequential"
-        condition_knockout_genes: TAPBPR
         condition_genetic_variants: "none"
         condition_transduction: "TAPBPR WT"
         condition_cytokines: "IFNG"
@@ -11732,7 +11731,6 @@
         condition_evidence: "primary_source"
         condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC6307860/ — Materials and Methods, Constructs, Cell Culture, Lentiviral Transduction and Immunopeptidomic Analysis"
         condition_combination: "sequential"
-        condition_knockout_genes: TAPBPR
         condition_genetic_variants: "TAPBPR K22-D35 loopless"
         condition_transduction: "TAPBPR K22-D35 loopless"
         condition_cytokines: "IFNG"
@@ -11749,7 +11747,6 @@
         condition_evidence: "primary_source"
         condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC6307860/ — Materials and Methods, Constructs, Cell Culture, Lentiviral Transduction and Immunopeptidomic Analysis"
         condition_combination: "sequential"
-        condition_knockout_genes: TAPBPR
         condition_genetic_variants: "TAPBPR K22-D35 loopless G30L"
         condition_transduction: "TAPBPR K22-D35 loopless G30L"
         condition_cytokines: "IFNG"
@@ -11766,7 +11763,6 @@
         condition_evidence: "primary_source"
         condition_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC6307860/ — Materials and Methods, Constructs, Cell Culture, Lentiviral Transduction and Immunopeptidomic Analysis"
         condition_combination: "sequential"
-        condition_knockout_genes: TAPBPR
         condition_genetic_variants: "TAPBPR M29"
         condition_transduction: "TAPBPR M29"
         condition_cytokines: "IFNG"

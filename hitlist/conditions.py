@@ -578,7 +578,9 @@ def _reject_alias(column: str, token: str, where: str) -> None:
         )
 
 
-def _validate_column(column: str, raw: object, where: str) -> str:
+def _validate_column(
+    column: str, raw: object, where: str, *, strict_schema_rules: bool = True
+) -> str:
     """Validate one condition cell and return its exported string form."""
     if raw is None:
         return ""
@@ -623,7 +625,8 @@ def _validate_column(column: str, raw: object, where: str) -> str:
                 raise ValueError(
                     f"{where} {column} token {token!r} is not in the declared vocabulary {allowed}."
                 )
-            _reject_alias(column, token, where)
+            if strict_schema_rules or column != "condition_background":
+                _reject_alias(column, token, where)
         if sorted(set(tokens)) != tokens:
             raise ValueError(
                 f"{where} {column}={value!r} must be sorted and unique.  A canonical "
@@ -663,7 +666,13 @@ def _validate_positive_number(column: str, value: str, where: str) -> None:
         raise ValueError(f"{where} {column}={value!r} must be a positive finite number.")
 
 
-def validate_sample_conditions(sample: Mapping[str, object], pmid: object, index: int) -> None:
+def validate_sample_conditions(
+    sample: Mapping[str, object],
+    pmid: object,
+    index: int,
+    *,
+    strict_schema_rules: bool = True,
+) -> None:
     """Validate one ``ms_samples`` record's condition block.
 
     Raises ``ValueError`` with the offending PMID and record index, matching
@@ -671,7 +680,10 @@ def validate_sample_conditions(sample: Mapping[str, object], pmid: object, index
     """
     where = _describe(pmid, index)
     values = {
-        column: _validate_column(column, sample.get(column), where) for column in CONDITION_COLUMNS
+        column: _validate_column(
+            column, sample.get(column), where, strict_schema_rules=strict_schema_rules
+        )
+        for column in CONDITION_COLUMNS
     }
 
     condition_id = values["condition_id"]
@@ -711,13 +723,14 @@ def validate_sample_conditions(sample: Mapping[str, object], pmid: object, index
             f"different claims and the audit reports them separately."
         )
 
-    for token in split_condition_tokens(values["condition_drugs"]):
-        if token.casefold() in _VEHICLE_SOLVENT_TOKENS:
-            raise ValueError(
-                f"{where} condition_drugs contains solvent vehicle {token!r}.  "
-                f"Record solvent vehicles in `condition_vehicle` (and `condition_drugs: none` "
-                f"on pure vehicle controls) so active-drug queries never pull vehicle controls."
-            )
+    if strict_schema_rules:
+        for token in split_condition_tokens(values["condition_drugs"]):
+            if token.casefold() in _VEHICLE_SOLVENT_TOKENS:
+                raise ValueError(
+                    f"{where} condition_drugs contains solvent vehicle {token!r}.  "
+                    f"Record solvent vehicles in `condition_vehicle` (and `condition_drugs: none` "
+                    f"on pure vehicle controls) so active-drug queries never pull vehicle controls."
+                )
 
     if values["condition_dose"]:
         _validate_positive_number("condition_dose", values["condition_dose"], where)
@@ -732,7 +745,7 @@ def validate_sample_conditions(sample: Mapping[str, object], pmid: object, index
         )
 
     interventions = [c for c in INTERVENTION_CONDITION_COLUMNS if asserts_condition(values[c])]
-    if values["condition_control"] == "untreated" and interventions:
+    if strict_schema_rules and values["condition_control"] == "untreated" and interventions:
         raise ValueError(
             f"{where} sets condition_control='untreated' alongside active interventions "
             f"{sorted(interventions)}.  Host/construct engineering belongs in "
@@ -761,7 +774,9 @@ def validate_sample_conditions(sample: Mapping[str, object], pmid: object, index
         )
 
 
-def validate_study_conditions(entry: Mapping[str, object]) -> None:
+def validate_study_conditions(
+    entry: Mapping[str, object], *, strict_schema_rules: bool = True
+) -> None:
     """Validate a study's condition block: per-record rules, then the study-scoped ones.
 
     Uniqueness and control references are study-scoped because
@@ -800,7 +815,7 @@ def validate_study_conditions(entry: Mapping[str, object]) -> None:
 
     seen: dict[str, int] = {}
     for index, sample in enumerate(samples):
-        validate_sample_conditions(sample, pmid, index)
+        validate_sample_conditions(sample, pmid, index, strict_schema_rules=strict_schema_rules)
         condition_id = str(sample.get("condition_id") or "").strip()
         if condition_id in seen:
             raise ValueError(
