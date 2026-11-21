@@ -25,6 +25,7 @@ ASSAY_FAMILIES = frozenset(
         "activation_or_proliferation",
         "cytotoxicity",
         "pmhc_multimer",
+        "tcr_pmhc_biophysics",
         "other_tcell_assay",
     }
 )
@@ -71,6 +72,8 @@ def iter_human_direct_peptide_tcell_assays(
     cedar_path=None,
     data_root=None,
     catalog_path=None,
+    source_verification_mode: str = "pinned",
+    reconciliation_out: dict | None = None,
 ) -> Iterator[dict]:
     """Yield source-faithful assay rows for directly tested human peptides.
 
@@ -79,8 +82,10 @@ def iter_human_direct_peptide_tcell_assays(
     optionally requires one exact source
     readout. The boolean ``qualitative_signal_observed`` only maps the source's
     positive tiers versus ``Negative``; it is not a target shared across assay
-    families. The pinned IEDB/CEDAR source files are hash-checked and shared
-    assay IDs must agree before any row is returned.
+    families. When ``source_verification_mode="pinned"`` (default), the pinned
+    IEDB/CEDAR source files are hash-checked and shared assay IDs must agree
+    before any row is returned; pass ``"reconcile"`` to record live drift and
+    parity differences in ``reconciliation_out`` instead of failing (#947).
     """
     if assay_families is None:
         selected = ASSAY_FAMILIES
@@ -96,6 +101,8 @@ def iter_human_direct_peptide_tcell_assays(
         data_root=data_root,
         catalog_path=catalog_path,
         extra_fields=EXTRA_FIELDS,
+        source_verification_mode=source_verification_mode,
+        reconciliation_out=reconciliation_out,
     ):
         if not (
             _direct_human_peptide(metadata, cells)

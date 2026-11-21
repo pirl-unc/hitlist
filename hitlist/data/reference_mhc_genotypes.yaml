@@ -1,0 +1,760 @@
+schema_version: 1
+description: >-
+  Curated reference MHC genotypes for canonical cell lines and inbred/transgenic
+  animal strains. Used to recover source-backed condition-level mhc_allele_set
+  bags across MS immunopeptidomics, perturbed MS, and T-cell immunogenicity
+  assays (#943, #944, #947). Allele tokens follow mhcgnomes canonical syntax.
+
+cell_lines:
+  HAP1:
+    species: Homo sapiens
+    synonyms: [HAP1, HAP-1, eHAP]
+    class_i_alleles:
+      - HLA-A*02:01
+      - HLA-B*40:01
+      - HLA-C*03:04
+    class_ii_alleles: []
+    mhc_null_class_i: false
+    evidence_reference: >-
+      Near-haploid human myeloid leukemia cell line (CVCL_Y019); HLA-I typing
+      verified in PMID 40113210 and pmid_overrides.yaml.
+
+  HeLa:
+    species: Homo sapiens
+    synonyms: [HeLa, HeLaM, HeLa-M, HeLa S3, HeLa-S3, HeLa-Kyoto]
+    class_i_alleles:
+      - HLA-A*68:02
+      - HLA-B*15:03
+      - HLA-C*12:03
+    class_ii_alleles: []
+    mhc_null_class_i: false
+    evidence_reference: >-
+      HeLa / HeLaM (CVCL_0030) canonical endogenous HLA-I haplotype verified by
+      typing in PMID 30484775 (Ilca 2018) and Cellosaurus/TRON Seq2HLA.
+
+  JY:
+    species: Homo sapiens
+    synonyms: [JY, JY-LCL]
+    class_i_alleles:
+      - HLA-A*02:01
+      - HLA-B*07:02
+      - HLA-C*07:02
+    class_ii_alleles:
+      - HLA-DRB1*04:04
+      - HLA-DRB1*13:01
+      - HLA-DQA1*01:03/DQB1*06:03
+      - HLA-DQA1*03:01/DQB1*03:02
+      - HLA-DPA1*01:03/DPB1*02:01
+      - HLA-DPA1*01:03/DPB1*04:01
+    mhc_null_class_i: false
+    evidence_reference: >-
+      Homozygous HLA-I EBV-LCL JY (CVCL_0108); verified in PMIDs 23481700,
+      25576301, 30784271 and IHWG reference typing.
+
+  Raji:
+    species: Homo sapiens
+    synonyms: [Raji, RAJI]
+    class_i_alleles:
+      - HLA-A*03:01
+      - HLA-B*15:10
+      - HLA-C*03:04
+      - HLA-C*04:01
+    class_ii_alleles:
+      - HLA-DRB1*03:01
+      - HLA-DRB1*10:01
+      - HLA-DQA1*01:01/DQB1*05:01
+      - HLA-DQA1*05:01/DQB1*02:01
+    mhc_null_class_i: false
+    evidence_reference: >-
+      Burkitt lymphoma B-cell line Raji (CVCL_0511); HLA-I verified in
+      PMID 38480730, HLA-DR verified in PMID 23328677.
+
+  A549:
+    species: Homo sapiens
+    synonyms: [A549, A-549]
+    class_i_alleles:
+      - HLA-A*25:01
+      - HLA-A*30:01
+      - HLA-B*18:01
+      - HLA-B*44:03
+      - HLA-C*12:03
+      - HLA-C*16:01
+    class_ii_alleles: []
+    mhc_null_class_i: false
+    evidence_reference: >-
+      Lung adenocarcinoma cell line A549 (CVCL_0023); verified in PMIDs
+      30833945 and 34171305.
+
+  HEK293T:
+    species: Homo sapiens
+    synonyms: [HEK293T, HEK-293T, 293T, 293-T, HEK293, HEK-293, 293, Expi293F]
+    class_i_alleles:
+      - HLA-A*03:01
+      - HLA-B*07:02
+      - HLA-C*07:02
+    class_ii_alleles: []
+    mhc_null_class_i: false
+    evidence_reference: >-
+      HEK293/293T (CVCL_0063/CVCL_0045) homozygous HLA-A*03:01, B*07:02,
+      C*07:02 verified in Cellosaurus/TRON and PMID 34171305.
+
+  MCF-7:
+    species: Homo sapiens
+    synonyms: [MCF-7, MCF7, MCF-7/LY2, LY2]
+    class_i_alleles:
+      - HLA-A*02:01
+      - HLA-B*18:01
+      - HLA-B*44:02
+      - HLA-C*05:01
+    class_ii_alleles: []
+    mhc_null_class_i: false
+    evidence_reference: >-
+      Breast adenocarcinoma cell line MCF-7 (CVCL_0031); verified in
+      PMID 19615748 and TRON Cell Line Portal.
+
+  K562:
+    species: Homo sapiens
+    synonyms: [K562, K-562]
+    class_i_alleles: []
+    class_ii_alleles: []
+    mhc_null_class_i: true
+    evidence_reference: >-
+      HLA class I/II negative erythroleukemia host line K562 (CVCL_0004).
+      Never impute endogenous HLA alleles onto K562; requires explicit
+      transduced allele annotation.
+
+  721.221:
+    species: Homo sapiens
+    synonyms: ['721.221', '721221', B721.221, B721, LCL 721.221]
+    class_i_alleles: []
+    class_ii_alleles:
+      - HLA-DRB1*01:01
+      - HLA-DQA1*01:01/DQB1*05:01
+      - HLA-DPA1*01:03/DPB1*04:01
+      - HLA-DPA1*02:01/DPB1*10:01
+    mhc_null_class_i: true
+    evidence_reference: >-
+      HLA-A/B/C-deleted EBV-LCL 721.221 (CVCL_6263); Class I null host used for
+      mono-allelic panels, retains endogenous Class II.
+
+  C1R:
+    species: Homo sapiens
+    synonyms: [C1R, HMy2.C1R, C1R-parental]
+    class_i_alleles:
+      - HLA-B*35:03
+      - HLA-C*04:01
+    class_ii_alleles: []
+    mhc_null_class_i: false
+    low_endogenous_class_i: true
+    evidence_reference: >-
+      HMy2.C1R (CVCL_3662) lacks HLA-A and expresses trace endogenous HLA-B*35:03
+      and HLA-C*04:01 (Schittenhelm et al. PMID 24366607); commonly transduced
+      with exogenous Class I alleles.
+
+  T2:
+    species: Homo sapiens
+    synonyms: [T2, T2 cells, 174xCEM.T2]
+    class_i_alleles:
+      - HLA-A*02:01
+      - HLA-B*51:01
+      - HLA-C*01:02
+    class_ii_alleles: []
+    mhc_null_class_i: false
+    tap_deficient: true
+    evidence_reference: >-
+      TAP1/TAP2- and Class-II-deleted lymphoblast hybrid T2 (CVCL_2211);
+      endogenous HLA-A*02:01 (and B*51:01/C*01:02), widely used for exogenous
+      peptide pulsing assays.
+
+  Jurkat:
+    species: Homo sapiens
+    synonyms: [Jurkat, JURKAT, Jurkat E6-1, Jurkat E6.1]
+    class_i_alleles:
+      - HLA-A*03:01
+      - HLA-B*07:02
+      - HLA-B*35:03
+      - HLA-C*04:01
+      - HLA-C*07:02
+    class_ii_alleles: []
+    mhc_null_class_i: false
+    evidence_reference: >-
+      T-cell leukemia line Jurkat (CVCL_0065); HLA-I verified in PMID 25810538.
+
+  GRANTA-519:
+    species: Homo sapiens
+    synonyms: [GRANTA-519, GRANTA 519, Granta-519, Granta519]
+    class_i_alleles:
+      - HLA-A*02:01
+      - HLA-A*02:05
+      - HLA-B*07:02
+      - HLA-B*50:01
+      - HLA-C*06:02
+      - HLA-C*07:02
+    class_ii_alleles:
+      - HLA-DRB1*11:03
+      - HLA-DRB1*15:01
+      - HLA-DRB3*02:02
+      - HLA-DRB5*01:01
+    mhc_null_class_i: false
+    evidence_reference: >-
+      Mantle cell lymphoma line GRANTA-519 (CVCL_1818); verified in PMID 33936100.
+
+  ECN90:
+    species: Homo sapiens
+    synonyms: [ECN90, EndoC-betaH1, ECN-90]
+    class_i_alleles:
+      - HLA-A*02:01
+      - HLA-A*03:01
+      - HLA-B*40:01
+      - HLA-B*49:01
+      - HLA-C*03:04
+      - HLA-C*07:01
+    class_ii_alleles: []
+    mhc_null_class_i: false
+    evidence_reference: >-
+      Human pancreatic beta-cell line ECN90; HLA-I verified in PMIDs 30078552
+      and 32928873.
+
+  THP-1:
+    species: Homo sapiens
+    synonyms: [THP-1, THP1]
+    class_i_alleles:
+      - HLA-A*02:01
+      - HLA-A*24:02
+      - HLA-B*15:11
+      - HLA-B*35:01
+      - HLA-C*03:03
+    class_ii_alleles:
+      - HLA-DRB1*01:01
+      - HLA-DRB1*15:01
+      - HLA-DQA1*01:01/DQB1*05:01
+      - HLA-DQA1*01:02/DQB1*06:02
+    mhc_null_class_i: false
+    evidence_reference: >-
+      Acute monocytic leukemia line THP-1 (CVCL_0006); verified in PMIDs
+      26992070, 27862975, 32387766.
+
+  A-375:
+    species: Homo sapiens
+    synonyms: [A-375, A375, Mel A375, MelA375]
+    class_i_alleles:
+      - HLA-A*01:01
+      - HLA-A*02:01
+      - HLA-B*44:03
+      - HLA-B*57:01
+      - HLA-C*06:02
+      - HLA-C*16:01
+    class_ii_alleles: []
+    mhc_null_class_i: false
+    evidence_reference: >-
+      Amelanotic melanoma line A-375 (CVCL_0132); verified in PMID 31222486.
+
+  624-mel:
+    species: Homo sapiens
+    synonyms: [624-mel, 624-MEL, 624mel, Mel-624, Mel624]
+    class_i_alleles:
+      - HLA-A*02:01
+      - HLA-A*03:01
+      - HLA-B*07:02
+      - HLA-B*14:01
+      - HLA-C*07:02
+      - HLA-C*08:02
+    class_ii_alleles: []
+    mhc_null_class_i: false
+    evidence_reference: >-
+      Metastatic melanoma line 624-mel (CVCL_8054); NCI/Rosenberg panel typing.
+
+  Panc 06.03:
+    species: Homo sapiens
+    synonyms: [Panc 06.03, Panc06.03, Panc-06.03]
+    class_i_alleles:
+      - HLA-A*02:01
+      - HLA-A*24:02
+      - HLA-B*07:02
+      - HLA-B*35:01
+      - HLA-C*04:01
+      - HLA-C*07:02
+    class_ii_alleles: []
+    mhc_null_class_i: false
+    evidence_reference: >-
+      Pancreatic ductal adenocarcinoma line Panc 06.03 (CVCL_1635); DepMap/CCLE
+      HLA-I typing referenced in PMID 36284347.
+
+  Panc 10.05:
+    species: Homo sapiens
+    synonyms: [Panc 10.05, Panc10.05, Panc-10.05]
+    class_i_alleles:
+      - HLA-A*02:01
+      - HLA-A*24:02
+      - HLA-B*18:01
+      - HLA-B*40:01
+      - HLA-C*03:04
+      - HLA-C*07:01
+    class_ii_alleles: []
+    mhc_null_class_i: false
+    evidence_reference: >-
+      Pancreatic ductal adenocarcinoma line Panc 10.05 (CVCL_1639); DepMap/CCLE
+      HLA-I typing referenced in PMID 36284347.
+
+  31227ABO:
+    species: Homo sapiens
+    synonyms: [31227ABO, 31227 ABO, WT9, GM08600]
+    class_i_alleles:
+      - HLA-A*02:01
+      - HLA-B*18:01
+      - HLA-C*07:01
+    class_ii_alleles:
+      - HLA-DRB1*14:01
+      - HLA-DRB3*02:02
+      - HLA-DQA1*01:01/DQB1*05:03
+      - HLA-DPA1*01:03/DPB1*04:01
+    mhc_null_class_i: false
+    evidence_reference: >-
+      10IHW homozygous B-LCL 31227ABO (CVCL_E443, IHW09061); IHWG reference panel.
+
+  AWELLS:
+    species: Homo sapiens
+    synonyms: [AWELLS, IHW09090]
+    class_i_alleles:
+      - HLA-A*02:01
+      - HLA-B*44:02
+      - HLA-C*05:01
+    class_ii_alleles:
+      - HLA-DRB1*04:01
+      - HLA-DRB4*01:01
+      - HLA-DQA1*03:01/DQB1*03:01
+      - HLA-DPA1*01:03/DPB1*04:01
+    mhc_null_class_i: false
+    evidence_reference: >-
+      10IHW homozygous B-LCL AWELLS (CVCL_E465, IHW09090); IHWG reference panel.
+
+  BER:
+    species: Homo sapiens
+    synonyms: [BER, IHW09093]
+    class_i_alleles:
+      - HLA-A*02:01
+      - HLA-B*13:02
+      - HLA-C*06:02
+    class_ii_alleles:
+      - HLA-DRB1*07:01
+      - HLA-DRB4*01:01
+      - HLA-DQA1*02:01/DQB1*02:02
+      - HLA-DPA1*01:03/DPB1*04:01
+    mhc_null_class_i: false
+    evidence_reference: >-
+      10IHW homozygous B-LCL BER (CVCL_E468, IHW09093); IHWG reference panel.
+
+  EL-4:
+    species: Mus musculus
+    synonyms: [EL-4, EL4, EL.4]
+    class_i_alleles:
+      - H2-Kb
+      - H2-Db
+    class_ii_alleles: []
+    mhc_null_class_i: false
+    evidence_reference: >-
+      C57BL/6N (H2-b) murine T-cell lymphoma EL-4 (CVCL_0255); verified in
+      PMIDs 30084848 and 30779550.
+
+  RMA:
+    species: Mus musculus
+    synonyms: [RMA, RMA-S, RMAS]
+    class_i_alleles:
+      - H2-Kb
+      - H2-Db
+    class_ii_alleles: []
+    mhc_null_class_i: false
+    evidence_reference: >-
+      C57BL/6 (H2-b) Rauscher virus-induced lymphoma RMA (CVCL_J385; RMA-S is
+      TAP2-deficient derivative).
+
+  B16-F10:
+    species: Mus musculus
+    synonyms: [B16-F10, B16F10, B16, B16-F0, B16-OVA]
+    class_i_alleles:
+      - H2-Kb
+      - H2-Db
+    class_ii_alleles:
+      - H2-IAb
+    mhc_null_class_i: false
+    evidence_reference: >-
+      C57BL/6 (H2-b) murine melanoma B16-F10 (CVCL_0159).
+
+  P815:
+    species: Mus musculus
+    synonyms: [P815, P-815]
+    class_i_alleles:
+      - H2-Kd
+      - H2-Dd
+      - H2-Ld
+    class_ii_alleles: []
+    mhc_null_class_i: false
+    evidence_reference: >-
+      DBA/2 (H2-d) murine mastocytoma line P815 (CVCL_2154).
+
+  A20:
+    species: Mus musculus
+    synonyms: [A20, A-20, A20.2J]
+    class_i_alleles:
+      - H2-Kd
+      - H2-Dd
+      - H2-Ld
+    class_ii_alleles:
+      - H2-IAd
+      - H2-IEd
+    mhc_null_class_i: false
+    evidence_reference: >-
+      BALB/cAnN (H2-d) murine B-cell lymphoma line A20 (CVCL_1940).
+
+  NIT-1:
+    species: Mus musculus
+    synonyms: [NIT-1, NIT1]
+    class_i_alleles:
+      - H2-Kd
+      - H2-Db
+    class_ii_alleles:
+      - H2-IAg7
+    mhc_null_class_i: false
+    evidence_reference: >-
+      NOD/Lt (H2-g7) pancreatic beta-cell line NIT-1 (CVCL_3561); PMID 22872234.
+
+strains:
+  C57BL/6:
+    host_species: Mus musculus
+    haplotype: H2-b
+    synonyms:
+      - C57BL/6
+      - C57BL/6J
+      - C57BL/6N
+      - C57BL/6NCrl
+      - C57BL/6NTac
+      - C57BL6
+      - B6
+      - Mus musculus C57BL/6
+      - Mus musculus C57BL/6J
+      - Mus musculus C57BL/6N
+    class_i_alleles:
+      - H2-Kb
+      - H2-Db
+    class_ii_alleles:
+      - H2-IAb
+    transgenic_alleles: []
+    endogenous_mhc_ko: false
+    evidence_reference: >-
+      Inbred H2-b mouse strain (MGI); naturally lacks functional H2-Ea (no I-E).
+
+  BALB/c:
+    host_species: Mus musculus
+    haplotype: H2-d
+    synonyms:
+      - BALB/c
+      - BALB/cJ
+      - BALB/cByJ
+      - BALB/cAnN
+      - BALBc
+      - Mus musculus BALB/c
+      - Mus musculus BALB/cJ
+    class_i_alleles:
+      - H2-Kd
+      - H2-Dd
+      - H2-Ld
+    class_ii_alleles:
+      - H2-IAd
+      - H2-IEd
+    transgenic_alleles: []
+    endogenous_mhc_ko: false
+    evidence_reference: Inbred H2-d mouse strain (MGI).
+
+  NOD:
+    host_species: Mus musculus
+    haplotype: H2-g7
+    synonyms:
+      - NOD
+      - NOD/LtJ
+      - NOD/ShiLtJ
+      - NOD/MrkTac
+      - Mus musculus NOD
+      - Mus musculus NOD/ShiLtJ
+    class_i_alleles:
+      - H2-Kd
+      - H2-Db
+    class_ii_alleles:
+      - H2-IAg7
+    transgenic_alleles: []
+    endogenous_mhc_ko: false
+    evidence_reference: >-
+      Non-obese diabetic H2-g7 mouse strain (MGI); naturally lacks I-E.
+
+  SJL:
+    host_species: Mus musculus
+    haplotype: H2-s
+    synonyms:
+      - SJL
+      - SJL/J
+      - Mus musculus SJL
+      - Mus musculus SJL/J
+    class_i_alleles:
+      - H2-Ks
+      - H2-Ds
+    class_ii_alleles:
+      - H2-IAs
+    transgenic_alleles: []
+    endogenous_mhc_ko: false
+    evidence_reference: Inbred H2-s mouse strain (MGI); naturally lacks I-E.
+
+  C3H:
+    host_species: Mus musculus
+    haplotype: H2-k
+    synonyms:
+      - C3H
+      - C3H/HeJ
+      - C3H/HeN
+      - C3H/OuJ
+      - Mus musculus C3H
+      - Mus musculus C3H/HeJ
+    class_i_alleles:
+      - H2-Kk
+      - H2-Dk
+    class_ii_alleles:
+      - H2-IAk
+      - H2-IEk
+    transgenic_alleles: []
+    endogenous_mhc_ko: false
+    evidence_reference: Inbred H2-k mouse strain (MGI).
+
+  CBA:
+    host_species: Mus musculus
+    haplotype: H2-k
+    synonyms:
+      - CBA
+      - CBA/J
+      - CBA/Ca
+      - CBA/CaJ
+      - Mus musculus CBA
+    class_i_alleles:
+      - H2-Kk
+      - H2-Dk
+    class_ii_alleles:
+      - H2-IAk
+      - H2-IEk
+    transgenic_alleles: []
+    endogenous_mhc_ko: false
+    evidence_reference: Inbred H2-k mouse strain (MGI).
+
+  DBA/2:
+    host_species: Mus musculus
+    haplotype: H2-d
+    synonyms:
+      - DBA/2
+      - DBA/2J
+      - DBA2
+      - Mus musculus DBA/2
+      - Mus musculus DBA/2J
+    class_i_alleles:
+      - H2-Kd
+      - H2-Dd
+      - H2-Ld
+    class_ii_alleles:
+      - H2-IAd
+      - H2-IEd
+    transgenic_alleles: []
+    endogenous_mhc_ko: false
+    evidence_reference: Inbred H2-d mouse strain (MGI).
+
+  FVB:
+    host_species: Mus musculus
+    haplotype: H2-q
+    synonyms:
+      - FVB
+      - FVB/N
+      - FVB/NJ
+      - Mus musculus FVB
+      - Mus musculus FVB/N
+    class_i_alleles:
+      - H2-Kq
+      - H2-Dq
+      - H2-Lq
+    class_ii_alleles:
+      - H2-IAq
+    transgenic_alleles: []
+    endogenous_mhc_ko: false
+    evidence_reference: Inbred H2-q mouse strain (MGI); naturally lacks I-E.
+
+  Lewis:
+    host_species: Rattus norvegicus
+    haplotype: RT1-l
+    synonyms:
+      - Lewis
+      - LEW
+      - Lewis rat
+      - Rattus norvegicus Lewis
+      - Rattus sp. Lewis
+    class_i_alleles:
+      - RT1-Al
+    class_ii_alleles:
+      - RT1-Ba*l/Bb*l
+      - RT1-Da*l/Db1*l
+    transgenic_alleles: []
+    endogenous_mhc_ko: false
+    evidence_reference: Inbred RT1-l rat strain (RGD).
+
+  HHD_HLA_A0201_Tg:
+    host_species: Mus musculus
+    haplotype: H2-b_B2mKO_DbKO_HLA-A*02:01
+    synonyms:
+      - HHD
+      - HHD II
+      - HHD-II
+      - Mus musculus HHD
+      - Mus musculus HLA-A2/HHD
+      - Mus musculus C57BL/6 HLA-A*02:01 HHD
+      - HLA-A*02:01 B2m-/- H2-Db-/-
+      - HLA-A2.1 HHD
+    class_i_alleles:
+      - HLA-A*02:01
+    class_ii_alleles:
+      - H2-IAb
+    transgenic_alleles:
+      - HLA-A*02:01
+    endogenous_mhc_ko: true
+    evidence_reference: >-
+      Pascolo et al. 1997 HHD transgenic mouse (monochain HLA-A*02:01 on
+      H2-Db-/- B2m-/- C57BL/6 background; monoallelic human Class I).
+
+  HLA_A0201_Tg:
+    host_species: Mus musculus
+    haplotype: H2-b_HLA-A*02:01_Tg
+    synonyms:
+      - Mus musculus HLA-A*02:01 Tg
+      - Mus musculus HLA-A2 Tg
+      - Mus musculus HLA-A2.1 Tg
+      - Mus musculus AAD
+      - C57BL/6 HLA-A*02:01 Tg
+      - HLA-A*02:01 Tg
+      - HLA-A2 Tg
+      - HLA-A2/Kb Tg
+      - HLA-A2.1/Kb Tg
+    class_i_alleles:
+      - HLA-A*02:01
+      - H2-Kb
+      - H2-Db
+    class_ii_alleles:
+      - H2-IAb
+    transgenic_alleles:
+      - HLA-A*02:01
+    endogenous_mhc_ko: false
+    evidence_reference: >-
+      HLA-A*02:01 transgenic mouse retaining endogenous H2-b Class I/II unless
+      explicitly HHD/B2m-/-.
+
+  HLA_B0702_Tg:
+    host_species: Mus musculus
+    haplotype: H2-b_HLA-B*07:02_Tg
+    synonyms:
+      - Mus musculus HLA-B*07:02 Tg
+      - Mus musculus HLA-B7 Tg
+      - HLA-B*07:02 Tg
+      - HLA-B7 Tg
+    class_i_alleles:
+      - HLA-B*07:02
+      - H2-Kb
+      - H2-Db
+    class_ii_alleles:
+      - H2-IAb
+    transgenic_alleles:
+      - HLA-B*07:02
+    endogenous_mhc_ko: false
+    evidence_reference: HLA-B*07:02 transgenic mouse on H2-b background.
+
+  HLA_A2402_Tg:
+    host_species: Mus musculus
+    haplotype: H2-b_HLA-A*24:02_Tg
+    synonyms:
+      - Mus musculus HLA-A*24:02 Tg
+      - Mus musculus HLA-A24 Tg
+      - HLA-A*24:02 Tg
+      - HLA-A24 Tg
+    class_i_alleles:
+      - HLA-A*24:02
+      - H2-Kb
+      - H2-Db
+    class_ii_alleles:
+      - H2-IAb
+    transgenic_alleles:
+      - HLA-A*24:02
+    endogenous_mhc_ko: false
+    evidence_reference: HLA-A*24:02 transgenic mouse on H2-b background.
+
+  HLA_DRB1_0401_Tg:
+    host_species: Mus musculus
+    haplotype: H2-b_HLA-DRB1*04:01_Tg
+    synonyms:
+      - Mus musculus HLA-DRB1*04:01 Tg
+      - Mus musculus HLA-DR4 Tg
+      - HLA-DRB1*04:01 Tg
+      - HLA-DR4 Tg
+    class_i_alleles:
+      - H2-Kb
+      - H2-Db
+    class_ii_alleles:
+      - HLA-DRB1*04:01
+    transgenic_alleles:
+      - HLA-DRB1*04:01
+    endogenous_mhc_ko: true
+    evidence_reference: >-
+      HLA-DRB1*04:01 transgenic mouse (typically I-Ab-/- endogenous Class II KO).
+
+  HLA_DRB1_0101_Tg:
+    host_species: Mus musculus
+    haplotype: H2-b_HLA-DRB1*01:01_Tg
+    synonyms:
+      - Mus musculus HLA-DRB1*01:01 Tg
+      - Mus musculus HLA-DR1 Tg
+      - HLA-DRB1*01:01 Tg
+      - HLA-DR1 Tg
+    class_i_alleles:
+      - H2-Kb
+      - H2-Db
+    class_ii_alleles:
+      - HLA-DRB1*01:01
+    transgenic_alleles:
+      - HLA-DRB1*01:01
+    endogenous_mhc_ko: true
+    evidence_reference: HLA-DRB1*01:01 transgenic mouse.
+
+  HLA_DRB1_1501_Tg:
+    host_species: Mus musculus
+    haplotype: H2-b_HLA-DRB1*15:01_Tg
+    synonyms:
+      - Mus musculus HLA-DRB1*15:01 Tg
+      - Mus musculus HLA-DR2 Tg
+      - Mus musculus HLA-DR15 Tg
+      - HLA-DRB1*15:01 Tg
+      - HLA-DR15 Tg
+    class_i_alleles:
+      - H2-Kb
+      - H2-Db
+    class_ii_alleles:
+      - HLA-DRB1*15:01
+    transgenic_alleles:
+      - HLA-DRB1*15:01
+    endogenous_mhc_ko: true
+    evidence_reference: HLA-DRB1*15:01 transgenic mouse.
+
+  HLA_DQB1_0302_Tg:
+    host_species: Mus musculus
+    haplotype: H2-b_HLA-DQ8_Tg
+    synonyms:
+      - Mus musculus HLA-DQ8 Tg
+      - Mus musculus HLA-DQA1*03:01/DQB1*03:02 Tg
+      - HLA-DQ8 Tg
+      - HLA-DQB1*03:02 Tg
+    class_i_alleles:
+      - H2-Kb
+      - H2-Db
+    class_ii_alleles:
+      - HLA-DQA1*03:01/DQB1*03:02
+    transgenic_alleles:
+      - HLA-DQA1*03:01/DQB1*03:02
+    endogenous_mhc_ko: true
+    evidence_reference: HLA-DQ8 (DQA1*03:01/DQB1*03:02) transgenic mouse.
