@@ -53,6 +53,7 @@ from .lineage import (
     attach_lineage,
     attach_lineage_applicability,
 )
+from .mhc_genotypes import infer_host_species, recover_mhc_genotypes_for_frame
 
 CANONICAL_AMINO_ACIDS: frozenset[str] = frozenset("ACDEFGHIKLMNPQRSTVWY")
 
@@ -507,7 +508,9 @@ def _prepare_quantitative_binding_task(
     qualified = qualify_binding_measurements(binding_df)
 
     target_class = normalize_mhc_class_token(mhc_class) if mhc_class else ""
-    target_species = normalize_species(species) if species else ""
+    target_species = (
+        normalize_species(species) if species and str(species).strip().casefold() != "all" else ""
+    )
     allowed_endpoint_set = set(allowed_endpoints)
 
     from .binding_assay_context import METHOD_REVIEW_COLUMNS
@@ -1246,6 +1249,7 @@ def prepare_ms_training_data(
     allow_modified_peptides: bool = False,
     exclude_potential_contaminants: bool = True,
     use_expression_disambiguation: bool = True,
+    recover_reference_genotypes: bool = False,
     max_alleles_per_bag: int | None = None,
     min_peptide_length: int = 7,
     max_peptide_length: int = 45,
@@ -1257,7 +1261,10 @@ def prepare_ms_training_data(
     conflicting multi-gene flanks are blanked with ``flank_status="ambiguous_flanks"``
     rather than resolved arbitrarily. Distinguishes monoallelic/experimental
     single restrictions, sample-level MIL bags, predicted restrictions, and
-    study-wide allele pools.
+    study-wide allele pools. Pass ``species="all"`` or ``species=None`` for
+    multi-species training and ``recover_reference_genotypes=True`` to recover
+    source-backed condition-level MHC bags from ``host_mhc_types``, curated cell
+    lines, and inbred/transgenic strains (#943, #944).
     """
     if min_peptide_length < 1 or max_peptide_length < min_peptide_length:
         raise ValueError("Invalid peptide length bounds")
@@ -1270,9 +1277,30 @@ def prepare_ms_training_data(
     obs = _collapse_ms_mappings_to_observations(
         ms_raw, use_expression_disambiguation=use_expression_disambiguation
     )
+    if recover_reference_genotypes and not obs.empty:
+        recovered = recover_mhc_genotypes_for_frame(obs)
+        existing_set = (
+            obs["mhc_allele_set"].astype("string").fillna("")
+            if "mhc_allele_set" in obs.columns
+            else pd.Series("", index=obs.index, dtype="string")
+        )
+        existing_prov = (
+            obs["mhc_allele_provenance"].astype("string").fillna("")
+            if "mhc_allele_provenance" in obs.columns
+            else pd.Series("", index=obs.index, dtype="string")
+        )
+        needs_fill = existing_set.str.strip().eq("") | existing_prov.isin(["", "unmatched"])
+        obs["mhc_allele_set"] = existing_set.where(~needs_fill, recovered["mhc_allele_set"])
+        obs["mhc_allele_provenance"] = existing_prov.where(
+            ~needs_fill, recovered["mhc_allele_set_provenance"]
+        )
+        obs["host_species"] = recovered["host_species"]
+        obs["is_chimeric_mhc_host"] = recovered["is_chimeric_mhc_host"]
 
     target_class = normalize_mhc_class_token(mhc_class) if mhc_class else ""
-    target_species = normalize_species(species) if species else ""
+    target_species = (
+        normalize_species(species) if species and str(species).strip().casefold() != "all" else ""
+    )
 
     extra_condition_columns = [c for c in CONDITION_COLUMNS if c != "condition_id"]
     accepted_columns = [
@@ -1283,6 +1311,7 @@ def prepare_ms_training_data(
         "peptide",
         "mhc_restriction",
         "mhc_allele_set",
+        "mhc_allele_cardinality",
         "candidate_alleles",
         "n_candidate_alleles",
         "candidate_bag_status",
@@ -1291,6 +1320,8 @@ def prepare_ms_training_data(
         "restriction_evidence",
         "mhc_class",
         "mhc_species",
+        "host_species",
+        "is_chimeric_mhc_host",
         "is_monoallelic",
         "sample_group_key",
         "pmid",
@@ -1621,6 +1652,11 @@ def prepare_ms_training_data(
     acc_src["n_candidate_alleles"] = pd.Series(
         [bag_sizes[i] for i in ok_pos], index=acc_src.index, dtype="int64"
     )
+    acc_src["mhc_allele_cardinality"] = pd.Series(
+        np.where(acc_src["n_candidate_alleles"].eq(1), "monoallelic", "multi_allelic_bag"),
+        index=acc_src.index,
+        dtype="string",
+    )
     acc_src["candidate_bag_status"] = pd.Series(
         [bag_statuses[i] for i in ok_pos], index=acc_src.index, dtype="string"
     )
@@ -1638,6 +1674,30 @@ def prepare_ms_training_data(
     )
     acc_src["mhc_species"] = pd.Series(
         [bag_species[i] for i in ok_pos], index=acc_src.index, dtype="string"
+    )
+    if "host_species" not in acc_src.columns:
+        host_col = (
+            acc_src["host"].astype("string").fillna("")
+            if "host" in acc_src.columns
+            else acc_src["species"].astype("string").fillna("")
+            if "species" in acc_src.columns
+            else pd.Series("", index=acc_src.index, dtype="string")
+        )
+        inferred_hosts = [
+            infer_host_species(h) or msp
+            for h, msp in zip(host_col.tolist(), acc_src["mhc_species"].tolist())
+        ]
+        acc_src["host_species"] = pd.Series(inferred_hosts, index=acc_src.index, dtype="string")
+    acc_src["is_chimeric_mhc_host"] = pd.Series(
+        [
+            bool(msp and hsp and msp != hsp)
+            for msp, hsp in zip(
+                acc_src["mhc_species"].astype("string").fillna("").tolist(),
+                acc_src["host_species"].astype("string").fillna("").tolist(),
+            )
+        ],
+        index=acc_src.index,
+        dtype="bool",
     )
 
     pmids_str = (
