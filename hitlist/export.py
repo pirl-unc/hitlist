@@ -125,6 +125,7 @@ _CATEGORICAL_EXPORT_METADATA_COLS: tuple[str, ...] = (
     # preserves categorical-vs-string value comparison.
     "sample_match_type",
     "sample_mhc_origin",
+    "condition",
     "perturbation",
     "condition_category",
     # ms_samples provenance (#373): three curated values and a note that is
@@ -285,6 +286,7 @@ SAMPLE_ATTRIBUTION_VALUES = (
 
 _TRAINING_DEFAULTS = {
     "sample_label": "",
+    "condition": "",
     "perturbation": "",
     "sample_mhc": "",
     **dict.fromkeys(MHC_TYPING_COLUMNS, ""),
@@ -1451,7 +1453,7 @@ def generate_ms_samples_table(
             # phrasing. See hitlist.condition_categories.
             from .condition_categories import categorize_condition
 
-            row["condition_category"] = categorize_condition(perturbation)
+            row["condition_category"] = categorize_condition(perturbation, condition_columns=row)
             # Explicit control-arm flag so the KO-vs-WT contrast is a
             # first-class query (#354).  Tri-state string (matching the
             # ``profiled`` convention) because the observation-level
@@ -1721,6 +1723,7 @@ def generate_observations_table(
 
     meta_cols = [
         "sample_label",
+        "condition",
         "perturbation",
         "condition_category",
         "mhc",

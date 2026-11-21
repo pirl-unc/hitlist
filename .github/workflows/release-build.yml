@@ -78,6 +78,10 @@ on:
       - tests/test_build_uniprot_reference.py
       - scripts/build_uniprot_reference.py
       - hitlist/model_training.py
+      - hitlist/schema_conventions.py
+      - hitlist/conditions.py
+      - hitlist/condition_categories.py
+      - hitlist/data/condition_vocabulary.yaml
       - hitlist/apc_contrasts.py
       - hitlist/drug_dm_qualification.py
       - hitlist/data/evidence_revisions/apc_stimulus_protocol_context.json
@@ -93,6 +97,9 @@ on:
       - hitlist/split_audit.py
       - hitlist/training_bundle.py
       - tests/test_model_training.py
+      - tests/test_schema_conventions.py
+      - tests/test_conditions.py
+      - tests/test_condition_categories.py
       - tests/test_apc_cytokine_contrasts.py
       - tests/test_drug_dm_atlas_qualification.py
       - tests/test_netmhcstabpan.py

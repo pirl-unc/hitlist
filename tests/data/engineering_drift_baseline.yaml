@@ -22,26 +22,12 @@
 30778243:
 - c1r_class_ii_lcl_endogenous_dr_dq_dp|condition_mhc_context|error
 31495665:
-- healthy_donor_pbmcs_hla_dr|condition_mhc_context|error
-- healthy_donor_pbmcs_hla_dr|condition_transfection|error
-- lung_tissue_hla_dr|condition_mhc_context|error
-- lung_tissue_hla_dr|condition_transfection|error
-- maptac_hla_a_02_01|condition_mhc_context|warn
-- maptac_hla_a_11_01|condition_mhc_context|warn
-- maptac_hla_a_32_01|condition_mhc_context|warn
-- maptac_hla_b_07_02|condition_mhc_context|warn
-- maptac_hla_b_45_01|condition_mhc_context|warn
-- maptac_hla_b_52_01|condition_mhc_context|warn
-- maptac_hla_c_03_03|condition_mhc_context|warn
-- maptac_hla_c_06_02|condition_mhc_context|warn
 - maptac_hla_drb1_01_01|condition_transfection|warn
 - maptac_hla_drb1_03_01|condition_transfection|warn
 - maptac_hla_drb1_04_01|condition_transfection|warn
 - maptac_hla_drb1_07_01|condition_transfection|warn
 - maptac_hla_drb1_11_01|condition_transfection|warn
 - maptac_hla_drb1_15_01|condition_transfection|warn
-- spleen_tissue_hla_dr|condition_mhc_context|error
-- spleen_tissue_hla_dr|condition_transfection|error
 32350084:
 - ebv_lcl_ast_5085_dpb1_04_02_homozygous|condition_mhc_context|error
 - ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous|condition_mhc_context|error

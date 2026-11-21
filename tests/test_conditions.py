@@ -418,7 +418,8 @@ def test_intrinsic_background_stays_distinct_from_an_intervention():
 def test_a_vehicle_keeps_both_the_vehicle_and_the_control_role():
     row = _arm_row(generate_ms_samples_table(), 34497125, "skmel5_melanoma_dmso_control")
     assert row["condition_control"] == "vehicle"
-    assert row["condition_drugs"] == "DMSO"
+    assert row["condition_vehicle"] == "DMSO"
+    assert row["condition_drugs"] == "none"
 
 
 def test_explicit_absence_is_not_silence():
@@ -754,6 +755,10 @@ def test_every_condition_column_has_exactly_one_declared_role():
             "condition_antigen_exposure",
             "condition_cytokines",
             "condition_drugs",
+            "condition_vehicle",
+            "condition_dose",
+            "condition_dose_unit",
+            "condition_duration_hours",
             "condition_infection",
             "condition_stimulation",
         },

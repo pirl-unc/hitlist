@@ -50,9 +50,10 @@ specific pattern when a category accumulates real volume.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 
 from .apm import classify_apm_perturbations
+from .conditions import INTERVENTION_CONDITION_COLUMNS, asserts_condition, split_condition_tokens
 
 # Mapping from APM gene flag → category. Order in this dict is also
 # used to break ties when multiple APM genes match a single
@@ -155,11 +156,11 @@ _NON_APM_PATTERNS: list[tuple[str, str]] = [
     (
         r"\b(?:carbamazepine|flucloxacillin|abacavir|allopurinol|lamotrigine|"
         r"amoxicillin|penicillin|ceftriaxone|trimethoprim|"
-        r"lenalidomide|tazemetostat|decitabine|EZH2i|"
-        r"cdk4/6|palbociclib|ribociclib|abemaciclib|"
-        r"dasatinib|imatinib|nilotinib|"
-        r"vorinostat|romidepsin|panobinostat|"
-        r"cisplatin|carboplatin|paclitaxel|doxorubicin|fluorouracil|"
+        r"lenalidomide|tazemetostat|decitabine|EZH2i|azacitidine|5-azacytidine|"
+        r"cdk4/6|palbociclib|ribociclib|abemaciclib|binimetinib|"
+        r"dasatinib|imatinib|nilotinib|BET[\s_]?degrader|dTAG-?13|"
+        r"vorinostat|romidepsin|panobinostat|entinostat|"
+        r"cisplatin|carboplatin|paclitaxel|doxorubicin|fluorouracil|gemcitabine|"
         r"olaparib|niraparib|rucaparib)\b",
         "drug_exposure",
     ),
@@ -195,13 +196,72 @@ UNPERTURBED = "unperturbed"
 OTHER_PERTURBATION = "other_perturbation"
 
 
-def categorize_condition(perturbation: str | None) -> str:
-    """Map a free-text perturbation string to a single category.
+def _categorize_from_structured_columns(condition_columns: Mapping[str, object]) -> str | None:
+    """Structured-column fallback when free-text classification is ambiguous or missing."""
+    control = str(condition_columns.get("condition_control") or "").strip()
+    active_interventions = {
+        col
+        for col in INTERVENTION_CONDITION_COLUMNS
+        if asserts_condition(condition_columns.get(col))
+    }
+    if control in {"vehicle", "untreated"} and not active_interventions:
+        return UNPERTURBED
 
-    Empty input → ``"unperturbed"``.  An unmatched non-empty string
-    → ``"other_perturbation"`` (review and add a pattern when these
-    accumulate).
+    if "condition_drugs" in active_interventions:
+        return "drug_exposure"
+    if "condition_cytokines" in active_interventions:
+        tokens = set(
+            split_condition_tokens(str(condition_columns.get("condition_cytokines") or ""))
+        )
+        if "IFNG" in tokens:
+            return "IFN_gamma_treatment"
+        if "IFNA" in tokens:
+            return "IFN_alpha_treatment"
+        if "IFNB1" in tokens:
+            return "IFN_beta_treatment"
+        if "TNF" in tokens:
+            return "TNF_alpha_treatment"
+        return "cytokine_treatment_generic"
+    if active_interventions & {"condition_stimulation", "condition_antigen_exposure"}:
+        return "cell_activation"
+    if "condition_infection" in active_interventions:
+        inf_text = str(condition_columns.get("condition_infection") or "")
+        for rx, cat in _COMPILED_PATTERNS:
+            if cat in {"infection_bacterial_or_parasite", "infection_viral"} and rx.search(
+                inf_text
+            ):
+                return cat
+        return "infection_viral"
+    if "condition_transduction" in active_interventions:
+        return "transduction"
+    if "condition_transfection" in active_interventions:
+        return "transfection"
+    return None
+
+
+def categorize_condition(
+    perturbation: str | None,
+    *,
+    condition_columns: Mapping[str, object] | None = None,
+) -> str:
+    """Map a free-text perturbation string (and optional structured condition columns) to a category.
+
+    Empty input → ``"unperturbed"``.  When ``condition_columns`` is provided,
+    pure ``vehicle``/``untreated`` controls with no active intervention classify
+    as ``"unperturbed"`` consistently regardless of prose prefix, and structured
+    intervention columns prevent known drugs/cytokines/stimuli from falling into
+    ``"other_perturbation"``.
     """
+    if condition_columns is not None:
+        control = str(condition_columns.get("condition_control") or "").strip()
+        active_interventions = [
+            col
+            for col in INTERVENTION_CONDITION_COLUMNS
+            if asserts_condition(condition_columns.get(col))
+        ]
+        if control in {"vehicle", "untreated"} and not active_interventions:
+            return UNPERTURBED
+
     if not perturbation:
         return UNPERTURBED
     text = str(perturbation).strip()
@@ -218,6 +278,11 @@ def categorize_condition(perturbation: str | None) -> str:
     for rx, cat in _COMPILED_PATTERNS:
         if rx.search(text):
             return cat
+
+    if condition_columns is not None:
+        structured = _categorize_from_structured_columns(condition_columns)
+        if structured is not None:
+            return structured
 
     return OTHER_PERTURBATION
 

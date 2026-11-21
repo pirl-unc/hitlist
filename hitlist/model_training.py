@@ -36,6 +36,7 @@ import numpy as np
 import pandas as pd
 from mhcgnomes import Allele, Pair
 
+from .conditions import CONDITION_COLUMNS
 from .curation import (
     _cached_parse,
     class_i_prediction_scope,
@@ -523,6 +524,7 @@ def _prepare_quantitative_binding_task(
         "provenance_id",
         "provenance_status",
         "allele",
+        "mhc_restriction",
         "reported_mhc_restriction",
         "allele_completeness",
         "mhc_class",
@@ -537,6 +539,7 @@ def _prepare_quantitative_binding_task(
         "censoring_status",
         "unit_conversion_status",
         "raw_measurement_value",
+        "raw_measurement_unit",
         "raw_measurement_units",
         "raw_measurement_inequality",
         "assay_method",
@@ -553,13 +556,17 @@ def _prepare_quantitative_binding_task(
         "provenance_id",
         "peptide",
         "mhc_restriction",
+        "mhc_class",
         "response_measured",
         "binding_endpoint_family",
+        "measurement_value",
+        "measurement_unit",
         "quantitative_value",
         "measurement_units",
         "measurement_inequality",
+        "pmid",
         "exclusion_reason",
-        *[c for c in optional_source_cols if c != "mhc_restriction"],
+        *[c for c in optional_source_cols if c not in {"mhc_restriction", "mhc_class"}],
     ]
 
     if qualified.empty:
@@ -758,6 +765,7 @@ def _prepare_quantitative_binding_task(
     acc_src["allele"] = pd.Series(
         [resolved_alleles[i] for i in ok_positions], index=acc_src.index, dtype="string"
     )
+    acc_src["mhc_restriction"] = acc_src["allele"]
     acc_src["reported_mhc_restriction"] = restrictions.loc[ok_mask]
     acc_src["allele_completeness"] = pd.Series(
         [completeness_vals[i] for i in ok_positions], index=acc_src.index, dtype="string"
@@ -799,11 +807,13 @@ def _prepare_quantitative_binding_task(
         if "quantitative_value" in acc_src.columns
         else np.nan
     )
-    acc_src["raw_measurement_units"] = (
+    raw_units_series = (
         acc_src["measurement_units"].astype("string").fillna("")
         if "measurement_units" in acc_src.columns
-        else ""
+        else pd.Series("", index=acc_src.index, dtype="string")
     )
+    acc_src["raw_measurement_unit"] = raw_units_series
+    acc_src["raw_measurement_units"] = raw_units_series
     acc_src["raw_measurement_inequality"] = (
         qualified.loc[ok_mask, "measurement_inequality"].astype("string").fillna("")
         if "measurement_inequality" in qualified.columns
@@ -816,9 +826,19 @@ def _prepare_quantitative_binding_task(
 
     excl_src = qualified.loc[~ok_mask].copy()
     excl_src["exclusion_reason"] = reason_series.loc[~ok_mask]
+    excl_src["measurement_value"] = (
+        pd.to_numeric(excl_src["quantitative_value"], errors="coerce")
+        if "quantitative_value" in excl_src.columns
+        else np.nan
+    )
+    excl_src["measurement_unit"] = (
+        excl_src["measurement_units"].astype("string").fillna("")
+        if "measurement_units" in excl_src.columns
+        else ""
+    )
     for col in excluded_columns:
         if col not in excl_src.columns:
-            excl_src[col] = np.nan if col == "quantitative_value" else ""
+            excl_src[col] = np.nan if col in {"quantitative_value", "measurement_value"} else ""
     excluded = excl_src[excluded_columns].reset_index(drop=True)
 
     pmid_count = (
@@ -1254,12 +1274,15 @@ def prepare_ms_training_data(
     target_class = normalize_mhc_class_token(mhc_class) if mhc_class else ""
     target_species = normalize_species(species) if species else ""
 
+    extra_condition_columns = [c for c in CONDITION_COLUMNS if c != "condition_id"]
     accepted_columns = [
         "evidence_row_id",
         "evidence_source_id",
         "provenance_id",
         "provenance_status",
         "peptide",
+        "mhc_restriction",
+        "mhc_allele_set",
         "candidate_alleles",
         "n_candidate_alleles",
         "candidate_bag_status",
@@ -1278,6 +1301,7 @@ def prepare_ms_training_data(
         "apm_perturbed",
         "supported_condition_ids",
         "excluded_condition_ids",
+        *extra_condition_columns,
         "flank_status",
         "n_flank",
         "c_flank",
@@ -1593,6 +1617,7 @@ def prepare_ms_training_data(
     acc_src["candidate_alleles"] = pd.Series(
         [bag_alleles[i] for i in ok_pos], index=acc_src.index, dtype="string"
     )
+    acc_src["mhc_allele_set"] = acc_src["candidate_alleles"]
     acc_src["n_candidate_alleles"] = pd.Series(
         [bag_sizes[i] for i in ok_pos], index=acc_src.index, dtype="int64"
     )
@@ -1603,6 +1628,11 @@ def prepare_ms_training_data(
         [bag_provs[i] for i in ok_pos], index=acc_src.index, dtype="string"
     )
     acc_src["reported_mhc_restriction"] = restrictions.loc[ok_mask]
+    acc_src["mhc_restriction"] = np.where(
+        acc_src["n_candidate_alleles"].eq(1),
+        acc_src["candidate_alleles"],
+        acc_src["reported_mhc_restriction"],
+    )
     acc_src["mhc_class"] = pd.Series(
         [bag_classes[i] for i in ok_pos], index=acc_src.index, dtype="string"
     )

@@ -80,8 +80,29 @@ aliases:
     "BET degrader": BET_degrader
     "PROTAC BET degrader": BET_degrader
     "MEK inhibitor": binimetinib      # only curated use names binimetinib
-    DMSO: DMSO
     "5-FU": fluorouracil
+
+  # ── Solvent / carrier vehicles ────────────────────────────────────────
+  condition_vehicle:
+    "dimethyl sulfoxide": DMSO
+    "phosphate-buffered saline": PBS
+    "PBS vehicle": PBS
+    "DMSO vehicle": DMSO
+
+  # ── Dose units ────────────────────────────────────────────────────────
+  condition_dose_unit:
+    "µM": uM
+    "μM": uM
+    "uM": uM
+    "nm": nM
+    "mm": mM
+    "ng/ml": ng/mL
+    "ug/ml": ug/mL
+    "µg/mL": ug/mL
+    "µg/ml": ug/mL
+    "μg/mL": ug/mL
+    "iu/ml": IU/mL
+    "u/ml": U/mL
 
   # ── Organisms ─────────────────────────────────────────────────────────
   # Canonical form is the accepted species/virus designation at the
@@ -145,5 +166,11 @@ aliases:
   condition_background:
     "TAP deficiency": TAP_deficient
     "TAP-deficient": TAP_deficient
-    "Hap10": ERAP1_hap10
+    "Hap1": ERAP1_hap1
+    "Hap2": ERAP1_hap2
     "Hap8": ERAP1_hap8
+    "Hap10": ERAP1_hap10
+    "ERAP1_Hap1": ERAP1_hap1
+    "ERAP1_Hap2": ERAP1_hap2
+    "ERAP1_Hap8": ERAP1_hap8
+    "ERAP1_Hap10": ERAP1_hap10

@@ -1,3 +1,22 @@
+# Uniform Condition Columns & Canonical Assay/Schema Representation (v2.5.0), 2026-11-21
+
+Specification: [uniform-conditions-schemas-2-5-0-spec.md](uniform-conditions-schemas-2-5-0-spec.md).
+
+- [x] Add `condition_vehicle`, `condition_baseline_engineering`, `condition_dose`, `condition_dose_unit`, `condition_duration_hours`, vehicle/untreated validation rules, and vocabulary aliases in `hitlist/conditions.py` and `hitlist/data/condition_vocabulary.yaml`.
+- [x] Update `hitlist/condition_categories.py` and `hitlist/export.py` so `condition_category`/`is_control_arm` respect structured condition columns and `generate_observations_table` carries `condition` as categorical.
+- [x] Fix curated condition placements in `hitlist/data/pmid_overrides.yaml` (vehicles, baseline engineering, `ERAP1_hap*` casing, `PMA`/mock controls, `condition_mhc_context`, non-condition text in `condition`, unambiguous dose/duration arms) and remove 14 resolved entries from `tests/data/engineering_drift_baseline.yaml`.
+- [x] Create `hitlist/schema_conventions.py` and harmonize `hitlist/model_training.py`, `hitlist/apc_contrasts.py`, and `hitlist/drug_dm_qualification.py` (plus `dlbcl_35561310_supplements.json`).
+- [x] Update tests (`tests/test_conditions.py`, `tests/test_drug_dm_atlas_qualification.py`, `tests/test_export.py`), add `tests/test_schema_conventions.py`, update `docs/model-training.md` & `.github/workflows/release-build.yml`, and bump `hitlist/version.py` to `2.5.0`.
+- [ ] Pass ruff format/lint, strict `mkdocs build --strict`, unit + QC + condition tests, rebase onto `main` after `2.4.0` merges, pass PR CI + release gate, merge, and deploy `2.5.0` to PyPI.
+
+## Review (Uniform Conditions & Schemas, v2.5.0)
+
+- Separated solvent vehicles (`condition_vehicle`) from active compounds (`condition_drugs`), baseline/parental host engineering (`condition_baseline_engineering` in `ENGINEERING_CONDITION_COLUMNS`) from intrinsic genetic background (`condition_background`), and added validated `condition_dose`/`condition_dose_unit`/`condition_duration_hours`.
+- Cleaned curated condition placements across 20+ PMIDs in `pmid_overrides.yaml` and eliminated 14 pre-existing `engineering_drift_audit` baseline findings on PMID 31495665 with zero regressions.
+- Introduced `hitlist/schema_conventions.py` (`ASSAY_SCHEMA_CONVENTIONS`, `COLUMN_SYNONYM_MAP`, `canonical_assay_columns`, `normalize_assay_frame`) and harmonized `model_training.py`, `export.py`, `apc_contrasts.py`, and `drug_dm_qualification.py`.
+
+---
+
 # Uniform Data Download Registry, CLI & Python API (v2.4.0), 2026-11-21
 
 Specification: [uniform-downloads-2-4-0-spec.md](uniform-downloads-2-4-0-spec.md).
