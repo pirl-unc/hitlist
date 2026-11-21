@@ -187,7 +187,8 @@ def build_stimulus_contrast_catalog(
             proto = arm_protocols.get(arm_key, {})
             arm_cyt = _token_set(row.get("condition_cytokines"))
             arm_stim = _token_set(row.get("condition_stimulation"))
-            arm_drugs = _token_set(row.get("condition_drugs")) - {"DMSO"}
+            arm_drugs = _token_set(row.get("condition_drugs"))
+            arm_vehicle = _token_set(row.get("condition_vehicle"))
             ctrls = sorted(set(comparators_for.get(cid, [])))
             is_ctrl_for = sorted(set(targets_of.get(cid, [])))
             proto_role = str(proto.get("protocol_role") or "")
@@ -213,9 +214,7 @@ def build_stimulus_contrast_catalog(
                     else set()
                 )
                 ctrl_drugs = (
-                    _token_set(ctrl_row.get("condition_drugs")) - {"DMSO"}
-                    if ctrl_row is not None
-                    else set()
+                    _token_set(ctrl_row.get("condition_drugs")) if ctrl_row is not None else set()
                 )
                 delta_cyt = arm_cyt - ctrl_cyt
                 delta_stim = arm_stim - ctrl_stim
@@ -274,8 +273,10 @@ def build_stimulus_contrast_catalog(
                     "condition_cytokines": ";".join(sorted(arm_cyt)),
                     "condition_stimulation": ";".join(sorted(arm_stim)),
                     "condition_drugs": ";".join(sorted(arm_drugs)),
+                    "condition_vehicle": ";".join(sorted(arm_vehicle)),
                     "condition_combination": str(row.get("condition_combination", "") or ""),
                     "comparator_condition_ids": ";".join(ctrls),
+                    "condition_control_for": ";".join(is_ctrl_for),
                     "is_comparator_for": ";".join(is_ctrl_for),
                     "delta_cytokines": ";".join(sorted(delta_cyt)),
                     "delta_stimuli": ";".join(sorted(delta_stim)),
@@ -382,7 +383,9 @@ def prepare_stimulus_contrast_data(
             for col in (
                 "contrast_eligibility_status",
                 "comparator_condition_ids",
+                "condition_control_for",
                 "is_comparator_for",
+                "condition_vehicle",
                 "delta_cytokines",
                 "delta_stimuli",
                 "delta_drugs",
@@ -401,7 +404,9 @@ def prepare_stimulus_contrast_data(
         else:
             enriched.setdefault("contrast_eligibility_status", "")
             enriched.setdefault("comparator_condition_ids", "")
+            enriched.setdefault("condition_control_for", "")
             enriched.setdefault("is_comparator_for", "")
+            enriched.setdefault("condition_vehicle", "")
             enriched.setdefault("delta_cytokines", "")
             enriched.setdefault("delta_stimuli", "")
             enriched.setdefault("delta_drugs", "")

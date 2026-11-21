@@ -140,6 +140,10 @@ _PUBLIC_API: dict[str, str] = {
     "reconcile_dlbcl_supplements_with_iedb": ".drug_dm_qualification",
     "abelin_dm_source_contract": ".drug_dm_qualification",
     "prepare_hla_dm_contrast_data": ".drug_dm_qualification",
+    "ASSAY_SCHEMA_CONVENTIONS": ".schema_conventions",
+    "COLUMN_SYNONYM_MAP": ".schema_conventions",
+    "canonical_assay_columns": ".schema_conventions",
+    "normalize_assay_frame": ".schema_conventions",
     "atlas_crosswalk_sources": ".atlas",
     # Public enumerations shared by scanners, APIs, and CLIs.
     "MHC_ALLELE_PROVENANCE_VALUES": ".curation",

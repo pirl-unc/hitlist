@@ -91,7 +91,9 @@ def test_shared_export_keeps_dm_arms_separate_for_the_same_peptide(tmp_path, mon
     assert indexed.loc["DP401_DM_A", "mhc_allele_set"] == "HLA-DPA1*01:03/DPB1*04:01"
     assert result.sample_attribution.eq("curated_sample_label").all()
     assert result.condition_evidence.eq("primary_source").all()
-    assert result.condition_background.eq("CD74_transduced;CD80_transduced;HLA-DP_transduced").all()
+    assert result.condition_baseline_engineering.eq(
+        "CD74_transduced;CD80_transduced;HLA-DP_transduced"
+    ).all()
     assert result.experimental_origin_ids.eq('["origin:PXD017154"]').all()
     assert result.specimen_status.eq("unknown").all() and result.donor_status.eq("unknown").all()
     assert result.quantitative_value.isna().all()

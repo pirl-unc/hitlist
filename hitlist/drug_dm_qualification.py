@@ -352,9 +352,10 @@ def load_dlbcl_supplement_rows(
                             "mhc_class": mhc_class,
                             "cell_line_name": arm["cell_line"],
                             "condition_id": arm["condition_id"],
+                            "comparator_condition_ids": arm["comparator_condition_id"] or "",
                             "comparator_condition_id": arm["comparator_condition_id"] or "",
                             "contrast_role": arm["contrast_role"],
-                            "background": arm["background"],
+                            "baseline_treatment": arm["baseline_treatment"],
                             "restriction_evidence": rest_ev,
                             "prediction_method": "NetMHCpan 4.0" if mhc_class == "I" else "",
                             "netmhcpan_4_0_scores_json": json.dumps(pred_scores, sort_keys=True)
@@ -639,12 +640,16 @@ def prepare_hla_dm_contrast_data(observations: pd.DataFrame) -> dict[str, Any]:
         meta_df = pd.DataFrame(admitted_meta)
         for col in meta_df.columns:
             admitted[col] = meta_df[col].astype("string")
+        admitted["comparator_condition_ids"] = admitted["partner_condition_id"]
+        if "condition_baseline_engineering" not in admitted.columns:
+            admitted["condition_baseline_engineering"] = admitted["hla_construct_background"]
     else:
         for col in (
             "pair_id",
             "mhc_pair",
             "dm_arm",
             "partner_condition_id",
+            "comparator_condition_ids",
             "dm_control_basis",
             "endogenous_dm_status",
             "hla_construct_background",

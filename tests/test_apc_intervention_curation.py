@@ -129,7 +129,7 @@ def test_ilca_tapbpr_rescue_variants_separate_background_from_constructs(monkeyp
         "helam_tapbpr_ko_ifng_tapbpr_m29",
     }
     for cid, arm in arms.items():
-        assert arm["condition_background"] == "TAPBPR_KO"
+        assert arm["condition_baseline_engineering"] == "TAPBPR_KO"
         assert arm["condition_cytokines"] == "IFNG"
         # KO background + rescue must never read as simple TAPBPR knockout or numeric OE (#899).
         assert not arm.get("condition_knockout_genes")
@@ -205,7 +205,7 @@ def test_ilca_tapbpr_rescue_variants_separate_background_from_constructs(monkeyp
     assert obs.loc["BLANKCMNT", "condition_id"] == ""
     assert obs.loc["BLANKCMNT", "supported_condition_ids"] == ""
     assert obs.loc["BLANKCMNT", "sample_attribution"] == "pmid_ambiguous"
-    assert obs.loc["BLANKCMNT", "condition_background"] == "TAPBPR_KO"
+    assert obs.loc["BLANKCMNT", "condition_baseline_engineering"] == "TAPBPR_KO"
     assert obs.loc["BLANKCMNT", "condition_cytokines"] == "IFNG"
 
 
@@ -394,7 +394,8 @@ def test_five_intervention_studies_preserve_shared_excluded_and_unresolved_membe
     # Entinostat ("or" vs exclusionary)
     assert obs.loc["ENTDMSONLY", "condition_id"] == "raji_dmso_vehicle_control"
     assert obs.loc["ENTDMSONLY", "condition_control"] == "vehicle"
-    assert obs.loc["ENTDMSONLY", "condition_drugs"] == "DMSO"
+    assert obs.loc["ENTDMSONLY", "condition_vehicle"] == "DMSO"
+    assert obs.loc["ENTDMSONLY", "condition_drugs"] == "none"
     assert obs.loc["ENTDMSONLY", "excluded_condition_ids"] == "raji_entinostat_hdac_inhibitor"
     assert obs.loc["ENTDRGONLY", "condition_id"] == "raji_entinostat_hdac_inhibitor"
     assert obs.loc["ENTDRGONLY", "excluded_condition_ids"] == "raji_dmso_vehicle_control"
@@ -486,7 +487,7 @@ def test_laghmouchi_k562_hla_dp_heterodimers_and_hilton_shla_engineering(monkeyp
     assert all("19:01" not in sample["mhc"] for sample in dp_entry["ms_samples"])
     for sample in dp_entry["ms_samples"]:
         assert sample["condition_mhc_context"] == "mhc_transfectant;monoallelic"
-        assert sample["condition_transduction"] == "HLA-DPA1;HLA-DPB1"
+        assert sample["condition_baseline_engineering"] == "HLA-DPA1_transduced;HLA-DPB1_transduced"
         assert is_engineered_material(sample)
 
     hilton_samples = generate_ms_samples_table()

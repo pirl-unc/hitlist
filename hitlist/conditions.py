@@ -42,6 +42,7 @@ perturbed-vs-control contrast (the same failure #392 fixed for
 
 from __future__ import annotations
 
+import math
 import re
 from collections.abc import Mapping
 from functools import lru_cache
@@ -156,10 +157,12 @@ MULTI_VALUE_CONDITION_COLUMNS = frozenset(
         "condition_transduction",
         "condition_cytokines",
         "condition_drugs",
+        "condition_vehicle",
         "condition_infection",
         "condition_stimulation",
         "condition_antigen_exposure",
         "condition_background",
+        "condition_baseline_engineering",
         "condition_mhc_context",
         "condition_material",
         "condition_labeling",
@@ -295,6 +298,7 @@ ENGINEERING_CONDITION_COLUMNS = frozenset(
         "condition_genetic_variants",
         "condition_transfection",
         "condition_transduction",
+        "condition_baseline_engineering",
         "condition_mhc_context",
     }
 )
@@ -416,8 +420,24 @@ CONDITION_FIELDS = MappingProxyType(
         ),
         "condition_cytokines": "documented cytokine exposures, as HGNC symbols",
         "condition_drugs": (
-            "documented compounds, as canonical names; a reported drug class "
-            "(`EZH2_inhibitor`) where the compound is unnamed"
+            "documented active compounds, as canonical names; a reported drug class "
+            "(`EZH2_inhibitor`) where the compound is unnamed. Solvent vehicles "
+            "(`DMSO`, `PBS`) belong in `condition_vehicle`, not here"
+        ),
+        "condition_vehicle": (
+            "documented solvent or carrier vehicle (`DMSO`, `PBS`, `ethanol`, etc.), "
+            "kept distinct from active compounds in `condition_drugs`"
+        ),
+        "condition_dose": (
+            "numeric-string exposure dose for a single-dose arm; must be paired with "
+            "`condition_dose_unit`"
+        ),
+        "condition_dose_unit": (
+            "canonical concentration or dose unit (`nM`, `uM`, `ng/mL`, `ug/mL`, "
+            "`IU/mL`, etc.); must be paired with `condition_dose`"
+        ),
+        "condition_duration_hours": (
+            "numeric-string exposure duration in hours for a single-duration arm"
         ),
         "condition_infection": (
             "organism designations for a documented infection, at the precision the source states"
@@ -428,7 +448,12 @@ CONDITION_FIELDS = MappingProxyType(
         ),
         "condition_background": (
             "intrinsic genetic or functional background of the material, as "
-            "distinct from an intervention introduced by this study"
+            "distinct from an intervention or genetic engineering introduced by a study"
+        ),
+        "condition_baseline_engineering": (
+            "baseline or parental genetic engineering of the host system (e.g. "
+            "`TAPBPR_KO`, `CD74_transduced`, `MAPTAC_tagged_HLA_transfection`), kept "
+            "distinct from intrinsic biological background in `condition_background`"
         ),
         "condition_mhc_context": (
             "how the sampled MHC is expressed or captured; one of CONDITION_MHC_CONTEXT_VALUES"
@@ -553,7 +578,9 @@ def _reject_alias(column: str, token: str, where: str) -> None:
         )
 
 
-def _validate_column(column: str, raw: object, where: str) -> str:
+def _validate_column(
+    column: str, raw: object, where: str, *, strict_schema_rules: bool = True
+) -> str:
     """Validate one condition cell and return its exported string form."""
     if raw is None:
         return ""
@@ -598,7 +625,8 @@ def _validate_column(column: str, raw: object, where: str) -> str:
                 raise ValueError(
                     f"{where} {column} token {token!r} is not in the declared vocabulary {allowed}."
                 )
-            _reject_alias(column, token, where)
+            if strict_schema_rules or column != "condition_background":
+                _reject_alias(column, token, where)
         if sorted(set(tokens)) != tokens:
             raise ValueError(
                 f"{where} {column}={value!r} must be sorted and unique.  A canonical "
@@ -619,7 +647,32 @@ def _validate_column(column: str, raw: object, where: str) -> str:
     return value
 
 
-def validate_sample_conditions(sample: Mapping[str, object], pmid: object, index: int) -> None:
+#: Solvent vehicles that must be curated in ``condition_vehicle`` rather than
+#: ``condition_drugs`` so active-drug filters never pull pure vehicle controls.
+_VEHICLE_SOLVENT_TOKENS = frozenset({"dmso", "pbs"})
+
+#: Single-value numeric-string columns validated as positive finite floats.
+NUMERIC_CONDITION_COLUMNS = frozenset({"condition_dose", "condition_duration_hours"})
+
+
+def _validate_positive_number(column: str, value: str, where: str) -> None:
+    try:
+        parsed = float(value)
+    except ValueError as error:
+        raise ValueError(
+            f"{where} {column}={value!r} must be a positive numeric string."
+        ) from error
+    if not math.isfinite(parsed) or parsed <= 0:
+        raise ValueError(f"{where} {column}={value!r} must be a positive finite number.")
+
+
+def validate_sample_conditions(
+    sample: Mapping[str, object],
+    pmid: object,
+    index: int,
+    *,
+    strict_schema_rules: bool = True,
+) -> None:
     """Validate one ``ms_samples`` record's condition block.
 
     Raises ``ValueError`` with the offending PMID and record index, matching
@@ -627,7 +680,10 @@ def validate_sample_conditions(sample: Mapping[str, object], pmid: object, index
     """
     where = _describe(pmid, index)
     values = {
-        column: _validate_column(column, sample.get(column), where) for column in CONDITION_COLUMNS
+        column: _validate_column(
+            column, sample.get(column), where, strict_schema_rules=strict_schema_rules
+        )
+        for column in CONDITION_COLUMNS
     }
 
     condition_id = values["condition_id"]
@@ -667,7 +723,34 @@ def validate_sample_conditions(sample: Mapping[str, object], pmid: object, index
             f"different claims and the audit reports them separately."
         )
 
+    if strict_schema_rules:
+        for token in split_condition_tokens(values["condition_drugs"]):
+            if token.casefold() in _VEHICLE_SOLVENT_TOKENS:
+                raise ValueError(
+                    f"{where} condition_drugs contains solvent vehicle {token!r}.  "
+                    f"Record solvent vehicles in `condition_vehicle` (and `condition_drugs: none` "
+                    f"on pure vehicle controls) so active-drug queries never pull vehicle controls."
+                )
+
+    if values["condition_dose"]:
+        _validate_positive_number("condition_dose", values["condition_dose"], where)
+    if values["condition_duration_hours"]:
+        _validate_positive_number(
+            "condition_duration_hours", values["condition_duration_hours"], where
+        )
+    if bool(values["condition_dose"]) != bool(values["condition_dose_unit"]):
+        raise ValueError(
+            f"{where} must set both condition_dose and condition_dose_unit together "
+            f"(got dose={values['condition_dose']!r}, unit={values['condition_dose_unit']!r})."
+        )
+
     interventions = [c for c in INTERVENTION_CONDITION_COLUMNS if asserts_condition(values[c])]
+    if strict_schema_rules and values["condition_control"] == "untreated" and interventions:
+        raise ValueError(
+            f"{where} sets condition_control='untreated' alongside active interventions "
+            f"{sorted(interventions)}.  Host/construct engineering belongs in "
+            f"`condition_baseline_engineering` / `condition_mhc_context`."
+        )
     if values["condition_combination"] and not interventions:
         raise ValueError(
             f"{where} sets condition_combination="
@@ -691,7 +774,9 @@ def validate_sample_conditions(sample: Mapping[str, object], pmid: object, index
         )
 
 
-def validate_study_conditions(entry: Mapping[str, object]) -> None:
+def validate_study_conditions(
+    entry: Mapping[str, object], *, strict_schema_rules: bool = True
+) -> None:
     """Validate a study's condition block: per-record rules, then the study-scoped ones.
 
     Uniqueness and control references are study-scoped because
@@ -730,7 +815,7 @@ def validate_study_conditions(entry: Mapping[str, object]) -> None:
 
     seen: dict[str, int] = {}
     for index, sample in enumerate(samples):
-        validate_sample_conditions(sample, pmid, index)
+        validate_sample_conditions(sample, pmid, index, strict_schema_rules=strict_schema_rules)
         condition_id = str(sample.get("condition_id") or "").strip()
         if condition_id in seen:
             raise ValueError(

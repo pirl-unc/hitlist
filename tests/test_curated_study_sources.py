@@ -315,7 +315,8 @@ def test_stopfer_2021_vehicle_is_both_a_vehicle_and_a_comparator():
     survive: DMSO is what the cells saw, `vehicle` is what the arm is for.
     """
     dmso = _condition(34497125, "skmel5_melanoma_dmso_control")
-    assert dmso["condition_drugs"] == "DMSO"
+    assert dmso["condition_vehicle"] == "DMSO"
+    assert dmso["condition_drugs"] == "none"
     assert dmso["condition_control"] == "vehicle"
     assert dmso["condition_control_for"] == "skmel5_melanoma_binimetinib_meki"
 

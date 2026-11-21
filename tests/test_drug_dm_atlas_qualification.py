@@ -152,7 +152,7 @@ def test_abelin_dm_shared_peptide_survives_ingestion_export_and_unified_contrast
         "maptac_hla_dpb1_06_01_dpa1_01_03_dm_2",
         "maptac_hla_dqb1_06_04_dqa1_01_02_dm_2",
     }
-    assert set(exported["condition_background"]) == {"MAPTAC_tagged_HLA_transfection"}
+    assert set(exported["condition_baseline_engineering"]) == {"MAPTAC_tagged_HLA_transfection"}
 
     # Add a Stražar 37301199 DM-only row and an unattributed row to verify exclusion guards.
     augmented = pd.concat(
@@ -479,7 +479,8 @@ def test_dlbcl_supplement_parser_and_reconciliation_synthetic(tmp_path):
     assert by_sheet.loc["DB_untreated", "condition_id"] == "db_dmso"
     assert by_sheet.loc["DB_untreated", "restriction_evidence"] == "predicted"
     assert by_sheet.loc["DB_IFN_DAC", "comparator_condition_id"] == "db_ifng"
-    assert by_sheet.loc["DB_IFN_DAC", "background"] == "IFNG"
+    assert by_sheet.loc["DB_IFN_DAC", "baseline_treatment"] == "IFNG"
+    assert by_sheet.loc["DB_IFN_DAC", "comparator_condition_ids"] == "db_ifng"
     assert by_sheet.loc["SUDHL4_IFN_DAC_TAZ", "first_col_header_literal"] == "lengtg"
     assert list(rows.loc[rows["source_sheet"] == "SUDHL6_IFN_TAZ", "first_col_header_literal"]) == [
         "Query #:z",
