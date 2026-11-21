@@ -70,6 +70,13 @@ STABILITY_ENDPOINTS: tuple[str, ...] = (
     "thermal_stability",
 )
 
+KINETIC_STABILITY_ENDPOINTS: tuple[str, ...] = (
+    "half_life",
+    "thermal_stability",
+    "off_rate",
+    "on_rate",
+)
+
 BINDING_ENDPOINT_FAMILIES: tuple[str, ...] = (
     *MOLAR_AFFINITY_ENDPOINTS,
     "ka",
@@ -141,6 +148,34 @@ _TEMP_FACTORS_TO_CELSIUS: dict[str, float] = {
     "celsius": 1.0,
     "Celsius": 1.0,
     "deg C": 1.0,
+}
+
+_OFF_RATE_FACTORS_TO_PER_SEC: dict[str, float] = {
+    "s^-1": 1.0,
+    "s-1": 1.0,
+    "1/s": 1.0,
+    "sec^-1": 1.0,
+    "1/sec": 1.0,
+    "min^-1": 1.0 / 60.0,
+    "min-1": 1.0 / 60.0,
+    "1/min": 1.0 / 60.0,
+    "h^-1": 1.0 / 3600.0,
+    "hr^-1": 1.0 / 3600.0,
+    "1/h": 1.0 / 3600.0,
+    "1/hr": 1.0 / 3600.0,
+}
+
+_ON_RATE_FACTORS_TO_PER_M_PER_SEC: dict[str, float] = {
+    "M^-1 s^-1": 1.0,
+    "M-1 s-1": 1.0,
+    "M^-1*s^-1": 1.0,
+    "1/Ms": 1.0,
+    "1/M*s": 1.0,
+    "1/(M*s)": 1.0,
+    "mM^-1 s^-1": 1e3,
+    "uM^-1 s^-1": 1e6,
+    "µM^-1 s^-1": 1e6,
+    "nM^-1 s^-1": 1e9,
 }
 
 _STUDY_POOL_PROVENANCES: frozenset[str] = frozenset(
@@ -386,6 +421,12 @@ def qualify_binding_measurements(df: pd.DataFrame) -> pd.DataFrame:
         elif family == "thermal_stability":
             canonical_unit = "celsius"
             factor_table = _TEMP_FACTORS_TO_CELSIUS
+        elif family == "off_rate":
+            canonical_unit = "s^-1"
+            factor_table = _OFF_RATE_FACTORS_TO_PER_SEC
+        elif family == "on_rate":
+            canonical_unit = "M^-1 s^-1"
+            factor_table = _ON_RATE_FACTORS_TO_PER_M_PER_SEC
         else:
             canonical_unit = ""
             factor_table = None
@@ -964,13 +1005,15 @@ def prepare_stability_training_data(
     routed to ``excluded`` with ``mutant_mhc_construct_excluded`` unless
     ``allow_mutant_mhc=True``.
     """
-    invalid = set(endpoints) - set(STABILITY_ENDPOINTS)
+    invalid = set(endpoints) - set(KINETIC_STABILITY_ENDPOINTS)
     if invalid:
         raise ValueError(
-            f"Unsupported stability endpoints {sorted(invalid)}; choose from {STABILITY_ENDPOINTS}"
+            f"Unsupported stability endpoints {sorted(invalid)}; "
+            f"choose from {KINETIC_STABILITY_ENDPOINTS}"
         )
-    return _prepare_quantitative_binding_task(
-        source,
+    raw_df, _ = _load_source_frame(source, default_evidence_kind="binding")
+    selection = _prepare_quantitative_binding_task(
+        raw_df,
         task_name="mhc_stability",
         allowed_endpoints=tuple(endpoints),
         blank_inequality_policy=blank_inequality_policy,
@@ -984,6 +1027,102 @@ def prepare_stability_training_data(
         min_peptide_length=min_peptide_length,
         max_peptide_length=max_peptide_length,
         require_positive_values=False,
+    )
+    from .stability_context import STABILITY_COVARIATE_COLUMNS, extract_biophysical_covariates
+
+    acc = selection.accepted.copy()
+    if acc.empty:
+        for col in STABILITY_COVARIATE_COLUMNS:
+            acc[col] = pd.Series(
+                dtype="string" if col in {"assay_protocol", "catalyst_context"} else "float64"
+            )
+    else:
+        raw_lookup: dict[str, tuple[str, str]] = {}
+        if "evidence_row_id" in raw_df.columns:
+            c_col = (
+                raw_df["assay_comments"].astype("string").fillna("").tolist()
+                if "assay_comments" in raw_df.columns
+                else [""] * len(raw_df)
+            )
+            s_col = (
+                raw_df["source"].astype("string").fillna("").tolist()
+                if "source" in raw_df.columns
+                else [""] * len(raw_df)
+            )
+            for rid, cm, sc in zip(
+                raw_df["evidence_row_id"].astype("string").fillna("").tolist(), c_col, s_col
+            ):
+                if rid and rid not in raw_lookup:
+                    raw_lookup[rid] = (cm, sc)
+
+        methods = (
+            acc["assay_method"].astype("string").fillna("").tolist()
+            if "assay_method" in acc.columns
+            else [""] * len(acc)
+        )
+        resps = (
+            acc["response_measured"].astype("string").fillna("").tolist()
+            if "response_measured" in acc.columns
+            else [""] * len(acc)
+        )
+        row_ids = (
+            acc["evidence_row_id"].astype("string").fillna("").tolist()
+            if "evidence_row_id" in acc.columns
+            else [""] * len(acc)
+        )
+        classes = (
+            acc["mhc_class"].astype("string").fillna("").tolist()
+            if "mhc_class" in acc.columns
+            else [""] * len(acc)
+        )
+        covs = []
+        for m, r, rid, cl in zip(methods, resps, row_ids, classes):
+            cm, sc = raw_lookup.get(rid, ("", ""))
+            covs.append(
+                extract_biophysical_covariates(
+                    assay_method=m,
+                    response_measured=r,
+                    assay_comments=cm,
+                    source=sc,
+                    mhc_class=cl,
+                )
+            )
+        acc["assay_protocol"] = pd.Series(
+            [c.assay_protocol for c in covs], index=acc.index, dtype="string"
+        )
+        acc["assay_temperature_c"] = pd.Series(
+            [
+                c.assay_temperature_c if c.assay_temperature_c is not None else math.nan
+                for c in covs
+            ],
+            index=acc.index,
+            dtype="float64",
+        )
+        acc["assay_ph"] = pd.Series(
+            [c.assay_ph if c.assay_ph is not None else math.nan for c in covs],
+            index=acc.index,
+            dtype="float64",
+        )
+        acc["catalyst_context"] = pd.Series(
+            [c.catalyst_context for c in covs], index=acc.index, dtype="string"
+        )
+        acc["assay_floor_value"] = pd.Series(
+            [c.assay_floor_value if c.assay_floor_value is not None else math.nan for c in covs],
+            index=acc.index,
+            dtype="float64",
+        )
+        acc["assay_ceiling_value"] = pd.Series(
+            [
+                c.assay_ceiling_value if c.assay_ceiling_value is not None else math.nan
+                for c in covs
+            ],
+            index=acc.index,
+            dtype="float64",
+        )
+    return TrainingTableSelection(
+        accepted=acc,
+        excluded=selection.excluded,
+        summary=selection.summary,
     )
 
 
