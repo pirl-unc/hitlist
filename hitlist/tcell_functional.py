@@ -19,7 +19,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from .curation_yaml import load_curation_yaml
-from .tcell_assays import CATALOG_PATH, EXPORT_COLUMNS
+from .tcell_assays import CATALOG_PATH, EXPORT_COLUMNS, SOURCE_VERIFICATION_MODES
 from .tcell_peptides import iter_human_direct_peptide_tcell_assays
 
 FUNCTIONAL_FAMILIES = frozenset(
@@ -41,7 +41,13 @@ FUNCTIONAL_SCHEMA = pa.schema(
 
 
 def iter_human_tcell_functional_assays(
-    *, iedb_path=None, cedar_path=None, data_root=None, catalog_path=None
+    *,
+    iedb_path=None,
+    cedar_path=None,
+    data_root=None,
+    catalog_path=None,
+    source_verification_mode: str = "pinned",
+    reconciliation_out: dict | None = None,
 ) -> Iterator[dict]:
     """Yield directly tested human-origin peptides with cellular outcomes.
 
@@ -57,6 +63,8 @@ def iter_human_tcell_functional_assays(
         cedar_path=cedar_path,
         data_root=data_root,
         catalog_path=catalog_path,
+        source_verification_mode=source_verification_mode,
+        reconciliation_out=reconciliation_out,
     ):
         assay = row.copy()
         assay["response_observed"] = assay.pop("qualitative_signal_observed")
@@ -71,6 +79,7 @@ def write_human_tcell_functional_assays(
     data_root=None,
     catalog_path=None,
     batch_size=25000,
+    source_verification_mode: str = "pinned",
 ) -> dict:
     """Write a local Parquet table and source manifest atomically."""
     if batch_size < 1:
@@ -80,6 +89,7 @@ def write_human_tcell_functional_assays(
         raise FileExistsError(destination)
     destination.parent.mkdir(parents=True, exist_ok=True)
     catalog = load_curation_yaml(catalog_path or CATALOG_PATH)
+    reconciliation: dict = {}
     with tempfile.TemporaryDirectory(prefix=f".{destination.name}-", dir=destination.parent) as tmp:
         staging = Path(tmp)
         table_path = staging / "assays.parquet"
@@ -92,6 +102,8 @@ def write_human_tcell_functional_assays(
                 cedar_path=cedar_path,
                 data_root=data_root,
                 catalog_path=catalog_path,
+                source_verification_mode=source_verification_mode,
+                reconciliation_out=reconciliation,
             ):
                 batch.append(row)
                 counts["n_assays"] += 1
@@ -111,7 +123,12 @@ def write_human_tcell_functional_assays(
         manifest = {
             "schema_version": 1,
             "source_observed": catalog["observed"],
-            "sources": catalog["files"],
+            "sources": (
+                reconciliation["actual_sources"]
+                if source_verification_mode == "reconcile"
+                else catalog["files"]
+            ),
+            "source_verification_mode": source_verification_mode,
             "n_assays": counts["n_assays"],
             "n_cedar_assays": counts["n_cedar_assays"],
             "n_assays_with_experimental_restriction_evidence": counts[
@@ -122,6 +139,8 @@ def write_human_tcell_functional_assays(
             "restriction_policy": "reported_name_with_separate_experimental_evidence_status",
             "independence_policy": "study_id_available_specimen_id_unknown",
         }
+        if source_verification_mode == "reconcile":
+            manifest["source_reconciliation"] = reconciliation
         (staging / "manifest.json").write_text(
             json.dumps(manifest, indent=2, sort_keys=True) + "\n"
         )
@@ -141,9 +160,17 @@ def main():
     parser.add_argument("output_dir", type=Path)
     parser.add_argument("--iedb", type=Path)
     parser.add_argument("--cedar", type=Path)
+    parser.add_argument(
+        "--verification-mode",
+        choices=sorted(SOURCE_VERIFICATION_MODES),
+        default="pinned",
+    )
     args = parser.parse_args()
     manifest = write_human_tcell_functional_assays(
-        args.output_dir, iedb_path=args.iedb, cedar_path=args.cedar
+        args.output_dir,
+        iedb_path=args.iedb,
+        cedar_path=args.cedar,
+        source_verification_mode=args.verification_mode,
     )
     print(
         json.dumps(

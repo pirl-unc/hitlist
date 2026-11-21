@@ -14,7 +14,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from .curation_yaml import load_curation_yaml
-from .tcell_assays import CATALOG_PATH
+from .tcell_assays import CATALOG_PATH, SOURCE_VERIFICATION_MODES
 from .tcell_functional import FUNCTIONAL_SCHEMA, write_human_tcell_functional_assays
 from .tcell_multimer import MULTIMER_SCHEMA, write_human_tcell_multimer_assays
 from .version import __version__
@@ -190,6 +190,7 @@ def _write_training_bundle(
     data_root=None,
     catalog_path=None,
     batch_size=25000,
+    source_verification_mode: str = "pinned",
 ) -> dict:
     """Write source evidence, typed training rows, exclusions and manifest."""
     if batch_size < 1:
@@ -207,6 +208,7 @@ def _write_training_bundle(
             data_root=data_root,
             catalog_path=catalog_path,
             batch_size=batch_size,
+            source_verification_mode=source_verification_mode,
         )
         training_path = staging / "training.parquet"
         excluded_path = staging / "excluded.parquet"
@@ -294,6 +296,7 @@ def _write_training_bundle(
             "format": format_name,
             "schema_version": 1,
             "hitlist_version": __version__,
+            "source_verification_mode": source_verification_mode,
             "parquet_batch_size": batch_size,
             "evidence_manifest": evidence_manifest,
             "files": files,
@@ -310,6 +313,8 @@ def _write_training_bundle(
             "mhc_policy": "single_hla_experimental_evidence_candidate_only",
             "split_policy": "unsplit_study_group_available_specimen_unknown",
         }
+        if source_verification_mode == "reconcile" and "source_reconciliation" in evidence_manifest:
+            manifest["source_reconciliation"] = evidence_manifest["source_reconciliation"]
         (staging / "manifest.json").write_text(
             json.dumps(manifest, indent=2, sort_keys=True) + "\n"
         )
@@ -326,6 +331,7 @@ def write_human_tcell_training_bundle(
     data_root=None,
     catalog_path=None,
     batch_size=25000,
+    source_verification_mode: str = "pinned",
 ) -> dict:
     """Write a human peptide assay bundle for ``functional`` or ``multimer``."""
     if task not in {"functional", "multimer"}:
@@ -346,6 +352,7 @@ def write_human_tcell_training_bundle(
         data_root=data_root,
         catalog_path=catalog_path,
         batch_size=batch_size,
+        source_verification_mode=source_verification_mode,
     )
 
 
@@ -357,6 +364,7 @@ def write_human_tcell_multimer_training_bundle(
     data_root=None,
     catalog_path=None,
     batch_size=25000,
+    source_verification_mode: str = "pinned",
 ) -> dict:
     """Write a distinct qualitative multimer cell-binding training bundle."""
     return write_human_tcell_training_bundle(
@@ -367,6 +375,7 @@ def write_human_tcell_multimer_training_bundle(
         data_root=data_root,
         catalog_path=catalog_path,
         batch_size=batch_size,
+        source_verification_mode=source_verification_mode,
     )
 
 
@@ -380,8 +389,20 @@ def _verify_training_bundle(
         raise ValueError("Unknown T-cell training bundle format")
     catalog = load_curation_yaml(catalog_path or CATALOG_PATH)
     evidence = manifest["evidence_manifest"]
-    if evidence["sources"] != catalog["files"]:
-        raise ValueError("T-cell source pins differ from the catalog")
+    verification_mode = manifest.get(
+        "source_verification_mode", evidence.get("source_verification_mode", "pinned")
+    )
+    if verification_mode == "pinned":
+        if evidence["sources"] != catalog["files"]:
+            raise ValueError("T-cell source pins differ from the catalog")
+    elif verification_mode == "reconcile":
+        reconciliation = evidence.get("source_reconciliation")
+        if not isinstance(reconciliation, dict) or evidence["sources"] != reconciliation.get(
+            "actual_sources"
+        ):
+            raise ValueError("Reconciled T-cell bundle missing matching source_reconciliation")
+    else:
+        raise ValueError(f"Unknown T-cell source_verification_mode: {verification_mode}")
     if json.loads((root / "evidence" / "manifest.json").read_text()) != evidence:
         raise ValueError("Evidence manifest differs from bundle receipt")
     expected_files = {
@@ -500,9 +521,18 @@ def main():
     parser.add_argument("--task", choices=("functional", "multimer"), default="functional")
     parser.add_argument("--iedb", type=Path)
     parser.add_argument("--cedar", type=Path)
+    parser.add_argument(
+        "--verification-mode",
+        choices=sorted(SOURCE_VERIFICATION_MODES),
+        default="pinned",
+    )
     args = parser.parse_args()
     manifest = write_human_tcell_training_bundle(
-        args.output_dir, task=args.task, iedb_path=args.iedb, cedar_path=args.cedar
+        args.output_dir,
+        task=args.task,
+        iedb_path=args.iedb,
+        cedar_path=args.cedar,
+        source_verification_mode=args.verification_mode,
     )
     print(
         json.dumps(

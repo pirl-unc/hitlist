@@ -419,7 +419,11 @@ def _write_tcell_rows(assets, typed):
                     _source_digest(row, iedb_shared_positions),
                 ):
                     raise ValueError(f"IEDB/CEDAR full-field mismatch: {assay_id}")
-                family = assay_family(get("Assay | Method"), get("Assay | Response measured"))
+                family = assay_family(
+                    get("Assay | Method"),
+                    get("Assay | Response measured"),
+                    separate_biophysics=False,
+                )
                 family_counts[family] += 1
                 mhc_name = get("MHC Restriction | Name")
                 resolution = (
