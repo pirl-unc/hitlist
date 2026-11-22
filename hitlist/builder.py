@@ -838,14 +838,27 @@ def build_observations(
         print("\nUse --force to rebuild.")
         return _observations_path()
 
+    # Resolve symlinks upfront before hashing multi-GB inputs so broken or non-regular
+    # targets fail immediately and datacache.materialize() (O_NOFOLLOW) receives regular
+    # file paths (#954). Keep original registered paths for freshness fingerprints/metadata.
+    resolved_paths: dict[str, Path] = {}
+    for name, path in paths.items():
+        resolved = Path(path).resolve(strict=True)
+        if not resolved.is_file():
+            raise ValueError(
+                f"Registered source {name!r} at {path} resolved to {resolved}, "
+                "which is not a regular file"
+            )
+        resolved_paths[name] = resolved
+
     fingerprints = _source_fingerprints(paths)
     sources = {
         name: {
-            "path": str(path),
-            "sha256": (digest := file_digest(path))["sha256"],
+            "path": str(resolved),
+            "sha256": (digest := file_digest(resolved))["sha256"],
             "size": digest["size_bytes"],
         }
-        for name, path in paths.items()
+        for name, resolved in resolved_paths.items()
     }
 
     def build(copied_paths):
