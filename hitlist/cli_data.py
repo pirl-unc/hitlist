@@ -30,6 +30,7 @@ from .cli_common import print_subgroup_help
 from .downloads import (
     DATA_DIR_ENV_VAR,
     DATASET_CATEGORIES,
+    OPENVAX_DATA_CACHE_ENV_VAR,
     available_dataset_catalog,
     available_datasets,
     data_asset_dir,
@@ -38,9 +39,11 @@ from .downloads import (
     info,
     list_cache_files,
     preflight,
+    prune_cache_bundles,
     refresh,
     remove,
     resolve_data_dir,
+    verify_cache_files,
 )
 from .downloads import (
     register as register_dataset,
@@ -117,6 +120,7 @@ def _dir_summary(path: Path) -> str:
 _DATA_DIR_ORIGIN_LABELS = {
     "override": "set_data_dir()",
     "env": f"${DATA_DIR_ENV_VAR}",
+    "openvax_env": f"${OPENVAX_DATA_CACHE_ENV_VAR}",
     "legacy": "legacy ~/.hitlist, still supported",
     "default": "datacache default",
 }
@@ -286,17 +290,68 @@ def _data_fetch(args: argparse.Namespace) -> None:
     if args.dry_run:
         print(json.dumps(preflight(args.name, force=args.force), indent=2))
         return
-    print(f"Ready: {fetch(args.name, force=args.force)}")
+    offline = True if getattr(args, "offline", False) else None
+    print(f"Ready: {fetch(args.name, force=args.force, offline=offline)}")
 
 
 def _data_fetch_all(args: argparse.Namespace) -> None:
     from .downloads import fetch_all_data_assets
 
-    fetch_all_data_assets(force=args.force)
+    offline = True if getattr(args, "offline", False) else None
+    fetch_all_data_assets(force=args.force, offline=offline)
 
 
 def _data_refresh(args: argparse.Namespace) -> None:
-    print(f"Refreshed: {refresh(args.name)}")
+    offline = True if getattr(args, "offline", False) else None
+    print(f"Refreshed: {refresh(args.name, offline=offline)}")
+
+
+def _data_verify(args: argparse.Namespace) -> None:
+    report = verify_cache_files(include_unregistered=getattr(args, "all", False))
+    if getattr(args, "json", False):
+        print(json.dumps(report, indent=2))
+    else:
+        print(
+            f"Verified {report['n_verified']} of {report['n_files']} cache file(s) "
+            f"({report['n_failed']} failed)."
+        )
+        for row in report["files"]:
+            if row["status"] in ("corrupt", "invalid", "inaccessible") or (
+                row["status"] == "missing" and "registered dataset" in row.get("kinds", [])
+            ):
+                err = f" — {row['error']}" if row.get("error") else ""
+                print(f"  FAIL [{row['status']}] {row['path']}{err}")
+    if not report["ok"]:
+        sys.exit(1)
+
+
+def _data_prune(args: argparse.Namespace) -> None:
+    report = prune_cache_bundles(keep=args.keep, apply=args.yes)
+    if getattr(args, "json", False):
+        print(json.dumps(report, indent=2))
+        return
+    if report["n_prunable_bundles"] == 0:
+        print(
+            f"Nothing to prune under {report['root']} (keeping {report['keep']} bundle(s) per store)."
+        )
+        return
+    if report["dry_run"]:
+        print(
+            f"Dry run: would prune {report['n_prunable_bundles']} old bundle(s) "
+            f"across {report['n_stores']} store(s), reclaiming {_fmt_size(report['reclaimable_bytes'])}."
+        )
+        for store in report["stores"]:
+            for bundle in store["prunable_bundles"]:
+                print(f"  would delete: {bundle}")
+        print("Re-run with --yes to delete.")
+    else:
+        print(
+            f"Pruned {report['n_deleted_bundles']} old bundle(s) "
+            f"across {report['n_stores']} store(s), reclaiming {_fmt_size(report['reclaimable_bytes'])}."
+        )
+        for store in report["stores"]:
+            for bundle in store["deleted_bundles"]:
+                print(f"  deleted: {bundle}")
 
 
 def _data_info(args: argparse.Namespace) -> None:
@@ -395,15 +450,47 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
         action="store_true",
         help="Print where the file would land, its expected size and free space; download nothing",
     )
+    p.add_argument(
+        "--offline",
+        action="store_true",
+        help="Fail instead of downloading if the dataset is not already cached",
+    )
 
     p = ds.add_parser(
         "fetch-all",
         help="Fetch ALL mirrored data-asset CSVs (paper-derived) into the cache dir",
     )
     p.add_argument("--force", "-f", action="store_true", help="Re-download even if cached")
+    p.add_argument(
+        "--offline",
+        action="store_true",
+        help="Fail instead of downloading any uncached mirrored assets",
+    )
 
     p = ds.add_parser("refresh", help="Re-download a fetchable dataset")
     p.add_argument("name", help="Dataset name")
+    p.add_argument(
+        "--offline",
+        action="store_true",
+        help="Fail instead of downloading (refresh always requires network)",
+    )
+
+    p = ds.add_parser("verify", help="Verify integrity and checksums of cached datasets")
+    p.add_argument("--all", action="store_true", help="Inspect unregistered cache files as well")
+    p.add_argument("--json", action="store_true", help="Print verification report as JSON")
+
+    p = ds.add_parser(
+        "prune",
+        help="Prune superseded datacache bundle generations (dry-run by default)",
+    )
+    p.add_argument(
+        "--keep",
+        type=int,
+        default=1,
+        help="Number of newest bundle generations to keep per store (default: 1)",
+    )
+    p.add_argument("--yes", action="store_true", help="Actually delete old bundle generations")
+    p.add_argument("--json", action="store_true", help="Print prune plan/result as JSON")
 
     p = ds.add_parser("info", help="Detailed metadata for a dataset")
     p.add_argument("name", help="Dataset name")
@@ -449,6 +536,8 @@ def _handle_data(args: argparse.Namespace) -> None:
         "fetch": _data_fetch,
         "fetch-all": _data_fetch_all,
         "refresh": _data_refresh,
+        "verify": _data_verify,
+        "prune": _data_prune,
         "info": _data_info,
         "path": _data_path,
         "remove": _data_remove,

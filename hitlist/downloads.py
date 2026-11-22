@@ -77,6 +77,7 @@ from .errors import (
     HitlistError,
     InsufficientSpaceError,
     IntegrityError,
+    OfflineError,
 )
 
 # Socket inactivity bound; mapping prefetch separately enforces a wall-clock
@@ -110,6 +111,39 @@ def _typed_download_errors(url: str):
         raise DownloadError(f"Failed to download {url}: {error}") from error
 
 
+OPENVAX_OFFLINE_ENV_VAR = "OPENVAX_OFFLINE"
+DATACACHE_OFFLINE_ENV_VAR = "DATACACHE_OFFLINE"
+_OFFLINE_TRUTHY = frozenset({"1", "true", "yes", "on"})
+_offline_override: bool | None = None
+
+
+def set_offline(enabled: bool | None) -> None:
+    """Enable, disable, or clear (``None``) process-wide offline mode (#960)."""
+    global _offline_override
+    _offline_override = None if enabled is None else bool(enabled)
+
+
+def is_offline(*, offline: bool | None = None) -> bool:
+    """Return True when network downloads are blocked via ``--offline``, ``OPENVAX_OFFLINE``, or ``DATACACHE_OFFLINE`` (#960)."""
+    if offline is not None:
+        return bool(offline)
+    if _offline_override is not None:
+        return _offline_override
+    for var in (OPENVAX_OFFLINE_ENV_VAR, DATACACHE_OFFLINE_ENV_VAR):
+        raw = os.environ.get(var, "").strip().lower()
+        if raw in _OFFLINE_TRUTHY:
+            return True
+    return False
+
+
+def _require_online(target: str, *, offline: bool | None = None) -> None:
+    if is_offline(offline=offline):
+        raise OfflineError(
+            f"Offline mode is enabled ({OPENVAX_OFFLINE_ENV_VAR}/{DATACACHE_OFFLINE_ENV_VAR}/--offline); "
+            f"refusing to download {target}"
+        )
+
+
 def download_to_file(
     url: str,
     dest: Path | str,
@@ -121,6 +155,7 @@ def download_to_file(
     expected_sha256: str | None = None,
     expected_size: int | None = None,
     resume: bool = False,
+    offline: bool | None = None,
 ) -> Path:
     """Fetch into the existing cache path using datacache's atomic downloader.
 
@@ -136,6 +171,8 @@ def download_to_file(
     dest = Path(dest)
     name = label or dest.name
     cached = dest.exists() and not force
+    if not cached:
+        _require_online(f"{name} from {url}", offline=offline)
     if verbose and not cached:
         print(f"  [{name}] downloading from {url}", file=sys.stderr)
     # Preserve hitlist's literal-URL opt-in, including query-bearing endpoints
@@ -191,18 +228,21 @@ _LEGACY_DATA_DIR_NAME = ".hitlist"
 #: Every value :func:`data_dir_origin` can return, in priority order.  The CLI
 #: renders one label per origin and a drift guard asserts it covers this tuple,
 #: so adding a rule here fails loudly instead of printing a bare token.
-DATA_DIR_ORIGINS = ("override", "env", "legacy", "default")
+DATA_DIR_ORIGINS = ("override", "env", "openvax_env", "legacy", "default")
 
 #: Environment variable that relocates :func:`data_dir`.
 DATA_DIR_ENV_VAR = "HITLIST_DATA_DIR"
+
+#: Ecosystem-wide cache root honored as a fallback when HITLIST_DATA_DIR is unset (#960).
+OPENVAX_DATA_CACHE_ENV_VAR = "OPENVAX_DATA_CACHE"
 
 _override_data_dir: Path | None = None
 
 #: Memoized ``{resolution inputs: (path, origin)}``.  ``data_dir()`` is called
 #: thousands of times per process and rule 3 costs a directory scan, so the
-#: answer is cached under the three inputs that can change it — all of them
+#: answer is cached under the inputs that can change it — all of them
 #: in-process lookups, no syscalls.  See :func:`reset_data_dir_cache`.
-_data_dir_cache: dict[tuple[str | None, str, str], tuple[Path, str]] = {}
+_data_dir_cache: dict[tuple[str | None, str, str, str], tuple[Path, str]] = {}
 
 #: Cap on the memo above, which is keyed on environment values.
 _DATA_DIR_CACHE_MAX_ENTRIES = 32
@@ -296,15 +336,22 @@ def legacy_data_dir_is_populated() -> bool:
     )
 
 
-def data_asset_dir() -> Path:
-    """Directory :func:`fetch_data_asset` caches mirrored data assets in (#303).
+def _resolve_openvax_cache_dir() -> Path | None:
+    """``$OPENVAX_DATA_CACHE/hitlist`` when set, else ``None`` (#960)."""
+    raw = os.environ.get(OPENVAX_DATA_CACHE_ENV_VAR, "").strip()
+    return Path(raw).expanduser() / "hitlist" if raw else None
 
-    This is datacache's own cache dir for the ``hitlist`` subdir, asked of
-    datacache so it cannot drift from what ``datacache.fetch_file`` actually
-    writes to.  datacache resolves a fetch destination with no ``envkey`` (see
-    ``datacache.expected_path``), so — unlike :func:`data_dir` — this one is
-    *not* moved by ``$HITLIST_DATA_DIR``.
+
+def data_asset_dir() -> Path:
+    """Directory :func:`fetch_data_asset` caches mirrored data assets in (#303, #960).
+
+    Honors ``$OPENVAX_DATA_CACHE/hitlist`` when set so HPC users redirecting the
+    shared OpenVax cache do not spill mirrored CSVs into ``~/.cache/hitlist``;
+    otherwise delegates to ``datacache.get_data_dir("hitlist")``.
     """
+    openvax = _resolve_openvax_cache_dir()
+    if openvax is not None:
+        return openvax
     from datacache import get_data_dir
 
     return Path(get_data_dir("hitlist"))
@@ -351,6 +398,7 @@ def resolve_data_dir() -> tuple[Path, str]:
     key = (
         str(_override_data_dir) if _override_data_dir is not None else None,
         os.environ.get(DATA_DIR_ENV_VAR, ""),
+        os.environ.get(OPENVAX_DATA_CACHE_ENV_VAR, ""),
         os.path.expanduser("~"),
     )
     cached = _data_dir_cache.get(key)
@@ -362,6 +410,8 @@ def resolve_data_dir() -> tuple[Path, str]:
         env = _resolve_env_data_dir()
         if env is not None:
             resolved = (env, "env")
+        elif (openvax := _resolve_openvax_cache_dir()) is not None:
+            resolved = (openvax, "openvax_env")
         elif legacy_data_dir_is_populated():
             resolved = (legacy_data_dir(), "legacy")
         else:
@@ -1257,11 +1307,17 @@ class _ExternalDataAssetsView:
 EXTERNAL_DATA_ASSETS = _ExternalDataAssetsView()
 
 
-def fetch_data_asset(filename: str, *, force: bool = False, verbose: bool = True) -> Path:
-    """Fetch a mirrored data asset into the datacache cache dir (#303).
+def fetch_data_asset(
+    filename: str,
+    *,
+    force: bool = False,
+    verbose: bool = True,
+    offline: bool | None = None,
+) -> Path:
+    """Fetch a mirrored data asset into the datacache cache dir (#303, #960).
 
     Uses ``datacache.fetch_file`` (openvax ecosystem cache; #291) so the file is
-    stored under ``datacache.get_data_dir('hitlist')`` and reused across runs.
+    stored under ``data_asset_dir()`` and reused across runs.
 
     datacache verifies the registry's size and SHA-256 before publication and on
     reuse, bounds socket inactivity, resumes interrupted raw HTTP transfers, and
@@ -1275,28 +1331,35 @@ def fetch_data_asset(filename: str, *, force: bool = False, verbose: bool = True
     meta = assets[filename]
     dest = data_asset_dir() / filename
     if force or not dest.exists():
+        _require_online(filename, offline=offline)
         _ensure_enough_space(filename, preflight(filename, force=True))
     if verbose:
         print(f"Fetching {filename} ({meta['source']}) via datacache...", file=sys.stderr)
+    fetch_kwargs: dict[str, Any] = {
+        "force": force,
+        "timeout": _DOWNLOAD_SOCKET_TIMEOUT,
+        "expected_sha256": meta["sha256"],
+        "expected_size": meta["size_bytes"],
+        "raw": True,
+        "resume": os.name == "posix",
+        "record_provenance": True,
+        "show_progress": verbose,
+    }
+    if _resolve_openvax_cache_dir() is not None:
+        fetch_kwargs["destination"] = dest
+    else:
+        fetch_kwargs["filename"] = filename
+        fetch_kwargs["subdir"] = "hitlist"
     with _typed_download_errors(meta["url"]):
-        return Path(
-            datacache.fetch_file(
-                meta["url"],
-                filename=filename,
-                subdir="hitlist",
-                force=force,
-                timeout=_DOWNLOAD_SOCKET_TIMEOUT,
-                expected_sha256=meta["sha256"],
-                expected_size=meta["size_bytes"],
-                raw=True,
-                resume=os.name == "posix",
-                record_provenance=True,
-                show_progress=verbose,
-            )
-        )
+        return Path(datacache.fetch_file(meta["url"], **fetch_kwargs))
 
 
-def fetch_all_data_assets(*, force: bool = False, verbose: bool = True) -> dict[str, Path]:
+def fetch_all_data_assets(
+    *,
+    force: bool = False,
+    verbose: bool = True,
+    offline: bool | None = None,
+) -> dict[str, Path]:
     """Fetch (and checksum-verify) EVERY mirrored data asset into the cache dir.
 
     Backs the ``hitlist data fetch-all`` command — one call to pull the complete
@@ -1313,7 +1376,12 @@ def fetch_all_data_assets(*, force: bool = False, verbose: bool = True) -> dict[
         if verbose:
             print(f"[{i}/{len(assets)}] {filename}", file=sys.stderr)
         try:
-            out[filename] = fetch_data_asset(filename, force=force, verbose=verbose)
+            if offline is None:
+                out[filename] = fetch_data_asset(filename, force=force, verbose=verbose)
+            else:
+                out[filename] = fetch_data_asset(
+                    filename, force=force, verbose=verbose, offline=offline
+                )
         except HitlistError as error:
             failures[filename] = error
             print(f"  FAILED {filename}: {error}", file=sys.stderr)
@@ -1325,6 +1393,12 @@ def fetch_all_data_assets(*, force: bool = False, verbose: bool = True) -> dict[
             file=sys.stderr,
         )
     if failures:
+        if all(isinstance(err, OfflineError) for err in failures.values()):
+            first_err = next(iter(failures.values()))
+            raise OfflineError(
+                f"Offline mode blocked {len(failures)} of {len(assets)} data assets: "
+                + ", ".join(list(failures)[:5])
+            ) from first_err
         listing = "; ".join(f"{name} ({error})" for name, error in failures.items())
         print(f"{len(failures)} of {len(assets)} assets failed.", file=sys.stderr)
         raise DownloadError(f"{len(failures)} of {len(assets)} data assets failed: {listing}")
@@ -1451,7 +1525,7 @@ def _ensure_enough_space(name: str, plan: dict) -> None:
         )
 
 
-def fetch(name: str, force: bool = False) -> Path:
+def fetch(name: str, force: bool = False, *, offline: bool | None = None) -> Path:
     """Download a fetchable dataset."""
     if name == "depmap":
         from .builder import build_line_expression
@@ -1459,7 +1533,7 @@ def fetch(name: str, force: bool = False) -> Path:
         for key in _DEPMAP_FILES:
             if not force and _depmap_file_is_registered(key):
                 continue
-            fetch(key, force=force)
+            fetch(key, force=force, offline=offline)
         build_line_expression(verbose=True)
         from .line_expression import line_expression_path
 
@@ -1468,10 +1542,18 @@ def fetch(name: str, force: bool = False) -> Path:
         return output
     if name not in FETCHABLE_DATASETS:
         if name in data_assets():
-            return fetch_data_asset(name, force=force)
+            asset_dest = data_asset_dir() / name
+            if force or not asset_dest.exists():
+                _require_online(name, offline=offline)
+            if offline is None:
+                return fetch_data_asset(name, force=force)
+            return fetch_data_asset(name, force=force, offline=offline)
         from ._dataset_catalog import fetch_managed, get_managed_dataset
 
-        if get_managed_dataset(name) is not None:
+        managed = get_managed_dataset(name)
+        if managed is not None:
+            if force or not managed.exists_fn():
+                _require_online(name, offline=offline)
             return fetch_managed(name, force=force)
         raise _unfetchable(name)
 
@@ -1493,6 +1575,7 @@ def fetch(name: str, force: bool = False) -> Path:
         print(f"  [{name}] cached file rejected ({problem}); re-downloading", file=sys.stderr)
         force = True
 
+    _require_online(name, offline=offline)
     if entry is not None and not Path(entry["path"]).exists():
         print(
             f"  [{name}] registered file {entry['path']} is missing; downloading again",
@@ -1509,15 +1592,16 @@ def fetch(name: str, force: bool = False) -> Path:
     # decompress=True unzips/gunzips the IEDB/CEDAR archives into their CSV; it
     # is a no-op for the plain-FASTA viral proteomes (download_to_file only
     # decompresses when the URL is a .zip/.gz the dest filename doesn't carry).
-    download_to_file(
-        ds["url"],
-        dest,
-        label=name,
-        force=force,
-        decompress=True,
-        expected_sha256=ds.get("expected_sha256"),
-        expected_size=ds.get("expected_size"),
-    )
+    download_kwargs: dict[str, Any] = {
+        "label": name,
+        "force": force,
+        "decompress": True,
+        "expected_sha256": ds.get("expected_sha256"),
+        "expected_size": ds.get("expected_size"),
+    }
+    if offline is not None:
+        download_kwargs["offline"] = offline
+    download_to_file(ds["url"], dest, **download_kwargs)
     size = dest.stat().st_size
     if size < ds["min_size_bytes"]:
         # Drop it so a later cache hit cannot mistake the empty body for good data.
@@ -1976,9 +2060,109 @@ def available_datasets() -> dict[str, str]:
     }
 
 
-def refresh(name: str) -> Path:
+def refresh(name: str, *, offline: bool | None = None) -> Path:
     """Re-download a fetchable dataset."""
-    return fetch(name, force=True)
+    return fetch(name, force=True, offline=offline)
+
+
+def verify_cache_files(*, include_unregistered: bool = False) -> dict[str, Any]:
+    """Verify cached/registered files and trusted mirrored-asset hashes (#960)."""
+    rows = list_cache_files(verify=True, include_unregistered=include_unregistered)
+    failed_rows = [
+        row
+        for row in rows
+        if row["status"] in ("corrupt", "invalid", "inaccessible")
+        or (row["status"] == "missing" and "registered dataset" in row.get("kinds", []))
+    ]
+    verified_rows = [row for row in rows if row.get("verified")]
+    return {
+        "ok": len(failed_rows) == 0,
+        "n_files": len(rows),
+        "n_verified": len(verified_rows),
+        "n_failed": len(failed_rows),
+        "files": rows,
+    }
+
+
+def _tree_size_bytes(path: Path) -> int:
+    total = 0
+    for dirpath, _dirnames, filenames in os.walk(path):
+        for fname in filenames:
+            with contextlib.suppress(OSError):
+                total += (Path(dirpath) / fname).stat().st_size
+    return total
+
+
+def prune_cache_bundles(
+    *,
+    keep: int = 1,
+    apply: bool = False,
+    root: str | Path | None = None,
+) -> dict[str, Any]:
+    """Plan or execute pruning of superseded datacache bundle generations (#960).
+
+    Defaults to dry-run (``apply=False``). When ``apply=True``, invokes
+    ``datacache.prune_bundles(store_path, keep=keep)`` under each store's lock.
+    """
+    if isinstance(keep, bool) or not isinstance(keep, int) or keep < 1:
+        raise ValueError("keep must be a positive integer; the current bundle is always kept")
+
+    import datacache
+
+    base = Path(root) if root is not None else data_dir()
+    candidate_stores: list[Path] = []
+    if base.is_dir():
+        for child in sorted(base.iterdir()):
+            if child.is_dir() and not child.name.startswith("."):
+                try:
+                    bundles = datacache.list_bundles(child)
+                except Exception:
+                    bundles = []
+                if bundles:
+                    candidate_stores.append(child)
+
+    stores_report: list[dict[str, Any]] = []
+    total_prunable = 0
+    total_deleted = 0
+    total_reclaimable_bytes = 0
+
+    for store_path in candidate_stores:
+        bundles = [Path(b) for b in datacache.list_bundles(store_path)]
+        prunable = bundles[:-keep]
+        kept = bundles[-keep:]
+        store_reclaimable = sum(_tree_size_bytes(b) for b in prunable)
+        total_prunable += len(prunable)
+        total_reclaimable_bytes += store_reclaimable
+
+        deleted_paths: list[str] = []
+        if apply and prunable:
+            deleted_paths = [str(p) for p in datacache.prune_bundles(store_path, keep=keep)]
+            total_deleted += len(deleted_paths)
+
+        stores_report.append(
+            {
+                "store": str(store_path),
+                "n_bundles": len(bundles),
+                "n_kept": len(kept),
+                "n_prunable": len(prunable),
+                "n_deleted": len(deleted_paths),
+                "reclaimable_bytes": store_reclaimable,
+                "kept_bundles": [str(b) for b in kept],
+                "prunable_bundles": [str(b) for b in prunable],
+                "deleted_bundles": deleted_paths,
+            }
+        )
+
+    return {
+        "dry_run": not apply,
+        "keep": keep,
+        "root": str(base),
+        "n_stores": len(stores_report),
+        "n_prunable_bundles": total_prunable,
+        "n_deleted_bundles": total_deleted,
+        "reclaimable_bytes": total_reclaimable_bytes,
+        "stores": stores_report,
+    }
 
 
 def remove(name: str, delete_file: bool = False) -> bool:
