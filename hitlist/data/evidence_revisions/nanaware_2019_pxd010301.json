@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "revision": "nanaware2019_do_pxd010301_v1",
+  "pmid": 30573663,
+  "pmcid": "PMC6398211",
+  "doi": "10.1074/mcp.RA118.000956",
+  "massive_accession": "MSV000082570",
+  "pride_accession": "PXD010301",
+  "study_label": "Nanaware 2019 — HLA-DO / H2-O editing of MHC-II immunopeptidomes",
+  "experimental_systems": {
+    "human_lg2_do_clones": {
+      "species": "Homo sapiens",
+      "cell_line": "LG-2",
+      "cell_lineage": "ebv_lcl",
+      "malignancy_status": "immortalized_nonmalignant",
+      "mhc_class": "II",
+      "mhc_allele_set": "HLA-DRA*01:01/DRB1*01:01",
+      "arms": ["lg2_wt_control", "lg2_do_deficient_ko"],
+      "separation_rule": "Must remain strictly separate from mouse_splenic_b_cells (#816)."
+    },
+    "mouse_splenic_b_cells": {
+      "species": "Mus musculus",
+      "cell_lineage": "b_cell_primary",
+      "malignancy_status": "healthy_primary",
+      "mhc_class": "II",
+      "mhc_allele_set": "H2-IAb",
+      "arms": ["mouse_b_cell_wt", "mouse_b_cell_h2o_ko"],
+      "separation_rule": "Must remain strictly separate from human_lg2_do_clones (#816)."
+    }
+  },
+  "legacy_iedb_caveat": {
+    "pmid": 30573663,
+    "status": "iedb_axis_mismatch_unresolved",
+    "note": "Legacy IEDB rows for PMID 30573663 exhibit a documented sample-axis mismatch; source qualification does not assert those ambiguous rows are resolved (#816)."
+  },
+  "massive_inventory_receipt": {
+    "accession": "MSV000082570",
+    "n_total_deposited_files": 328,
+    "parental_msf_caveat": "Three 286-294 MB MSF files are parental LG-2 only, not the WT/KO contrast panels.",
+    "wt_title_intensity_audit": {
+      "n_mztab_psm_rows": 3385,
+      "n_mztab_protein_rows": 612,
+      "n_mzidentml_identification_items": 4800,
+      "n_spectrum_results": 4751,
+      "n_positive_title_intensities": 4256,
+      "n_missing_title_intensities": 495,
+      "n_distinct_positive_values": 4080,
+      "n_shared_value_results": 349,
+      "semantics_status": "unresolved_unit_and_aggregation_semantics",
+      "aggregation_rule": "Repeated spectrum-title intensity values must not be blindly summed as independent precursor amounts (#816)."
+    }
+  },
+  "supplement_retrieval_receipts": {
+    "S10": {
+      "original_filename": "139110_1_supp_238824_pjk8j3.xlsx",
+      "intended_role": "intensity_analysis",
+      "retrieval_status": "non_oa_blocked_preserved_failure",
+      "attempted_official_routes": [
+        "EuropePMC supplementaryFiles API (returned non-OA error XML)",
+        "PMC Cloud Open Data S3 bucket (zero objects under PMC6398211 prefix)",
+        "PMC web index (anti-bot browser challenge — not bypassed)"
+      ],
+      "training_eligibility": "blocked_pending_authorized_supplement_recovery"
+    },
+    "S11": {
+      "original_filename": "139110_1_supp_238825_p9k893.xlsx",
+      "intended_role": "intensity_analysis",
+      "retrieval_status": "non_oa_blocked_preserved_failure",
+      "training_eligibility": "blocked_pending_authorized_supplement_recovery"
+    },
+    "S12": {
+      "original_filename": "139110_1_supp_238826_pvk8v3.xlsx",
+      "intended_role": "intensity_analysis",
+      "retrieval_status": "non_oa_blocked_preserved_failure",
+      "training_eligibility": "blocked_pending_authorized_supplement_recovery"
+    },
+    "S13": {
+      "original_filename": "139110_1_supp_238827_pzk8z3.xls",
+      "intended_role": "selected_isotope_standard_amounts",
+      "n_standards": 9,
+      "retrieval_status": "non_oa_blocked_preserved_failure",
+      "selection_bias_caveat": "outcome_selected_standards_unsuitable_for_unbiased_global_calibration",
+      "training_eligibility": "blocked_pending_authorized_supplement_recovery"
+    },
+    "S14": {
+      "original_filename": "139110_1_supp_238828_plk8l3.xls",
+      "intended_role": "selected_peptide_binding_measurements",
+      "retrieval_status": "non_oa_blocked_preserved_failure",
+      "training_eligibility": "blocked_pending_authorized_supplement_recovery"
+    }
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "revision": "dodm_ratio_35085787_v1",
+  "pmid": 35085787,
+  "pmcid": "PMC10329146",
+  "doi": "10.1016/j.mcpro.2022.100204",
+  "pride_accession": "PXD024392",
+  "license": "CC-BY-4.0",
+  "study_label": "Tuning DO:DM Ratios Modulates MHC Class II Immunopeptidomes (PMID 35085787)",
+  "asset": {
+    "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC10329146.1/mmc4.xlsx",
+    "filename": "PMC10329146_mmc4.xlsx",
+    "size_bytes": 7838853,
+    "sha256": "1b0b735fe1d5400651ae125b3da427d2d26004c42ecacda91029860546e5fb27",
+    "identifications_sheet": "Supp_data_MHC_peptides",
+    "quantities_sheet": "Supp_data_MHC_quant"
+  },
+  "companion_pride_assets": {
+    "mhc_file_mapping": {
+      "filename": "Mapping_MHC_files_DRDMDO.csv",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2023/10/PXD024392/Mapping_MHC_files_DRDMDO.csv",
+      "size_bytes": 2629,
+      "sha1": "5b002490f50da558c00a36974f9fa335d3c89b37"
+    },
+    "proteome_tmt_mapping": {
+      "filename": "Mapping_proteome_TMT_channels.csv",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2023/10/PXD024392/Mapping_proteome_TMT_channels.csv",
+      "size_bytes": 1476,
+      "sha1": "afded5c2758503c260dc1b2498fbd951a2968447"
+    },
+    "proteome_tmt_quant": {
+      "filename": "Protein_quant_TMT.csv",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2023/10/PXD024392/Protein_quant_TMT.csv",
+      "size_bytes": 11179807,
+      "sha1": "f7682b20caa656e0d49421672e787c01942c3da8",
+      "evidence_namespace": "whole_cell_tmt_proteome"
+    }
+  },
+  "protocol_provenance": {
+    "host_cell_line": "T2",
+    "mhc_class": "II",
+    "mhc_allele_set": "HLA-DRA*01:01/DRB1*04:01",
+    "ip_antibody": "L243 (anti-HLA-DR)",
+    "missing_value_semantics": "missing_ms1_area_not_biological_negative",
+    "ratio_gradient_caveat": "relative_do_dm_ratio_gradient_not_do_only_or_absolute_concentration",
+    "evidence_namespaces": {
+      "peptide_ms1_area": "Measured MS1 peak areas in Supp_data_MHC_quant (Dataset S3)",
+      "peptide_identifications": "PSM/peptide identifications with inline PTMs in Supp_data_MHC_peptides (Dataset S3)",
+      "whole_cell_tmt_proteome": "Whole-cell TMT protein abundance (Protein_quant_TMT.csv) — separate from MHC-II elution",
+      "plateau_imputed_cores": "PLAtEAU-derived and imputed binding-core abundances — derived, not raw MS1 peptide areas",
+      "predicted_netmhc_affinity": "Table S3 Affinity(nM) NetMHCIIpan predictions — computational only, never admitted as measured binding"
+    }
+  },
+  "conditions": {
+    "DR4": {
+      "id_sample_prefix": "T2DR4",
+      "clone_name": "T2DR4",
+      "parent_clone": "T2",
+      "dm_present": false,
+      "do_present": false,
+      "do_dm_level": "no_dm_no_do",
+      "is_doko_comparison": false,
+      "baseline_engineering": "T2_HLA-DR4"
+    },
+    "DR4DM": {
+      "id_sample_prefix": "T2DR4DM",
+      "clone_name": "T2DR4DM",
+      "parent_clone": "T2DR4",
+      "dm_present": true,
+      "do_present": false,
+      "do_dm_level": "dm_only",
+      "is_doko_comparison": false,
+      "baseline_engineering": "T2_HLA-DR4_HLA-DM"
+    },
+    "DR4DMDO+": {
+      "id_sample_prefix": "T2DR4DMDO+",
+      "clone_name": "G8",
+      "parent_clone": "T2DR4DM",
+      "dm_present": true,
+      "do_present": true,
+      "do_dm_level": "low_do_dm",
+      "is_doko_comparison": false,
+      "baseline_engineering": "T2_HLA-DR4_HLA-DM_HLA-DO"
+    },
+    "DR4DMDO++": {
+      "id_sample_prefix": "T2DR4DMDO++",
+      "clone_name": "1C3",
+      "parent_clone": "T2DR4DM",
+      "dm_present": true,
+      "do_present": true,
+      "do_dm_level": "medium_do_dm",
+      "is_doko_comparison": false,
+      "baseline_engineering": "T2_HLA-DR4_HLA-DM_HLA-DO"
+    },
+    "DR4DMDO+++": {
+      "id_sample_prefix": "T2DR4DMDO+++",
+      "clone_name": "2D7",
+      "parent_clone": "T2DR4DM",
+      "dm_present": true,
+      "do_present": true,
+      "do_dm_level": "high_do_dm",
+      "is_doko_comparison": false,
+      "baseline_engineering": "T2_HLA-DR4_HLA-DM_HLA-DO"
+    },
+    "DOKO": {
+      "id_sample_prefix": "T2DR4DMDOKO",
+      "clone_name": "2D7_KO",
+      "parent_clone": "2D7",
+      "dm_present": true,
+      "do_present": false,
+      "do_dm_level": "doko_from_high_do_dm",
+      "is_doko_comparison": true,
+      "baseline_engineering": "T2_HLA-DR4_HLA-DM_DO_2D7_CRISPR_DO_KO",
+      "comparison_note": "CRISPR HLA-DO knockout derived from parental 2D7 ((DO:DM)H) clone; kept as a distinct comparison rather than pooled with DR4DM (#860)."
+    }
+  },
+  "expected_reconciliation": {
+    "n_identifications": 36860,
+    "n_modified_identifications": 6773,
+    "n_quant_peptides": 10587,
+    "n_runs": 36,
+    "n_conditions": 6,
+    "n_ms1_measurements": 381132,
+    "n_positive_ms1_measurements": 60072,
+    "n_zero_ms1_measurements": 0,
+    "n_missing_ms1_measurements": 321060
+  }
+}
