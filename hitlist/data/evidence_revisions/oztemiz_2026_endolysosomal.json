@@ -1,0 +1,93 @@
+{
+  "schema_version": "hitlist.oztemiz_2026_endolysosomal_contract.v1",
+  "tracking_issue": 812,
+  "study_id": "oztemiz_2026_endolysosomal_42846314",
+  "pmid": 42846314,
+  "pmcid": "PMC13643861",
+  "doi": "10.3389/falgy.2026.1936335",
+  "journal": "Frontiers in Allergy",
+  "year": 2026,
+  "article_url": "https://www.frontiersin.org/journals/allergy/articles/10.3389/falgy.2026.1936335/full",
+  "qualification_status": "qualified_source_gap_no_tabular_peptide_deposit",
+  "training_data_admitted": false,
+  "data_availability_audit": {
+    "statement": "The original contributions presented in the study are included in the article/Supplementary Material; further inquiries can be directed to the corresponding author.",
+    "public_ms_repositories_found": [],
+    "pmc_supplements": [
+      {"filename": "Datasheet1.pdf", "format": "pdf", "tabular_peptide_intensities": false},
+      {"filename": "Datasheet2.pdf", "format": "pdf", "tabular_peptide_intensities": false},
+      {"filename": "Datasheet3.pdf", "format": "pdf", "tabular_peptide_intensities": false},
+      {"filename": "Datasheet4.pdf", "format": "pdf", "tabular_peptide_intensities": false},
+      {"filename": "Datasheet5.pdf", "format": "pdf", "tabular_peptide_intensities": false}
+    ],
+    "generate_training_values_from_prose_or_figures": false
+  },
+  "biological_system_and_assay_scope": {
+    "enzyme_source_species": "Mus musculus",
+    "enzyme_source_cell_line": "JAWSII (murine dendritic cell line)",
+    "extracted_compartment": "isolated_endolysosomal_extract",
+    "preparation_context": "cell_free_isolated_extract_not_intact_apc",
+    "is_intact_cell_concentration": false,
+    "substrates": [
+      {"name": "Bet v 1", "source": "birch pollen allergen"},
+      {"name": "Aes h 1", "source": "horse chestnut allergen"}
+    ],
+    "n_time_points": 9,
+    "incubation_temperature_c": 37.0,
+    "preparation_chemistry": {
+      "alkylation_reagent": "iodoacetamide",
+      "alkylation_concentration_mm": 20.0,
+      "alkylation_duration_min": 10.0,
+      "protected_from_light": true,
+      "interpret_alkylation_as_biological_change": false
+    },
+    "distinct_measurement_families": {
+      "peptide_ms_signal": {
+        "description": "LC-MS/MS peptide fragment signal intensities across digestion time points",
+        "is_molar_concentration": false,
+        "retain_short_and_nonbinding_fragments": true
+      },
+      "substrate_gel_depletion": {
+        "description": "Intact protein degradation half-life via densitometric SDS-PAGE gel analysis (one-phase association model)",
+        "is_peptide_ms_signal": false
+      },
+      "cathepsin_zfr_amc_reporter_activity": {
+        "description": "ZFR-AMC fluorogenic substrate cleavage normalizing extract cathepsin activity prior to digestion",
+        "is_peptide_specific_molar_calibration": false
+      }
+    }
+  },
+  "excluded_synthetic_software_demos": [
+    {
+      "exclusion_id": "peptidestudio_synthetic_myoglobin_demo",
+      "repository": "https://github.com/oztemiz-elif/peptide-studio",
+      "commit": "18dd99da4a619abd8a28c7622e0809eb2c03e0ff",
+      "readme_path": "sample_data/README.md",
+      "excluded_filenames": [
+        "Example_degradome.xlsx",
+        "example.fasta"
+      ],
+      "excluded_protein_accessions": [
+        "P02144",
+        "MYG_HUMAN"
+      ],
+      "excluded_gene_symbols": [
+        "MB"
+      ],
+      "excluded_time_point_signature": [
+        "0h", "0.5h", "1h", "2h", "3h", "5h", "8h", "16h", "24h"
+      ],
+      "reason": "sample_data/README.md at commit 18dd99da4a619abd8a28c7622e0809eb2c03e0ff explicitly states that Example_degradome.xlsx and all intensities for human myoglobin (P02144) are artificially fabricated synthetic demonstrations and must never be admitted as measured biological data."
+    }
+  ],
+  "concentration_training_allowed_units": [
+    "fmol",
+    "pmol",
+    "nmol",
+    "nM",
+    "uM",
+    "pM",
+    "fmol_per_uL",
+    "copies_per_cell"
+  ]
+}

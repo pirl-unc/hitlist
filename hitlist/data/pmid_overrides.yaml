@@ -8818,8 +8818,10 @@
       HeLa cell_name annotations are otherwise correct (paper-verified). The
       paper uses a panel of autophagy-receptor siRNAs (NDP52, OPTN, T6BP;
       p62 and CANX in follow-up experiments); the T6BP vs control contrast
-      is the headline MS result showing T6BP silencing reduces the MHC-II
-      immunopeptidome without affecting MHC-I.
+      is the headline MS result reporting alteration of the MHC-II
+      immunopeptidome repertoire without a corresponding class-I shift
+      (directional reduction claims require run-level quantitative intensity
+      scope from PXD024417 rather than presence/absence counts).
     perturbations:
       - "CIITA transduction (forced HLA-II expression)"
       - "TAX1BP1 (T6BP) siRNA knockdown in MS experiment"
