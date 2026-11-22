@@ -29,6 +29,7 @@ __all__ = [
     "HitlistError",
     "InsufficientSpaceError",
     "IntegrityError",
+    "OfflineError",
 ]
 
 
@@ -38,6 +39,10 @@ class HitlistError(RuntimeError):
 
 class DownloadError(HitlistError):
     """A network or filesystem failure while fetching a file (HTTP, timeout, disk)."""
+
+
+class OfflineError(DownloadError):
+    """Raised when a network download is required while offline mode is enabled (#960)."""
 
 
 class InsufficientSpaceError(DownloadError):

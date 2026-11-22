@@ -268,10 +268,15 @@ _PUBLIC_API: dict[str, str] = {
     "fetch_all_data_assets": ".downloads",
     "list_proteomes": ".downloads",
     "download_to_file": ".downloads",
+    "is_offline": ".downloads",
+    "set_offline": ".downloads",
+    "verify_cache_files": ".downloads",
+    "prune_cache_bundles": ".downloads",
     "VersionedDatasetRegistry": ".downloads",
-    # Public typed errors (#884, #886).
+    # Public typed errors (#884, #886, #960).
     "DatasetError": ".errors",
     "InsufficientSpaceError": ".errors",
+    "OfflineError": ".errors",
 }
 
 __all__ = ["__version__", *sorted(_PUBLIC_API)]

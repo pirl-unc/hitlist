@@ -36,11 +36,11 @@ options:
 
 ===== hitlist data --help =====
 usage: hitlist data [-h]
-                    {uniprot,list,available,dirs,register,preflight,fetch,fetch-all,refresh,info,path,remove,build,fetch-proteomes,list-proteomes}
+                    {uniprot,list,available,dirs,register,preflight,fetch,fetch-all,refresh,verify,prune,info,path,remove,build,fetch-proteomes,list-proteomes}
                     ...
 
 positional arguments:
-  {uniprot,list,available,dirs,register,preflight,fetch,fetch-all,refresh,info,path,remove,build,fetch-proteomes,list-proteomes}
+  {uniprot,list,available,dirs,register,preflight,fetch,fetch-all,refresh,verify,prune,info,path,remove,build,fetch-proteomes,list-proteomes}
     uniprot             Manage release-pinned UniProt references
     list                Show registered datasets or the complete cache inventory
     available           Show all known datasets
@@ -51,6 +51,8 @@ positional arguments:
     fetch               Download a fetchable dataset
     fetch-all           Fetch ALL mirrored data-asset CSVs (paper-derived) into the cache dir
     refresh             Re-download a fetchable dataset
+    verify              Verify integrity and checksums of cached datasets
+    prune               Prune superseded datacache bundle generations (dry-run by default)
     info                Detailed metadata for a dataset
     path                Print path to a dataset
     remove              Unregister a dataset
@@ -174,7 +176,7 @@ options:
   --force, -f  Plan as if forcing re-download
 
 ===== hitlist data fetch --help =====
-usage: hitlist data fetch [-h] [--force] [--dry-run] name
+usage: hitlist data fetch [-h] [--force] [--dry-run] [--offline] name
 
 positional arguments:
   name         Dataset name
@@ -183,22 +185,42 @@ options:
   -h, --help   show this help message and exit
   --force, -f  Re-download
   --dry-run    Print where the file would land, its expected size and free space; download nothing
+  --offline    Fail instead of downloading if the dataset is not already cached
 
 ===== hitlist data fetch-all --help =====
-usage: hitlist data fetch-all [-h] [--force]
+usage: hitlist data fetch-all [-h] [--force] [--offline]
 
 options:
   -h, --help   show this help message and exit
   --force, -f  Re-download even if cached
+  --offline    Fail instead of downloading any uncached mirrored assets
 
 ===== hitlist data refresh --help =====
-usage: hitlist data refresh [-h] name
+usage: hitlist data refresh [-h] [--offline] name
 
 positional arguments:
   name        Dataset name
 
 options:
   -h, --help  show this help message and exit
+  --offline   Fail instead of downloading (refresh always requires network)
+
+===== hitlist data verify --help =====
+usage: hitlist data verify [-h] [--all] [--json]
+
+options:
+  -h, --help  show this help message and exit
+  --all       Inspect unregistered cache files as well
+  --json      Print verification report as JSON
+
+===== hitlist data prune --help =====
+usage: hitlist data prune [-h] [--keep KEEP] [--yes] [--json]
+
+options:
+  -h, --help   show this help message and exit
+  --keep KEEP  Number of newest bundle generations to keep per store (default: 1)
+  --yes        Actually delete old bundle generations
+  --json       Print prune plan/result as JSON
 
 ===== hitlist data info --help =====
 usage: hitlist data info [-h] name

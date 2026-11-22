@@ -38,6 +38,7 @@ def _isolated_home(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(home))
     monkeypatch.setenv("XDG_CACHE_HOME", str(home / ".cache"))
     monkeypatch.delenv("HITLIST_DATA_DIR", raising=False)
+    monkeypatch.delenv("OPENVAX_DATA_CACHE", raising=False)
     monkeypatch.setattr(downloads, "_override_data_dir", None)
     # The resolution is memoized per process; a fixture that changes $HOME out
     # from under it must not inherit another test's answer.
@@ -395,6 +396,8 @@ def test_every_origin_is_reachable(_isolated_home, monkeypatch, tmp_path):
     seen = {downloads.data_dir_origin()}
     _populate_legacy(_isolated_home)
     downloads.reset_data_dir_cache()
+    seen.add(downloads.data_dir_origin())
+    monkeypatch.setenv("OPENVAX_DATA_CACHE", str(tmp_path / "openvax"))
     seen.add(downloads.data_dir_origin())
     monkeypatch.setenv("HITLIST_DATA_DIR", str(tmp_path / "env"))
     seen.add(downloads.data_dir_origin())
