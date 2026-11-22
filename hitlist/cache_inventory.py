@@ -109,24 +109,60 @@ def list_cache_files(*, verify: bool = False, include_unregistered: bool = True)
                 file_kind = "proteome index" if path.parent == proteome_index_cache_dir() else kind
                 add(path, file_kind)
 
+    from .downloads import _inspect_path_symlink_state
+
     rows = []
     for entry in entries.values():
         meta = entry.get("metadata", {})
+        link_state = _inspect_path_symlink_state(entry["path"])
         if "UniProt reference" in entry["kinds"] and meta.get("status") == "corrupt":
             # Preserve managed-path errors (including symlink escapes), rather
             # than following a link and blessing an external file's hash.
             state = datacache.FileInspection(
                 str(entry["path"]), "corrupt", error=ValueError(meta["error"])
             )
+        elif (
+            "registered dataset" in entry["kinds"]
+            and link_state["symlink_status"] == "broken_symlink"
+        ):
+            state = datacache.FileInspection(
+                str(entry["path"]),
+                "missing",
+                error=FileNotFoundError(f"Broken symlink: {entry['path']}"),
+            )
+        elif (
+            "registered dataset" in entry["kinds"]
+            and link_state["symlink_status"] == "non_regular_target"
+        ):
+            state = datacache.FileInspection(
+                str(entry["path"]),
+                "invalid",
+                error=ValueError(
+                    f"Registered path {entry['path']} resolves to {link_state['resolved_path']}, "
+                    "which is not a regular file"
+                ),
+            )
         else:
+            inspect_target = (
+                link_state["resolved_path"]
+                if (
+                    "registered dataset" in entry["kinds"]
+                    and link_state["symlink_status"] == "valid_symlink"
+                    and link_state["resolved_path"]
+                )
+                else entry["path"]
+            )
             state = datacache.inspect_file(
-                entry["path"],
+                inspect_target,
                 expected_size=meta.get("size_bytes"),
                 expected_sha256=meta.get("sha256") if verify else None,
             )
         rows.append(
             {
-                "path": state.path,
+                "path": str(entry["path"]),
+                "resolved_path": link_state["resolved_path"],
+                "is_symlink": link_state["is_symlink"],
+                "symlink_status": link_state["symlink_status"],
                 "status": state.status,
                 "verified": state.verified,
                 "size_bytes": state.size,

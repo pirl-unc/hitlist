@@ -19,12 +19,56 @@ import pandas as pd
 from .curation import is_cancer_specific
 
 
+def _clean_tokens(series) -> list[str]:
+    return [str(v).strip() for v in series if v is not None and str(v).strip() not in ("", "nan")]
+
+
 def _join_unique(series) -> str:
-    return ";".join(sorted({str(v) for v in series if v and str(v) != "nan"}))
+    return ";".join(sorted(set(_clean_tokens(series))))
 
 
 def _count_unique(series) -> int:
-    return len({str(v) for v in series if v and str(v) != "nan"})
+    return len(set(_clean_tokens(series)))
+
+
+def _parse_allele_tokens(value: object) -> list[str]:
+    if value is None:
+        return []
+    text = str(value).strip()
+    if not text or text == "nan":
+        return []
+    return [tok.strip() for tok in text.split(";") if tok.strip() and tok.strip() != "nan"]
+
+
+def _join_unique_alleles(series) -> str:
+    """Deduplicate individual alleles parsed from single-allele and semicolon donor-set rows (#957)."""
+    alleles: set[str] = set()
+    for val in series:
+        alleles.update(_parse_allele_tokens(val))
+    return ";".join(sorted(alleles))
+
+
+def _count_unique_alleles(series) -> int:
+    """Count distinct individual alleles across single-allele and donor-set rows (#957)."""
+    alleles: set[str] = set()
+    for val in series:
+        alleles.update(_parse_allele_tokens(val))
+    return len(alleles)
+
+
+def _join_exact_alleles(series) -> str:
+    """Join distinct exact single-allele restrictions (excluding multi-allelic donor sets) (#957)."""
+    exact: set[str] = set()
+    for val in series:
+        tokens = _parse_allele_tokens(val)
+        if len(tokens) == 1:
+            exact.add(tokens[0])
+    return ";".join(sorted(exact))
+
+
+def _join_restriction_sets(series) -> str:
+    """Join distinct raw restriction strings with '|' to preserve donor-set boundaries (#957)."""
+    return "|".join(sorted(set(_clean_tokens(series))))
 
 
 def _join_unique_numeric(series) -> str:
@@ -42,6 +86,52 @@ def _join_unique_numeric(series) -> str:
     return ";".join(str(x) for x in sorted(values))
 
 
+def _sort_pmhc_by_evidence(result: pd.DataFrame) -> pd.DataFrame:
+    """Sort pMHC summary rows within each peptide by evidence strength (#957).
+
+    Within each peptide (ascending):
+    1. Exact single-allele restriction ahead of multi-allelic donor sets (containing ';')
+    2. Mono-allelic evidence ahead of poly-allelic-only rows
+    3. Distinct PMID/reference count descending
+    4. Hit count descending
+    5. ``mhc_restriction`` ascending for deterministic tie-breaking
+    """
+    if result.empty:
+        return result
+    df = result.copy()
+    df["_sort_is_donor_set"] = df["mhc_restriction"].astype(str).str.contains(";", regex=False)
+    if "ms_pmhc_has_mono_evidence" in df.columns:
+        df["_sort_no_mono"] = ~df["ms_pmhc_has_mono_evidence"].astype(bool)
+    elif "ms_pmhc_mono_hit_count" in df.columns:
+        df["_sort_no_mono"] = df["ms_pmhc_mono_hit_count"].fillna(0) <= 0
+    else:
+        df["_sort_no_mono"] = False
+
+    if "ms_pmhc_pmid_count" in df.columns:
+        df["_sort_neg_refs"] = -df["ms_pmhc_pmid_count"].fillna(0).astype(int)
+    elif "ms_pmhc_ref_count" in df.columns:
+        df["_sort_neg_refs"] = -df["ms_pmhc_ref_count"].fillna(0).astype(int)
+    else:
+        df["_sort_neg_refs"] = 0
+
+    df["_sort_neg_hits"] = -df["ms_pmhc_hit_count"].fillna(0).astype(int)
+    df = df.sort_values(
+        by=[
+            "peptide",
+            "_sort_is_donor_set",
+            "_sort_no_mono",
+            "_sort_neg_refs",
+            "_sort_neg_hits",
+            "mhc_restriction",
+        ],
+        ascending=[True, True, True, True, True, True],
+        kind="mergesort",
+    )
+    return df.drop(
+        columns=["_sort_is_donor_set", "_sort_no_mono", "_sort_neg_refs", "_sort_neg_hits"]
+    ).reset_index(drop=True)
+
+
 def aggregate_per_peptide(hits_df: pd.DataFrame) -> pd.DataFrame:
     """Aggregate per-row MS evidence into per-peptide summary.
 
@@ -54,16 +144,20 @@ def aggregate_per_peptide(hits_df: pd.DataFrame) -> pd.DataFrame:
     -------
     pd.DataFrame
         One row per peptide with: hit count, ref/PMID/allele counts,
-        source flags (found_in_*), tissue/disease/cell line lists,
-        is_cancer_specific flag.
+        deduplicated individual alleles (``ms_alleles``), exact single-allele
+        restrictions (``ms_exact_alleles``), pipe-delimited raw restriction sets
+        (``ms_restriction_sets``), source flags (``found_in_*``), tissue/disease/cell
+        line lists, and ``is_cancer_specific`` flag.
     """
     if hits_df.empty:
         return pd.DataFrame()
 
     agg: dict = {
         "ms_hit_count": ("peptide", "size"),
-        "ms_alleles": ("mhc_restriction", _join_unique),
-        "ms_allele_count": ("mhc_restriction", _count_unique),
+        "ms_alleles": ("mhc_restriction", _join_unique_alleles),
+        "ms_allele_count": ("mhc_restriction", _count_unique_alleles),
+        "ms_exact_alleles": ("mhc_restriction", _join_exact_alleles),
+        "ms_restriction_sets": ("mhc_restriction", _join_restriction_sets),
     }
     if "reference_iri" in hits_df.columns:
         agg["ms_ref_count"] = ("reference_iri", _count_unique)
@@ -105,15 +199,8 @@ def aggregate_per_peptide(hits_df: pd.DataFrame) -> pd.DataFrame:
 def aggregate_per_pmhc(hits_df: pd.DataFrame) -> pd.DataFrame:
     """Aggregate per-row MS evidence into per-(peptide, allele) summary.
 
-    Parameters
-    ----------
-    hits_df
-        DataFrame from :func:`hitlist.scanner.scan`.
-
-    Returns
-    -------
-    pd.DataFrame
-        One row per (peptide, allele) pair.
+    Rows within each peptide are sorted by evidence strength so exact
+    single-allele and mono-allelic hits lead multi-allelic donor sets (#957).
     """
     if hits_df.empty or "mhc_restriction" not in hits_df.columns:
         return pd.DataFrame()
@@ -131,55 +218,14 @@ def aggregate_per_pmhc(hits_df: pd.DataFrame) -> pd.DataFrame:
         agg["ms_pmhc_has_mono_evidence"] = ("is_monoallelic", "any")
 
     result = hits_df.groupby(["peptide", "mhc_restriction"], as_index=False).agg(**agg)
-    return result.reset_index(drop=True)
+    return _sort_pmhc_by_evidence(result)
 
 
 def aggregate_per_pmhc_with_refs(hits_df: pd.DataFrame) -> pd.DataFrame:
     """Per-(peptide, allele) aggregation with full provenance.
 
-    Sits between :func:`aggregate_per_peptide` (per-peptide roll-up — carries
-    provenance but loses allele granularity) and :func:`aggregate_per_pmhc`
-    (per-pMHC but lean).  Keeps the (peptide, allele) granularity **and**
-    surfaces the provenance columns reviewers typically want on a pMHC row:
-    reference count, PMID list, distinct tissues / diseases / cell lines,
-    and the cancer / healthy-tissue source flags.
-
-    Intended for therapy-prioritization workflows where a reviewer evaluates
-    a specific (peptide, allele) pair for vaccine / TCR use and wants to see
-    which studies and tissues support the call without rolling up across
-    alleles.
-
-    Parameters
-    ----------
-    hits_df
-        DataFrame from :func:`hitlist.scanner.scan`.  Only ``peptide`` and
-        ``mhc_restriction`` are required; optional columns (``pmid``,
-        ``source_tissue``, ``disease``, ``cell_line_name``, ``src_cancer``,
-        ``src_healthy_tissue``, ``is_monoallelic``) are used when present
-        and silently skipped when absent so both the cached-observations
-        fast path and the raw-scan slow path produce valid output.
-
-    Returns
-    -------
-    pd.DataFrame
-        One row per (peptide, allele).  **Output columns depend on which
-        optional inputs were supplied:** only ``peptide``, ``length``,
-        ``mhc_restriction``, ``ms_pmhc_hit_count`` are guaranteed.
-        The rest (``ms_pmhc_ref_count``, ``ms_pmhc_pmids``,
-        ``ms_pmhc_tissues``, ``ms_pmhc_diseases``, ``ms_pmhc_cell_lines``,
-        ``ms_pmhc_in_cancer``, ``ms_pmhc_in_healthy_tissue``,
-        ``ms_pmhc_mono_hit_count``) appear only when the corresponding
-        input column was present.  The empty-frame path returns the full
-        canonical column list for downstream shape stability.
-
-        PMIDs are sorted numerically (not lexicographically), so a 9-digit
-        PMID will not misrank against an 8-digit one.
-
-        All input rows are preserved.  Species filtering happens upstream
-        at the scan / ``load_observations`` layer via ``mhc_species=`` —
-        callers that want HLA-only results should set
-        ``mhc_species="Homo sapiens"`` there.  This aggregator does not
-        second-guess that choice.
+    Rows within each peptide are sorted by evidence strength so exact
+    single-allele and mono-allelic hits lead multi-allelic donor sets (#957).
     """
     canonical_columns = [
         "peptide",
@@ -217,4 +263,4 @@ def aggregate_per_pmhc_with_refs(hits_df: pd.DataFrame) -> pd.DataFrame:
 
     result = hits_df.groupby(["peptide", "mhc_restriction"], as_index=False).agg(**agg)
     result.insert(1, "length", result["peptide"].str.len())
-    return result.reset_index(drop=True)
+    return _sort_pmhc_by_evidence(result)

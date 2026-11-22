@@ -181,3 +181,75 @@ def test_aggregate_per_pmhc_with_refs_preserves_non_hla():
     result = aggregate_per_pmhc_with_refs(hits)
     assert len(result) == 2
     assert set(result["mhc_restriction"]) == {"HLA-A*02:01", "H2-Db"}
+
+
+def test_aggregate_per_peptide_deduplicates_semicolon_donor_sets():
+    """#957: ms_alleles deduplicates individual alleles across semicolon-delimited donor sets."""
+    hits = pd.DataFrame(
+        {
+            "peptide": ["SLLQHLIGL", "SLLQHLIGL", "SLLQHLIGL"],
+            "mhc_restriction": [
+                "HLA-A*02:01",
+                "HLA-A*02:01;HLA-B*15:11;HLA-C*03:03",
+                "HLA-A*02:01;HLA-B*15:11;HLA-C*03:03",
+            ],
+            "pmid": [1001, 1002, 1003],
+            "is_monoallelic": [True, False, False],
+        }
+    )
+    result = aggregate_per_peptide(hits)
+    row = result.iloc[0]
+    assert row["ms_alleles"] == "HLA-A*02:01;HLA-B*15:11;HLA-C*03:03"
+    assert int(row["ms_allele_count"]) == 3
+    assert row["ms_exact_alleles"] == "HLA-A*02:01"
+    assert row["ms_restriction_sets"] == "HLA-A*02:01|HLA-A*02:01;HLA-B*15:11;HLA-C*03:03"
+
+
+def test_aggregate_per_pmhc_sorts_exact_and_strong_evidence_ahead_of_donor_sets():
+    """#957: exact single-allele and higher-evidence pMHC hits lead multi-allelic donor sets."""
+    rows = [
+        {
+            "peptide": "SLLQHLIGL",
+            "mhc_restriction": "HLA-A*01:01;HLA-A*02:01;HLA-B*18:01",
+            "pmid": 2001,
+            "is_monoallelic": False,
+        },
+        {
+            "peptide": "SLLQHLIGL",
+            "mhc_restriction": "HLA-A*01:01;HLA-A*02:01;HLA-B*44:03",
+            "pmid": 2002,
+            "is_monoallelic": False,
+        },
+        {
+            "peptide": "SLLQHLIGL",
+            "mhc_restriction": "HLA-A*01:01",
+            "pmid": 2003,
+            "is_monoallelic": False,
+        },
+    ]
+    for i in range(5):
+        rows.append(
+            {
+                "peptide": "SLLQHLIGL",
+                "mhc_restriction": "HLA-A*02:01",
+                "pmid": 3000 + i,
+                "is_monoallelic": i < 2,
+            }
+        )
+    hits = pd.DataFrame(rows)
+
+    pmhc = aggregate_per_pmhc(hits)
+    assert list(pmhc["mhc_restriction"]) == [
+        "HLA-A*02:01",
+        "HLA-A*01:01",
+        "HLA-A*01:01;HLA-A*02:01;HLA-B*18:01",
+        "HLA-A*01:01;HLA-A*02:01;HLA-B*44:03",
+    ]
+
+    pmhc_refs = aggregate_per_pmhc_with_refs(hits)
+    assert list(pmhc_refs["mhc_restriction"]) == [
+        "HLA-A*02:01",
+        "HLA-A*01:01",
+        "HLA-A*01:01;HLA-A*02:01;HLA-B*18:01",
+        "HLA-A*01:01;HLA-A*02:01;HLA-B*44:03",
+    ]
