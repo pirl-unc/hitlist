@@ -1,0 +1,173 @@
+{
+  "schema_version": "hitlist.stopfer_2021_iso18_contract.v1",
+  "study_id": "stopfer_2021_iso18_pxd024917",
+  "pmid": 34497125,
+  "pmcid": "PMC8449407",
+  "doi": "10.1073/pnas.2111173118",
+  "pride_accession": "PXD024917",
+  "citation": "Stopfer et al., PNAS 2021, Absolute quantification of tumor antigens using embedded MHC-I isotopologue calibrants",
+  "panel_selection_note": "18 selected tumor-antigen sequences chosen as predicted HLA-A*02:01 binders; S1 affinities are predictions, not experimental binding labels, and do not establish measured allele restriction for every source sample.",
+  "standard_assignment_methods": {
+    "free_1h_direct_spike": {
+      "method": "amino_acid_analysis_with_isotopologue_balancing",
+      "reported_purity": ">97% HPLC",
+      "independently_certified": false,
+      "uncertainty_note": "Retain vendor/author AAA assignment and purity report; not independently certified."
+    },
+    "embedded_2h_hipmhc_pre_ip": {
+      "method": "stable_complex_elisa_after_peptide_exchange",
+      "independently_certified": false,
+      "uncertainty_note": "Reflects reported post-exchange ELISA complex concentration plus IP capture/recovery; not independently certified."
+    }
+  },
+  "observation_roles": {
+    "nominal_standard_amount_fmol": "Nominal spike amount reported in fmol (free 1H peptide or embedded 2H hipMHC).",
+    "free_1h_direct_spike_summed_signal": "Targeted SureQuant/IS-PRM summed fragment-ion area for free 1H peptide spiked into pre-purified HLA-peptide matrix (S3A).",
+    "embedded_2h_hipmhc_pre_ip_summed_signal": "Targeted SureQuant/IS-PRM summed fragment-ion area for embedded 2H hipMHC spiked before immunoprecipitation (S3B).",
+    "selected_transition_count": "Count of selected product-ion transitions detected at each hipMHC dose (S3C); NOT signal intensity or molecule amount.",
+    "predicted_affinity_nm": "Computational NetMHCpan predicted HLA-A*02:01 affinity in nM (S1); NOT experimental binding.",
+    "analytical_4h_trigger_reagent": "Heavy 4H isotopologue SureQuant analytical trigger reagent; NOT biological machinery or endogenous ligand.",
+    "inferred_endogenous_abundance": "Inferred endogenous copies/cell (separate from known-dose raw-response calibration)."
+  },
+  "analytical_boundaries": {
+    "targeted_is_prm_distinct_from_ms1": true,
+    "free_vs_embedded_does_not_isolate_causal_ip_loss": true,
+    "measures_native_intracellular_free_peptide": false,
+    "measures_apc_machinery_or_availability": false,
+    "ms1_transfer_allowed": false,
+    "apc_concentration_transfer_allowed": false
+  },
+  "verified_assets": {
+    "sd01": {
+      "filename": "pnas.2111173118.sd01.xlsx",
+      "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC8449407.1/pnas.2111173118.sd01.xlsx",
+      "sha256": "71f8bd65d178d78014faf8d4e01a227fbb20ee90eee9ee8e9fbe6c5d311d0d2c",
+      "role": "iso18_panel_and_predicted_affinity_metadata",
+      "source_repository": "PMC Open Data S3"
+    },
+    "sd03": {
+      "filename": "pnas.2111173118.sd03.xlsx",
+      "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC8449407.1/pnas.2111173118.sd03.xlsx",
+      "sha256": "a51dce88e3fa91b6f38d6f5f86cf3347ee285bcf7e6ca0384a16de1a8d9d0803",
+      "role": "calibration_summed_signals_and_transition_counts",
+      "source_repository": "PMC Open Data S3"
+    },
+    "sd06": {
+      "filename": "pnas.2111173118.sd06.xlsx",
+      "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC8449407.1/pnas.2111173118.sd06.xlsx",
+      "sha256": "ed26e8b29dda9d48e5784e392b30271cfc1e5a7b7ada3fadfcbe344fe68131b5",
+      "role": "isotope_and_surequant_trigger_definitions",
+      "source_repository": "PMC Open Data S3"
+    },
+    "sd07": {
+      "filename": "pnas.2111173118.sd07.xlsx",
+      "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC8449407.1/pnas.2111173118.sd07.xlsx",
+      "sha256": "ab93052b47887c19df62a2c5580a7b2245cf98e5aa91eee88d4d61c31607cfa9",
+      "role": "deposited_raw_and_processed_filename_map",
+      "source_repository": "PMC Open Data S3"
+    },
+    "sapp_pdf": {
+      "filename": "pnas.2111173118.sapp.pdf",
+      "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC8449407.1/pnas.2111173118.sapp.pdf",
+      "sha256": "5f8b2868251304250a0a1e18d0c27ffa49a4df886bfcaf57b44329084d991265",
+      "role": "standard_preparation_and_analytical_methods",
+      "source_repository": "PMC Open Data S3"
+    },
+    "pride_direct_spike": {
+      "filename": "Iso18_DirectSpike_TransitionResults.xlsx",
+      "s7_literal_filename": "Iso18_DirectSpike_TransitionResults.xlsx",
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/07/PXD024917/Iso18_DirectSpike_TransitionResults.xlsx",
+      "sha256": "d359bf7b8afd0ade9df9539d941c0f7931b8c39657a444d3bf8025e54ff1d995",
+      "role": "pride_skyline_direct_spike_transitions",
+      "source_repository": "PRIDE PXD024917"
+    },
+    "pride_hipmhc_spikein": {
+      "filename": "Iso18_hipMHCspikein_TransitionResults.xlsx",
+      "s7_literal_filename": "Iso18_hipMHCspiikein_TransitionResults.xlsx",
+      "filename_spelling_note": "Dataset S7 row 59 spells this filename with a double 'i' (Iso18_hipMHCspiikein_TransitionResults.xlsx); the actual PRIDE PXD024917 deposit filename uses a single 'i' (Iso18_hipMHCspikein_TransitionResults.xlsx).",
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/07/PXD024917/Iso18_hipMHCspikein_TransitionResults.xlsx",
+      "sha256": "8426f43364ea1d84244403811956f501664abf8001e7043ec8fc1ae546175308",
+      "role": "pride_skyline_hipmhc_spikein_transitions",
+      "source_repository": "PRIDE PXD024917"
+    },
+    "pride_skmel5_dmso_meki": {
+      "filename": "SKMEL5_Transitions_DMSO_MEKi.xlsx",
+      "s7_literal_filename": "SKMEL5_Transitions_DMSO_MEKi.xlsx",
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/07/PXD024917/SKMEL5_Transitions_DMSO_MEKi.xlsx",
+      "sha256": "032c4dbe800471f68c38dd58d1ef46b1a64292d0f1c13701b976fe1a9c9e0127",
+      "role": "pride_skyline_skmel5_binimetinib_vs_dmso_transitions",
+      "source_repository": "PRIDE PXD024917"
+    }
+  },
+  "expected_counts": {
+    "n_panel_peptides": 18,
+    "n_s3a_peptides": 18,
+    "n_s3a_dose_rows": 71,
+    "n_s3a_slots": 213,
+    "n_s3a_positive_slots": 213,
+    "n_s3a_blank_slots": 0,
+    "s3a_absent_dose_row": {
+      "modified_sequence": "GLFDQHFRL[+7]",
+      "base_sequence": "GLFDQHFRL",
+      "absent_fmol": 0.1,
+      "source_anchor_cell": "DatasetS3A!A16",
+      "disposition": "absent_source_row_not_zero"
+    },
+    "n_s3b_peptides": 9,
+    "n_s3b_dose_rows": 45,
+    "n_s3b_slots": 135,
+    "n_s3b_positive_slots": 126,
+    "n_s3b_blank_slots": 9,
+    "n_total_s3ab_slots": 348,
+    "n_s6b_isotopologues": 72,
+    "n_s6b_consistent_with_s6a": 17,
+    "n_s6b_inconsistent_with_s6a": 54,
+    "n_s6b_uncheckable_from_s6a": 1,
+    "n_skmel5_transition_rows": 6150,
+    "n_skmel5_peptides": 18,
+    "n_skmel5_replicates": 9
+  },
+  "known_source_conflicts": [
+    {
+      "conflict_id": "s3_ordinal_columns_vs_acquisitions",
+      "severity": "structural_lineage",
+      "summary": "Dataset S3A/S3B label summed-signal columns only as C/D/E without acquisition names. PRIDE Iso18_hipMHCspikein_TransitionResults.xlsx proves replicate 100fmol_2 is absent while 100fmol_3 was shifted into S3B column D leaving all 9 column E cells blank at 100 fmol. Column-to-acquisition links must be numerically verified against transition exports, never assumed as C=run1/D=run2/E=run3."
+    },
+    {
+      "conflict_id": "valine_isotope_s6a_vs_s6b_and_s3",
+      "severity": "isotope_contradiction",
+      "summary": "Dataset S6A A10:C10 reports V / 13C3, 15N1 / 4.007 Da, whereas Dataset S3 uses V[+6] and Dataset S6B nominal mass shifts match +6 Da (13C5, 15N1). Arithmetic audit across 72 S6B isotopologue records flags 54 inconsistent with summing S6A masses (single shared Valine table inconsistency, not 54 independent chemical failures). Both assertions are preserved without rewriting."
+    },
+    {
+      "conflict_id": "methionine_omitted_from_s6a",
+      "severity": "isotope_table_omission",
+      "summary": "Dataset S6B B99/E99 specifies labeled Methionine (M: 13C5, 15N1) in 4H (A)M(L)GTHT(M)E(V), but Dataset S6A contains no Methionine row. Marked uncheckable_from_s6a rather than claiming Methionine labeling is absent from the source."
+    },
+    {
+      "conflict_id": "s7_hipmhc_double_i_filename_typo",
+      "severity": "filename_discrepancy",
+      "summary": "Dataset S7 row 59 lists Iso18_hipMHCspiikein_TransitionResults.xlsx while PRIDE PXD024917 deposits Iso18_hipMHCspikein_TransitionResults.xlsx."
+    }
+  ],
+  "skmel5_replicate_design": {
+    "cell_line": "SKMEL5",
+    "cellosaurus_id": "CVCL_0527",
+    "genotype_status": "unverified_withdrawn_a375_removed",
+    "treatment_drug": "binimetinib",
+    "treatment_dose": 100.0,
+    "treatment_dose_unit": "nM",
+    "treatment_duration_hours": 72.0,
+    "control_vehicle": "DMSO",
+    "replicates": {
+      "SKMEL5_DMSO1": {"arm": "vehicle_dmso", "condition_drugs": "none", "condition_control": "vehicle", "series": "primary", "replicate_index": 1},
+      "SKMEL5_DMSO2": {"arm": "vehicle_dmso", "condition_drugs": "none", "condition_control": "vehicle", "series": "primary", "replicate_index": 2},
+      "SKMEL5_DMSO3": {"arm": "vehicle_dmso", "condition_drugs": "none", "condition_control": "vehicle", "series": "primary", "replicate_index": 3},
+      "SKMEL5_100nM1": {"arm": "binimetinib_100nM", "condition_drugs": "binimetinib", "condition_control": "treated", "series": "primary", "replicate_index": 1},
+      "SKMEL5_100nM2": {"arm": "binimetinib_100nM", "condition_drugs": "binimetinib", "condition_control": "treated", "series": "primary", "replicate_index": 2},
+      "SKMEL5_100nM3": {"arm": "binimetinib_100nM", "condition_drugs": "binimetinib", "condition_control": "treated", "series": "primary", "replicate_index": 3},
+      "2SKMEL5_100nM1_Adj": {"arm": "binimetinib_100nM_adjusted", "condition_drugs": "binimetinib", "condition_control": "treated", "series": "adjusted_rerun", "replicate_index": 1},
+      "2SKMEL5_100nM2_Adj": {"arm": "binimetinib_100nM_adjusted", "condition_drugs": "binimetinib", "condition_control": "treated", "series": "adjusted_rerun", "replicate_index": 2},
+      "2SKMEL5_100nM3_Adj": {"arm": "binimetinib_100nM_adjusted", "condition_drugs": "binimetinib", "condition_control": "treated", "series": "adjusted_rerun", "replicate_index": 3}
+    }
+  }
+}

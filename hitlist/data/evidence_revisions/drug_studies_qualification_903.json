@@ -1,0 +1,322 @@
+{
+  "schema_version": "hitlist.drug_studies_qualification_903.v1",
+  "tracking_issue": 903,
+  "umbrella_issue": 905,
+  "audit_baseline": {
+    "hitlist_version": "2.1.9",
+    "commit": "43e226621434a483141764ed54faba725bbb3869",
+    "observation_cache_sha256": "0b34bd12471882eb28d4f9a1dad6cc48252fb93a3644f912f69a0a186228f847",
+    "n_cache_rows": 4440428
+  },
+  "neotoma_2021_source_pin": {
+    "repository": "https://github.com/sbpollock/NeoToma2021",
+    "commit": "f7df59fd8a9e93e7fdb66b7ab3c18d017723614e",
+    "massive_accession": "MSV000086582",
+    "channel_map_source_scripts": [
+      "Fig4/Fig4D/Fig4D.R",
+      "Fig4/Fig4E/Fig4E.R"
+    ],
+    "tmt11_targeted_ms3_channels": {
+      "MS3Quant2": {
+        "arm_id": "idadpgkg_mc38_ifn_gamma_control",
+        "source_label": "Control",
+        "condition_drugs": "none",
+        "condition_control": "background_only",
+        "constant_background_factors": ["IFN-gamma_20ng_per_mL_51h", "piggyBAC_idAdpgkG_construct"]
+      },
+      "MS3Quant6": {
+        "arm_id": "idadpgkg_mc38_ifn_gamma_doxycycline",
+        "source_label": "Dox",
+        "condition_drugs": "doxycycline",
+        "condition_control": "treated",
+        "constant_background_factors": ["IFN-gamma_20ng_per_mL_51h", "piggyBAC_idAdpgkG_construct"]
+      },
+      "MS3Quant9": {
+        "arm_id": "idadpgkg_mc38_ifn_gamma_doxycycline_dtag_13",
+        "source_label": "Both",
+        "condition_drugs": "dTAG-13;doxycycline",
+        "condition_control": "treated",
+        "constant_background_factors": ["IFN-gamma_20ng_per_mL_51h", "piggyBAC_idAdpgkG_construct"]
+      },
+      "MS3Quant10": {
+        "arm_id": "idadpgkg_mc38_ifn_gamma_dtag_13",
+        "source_label": "dTag",
+        "condition_drugs": "dTAG-13",
+        "condition_control": "treated",
+        "constant_background_factors": ["IFN-gamma_20ng_per_mL_51h", "piggyBAC_idAdpgkG_construct"]
+      }
+    },
+    "tmt6_untargeted_ms2_channels": {
+      "Intensity TMT6-127": {
+        "arm_id": "idadpgkg_mc38_ifn_gamma_control",
+        "source_label": "ut",
+        "condition_drugs": "none",
+        "condition_control": "background_only",
+        "channel_role": "biological_arm"
+      },
+      "Intensity TMT6-129": {
+        "arm_id": "idadpgkg_mc38_ifn_gamma_doxycycline",
+        "source_label": "dox",
+        "condition_drugs": "doxycycline",
+        "condition_control": "treated",
+        "channel_role": "biological_arm"
+      },
+      "Intensity TMT6-130": {
+        "arm_id": "idadpgkg_mc38_ifn_gamma_doxycycline_dtag_13",
+        "source_label": "both",
+        "condition_drugs": "dTAG-13;doxycycline",
+        "condition_control": "treated",
+        "channel_role": "biological_arm"
+      },
+      "Intensity TMT6-131": {
+        "arm_id": "idadpgkg_mc38_ifn_gamma_dtag_13",
+        "source_label": "dtag",
+        "condition_drugs": "dTAG-13",
+        "condition_control": "treated",
+        "channel_role": "biological_arm"
+      },
+      "Intensity TMT6-126": {
+        "arm_id": null,
+        "source_label": "blank_qc_126",
+        "condition_drugs": null,
+        "condition_control": null,
+        "channel_role": "blank_qc_channel"
+      },
+      "Intensity TMT6-128": {
+        "arm_id": null,
+        "source_label": "blank_qc_128",
+        "condition_drugs": null,
+        "condition_control": null,
+        "channel_role": "blank_qc_channel"
+      }
+    },
+    "verified_assets": {
+      "toma1": {
+        "filename": "toma1.csv",
+        "repo_path": "Fig4/Fig4C/toma1.csv",
+        "url": "https://raw.githubusercontent.com/sbpollock/NeoToma2021/f7df59fd8a9e93e7fdb66b7ab3c18d017723614e/Fig4/Fig4C/toma1.csv",
+        "sha256": "ca204687c36ae29eb6d8ab2e74866678e6fcab565b17677cc1901f30119f5165",
+        "n_rows": 1202
+      },
+      "toma2": {
+        "filename": "toma2.csv",
+        "repo_path": "Fig4/Fig4C/toma2.csv",
+        "url": "https://raw.githubusercontent.com/sbpollock/NeoToma2021/f7df59fd8a9e93e7fdb66b7ab3c18d017723614e/Fig4/Fig4C/toma2.csv",
+        "sha256": "910943c3b04a9d502d4d36d3d37cae44662e417b7419f8fbffa66ad7d10e8938",
+        "n_rows": 1107
+      },
+      "toma3": {
+        "filename": "toma3.csv",
+        "repo_path": "Fig4/Fig4C/toma3.csv",
+        "url": "https://raw.githubusercontent.com/sbpollock/NeoToma2021/f7df59fd8a9e93e7fdb66b7ab3c18d017723614e/Fig4/Fig4C/toma3.csv",
+        "sha256": "f36a5d75948cf457674390b43e22b4425ca36a5147e99aea5e19e564f83a787b",
+        "n_rows": 530
+      },
+      "untargeted_ms2": {
+        "filename": "untargeted_MS2.csv",
+        "repo_path": "Fig4/Fig4E/untargeted_MS2.csv",
+        "url": "https://raw.githubusercontent.com/sbpollock/NeoToma2021/f7df59fd8a9e93e7fdb66b7ab3c18d017723614e/Fig4/Fig4E/untargeted_MS2.csv",
+        "sha256": "ca053aba77b5a5eea1d4d80456a5637b3799b71482618068cc34039d238b3bdb",
+        "n_rows": 1667
+      }
+    }
+  },
+  "studies": [
+    {
+      "pmid": 34497125,
+      "pmcid": "PMC8449407",
+      "doi": "10.1073/pnas.2111173118",
+      "study_label": "Stopfer 2021 — SureQuant-IsoMHC melanoma tumor antigens",
+      "repository_accessions": ["PXD024917"],
+      "compounds": ["binimetinib"],
+      "compound_mechanism_class": "mek_kinase_inhibitor",
+      "control_vehicle": "DMSO",
+      "dose_spec": {"amount": 100.0, "unit": "nM", "duration_hours": 72.0},
+      "cell_system": "SKMEL5 (CVCL_0527; BRAF-mutant human melanoma; endogenous HLA genotype withdrawn/unverified)",
+      "concurrent_factors": [],
+      "genetic_engineering": [],
+      "mhc_classes": ["I"],
+      "audited_cache_rows": 0,
+      "cache_absence_vs_source_absence": "absent_from_iedb_cache_but_present_in_pride_pxd024917",
+      "qualification_status": "observed_source_recovered",
+      "training_eligibility": "eligible_targeted_contrast_panel",
+      "eligibility_reason": "PRIDE PXD024917 SKMEL5_Transitions_DMSO_MEKi.xlsx provides 6,150 Skyline transition rows across 18 Iso18 peptides for SKMEL5_DMSO1..3 vs SKMEL5_100nM1..3 (plus 3 adjusted rerun replicates 2SKMEL5_100nM1..3_Adj). Scoped to the 18-peptide targeted SureQuant panel; do not extrapolate to untargeted whole-immunopeptidome abundance.",
+      "primary_adapter": "hitlist.iso18_calibration",
+      "catalog_dataset": "stopfer-2021-iso18",
+      "searched_sources": [
+        "PMC8449407 Open Data S3 (sd01, sd03, sd06, sd07)",
+        "PRIDE PXD024917 (SKMEL5_Transitions_DMSO_MEKi.xlsx)"
+      ],
+      "missing_relation": null
+    },
+    {
+      "pmid": 34129938,
+      "pmcid": "PMC8255936",
+      "doi": "10.1016/j.mcpro.2021.100108",
+      "study_label": "Pollock 2021 — TOMAHAQ neoepitope quantification",
+      "repository_accessions": ["MSV000086582", "github:sbpollock/NeoToma2021@f7df59fd8a9e93e7fdb66b7ab3c18d017723614e"],
+      "compounds": ["dTAG-13", "doxycycline"],
+      "compound_mechanism_class": "engineered_construct_tool",
+      "control_vehicle": "IFN-gamma_20ng_per_mL_background_only",
+      "dose_spec": {
+        "dTAG-13": {"amount": 1.0, "unit": "uM", "duration_hours": 3.0, "timing": "after_48h_preconditioning"},
+        "doxycycline": {"amount": 1.0, "unit": "ug/mL", "duration_hours": 51.0},
+        "mouse_IFN_gamma_background": {"amount": 20.0, "unit": "ng/mL", "duration_hours": 51.0, "scope": "constant_all_4_arms"}
+      },
+      "cell_system": "idAdpgkG MC38 (mouse colon carcinoma H-2Kb/Db, piggyBAC Tet-inducible FKBP12(F36V)-Adpgk(R304M)-tGFP)",
+      "concurrent_factors": ["mouse_IFN_gamma_20ng_per_mL_51h"],
+      "genetic_engineering": ["piggyBAC_Tet_inducible_FKBP12_F36V_Adpgk_R304M_tGFP"],
+      "mhc_classes": ["I"],
+      "audited_cache_rows": 0,
+      "cache_absence_vs_source_absence": "absent_from_iedb_cache_but_present_in_neotoma2021_github_and_msv000086582",
+      "qualification_status": "observed_source_recovered",
+      "training_eligibility": "eligible_engineered_construct_contrast_only",
+      "eligibility_reason": "NeoToma2021 Fig4/Fig4C/toma1..3.csv (2,839 targeted MS3 TMT11 rows) and Fig4/Fig4E/untargeted_MS2.csv (1,667 untargeted TMT6 rows) provide exact 4-arm factorial TMT intensities (Control, Dox, dTag, Both) on a constant 20 ng/mL mouse IFN-gamma background. dTAG-13 and doxycycline specifically degrade/induce the engineered FKBP12(F36V)-Adpgk(R304M)-tGFP construct and must NOT be pooled with generic antigen-processing inhibitors.",
+      "primary_adapter": "hitlist.drug_studies_qualification",
+      "catalog_dataset": "pollock-2021-neotoma",
+      "searched_sources": [
+        "PMC8255936 full text",
+        "GitHub sbpollock/NeoToma2021@f7df59fd8a9e93e7fdb66b7ab3c18d017723614e (Fig4/Fig4C, Fig4/Fig4D/Fig4D.R, Fig4/Fig4E/Fig4E.R, untargeted_MS2.csv)"
+      ],
+      "missing_relation": null
+    },
+    {
+      "pmid": 33981976,
+      "pmcid": "PMC8082087",
+      "doi": "10.1016/j.isci.2021.102389",
+      "study_label": "Becker 2021 — NMD inhibition + 5-azacytidine on CRC",
+      "repository_accessions": ["PXD021755"],
+      "compounds": ["5-azacytidine"],
+      "compound_mechanism_class": "dnmt_and_nmd_inhibitor",
+      "control_vehicle": "DMSO",
+      "dose_spec": {"note": "5-azacytidine vs DMSO solvent control in MSI HCT-116; exact per-row arm assignment not present in IEDB capture."},
+      "cell_system": "HCT 116 (MSI human colorectal carcinoma; pooled 6-allele restriction in IEDB)",
+      "concurrent_factors": [],
+      "genetic_engineering": [],
+      "mhc_classes": ["I"],
+      "audited_cache_rows": 11043,
+      "cache_absence_vs_source_absence": "present_in_iedb_without_arm_discriminator_raw_pride_exists",
+      "qualification_status": "explicit_source_gap",
+      "training_eligibility": "excluded_arm_not_recorded_in_public_table",
+      "eligibility_reason": "IEDB deposits 11,049 HCT-116 rows (11,043 blank assay_comments; 6 comparative statements) without per-peptide DMSO vs 5-azacytidine membership; PMC8082087 supplement mmc1.pdf is PDF-only without a machine-readable per-arm peptide table. Requires raw/search re-attribution from PRIDE PXD021755. Do not infer blank comments as DMSO control.",
+      "primary_adapter": null,
+      "catalog_dataset": null,
+      "searched_sources": [
+        "IEDB curated export (PMID 33981976, 11,049 rows)",
+        "PMC8082087 full text and supplementary listing (mmc1.pdf)",
+        "PRIDE reference PXD021755"
+      ],
+      "missing_relation": "per_peptide_dmso_vs_5_azacytidine_arm_membership_and_quantitative_intensity"
+    },
+    {
+      "pmid": 33912179,
+      "pmcid": "PMC8071863",
+      "doi": "10.3389/fimmu.2021.653710",
+      "study_label": "Mifsud 2021 — carbamazepine immunopeptidome",
+      "repository_accessions": ["PXD023545"],
+      "compounds": ["carbamazepine"],
+      "compound_mechanism_class": "small_molecule_tcr_hla_b1502_drug_hypersensitivity",
+      "control_vehicle": "untreated_or_vehicle_control_per_pxd023545",
+      "dose_spec": {"note": "Carbamazepine exposure in C1R-HLA-B*15:02 transfectants; study reports no major immunopeptidome perturbation (negative result)."},
+      "cell_system": "C1R transfected with HLA-B*15:02",
+      "concurrent_factors": ["HLA_B_15_02_transfection"],
+      "genetic_engineering": ["HLA-B*15:02 stable transfectant"],
+      "mhc_classes": ["I"],
+      "audited_cache_rows": 32848,
+      "cache_absence_vs_source_absence": "present_in_iedb_with_constant_metadata_raw_pride_exists",
+      "qualification_status": "explicit_source_gap",
+      "training_eligibility": "excluded_no_row_discriminator_in_public_table",
+      "eligibility_reason": "All 32,848 IEDB rows carry constant study-level metadata with no per-row carbamazepine vs control discriminator; PMC8071863 supplements are TIF figure images. Requires run-level table recovery from PRIDE PXD023545. Note also primary finding is null repertoire perturbation.",
+      "primary_adapter": null,
+      "catalog_dataset": null,
+      "searched_sources": [
+        "IEDB curated export (PMID 33912179, 32,848 rows)",
+        "PMC8071863 full text and supplementary listing (Image_1..10.tif)",
+        "PRIDE reference PXD023545"
+      ],
+      "missing_relation": "per_peptide_carbamazepine_vs_control_arm_membership_from_pxd023545"
+    },
+    {
+      "pmid": 25576301,
+      "pmcid": "PMC4349985",
+      "doi": "10.1074/mcp.M114.042812",
+      "study_label": "Bassani-Sternberg 2015 — protein abundance & HLA presentation",
+      "repository_accessions": ["PXD000394"],
+      "compounds": ["imatinib"],
+      "compound_mechanism_class": "bcr_abl_tki_chronic_resistance_selection",
+      "control_vehicle": "SupB15WT_parental_unselected_line",
+      "dose_spec": {"amount": 1.0, "unit": "uM", "duration_hours": null, "note": "Chronic culture maintenance of imatinib-resistant derivative SupB15RT in 1 uM imatinib; confounded with stable genetic/transcriptomic resistance evolution vs SupB15WT rather than acute drug perturbation."},
+      "cell_system": "7 lines (JY, HCC1143, HCC1937, HCT116, Fib, SupB15WT, SupB15RT); only SupB15RT is imatinib-cultured",
+      "concurrent_factors": ["chronic_drug_resistance_selection_clonal_divergence"],
+      "genetic_engineering": [],
+      "mhc_classes": ["I"],
+      "audited_cache_rows": 22998,
+      "cache_absence_vs_source_absence": "present_in_iedb_without_supb15wt_vs_supb15rt_row_mapping",
+      "qualification_status": "explicit_source_gap",
+      "training_eligibility": "excluded_missing_supb15_arm_mapping_and_chronic_resistance_confounding",
+      "eligibility_reason": "IEDB audit shows 22,998 rows lacking direct SupB15WT vs SupB15RT per-row treatment mapping (only 5 assay_comments name HCT, most blank). Furthermore, SupB15RT is a chronically selected imatinib-resistant derivative rather than an acute drug treatment arm, and SupB15 4-digit HLA typing has documented uncertainty. Requires direct audit of PMC4349985 supplemental workbook supp_M114.042812_mcp.M114.042812-11.xlsx / PXD000394 before any contrast admission.",
+      "primary_adapter": null,
+      "catalog_dataset": null,
+      "searched_sources": [
+        "IEDB curated export (PMID 25576301, 22,998 rows)",
+        "PMC4349985 full text and supplemental listing (supp_M114.042812_mcp.M114.042812-11.xlsx)",
+        "PRIDE reference PXD000394"
+      ],
+      "missing_relation": "per_peptide_supb15wt_vs_supb15rt_membership_and_confounder_separation"
+    },
+    {
+      "pmid": 29632711,
+      "pmcid": "PMC5889201",
+      "doi": "10.1080/2162402X.2017.1316438",
+      "study_label": "Nelde 2018 — CLL ± lenalidomide",
+      "repository_accessions": [],
+      "compounds": ["lenalidomide"],
+      "compound_mechanism_class": "cereblon_imid_immunomodulator",
+      "control_vehicle": "paired_pre_treatment_or_untreated_primary_cll",
+      "dose_spec": {"note": "In vitro / longitudinal lenalidomide treatment of primary CLL cells; exact per-sample table not deposited in IEDB or public PRIDE/MassIVE archive."},
+      "cell_system": "Primary human CLL B cells (class I + class II)",
+      "concurrent_factors": ["patient_donor_heterogeneity"],
+      "genetic_engineering": [],
+      "mhc_classes": ["I", "II"],
+      "audited_cache_rows": 13607,
+      "cache_absence_vs_source_absence": "present_in_iedb_with_constant_metadata_no_public_ms_deposit",
+      "qualification_status": "explicit_source_gap",
+      "training_eligibility": "excluded_no_row_discriminator_and_no_public_deposit",
+      "eligibility_reason": "All 13,607 IEDB rows carry constant per-row fields (cell_name='B cell', source_tissue='Blood', boilerplate processing comment, blank assay_comments); MHC restriction varies only by class I vs class II, not treatment arm. No PRIDE/MassIVE raw accession or machine-readable per-arm supplement is indexed in PMC5889201.",
+      "primary_adapter": null,
+      "catalog_dataset": null,
+      "searched_sources": [
+        "IEDB curated export (PMID 29632711, 13,607 rows)",
+        "PMC5889201 PubMed/PMC record (no PRIDE/MassIVE accession or tabular supplement)"
+      ],
+      "missing_relation": "per_donor_pre_vs_post_lenalidomide_peptide_table"
+    },
+    {
+      "pmid": 30524438,
+      "pmcid": "PMC6262898",
+      "doi": "10.3389/fimmu.2018.02697",
+      "study_label": "Jensen 2018 — BET PROTAC immunopeptidome",
+      "repository_accessions": [],
+      "compounds": ["ARV-825 (JQ1-CRBN)", "ARV-771 (JQ1-VHL)", "JQ1-MDM2", "JQ1 (non-degrader BET inhibitor control)"],
+      "compound_mechanism_class": "bet_targeted_protac_degrader",
+      "control_vehicle": "DMSO_and_JQ1_non_degrader_controls",
+      "dose_spec": {"range_nM": "0-1000 nM", "time_course_dose_nM": 10.0, "time_course_duration_hours": 6.0},
+      "cell_system": "BV173 (CVCL_0181; DSMZ ACC-20; human B-cell precursor leukemia)",
+      "concurrent_factors": [],
+      "genetic_engineering": [],
+      "mhc_classes": ["I"],
+      "audited_cache_rows": 10872,
+      "cache_absence_vs_source_absence": "present_in_iedb_with_constant_metadata_pdf_only_pmc_supplement",
+      "qualification_status": "explicit_source_gap",
+      "training_eligibility": "excluded_no_row_discriminator_and_no_tabular_arm_table",
+      "eligibility_reason": "Primary text (PMC6262898) resolves the generic 'BET_degrader' token to three distinct PROTAC compounds (ARV-825/JQ1-CRBN, ARV-771/JQ1-VHL, JQ1-MDM2) plus non-degrader control JQ1 and DMSO in BV173 cells (0-1000 nM; 10 nM 6 h time course). However, all 10,872 IEDB rows have constant study-level metadata, PMC6262898 carries no PRIDE/MassIVE accession, and its supplementary archive provides PDF figures (Data_Sheet_1.pdf) without a per-compound/per-condition quantitative peptide table.",
+      "primary_adapter": null,
+      "catalog_dataset": null,
+      "searched_sources": [
+        "IEDB curated export (PMID 30524438, 10,872 rows)",
+        "PMC6262898 full text and supplementary archive (Data_Sheet_1.pdf; no PRIDE/MassIVE accession)"
+      ],
+      "missing_relation": "per_compound_per_dose_peptide_intensity_table_for_arv825_arv771_jq1mdm2_jq1_dmso"
+    }
+  ]
+}

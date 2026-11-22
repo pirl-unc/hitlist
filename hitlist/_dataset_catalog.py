@@ -871,6 +871,145 @@ def _dodm_ratio_datasets() -> dict[str, ManagedDataset]:
     }
 
 
+def _iso18_and_neotoma_datasets() -> dict[str, ManagedDataset]:
+    from .downloads import data_dir
+    from .drug_studies_qualification import (
+        drug_studies_qualification_contract,
+        fetch_neotoma_2021_sources,
+    )
+    from .iso18_calibration import (
+        fetch_iso18_calibration_sources,
+        iso18_calibration_source_contract,
+    )
+
+    iso_contract = iso18_calibration_source_contract()
+    iso_keys = [
+        "sd01",
+        "sd03",
+        "sd06",
+        "sd07",
+        "pride_direct_spike",
+        "pride_hipmhc_spikein",
+        "pride_skmel5_dmso_meki",
+    ]
+    neotoma_pin = drug_studies_qualification_contract()["neotoma_2021_source_pin"]
+
+    def iso_root() -> Path:
+        return data_dir() / "stopfer_2021_iso18"
+
+    def _iso_files() -> list[dict[str, Any]]:
+        root = iso_root()
+        out = []
+        for k in iso_keys:
+            fname = iso_contract["verified_assets"][k]["filename"]
+            p = root / fname
+            out.append(
+                {"name": fname, "path": p, "exists": p.is_file(), "expected_size_bytes": None}
+            )
+        return out
+
+    def _iso_exists() -> bool:
+        return all(item["exists"] for item in _iso_files())
+
+    def _iso_info() -> dict[str, Any]:
+        files = _iso_files()
+        installed = all(item["exists"] for item in files)
+        return {
+            "name": "stopfer-2021-iso18",
+            "type": "managed bundle",
+            "description": (
+                "Stopfer 2021 (PMID 34497125, PXD024917) Iso18 known-dose/raw-signal calibration "
+                "and SKMEL5 binimetinib vs DMSO Skyline transitions"
+            ),
+            "path": str(iso_root()),
+            "exists": installed,
+            "status": "installed" if installed else "not installed",
+            "files": [item["name"] for item in files],
+            "terms": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8449407/",
+        }
+
+    def _iso_fetch(force: bool) -> Path:
+        fetch_iso18_calibration_sources(dest_dir=iso_root(), force=force)
+        return iso_root()
+
+    def neotoma_root() -> Path:
+        return data_dir() / "pollock_2021_neotoma"
+
+    def _neotoma_files() -> list[dict[str, Any]]:
+        root = neotoma_root()
+        out = []
+        for meta in neotoma_pin["verified_assets"].values():
+            p = root / meta["filename"]
+            out.append(
+                {
+                    "name": meta["filename"],
+                    "path": p,
+                    "exists": p.is_file(),
+                    "expected_size_bytes": None,
+                }
+            )
+        return out
+
+    def _neotoma_exists() -> bool:
+        return all(item["exists"] for item in _neotoma_files())
+
+    def _neotoma_info() -> dict[str, Any]:
+        files = _neotoma_files()
+        installed = all(item["exists"] for item in files)
+        return {
+            "name": "pollock-2021-neotoma",
+            "type": "managed bundle",
+            "description": (
+                "Pollock 2021 (PMID 34129938, NeoToma2021@f7df59fd) idAdpgkG MC38 factorial "
+                "dTAG-13/doxycycline TOMAHAQ MS3 and untargeted TMT6 MS2 tables"
+            ),
+            "path": str(neotoma_root()),
+            "exists": installed,
+            "status": "installed" if installed else "not installed",
+            "files": [item["name"] for item in files],
+            "terms": "https://github.com/sbpollock/NeoToma2021",
+        }
+
+    def _neotoma_fetch(force: bool) -> Path:
+        fetch_neotoma_2021_sources(dest_dir=neotoma_root(), force=force)
+        return neotoma_root()
+
+    return {
+        "stopfer-2021-iso18": ManagedDataset(
+            name="stopfer-2021-iso18",
+            kind="bundle",
+            description=(
+                "Stopfer 2021 (PMID 34497125, PXD024917) Iso18 known-dose/raw-signal calibration "
+                "and SKMEL5 binimetinib vs DMSO Skyline transitions"
+            ),
+            terms="https://pmc.ncbi.nlm.nih.gov/articles/PMC8449407/",
+            path_fn=iso_root,
+            files_fn=_iso_files,
+            exists_fn=_iso_exists,
+            fetch_fn=_iso_fetch,
+            info_fn=_iso_info,
+            remove_fn=lambda delete_file: _remove_tree(iso_root(), delete_file=delete_file),
+            cache_kind="managed source",
+        ),
+        "pollock-2021-neotoma": ManagedDataset(
+            name="pollock-2021-neotoma",
+            kind="bundle",
+            description=(
+                "Pollock 2021 (PMID 34129938, NeoToma2021@f7df59fd) idAdpgkG MC38 factorial "
+                "dTAG-13/doxycycline TOMAHAQ MS3 and untargeted TMT6 MS2 tables"
+            ),
+            terms="https://github.com/sbpollock/NeoToma2021",
+            path_fn=neotoma_root,
+            files_fn=_neotoma_files,
+            exists_fn=_neotoma_exists,
+            fetch_fn=_neotoma_fetch,
+            info_fn=_neotoma_info,
+            remove_fn=lambda delete_file: _remove_tree(neotoma_root(), delete_file=delete_file),
+            cache_kind="managed source",
+        ),
+    }
+
+
 def managed_datasets() -> dict[str, ManagedDataset]:
     """Return every catalog-managed external dataset and bundle."""
     entries: dict[str, ManagedDataset] = {}
@@ -884,6 +1023,7 @@ def managed_datasets() -> dict[str, ManagedDataset]:
         _pxd013455_datasets,
         _bergseng_datasets,
         _dodm_ratio_datasets,
+        _iso18_and_neotoma_datasets,
     ):
         entries.update(loader())
     return entries
