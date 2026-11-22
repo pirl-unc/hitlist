@@ -99,7 +99,7 @@ def _sort_pmhc_by_evidence(result: pd.DataFrame) -> pd.DataFrame:
     if result.empty:
         return result
     df = result.copy()
-    df["_sort_is_donor_set"] = df["mhc_restriction"].astype(str).str.contains(";", regex=False)
+    df["_sort_is_donor_set"] = df["mhc_restriction"].str.contains(";", regex=False, na=False)
     if "ms_pmhc_has_mono_evidence" in df.columns:
         df["_sort_no_mono"] = ~df["ms_pmhc_has_mono_evidence"].astype(bool)
     elif "ms_pmhc_mono_hit_count" in df.columns:
