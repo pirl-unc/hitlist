@@ -761,6 +761,61 @@ def _pxd013455_datasets() -> dict[str, ManagedDataset]:
     }
 
 
+def _bergseng_datasets() -> dict[str, ManagedDataset]:
+    from .bergseng_2015_dq import bergseng_2015_source_contract, fetch_bergseng_2015_source
+    from .downloads import data_dir
+
+    contract = bergseng_2015_source_contract()
+    asset = contract["asset"]
+
+    def root_fn() -> Path:
+        return data_dir() / "bergseng_2015_dq"
+
+    def path_fn() -> Path:
+        return root_fn() / asset["filename"]
+
+    def _files() -> list[dict[str, Any]]:
+        target = path_fn()
+        return [
+            {
+                "name": asset["filename"],
+                "path": target,
+                "exists": target.is_file(),
+                "expected_size_bytes": asset["size_bytes"],
+            }
+        ]
+
+    def _info() -> dict[str, Any]:
+        target = path_fn()
+        return {
+            "name": "bergseng-2015-dq",
+            "type": "managed file",
+            "description": "Bergseng 2015 (PMID 25502872, CC-BY 4.0) HLA-DQ run-level MS1 ion volumes",
+            "path": str(target),
+            "exists": target.is_file(),
+            "status": "installed" if target.is_file() else "not installed",
+            "size_bytes": asset["size_bytes"],
+            "files": [asset["filename"]],
+            "terms": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4297300/",
+        }
+
+    return {
+        "bergseng-2015-dq": ManagedDataset(
+            name="bergseng-2015-dq",
+            kind="file",
+            description="Bergseng 2015 (PMID 25502872, CC-BY 4.0) HLA-DQ run-level MS1 ion volumes",
+            terms="https://pmc.ncbi.nlm.nih.gov/articles/PMC4297300/",
+            path_fn=path_fn,
+            files_fn=_files,
+            exists_fn=lambda: path_fn().is_file(),
+            fetch_fn=lambda force: fetch_bergseng_2015_source(force=force),
+            info_fn=_info,
+            remove_fn=lambda delete_file: _remove_tree(root_fn(), delete_file=delete_file),
+            cache_kind="managed source",
+        )
+    }
+
+
 def managed_datasets() -> dict[str, ManagedDataset]:
     """Return every catalog-managed external dataset and bundle."""
     entries: dict[str, ManagedDataset] = {}
@@ -772,6 +827,7 @@ def managed_datasets() -> dict[str, ManagedDataset]:
         _dlbcl_datasets,
         _canine_bulk_datasets,
         _pxd013455_datasets,
+        _bergseng_datasets,
     ):
         entries.update(loader())
     return entries
