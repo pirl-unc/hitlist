@@ -1,0 +1,208 @@
+schema_version: 1
+description: >-
+  Orthogonal cell lineage, malignancy status, tumor type, and activation state
+  vocabularies for separating APC subtypes from tumor and healthy parenchyma
+  across MS immunopeptidomics and T-cell datasets (#945).
+
+vocabularies:
+  cell_lineage:
+    - moDC
+    - cDC1
+    - cDC2
+    - pDC
+    - dc_unspecified
+    - macrophage
+    - monocyte
+    - b_cell_primary
+    - ebv_lcl
+    - b_cell_malignant
+    - t_cell
+    - nk_cell
+    - pbmc
+    - splenocyte
+    - myeloid_leukemia
+    - epithelial
+    - melanocyte
+    - fibroblast
+    - glial
+    - thymic_epithelial
+    - hepatocyte
+    - endothelial
+    - pancreatic_beta
+    - mast_cell
+    - osteoblast
+    - unknown
+
+  malignancy_status:
+    - healthy_primary
+    - immortalized_nonmalignant
+    - tumor_primary
+    - tumor_cell_line
+    - engineered_monoallelic_host
+    - unknown
+
+  tumor_type:
+    - melanoma
+    - nsclc
+    - crc
+    - breast_carcinoma
+    - rcc
+    - ovarian
+    - gbm
+    - aml
+    - cml
+    - cll
+    - dlbcl
+    - mcl
+    - burkitt_lymphoma
+    - mm
+    - pdac
+    - cervical_carcinoma
+    - osteosarcoma
+    - t_all
+    - mastocytoma
+    - dftd
+    - lymphoma_unspecified
+    - carcinoma_unspecified
+    - other_tumor
+    - none
+    - unknown
+
+  activation_state:
+    - resting
+    - immature_dc
+    - mature_dc
+    - activated_lps
+    - ifng_stimulated
+    - cytokine_stimulated
+    - ex_vivo_primary
+    - cultured
+    - unknown
+
+engineered_hosts:
+  - '721.221'
+  - K562
+  - C1R
+  - T2
+
+known_cell_lines:
+  '721.221':
+    cell_lineage: ebv_lcl
+    malignancy_status: engineered_monoallelic_host
+    tumor_type: none
+  K562:
+    cell_lineage: myeloid_leukemia
+    malignancy_status: engineered_monoallelic_host
+    tumor_type: cml
+  C1R:
+    cell_lineage: ebv_lcl
+    malignancy_status: engineered_monoallelic_host
+    tumor_type: none
+  T2:
+    cell_lineage: ebv_lcl
+    malignancy_status: engineered_monoallelic_host
+    tumor_type: none
+  JY:
+    cell_lineage: ebv_lcl
+    malignancy_status: immortalized_nonmalignant
+    tumor_type: none
+  31227ABO:
+    cell_lineage: ebv_lcl
+    malignancy_status: immortalized_nonmalignant
+    tumor_type: none
+  AWELLS:
+    cell_lineage: ebv_lcl
+    malignancy_status: immortalized_nonmalignant
+    tumor_type: none
+  BER:
+    cell_lineage: ebv_lcl
+    malignancy_status: immortalized_nonmalignant
+    tumor_type: none
+  GM12878:
+    cell_lineage: ebv_lcl
+    malignancy_status: immortalized_nonmalignant
+    tumor_type: none
+  HAP1:
+    cell_lineage: myeloid_leukemia
+    malignancy_status: tumor_cell_line
+    tumor_type: cml
+  THP-1:
+    cell_lineage: monocyte
+    malignancy_status: tumor_cell_line
+    tumor_type: aml
+  HeLa:
+    cell_lineage: epithelial
+    malignancy_status: tumor_cell_line
+    tumor_type: cervical_carcinoma
+  A549:
+    cell_lineage: epithelial
+    malignancy_status: tumor_cell_line
+    tumor_type: nsclc
+  MCF-7:
+    cell_lineage: epithelial
+    malignancy_status: tumor_cell_line
+    tumor_type: breast_carcinoma
+  HEK293T:
+    cell_lineage: epithelial
+    malignancy_status: immortalized_nonmalignant
+    tumor_type: none
+  A-375:
+    cell_lineage: melanocyte
+    malignancy_status: tumor_cell_line
+    tumor_type: melanoma
+  624-mel:
+    cell_lineage: melanocyte
+    malignancy_status: tumor_cell_line
+    tumor_type: melanoma
+  B16-F10:
+    cell_lineage: melanocyte
+    malignancy_status: tumor_cell_line
+    tumor_type: melanoma
+  Raji:
+    cell_lineage: b_cell_malignant
+    malignancy_status: tumor_cell_line
+    tumor_type: burkitt_lymphoma
+  GRANTA-519:
+    cell_lineage: b_cell_malignant
+    malignancy_status: tumor_cell_line
+    tumor_type: mcl
+  A20:
+    cell_lineage: b_cell_malignant
+    malignancy_status: tumor_cell_line
+    tumor_type: lymphoma_unspecified
+  Jurkat:
+    cell_lineage: t_cell
+    malignancy_status: tumor_cell_line
+    tumor_type: t_all
+  EL-4:
+    cell_lineage: t_cell
+    malignancy_status: tumor_cell_line
+    tumor_type: lymphoma_unspecified
+  RMA:
+    cell_lineage: t_cell
+    malignancy_status: tumor_cell_line
+    tumor_type: lymphoma_unspecified
+  P815:
+    cell_lineage: mast_cell
+    malignancy_status: tumor_cell_line
+    tumor_type: mastocytoma
+  ECN90:
+    cell_lineage: pancreatic_beta
+    malignancy_status: immortalized_nonmalignant
+    tumor_type: none
+  NIT-1:
+    cell_lineage: pancreatic_beta
+    malignancy_status: tumor_cell_line
+    tumor_type: other_tumor
+  Panc 06.03:
+    cell_lineage: epithelial
+    malignancy_status: tumor_cell_line
+    tumor_type: pdac
+  Panc 10.05:
+    cell_lineage: epithelial
+    malignancy_status: tumor_cell_line
+    tumor_type: pdac
+  '4906':
+    cell_lineage: glial
+    malignancy_status: tumor_cell_line
+    tumor_type: dftd
