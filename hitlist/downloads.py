@@ -2093,6 +2093,58 @@ def _tree_size_bytes(path: Path) -> int:
     return total
 
 
+def _list_datacache_bundles(store_path: Path) -> list[Path]:
+    """List bundle generation directories in a datacache store across datacache 1.30+ (#960)."""
+    import datacache
+
+    lister = getattr(datacache, "list_bundles", None)
+    if lister is None:
+        try:
+            from datacache import bundle_store
+
+            lister = getattr(bundle_store, "list_bundles", None)
+        except Exception:
+            lister = None
+    if lister is not None:
+        try:
+            return [Path(p) for p in lister(store_path)]
+        except Exception:
+            return []
+    # Fallback for datacache versions without public list_bundles: detect bundle directories
+    # carrying .datacache-manifest.json under store_path.
+    if not store_path.is_dir():
+        return []
+    found = [
+        child
+        for child in sorted(store_path.iterdir())
+        if child.is_dir()
+        and not child.name.startswith(".")
+        and (child / ".datacache-manifest.json").is_file()
+    ]
+    return found
+
+
+def _prune_datacache_bundles(store_path: Path, *, keep: int) -> list[Path]:
+    """Invoke datacache.prune_bundles (or bundle_store.prune_bundles) cleanly across versions."""
+    import datacache
+
+    pruner = getattr(datacache, "prune_bundles", None)
+    if pruner is None:
+        try:
+            from datacache import bundle_store
+
+            pruner = getattr(bundle_store, "prune_bundles", None)
+        except Exception:
+            pruner = None
+    if pruner is not None:
+        return [Path(p) for p in pruner(store_path, keep=keep)]
+    deleted = _list_datacache_bundles(store_path)[:-keep]
+    for bundle in deleted:
+        if bundle.is_dir() and not bundle.is_symlink():
+            shutil.rmtree(bundle)
+    return deleted
+
+
 def prune_cache_bundles(
     *,
     keep: int = 1,
@@ -2107,17 +2159,12 @@ def prune_cache_bundles(
     if isinstance(keep, bool) or not isinstance(keep, int) or keep < 1:
         raise ValueError("keep must be a positive integer; the current bundle is always kept")
 
-    import datacache
-
     base = Path(root) if root is not None else data_dir()
     candidate_stores: list[Path] = []
     if base.is_dir():
         for child in sorted(base.iterdir()):
             if child.is_dir() and not child.name.startswith("."):
-                try:
-                    bundles = datacache.list_bundles(child)
-                except Exception:
-                    bundles = []
+                bundles = _list_datacache_bundles(child)
                 if bundles:
                     candidate_stores.append(child)
 
@@ -2127,7 +2174,7 @@ def prune_cache_bundles(
     total_reclaimable_bytes = 0
 
     for store_path in candidate_stores:
-        bundles = [Path(b) for b in datacache.list_bundles(store_path)]
+        bundles = _list_datacache_bundles(store_path)
         prunable = bundles[:-keep]
         kept = bundles[-keep:]
         store_reclaimable = sum(_tree_size_bytes(b) for b in prunable)
@@ -2136,7 +2183,7 @@ def prune_cache_bundles(
 
         deleted_paths: list[str] = []
         if apply and prunable:
-            deleted_paths = [str(p) for p in datacache.prune_bundles(store_path, keep=keep)]
+            deleted_paths = [str(p) for p in _prune_datacache_bundles(store_path, keep=keep)]
             total_deleted += len(deleted_paths)
 
         stores_report.append(

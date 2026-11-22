@@ -136,7 +136,7 @@ def test_data_prune_dry_run_default_and_yes_deletes_old_bundles(
             force=True,
             download_options={"show_progress": False},
         )
-    assert len(datacache.list_bundles(store_dir)) == 3
+    assert len(downloads._list_datacache_bundles(store_dir)) == 3
 
     # Default dry-run reports 2 prunable bundles but deletes NOTHING
     monkeypatch.setattr(sys, "argv", ["hitlist", "data", "prune", "--json"])
@@ -145,7 +145,7 @@ def test_data_prune_dry_run_default_and_yes_deletes_old_bundles(
     assert dry["dry_run"] is True
     assert dry["n_prunable_bundles"] == 2
     assert dry["n_deleted_bundles"] == 0
-    assert len(datacache.list_bundles(store_dir)) == 3
+    assert len(downloads._list_datacache_bundles(store_dir)) == 3
 
     # With --yes, deletes the 2 oldest generations and keeps the newest 1
     monkeypatch.setattr(sys, "argv", ["hitlist", "data", "prune", "--yes", "--json"])
@@ -153,4 +153,4 @@ def test_data_prune_dry_run_default_and_yes_deletes_old_bundles(
     applied = json.loads(capsys.readouterr().out)
     assert applied["dry_run"] is False
     assert applied["n_deleted_bundles"] == 2
-    assert len(datacache.list_bundles(store_dir)) == 1
+    assert len(downloads._list_datacache_bundles(store_dir)) == 1
