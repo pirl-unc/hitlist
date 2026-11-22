@@ -816,6 +816,61 @@ def _bergseng_datasets() -> dict[str, ManagedDataset]:
     }
 
 
+def _dodm_ratio_datasets() -> dict[str, ManagedDataset]:
+    from .dohm_ratio_peptidomics import dodm_ratio_source_contract, fetch_dodm_ratio_source
+    from .downloads import data_dir
+
+    contract = dodm_ratio_source_contract()
+    asset = contract["asset"]
+
+    def root_fn() -> Path:
+        return data_dir() / "dodm_ratio_35085787"
+
+    def path_fn() -> Path:
+        return root_fn() / asset["filename"]
+
+    def _files() -> list[dict[str, Any]]:
+        target = path_fn()
+        return [
+            {
+                "name": asset["filename"],
+                "path": target,
+                "exists": target.is_file(),
+                "expected_size_bytes": asset["size_bytes"],
+            }
+        ]
+
+    def _info() -> dict[str, Any]:
+        target = path_fn()
+        return {
+            "name": "dodm-ratio-35085787",
+            "type": "managed file",
+            "description": "DO:DM ratio MHC-II immunopeptidomics Dataset S3 (PMID 35085787, PXD024392, CC-BY 4.0)",
+            "path": str(target),
+            "exists": target.is_file(),
+            "status": "installed" if target.is_file() else "not installed",
+            "size_bytes": asset["size_bytes"],
+            "files": [asset["filename"]],
+            "terms": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10329146/",
+        }
+
+    return {
+        "dodm-ratio-35085787": ManagedDataset(
+            name="dodm-ratio-35085787",
+            kind="file",
+            description="DO:DM ratio MHC-II immunopeptidomics Dataset S3 (PMID 35085787, PXD024392, CC-BY 4.0)",
+            terms="https://pmc.ncbi.nlm.nih.gov/articles/PMC10329146/",
+            path_fn=path_fn,
+            files_fn=_files,
+            exists_fn=lambda: path_fn().is_file(),
+            fetch_fn=lambda force: fetch_dodm_ratio_source(force=force),
+            info_fn=_info,
+            remove_fn=lambda delete_file: _remove_tree(root_fn(), delete_file=delete_file),
+            cache_kind="managed source",
+        )
+    }
+
+
 def managed_datasets() -> dict[str, ManagedDataset]:
     """Return every catalog-managed external dataset and bundle."""
     entries: dict[str, ManagedDataset] = {}
@@ -828,6 +883,7 @@ def managed_datasets() -> dict[str, ManagedDataset]:
         _canine_bulk_datasets,
         _pxd013455_datasets,
         _bergseng_datasets,
+        _dodm_ratio_datasets,
     ):
         entries.update(loader())
     return entries
