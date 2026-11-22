@@ -134,11 +134,16 @@ options:
   --json      Print the complete inventory as JSON
 
 ===== hitlist data available --help =====
-usage: hitlist data available [-h] [--json]
+usage: hitlist data available [-h]
+                              [--category {core_immunopeptidomics,viral_proteomes,reference_proteomes,expression_and_proteomics,tcell_and_atlas,perturbation_and_calibration,canine_and_cross_species,supplementary_immunopeptidomics}]
+                              [--grouped] [--json]
 
 options:
-  -h, --help  show this help message and exit
-  --json      Print available datasets as JSON
+  -h, --help            show this help message and exit
+  --category {core_immunopeptidomics,viral_proteomes,reference_proteomes,expression_and_proteomics,tcell_and_atlas,perturbation_and_calibration,canine_and_cross_species,supplementary_immunopeptidomics}
+                        Filter datasets to a single structured category
+  --grouped             Group datasets by structured category
+  --json                Print available datasets as JSON
 
 ===== hitlist data dirs --help =====
 usage: hitlist data dirs [-h]
