@@ -1,0 +1,98 @@
+{
+  "schema_version": "hitlist.peptidoform_preparation_contracts.v1",
+  "tracking_issue": 896,
+  "audit_baseline": {
+    "hitlist_version": "2.1.3",
+    "canonical_ms_export_sha256": "4a739794ab7a21ceb633df6e4cde4c01054f3e53213a5a8dcdc4d78604dde58f",
+    "n_total_ms_rows": 5440019,
+    "n_deferred_class2_condition_rows": 305607,
+    "n_deferred_supplementary_rows": 535026
+  },
+  "policy_rules": {
+    "blanket_fill_has_ptm_false_allowed": false,
+    "all_uppercase_implies_unmodified": false,
+    "search_mod_implies_native_binding_state": false,
+    "silent_aggregation_of_modified_into_unmodified_affinity_allowed": false,
+    "allowed_dispositions": [
+      "unmodified",
+      "modified",
+      "preparation_derivatized_only",
+      "multi_form_ambiguous",
+      "unresolved_form"
+    ]
+  },
+  "studies": {
+    "37301199": {
+      "pmid": 37301199,
+      "pmcid": "PMC10519123",
+      "doi": "10.1016/j.immuni.2023.05.017",
+      "study_label": "Stražar 2023 — mono-allelic HLA-II immunopeptidomes",
+      "massive_accession": "MSV000089225",
+      "fulltext_bioc_sha256": "29536930bd0592fffbdfd6a249eeba78654da58d26cfc98b27074389b8ab61d4",
+      "supplement_file": "strazar_2023_hla2.csv",
+      "current_study_subset_filter": {
+        "column": "dataset",
+        "value": "internal_aff_clean1and2",
+        "n_current_study_pairs": 308418,
+        "n_unique_peptides": 176962,
+        "n_alleles": 42,
+        "excluded_compiled_subsets": [
+          "reused_iedb_rows",
+          "reused_abelin_2019_rows",
+          "prediction_deconvolved_rows",
+          "generated_decoys"
+        ]
+      },
+      "preparation_chemistry": {
+        "alkylation_reagent": "iodoacetamide",
+        "alkylation_timing": "post_elution_sample_preparation",
+        "fixed_search_modifications": [
+          {
+            "residue": "C",
+            "modification": "Carbamidomethyl",
+            "unimod_id": "UNIMOD:4",
+            "origin": "preparation_derivatization",
+            "reflects_native_in_vivo_binding_state": false
+          }
+        ],
+        "variable_search_modifications": [
+          {"residue": "M", "modification": "Oxidation", "unimod_id": "UNIMOD:35", "origin": "ambiguous_biological_or_preparation"},
+          {"residue": "N/Q", "modification": "Deamidation", "unimod_id": "UNIMOD:7", "origin": "ambiguous_biological_or_preparation"},
+          {"residue": "N-term", "modification": "Acetylation_or_PyroGlu", "unimod_id": "variable", "origin": "variable_search_space"}
+        ],
+        "supplement_has_per_row_ptm_columns": false,
+        "default_disposition_without_psm_join": "unresolved_form",
+        "disposition_note": "strazar_2023_hla2.csv carries only bare sequences from compiled Table S2 without per-row PTM columns. Because iodoacetamide alkylation (fixed C carbamidomethylation) and variable modifications were used in search, bare uppercase sequences without MSV000089225 PSM join MUST remain unresolved_form (never blanket has_ptm=False)."
+      }
+    },
+    "31495665": {
+      "pmid": 31495665,
+      "pmcid": "PMC6800150",
+      "doi": "10.1016/j.immuni.2019.08.012",
+      "study_label": "Abelin 2019 — MAPTAC HLA-II + class I",
+      "massive_accession": "MSV000083991",
+      "supplement_files": [
+        "abelin_2019_maptac_class1.csv",
+        "abelin_2019_maptac_class2_dm_arms.csv.gz",
+        "abelin_2019_dr_tissue.csv"
+      ],
+      "source_workbook": {
+        "filename": "1-s2.0-S1074761319303632-mmc2.xlsx",
+        "sheet": "DataS1B",
+        "sha256": "78b551cecd395d8650c9696ebdb34f78066f351b83f27d043e0e57880420adbe"
+      },
+      "preparation_chemistry": {
+        "alkylation_reagent": "reduced_and_alkylated_per_maptac_protocol_or_unmodified_search_per_msv000083991",
+        "alkylation_timing": "post_elution_sample_preparation",
+        "fixed_search_modifications": [],
+        "variable_search_modifications": [
+          {"residue": "M", "modification": "Oxidation", "unimod_id": "UNIMOD:35", "origin": "ambiguous_biological_or_preparation"},
+          {"residue": "C", "modification": "Cysteinylation_or_Carbamidomethyl", "unimod_id": "variable", "origin": "ambiguous_biological_or_preparation"}
+        ],
+        "supplement_has_per_row_ptm_columns": false,
+        "default_disposition_without_psm_join": "unresolved_form",
+        "disposition_note": "DataS1B enumerates stripped peptide sequences per allele/DM arm without per-row modification localization columns. Without joining MSV000083991 PSM identifications, rows retain unresolved_form rather than assuming has_ptm=False."
+      }
+    }
+  }
+}

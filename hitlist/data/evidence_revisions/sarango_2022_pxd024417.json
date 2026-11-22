@@ -1,0 +1,82 @@
+{
+  "schema_version": "hitlist.sarango_2022_pxd024417_contract.v1",
+  "tracking_issue": 858,
+  "study_id": "sarango_2022_pxd024417",
+  "pmid": 36215666,
+  "pmcid": "PMC9724678",
+  "doi": "10.15252/embj.2021109242",
+  "pride_accession": "PXD024417",
+  "cell_system": {
+    "cell_line": "HeLa-CIITA",
+    "cellosaurus_id": "CVCL_0030",
+    "disease_state": "cervical adenocarcinoma (not healthy cervix)",
+    "genetic_engineering": "stable CIITA transduction for forced MHC-II expression",
+    "primary_verified_mhc_genotype": {
+      "class_i": null,
+      "class_i_status": "withdrawn_unverified_for_hela_ciita_derivative",
+      "class_ii": ["HLA-DRB1*01:02"],
+      "dra_manufactured": false
+    }
+  },
+  "pride_inventory": {
+    "n_total_files": 81,
+    "n_raw_files": 40,
+    "n_msf_files": 40,
+    "n_sdrf_files": 1,
+    "n_sdrf_rows": 40,
+    "n_sdrf_raw_filename_matches": 40,
+    "n_source_capture_groups": 8,
+    "n_technical_replicates_per_group": 5,
+    "verified_sdrf_asset": {
+      "filename": "PXD024417_community_annotated.sdrf.tsv",
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2022/09/PXD024417/PXD024417_community_annotated.sdrf.tsv",
+      "size_bytes": 41902,
+      "sha256": "793eeb55d34226b7bc42c692590d5fe79bbc469518ba423a09082931d2ea235a"
+    }
+  },
+  "replicate_qualification": {
+    "technical_replicates_are_independent_biological_replicates": false,
+    "source_capture_groups": [
+      {"source_name": "HeLa-CIITA_Mock1_classI", "arm": "Mock", "mhc_class": "I", "antibody": "W6/32", "biological_replicate": 1, "n_technical_replicates": 5},
+      {"source_name": "HeLa-CIITA_Mock2_classI", "arm": "Mock", "mhc_class": "I", "antibody": "W6/32", "biological_replicate": 2, "n_technical_replicates": 5},
+      {"source_name": "HeLa-CIITA_siCTRL_classI", "arm": "siCTRL", "mhc_class": "I", "antibody": "W6/32", "biological_replicate": 1, "n_technical_replicates": 5},
+      {"source_name": "HeLa-CIITA_siT6BP_classI", "arm": "siT6BP", "mhc_class": "I", "antibody": "W6/32", "biological_replicate": 1, "n_technical_replicates": 5},
+      {"source_name": "HeLa-CIITA_Mock1_classII", "arm": "Mock", "mhc_class": "II", "antibody": "Tue39", "biological_replicate": 1, "n_technical_replicates": 5},
+      {"source_name": "HeLa-CIITA_Mock2_classII", "arm": "Mock", "mhc_class": "II", "antibody": "Tue39", "biological_replicate": 2, "n_technical_replicates": 5},
+      {"source_name": "HeLa-CIITA_siCTRL_classII", "arm": "siCTRL", "mhc_class": "II", "antibody": "Tue39", "biological_replicate": 1, "n_technical_replicates": 5},
+      {"source_name": "HeLa-CIITA_siT6BP_classII", "arm": "siT6BP", "mhc_class": "II", "antibody": "Tue39", "biological_replicate": 1, "n_technical_replicates": 5}
+    ],
+    "second_biological_sirna_experiment_status": "unresolved_in_pride_40_raw_deposit",
+    "second_biological_sirna_note": "Primary paper reports two biological siRNA experiments, while PXD024417 enumerates Mock1 and Mock2 (2 biological replicates) alongside single siCTRL and siT6BP groups (5 technical replicates each). Five technical acquisitions must never be treated as five independent biological replicates."
+  },
+  "secondary_community_sdrf_typing_policy": {
+    "promote_to_primary_genotype": false,
+    "restore_withdrawn_class_i_alleles": false,
+    "manufacture_dra_allele": false,
+    "community_sdrf_mhc_typing_method": "not available",
+    "community_sdrf_class_i_annotation": ["HLA-A*68:02", "HLA-B*15:03", "HLA-C*12:03"],
+    "community_sdrf_class_ii_annotation": ["HLA-DRB1*01:02", "HLA-DQA1*01:02", "HLA-DQB1*05:01"],
+    "policy_note": "Community SDRF MHC typing marks characteristics[mhc typing method] as 'not available'. Retain exclusively in secondary_community_sdrf_mhc_typing columns; do not promote to primary genotype or restore withdrawn Class-I alleles."
+  },
+  "evidence_type_boundaries": {
+    "distinct_evidence_families": [
+      "pan_mhc_peptide_ms_intensity",
+      "plateau_core_summary",
+      "computational_drb1_01_02_affinity_estimate",
+      "iedb_presence_absence_arm_membership"
+    ],
+    "shared_iedb_memberships_expand_to_independent_measurements": false,
+    "missing_detection_is_measured_negative": false,
+    "tax1bp1_perturbation_asserts_measured_pathway_activity": false,
+    "headline_effect_wording": "repertoire_alteration_unless_scoped_by_quantitative_intensity"
+  },
+  "iedb_corrected_v4_census": {
+    "observations_parquet_sha256": "a665f37c0b5917fefb6d12eade530d7e2001de1f0ee73479b21d2c393d173ab4",
+    "n_total_rows": 14903,
+    "n_class_i_rows": 3028,
+    "n_class_ii_rows": 11875,
+    "n_class_ii_single_arm_rows": 5980,
+    "n_class_ii_shared_arm_rows": 5895,
+    "n_class_ii_quantitative_rows": 0
+  }
+}

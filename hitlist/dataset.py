@@ -203,11 +203,30 @@ def _validate_generation():
             raise ValueError("Mappings do not match the staged evidence indexes")
 
 
+def _resolve_materialization_sources(sources):
+    """Resolve symlinked local source paths before datacache.materialize(O_NOFOLLOW) (#954)."""
+    resolved_sources = {}
+    for name, spec in sources.items():
+        if isinstance(spec, dict) and "path" in spec:
+            raw_path = Path(spec["path"])
+            resolved = raw_path.resolve(strict=True)
+            if not resolved.is_file():
+                raise ValueError(
+                    f"Materialization source {name!r} at {raw_path} resolved to {resolved}, "
+                    "which is not a regular file"
+                )
+            resolved_sources[name] = {**spec, "path": str(resolved)}
+        else:
+            resolved_sources[name] = spec
+    return resolved_sources
+
+
 def publish_dataset(sources, names, build, *, root=None, options=None):
     """Build declared indexes in private datacache staging, then publish once."""
     from .version import __version__
 
     root = _root(root)
+    resolved_sources = _resolve_materialization_sources(sources)
     outputs = {name: {} for name in (*names, "README.md")}
 
     def staged(source_paths, output_paths):
@@ -221,7 +240,7 @@ def publish_dataset(sources, names, build, *, root=None, options=None):
         name: Path(path)
         for name, path in materialize(
             root / STORE_NAME,
-            sources,
+            resolved_sources,
             transform={"version": f"hitlist-{__version__}", "options": options or {}},
             outputs=outputs,
             builder=staged,

@@ -1010,6 +1010,65 @@ def _iso18_and_neotoma_datasets() -> dict[str, ManagedDataset]:
     }
 
 
+def _sarango_2022_datasets() -> dict[str, ManagedDataset]:
+    from .downloads import data_dir
+    from .sarango_2022_pxd024417 import fetch_sarango_2022_sdrf, sarango_2022_source_contract
+
+    contract = sarango_2022_source_contract()
+    asset = contract["pride_inventory"]["verified_sdrf_asset"]
+
+    def root_fn() -> Path:
+        return data_dir() / "sarango_2022_pxd024417"
+
+    def path_fn() -> Path:
+        return root_fn() / asset["filename"]
+
+    def _files() -> list[dict[str, Any]]:
+        target = path_fn()
+        return [
+            {
+                "name": asset["filename"],
+                "path": target,
+                "exists": target.is_file(),
+                "expected_size_bytes": asset["size_bytes"],
+            }
+        ]
+
+    def _info() -> dict[str, Any]:
+        target = path_fn()
+        return {
+            "name": "sarango-2022-pxd024417-sdrf",
+            "type": "managed file",
+            "description": (
+                "Sarango 2022 (PMID 36215666, PXD024417) community-annotated SDRF run/replicate map"
+            ),
+            "path": str(target),
+            "exists": target.is_file(),
+            "status": "installed" if target.is_file() else "not installed",
+            "size_bytes": asset["size_bytes"],
+            "files": [asset["filename"]],
+            "terms": "https://www.ebi.ac.uk/pride/archive/projects/PXD024417",
+        }
+
+    return {
+        "sarango-2022-pxd024417-sdrf": ManagedDataset(
+            name="sarango-2022-pxd024417-sdrf",
+            kind="file",
+            description=(
+                "Sarango 2022 (PMID 36215666, PXD024417) community-annotated SDRF run/replicate map"
+            ),
+            terms="https://www.ebi.ac.uk/pride/archive/projects/PXD024417",
+            path_fn=path_fn,
+            files_fn=_files,
+            exists_fn=lambda: path_fn().is_file(),
+            fetch_fn=lambda force: fetch_sarango_2022_sdrf(force=force),
+            info_fn=_info,
+            remove_fn=lambda delete_file: _remove_tree(root_fn(), delete_file=delete_file),
+            cache_kind="managed source",
+        )
+    }
+
+
 def managed_datasets() -> dict[str, ManagedDataset]:
     """Return every catalog-managed external dataset and bundle."""
     entries: dict[str, ManagedDataset] = {}
@@ -1024,6 +1083,7 @@ def managed_datasets() -> dict[str, ManagedDataset]:
         _bergseng_datasets,
         _dodm_ratio_datasets,
         _iso18_and_neotoma_datasets,
+        _sarango_2022_datasets,
     ):
         entries.update(loader())
     return entries
