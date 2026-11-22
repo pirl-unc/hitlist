@@ -66,6 +66,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 from datacache import FileValidationError, VersionedFileRegistry
 from filelock import FileLock
@@ -1548,6 +1549,55 @@ def _file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _inspect_path_symlink_state(path: str | Path) -> dict[str, Any]:
+    """Inspect a local path consistently with ``build_observations()`` (#954, #958).
+
+    Returns ``is_symlink``, ``resolved_path`` (canonical path when resolvable, else ``None``),
+    and ``symlink_status`` in ``{"regular_file", "valid_symlink", "broken_symlink",
+    "non_regular_target", "missing"}``.
+    """
+    p = Path(path)
+    is_link = p.is_symlink()
+    if is_link:
+        try:
+            resolved = p.resolve(strict=True)
+        except OSError:
+            return {
+                "is_symlink": True,
+                "resolved_path": None,
+                "symlink_status": "broken_symlink",
+            }
+        if not resolved.is_file():
+            return {
+                "is_symlink": True,
+                "resolved_path": str(resolved),
+                "symlink_status": "non_regular_target",
+            }
+        return {
+            "is_symlink": True,
+            "resolved_path": str(resolved),
+            "symlink_status": "valid_symlink",
+        }
+    if not p.exists():
+        return {
+            "is_symlink": False,
+            "resolved_path": None,
+            "symlink_status": "missing",
+        }
+    resolved = p.resolve()
+    if not resolved.is_file():
+        return {
+            "is_symlink": False,
+            "resolved_path": str(resolved),
+            "symlink_status": "non_regular_target",
+        }
+    return {
+        "is_symlink": False,
+        "resolved_path": str(resolved),
+        "symlink_status": "regular_file",
+    }
+
+
 def preflight(name: str, *, force: bool = False) -> dict:
     """Report what :func:`fetch` would do for *name* without touching the network.
 
@@ -1608,17 +1658,28 @@ def preflight(name: str, *, force: bool = False) -> dict:
         raise _unfetchable(name)
     entry = load_manifest().get("datasets", {}).get(name)
     free = _free_bytes_for_path(dest)
+    check_path = Path(entry["path"]) if entry is not None else dest
+    link_state = _inspect_path_symlink_state(check_path)
+    reg_valid = entry is not None and link_state["symlink_status"] in (
+        "regular_file",
+        "valid_symlink",
+    )
+    dest_state = _inspect_path_symlink_state(dest) if entry is not None else link_state
+    dest_valid = dest_state["symlink_status"] in ("regular_file", "valid_symlink")
     return {
         "name": name,
         "path": str(dest),
         "registered": entry is not None,
-        "exists": dest.exists(),
-        "stale": entry is not None and not Path(entry["path"]).exists(),
-        "would_download": force or not dest.exists(),
+        "exists": dest_valid,
+        "stale": entry is not None and not reg_valid,
+        "would_download": force or not dest_valid,
         "expected_size_bytes": expected,
         "free_bytes": free,
         "enough_space": None if expected is None else free >= expected,
         "terms": terms,
+        "is_symlink": link_state["is_symlink"],
+        "resolved_path": link_state["resolved_path"],
+        "symlink_status": link_state["symlink_status"],
     }
 
 
@@ -1733,17 +1794,46 @@ def info(name: str) -> dict:
             return managed.info_fn()
         raise KeyError(f"Unknown dataset '{name}'")
     result = dict(entry)
-    state = datacache.inspect_file(entry["path"])
-    result.update(
-        exists=state.status != "missing",
-        status="installed" if state.status == "available" else state.status,
-        cache_status=state.status,
-        verified=state.verified,
-        source_url=state.source_url,
-        fetched_at=state.fetched_at,
-        recorded_sha256=state.recorded_sha256,
-        error=str(state.error) if state.error else None,
-    )
+    link_state = _inspect_path_symlink_state(entry["path"])
+    result.update(link_state)
+    if link_state["symlink_status"] == "broken_symlink":
+        result.update(
+            exists=False,
+            status="missing",
+            cache_status="missing",
+            verified=False,
+            source_url=None,
+            fetched_at=None,
+            recorded_sha256=None,
+            error=f"Broken symlink: {entry['path']}",
+        )
+    elif link_state["symlink_status"] == "non_regular_target":
+        result.update(
+            exists=False,
+            status="invalid",
+            cache_status="invalid",
+            verified=False,
+            source_url=None,
+            fetched_at=None,
+            recorded_sha256=None,
+            error=(
+                f"Registered path {entry['path']} resolves to {link_state['resolved_path']}, "
+                "which is not a regular file"
+            ),
+        )
+    else:
+        inspect_target = link_state["resolved_path"] or entry["path"]
+        state = datacache.inspect_file(inspect_target)
+        result.update(
+            exists=state.status != "missing",
+            status="installed" if state.status == "available" else state.status,
+            cache_status=state.status,
+            verified=state.verified,
+            source_url=state.source_url,
+            fetched_at=state.fetched_at,
+            recorded_sha256=state.recorded_sha256,
+            error=str(state.error) if state.error else None,
+        )
     if name in FETCHABLE_DATASETS:
         result["type"] = "auto-fetch"
         result["usage"] = FETCHABLE_DATASETS[name].get("usage", "")
@@ -1768,22 +1858,122 @@ def list_cache_files(*, verify: bool = False, include_unregistered: bool = True)
     return inventory(verify=verify, include_unregistered=include_unregistered)
 
 
-def available_datasets() -> dict[str, str]:
-    """Return all known dataset names with descriptions."""
+DATASET_CATEGORIES: tuple[str, ...] = (
+    "core_immunopeptidomics",
+    "viral_proteomes",
+    "reference_proteomes",
+    "expression_and_proteomics",
+    "tcell_and_atlas",
+    "perturbation_and_calibration",
+    "canine_and_cross_species",
+    "supplementary_immunopeptidomics",
+)
+
+_VIRAL_DATASET_NAMES = frozenset(
+    {"ebv", "hbv", "hcv", "hiv1", "hpv16", "hpv18", "htlv1", "kshv", "mcpyv"}
+)
+_EXPRESSION_PREFIXES = ("depmap", "hpa_", "ccle_", "bekker_jensen_", "gm12878_")
+_PERTURBATION_NAMES = frozenset(
+    {
+        "bergseng-2015-dq",
+        "dodm-ratio-35085787",
+        "stopfer-2021-iso18",
+        "pollock-2021-neotoma",
+        "sarango-2022-pxd024417-sdrf",
+        "perturbation-quantities",
+        "dlbcl-35561310-supplements",
+        "pxd013455",
+        "pxd013455-sources",
+        "netmhcstabpan",
+    }
+)
+
+
+def dataset_categories() -> tuple[str, ...]:
+    """Return the canonical structured dataset catalog categories (#958)."""
+    return DATASET_CATEGORIES
+
+
+def _classify_catalog_entry(name: str, *, kind: str) -> tuple[str, str, str]:
+    """Return ``(category, group, species)`` for a dataset catalog name (#958)."""
+    if name in ("iedb", "cedar"):
+        return "core_immunopeptidomics", "core", "multi-species"
+    if name in _VIRAL_DATASET_NAMES:
+        return "viral_proteomes", "viral", "viral"
+    if name.startswith("uniprot/"):
+        return "reference_proteomes", "uniprot", "Homo sapiens"
+    if name.startswith("canine-bulk"):
+        return "canine_and_cross_species", "canine_bulk", "Canis lupus familiaris"
+    if name in ("tcell-assays", "hla-ligand-atlas", "hla-ligand-atlas-crosswalk"):
+        return "tcell_and_atlas", "atlas_and_tcell", "Homo sapiens"
+    if name in _PERTURBATION_NAMES:
+        species = "Mus musculus" if name == "pollock-2021-neotoma" else "Homo sapiens"
+        return "perturbation_and_calibration", "source_qualified", species
+    if name.startswith(_EXPRESSION_PREFIXES):
+        group = (
+            "depmap"
+            if name.startswith("depmap")
+            else ("hpa" if name.startswith("hpa_") else "proteomics_expression")
+        )
+        return "expression_and_proteomics", group, "Homo sapiens"
+    if kind == "mirrored asset":
+        return "supplementary_immunopeptidomics", "mirrored_study_csv", "Homo sapiens"
+    return "supplementary_immunopeptidomics", "other", "Homo sapiens"
+
+
+def available_dataset_catalog(*, category: str | None = None) -> dict[str, dict[str, Any]]:
+    """Return structured metadata (category, group, species, kind, description) per dataset (#958).
+
+    Parameters
+    ----------
+    category
+        Optional category name from :func:`dataset_categories` to filter results.
+    """
+    if category is not None and category not in DATASET_CATEGORIES:
+        raise ValueError(
+            f"Unknown dataset category {category!r}; choose from {list(DATASET_CATEGORIES)}"
+        )
+
     from ._dataset_catalog import managed_datasets
 
-    result = {
-        "depmap": "DepMap 24Q4 gene/transcript expression + companions (~4.7 GB) [bundle + build]"
-    }
+    entries: dict[str, dict[str, Any]] = {}
+
+    def _add(name: str, description: str, kind: str) -> None:
+        if name in entries:
+            return
+        cat, group, species = _classify_catalog_entry(name, kind=kind)
+        if category is not None and cat != category:
+            return
+        entries[name] = {
+            "name": name,
+            "category": cat,
+            "group": group,
+            "species": species,
+            "kind": kind,
+            "description": description,
+        }
+
+    _add(
+        "depmap", "DepMap 24Q4 gene/transcript expression + companions (~4.7 GB)", "bundle + build"
+    )
     for name, ds in FETCHABLE_DATASETS.items():
-        result[name] = ds["description"] + " [auto-fetch]"
+        _add(name, ds["description"], "auto-fetch")
     for name, ds in MANUAL_DATASETS.items():
-        result[name] = ds["description"] + " [manual download]"
+        _add(name, ds["description"], "manual download")
     for name, asset in data_assets().items():
-        result.setdefault(name, asset["source"] + " [mirrored asset]")
+        _add(name, asset["source"], "mirrored asset")
     for name, managed in managed_datasets().items():
-        result.setdefault(name, f"{managed.description} [{managed.cache_kind}]")
-    return result
+        _add(name, managed.description, managed.cache_kind)
+
+    return dict(sorted(entries.items()))
+
+
+def available_datasets() -> dict[str, str]:
+    """Return all known dataset names with descriptions."""
+    return {
+        name: f"{meta['description']} [{meta['kind']}]"
+        for name, meta in available_dataset_catalog().items()
+    }
 
 
 def refresh(name: str) -> Path:

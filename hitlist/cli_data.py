@@ -29,6 +29,8 @@ from .cli_build import (
 from .cli_common import print_subgroup_help
 from .downloads import (
     DATA_DIR_ENV_VAR,
+    DATASET_CATEGORIES,
+    available_dataset_catalog,
     available_datasets,
     data_asset_dir,
     fetch,
@@ -192,7 +194,24 @@ def _data_list(args: argparse.Namespace) -> None:
 
 
 def _data_available(args: argparse.Namespace) -> None:
-    datasets = available_datasets()
+    category = getattr(args, "category", None)
+    grouped = getattr(args, "grouped", False)
+    catalog = available_dataset_catalog(category=category)
+    if category is None:
+        # Preserve monkeypatchability of cli_data.available_datasets for tests and callers.
+        flat = available_datasets()
+        if set(flat.keys()) != set(catalog.keys()):
+            catalog = {
+                name: {
+                    "name": name,
+                    "category": "core_immunopeptidomics",
+                    "group": "custom",
+                    "species": "unknown",
+                    "kind": "custom",
+                    "description": desc,
+                }
+                for name, desc in flat.items()
+            }
     registered = {
         name
         for row in list_cache_files(include_unregistered=False)
@@ -203,21 +222,50 @@ def _data_available(args: argparse.Namespace) -> None:
         payload = [
             {
                 "name": name,
+                "category": meta["category"],
+                "group": meta["group"],
+                "species": meta["species"],
+                "kind": meta["kind"],
                 "installed": name in registered,
-                "description": desc,
+                "description": (
+                    meta["description"]
+                    if meta["kind"] == "custom"
+                    else f"{meta['description']} [{meta['kind']}]"
+                ),
             }
-            for name, desc in sorted(datasets.items())
+            for name, meta in sorted(catalog.items())
         ]
         print(json.dumps(payload, indent=2))
         return
-    width = max((len(name) for name in datasets), default=12)
+    width = max((len(name) for name in catalog), default=12)
     width = max(width, 12)
-    print(f"{'Name':<{width}} {'Status':<12} Description")
-    print("-" * max(75, width + 30))
-    for name, desc in sorted(datasets.items()):
-        status = "installed" if name in registered else ""
-        print(f"{name:<{width}} {status:<12} {desc}")
-    print()
+    if grouped:
+        for cat in DATASET_CATEGORIES:
+            cat_items = [(n, m) for n, m in sorted(catalog.items()) if m["category"] == cat]
+            if not cat_items:
+                continue
+            print(f"[{cat}] ({len(cat_items)})")
+            for name, meta in cat_items:
+                status = "installed" if name in registered else ""
+                desc = (
+                    meta["description"]
+                    if meta["kind"] == "custom"
+                    else f"{meta['description']} [{meta['kind']}]"
+                )
+                print(f"  {name:<{width}} {status:<12} {desc}")
+            print()
+    else:
+        print(f"{'Name':<{width}} {'Status':<12} Description")
+        print("-" * max(75, width + 30))
+        for name, meta in sorted(catalog.items()):
+            status = "installed" if name in registered else ""
+            desc = (
+                meta["description"]
+                if meta["kind"] == "custom"
+                else f"{meta['description']} [{meta['kind']}]"
+            )
+            print(f"{name:<{width}} {status:<12} {desc}")
+        print()
     _print_data_locations()
 
 
@@ -311,6 +359,16 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     p.add_argument("--verify", action="store_true", help="Verify trusted mirrored-asset hashes")
     p.add_argument("--json", action="store_true", help="Print the complete inventory as JSON")
     p = ds.add_parser("available", help="Show all known datasets")
+    p.add_argument(
+        "--category",
+        choices=list(DATASET_CATEGORIES),
+        help="Filter datasets to a single structured category",
+    )
+    p.add_argument(
+        "--grouped",
+        action="store_true",
+        help="Group datasets by structured category",
+    )
     p.add_argument("--json", action="store_true", help="Print available datasets as JSON")
     ds.add_parser(
         "dirs",
