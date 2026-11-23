@@ -142,3 +142,62 @@ def test_symlink_status_consistent_across_info_preflight_and_inventory(tmp_path:
     assert inv["iedb"]["symlink_status"] == "broken_symlink"
     assert inv["hpa_bulk"]["status"] == "invalid"
     assert inv["hpa_bulk"]["symlink_status"] == "non_regular_target"
+
+
+def test_register_preserves_symlink_by_default_and_supports_resolve(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """downloads.register() preserves symlinks by default so stable links stay live (#964)."""
+    snap1 = tmp_path / "iedb_2026_11.csv"
+    snap1.write_text("col\n1\n", encoding="utf-8")
+    snap2 = tmp_path / "iedb_2026_12.csv"
+    snap2.write_text("col\n1\n2\n", encoding="utf-8")
+    link = tmp_path / "iedb_latest.csv"
+    link.symlink_to(snap1)
+
+    registered = downloads.register("iedb", link)
+    assert registered == link
+    assert downloads.get_path("iedb") == link
+
+    meta = downloads.info("iedb")
+    assert meta["path"] == str(link)
+    assert meta["is_symlink"] is True
+    assert meta["symlink_status"] == "valid_symlink"
+    assert Path(meta["resolved_path"]) == snap1.resolve()
+    assert meta["status"] == "installed"
+
+    # Retargeting the symlink takes effect immediately without re-registering.
+    link.unlink()
+    link.symlink_to(snap2)
+    meta2 = downloads.info("iedb")
+    assert meta2["symlink_status"] == "valid_symlink"
+    assert Path(meta2["resolved_path"]) == snap2.resolve()
+
+    # Removing the target surfaces broken_symlink consistently.
+    snap2.unlink()
+    meta_broken = downloads.info("iedb")
+    assert meta_broken["symlink_status"] == "broken_symlink"
+    assert meta_broken["exists"] is False
+    with pytest.raises(FileNotFoundError, match="Broken symlink"):
+        downloads.register("iedb", link)
+
+    # Restore target and test opt-out preserve_symlink=False.
+    snap2.write_text("col\n1\n2\n", encoding="utf-8")
+    resolved_reg = downloads.register("cedar", link, preserve_symlink=False)
+    assert resolved_reg == snap2.resolve()
+    cedar_meta = downloads.info("cedar")
+    assert cedar_meta["is_symlink"] is False
+    assert cedar_meta["symlink_status"] == "regular_file"
+
+    # CLI parity: default preserves symlink; --resolve-symlink dereferences.
+    monkeypatch.setattr(sys, "argv", ["hitlist", "data", "register", "iedb", str(link)])
+    cli.main()
+    assert str(link) in capsys.readouterr().out
+    assert downloads.info("iedb")["symlink_status"] == "valid_symlink"
+
+    monkeypatch.setattr(
+        sys, "argv", ["hitlist", "data", "register", "--resolve-symlink", "iedb", str(link)]
+    )
+    cli.main()
+    assert str(snap2.resolve()) in capsys.readouterr().out
+    assert downloads.info("iedb")["symlink_status"] == "regular_file"

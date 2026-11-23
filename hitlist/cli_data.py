@@ -279,7 +279,12 @@ def _data_preflight(args: argparse.Namespace) -> None:
 
 def _data_register(args: argparse.Namespace) -> None:
     try:
-        p = register_dataset(args.name, args.path, description=args.description)
+        p = register_dataset(
+            args.name,
+            args.path,
+            description=args.description,
+            preserve_symlink=not getattr(args, "resolve_symlink", False),
+        )
         print(f"Registered '{args.name}' -> {p}")
     except FileNotFoundError as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -434,6 +439,11 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     p.add_argument("name", help="Dataset name")
     p.add_argument("path", help="Path to the file")
     p.add_argument("--description", "-d", help="Optional description")
+    p.add_argument(
+        "--resolve-symlink",
+        action="store_true",
+        help="Store the dereferenced target path instead of preserving a symlink",
+    )
 
     p = ds.add_parser(
         "preflight",

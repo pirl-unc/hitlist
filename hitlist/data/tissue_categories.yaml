@@ -1,23 +1,28 @@
 # IEDB Source Tissue → category mappings.
-# Categories: reproductive, reproductive_female, reproductive_male, thymus,
-#             somatic (default if not listed).
+# Categories: reproductive, reproductive_female, reproductive_male,
+#             resting_mammary, thymus, somatic (default if not listed).
 # Tissue names are lowercased for matching.
 #
 # Reproductive tissue is split into three tiers by what actually makes a
-# cancer-testis-antigen target safe:
+# cancer-testis-antigen target safe, aligned with OncoRef anatomy (#963):
 #
 #   reproductive          Immune-privileged / fetally tolerized tissue
 #                         (testis behind the blood-testis barrier, placenta via
 #                         HLA-G fetal tolerance). CTA-safe regardless of patient
 #                         sex — privilege, not sex, is the safety basis. testis
 #                         lives here (NOT in reproductive_male) for that reason.
-#   reproductive_female   Female reproductive tract / breast. Presents antigen
-#   reproductive_male     Male reproductive tract.
-#                         normally, so a safety signal only in patients who have
-#                         the tissue. Patient sex therefore adds an extra safety
-#                         stratum (applied downstream); hitlist only tags the
-#                         tissue's sex. Default (sex unknown) = permissive, i.e.
-#                         NOT counted as a somatic safety signal (src_healthy_tissue).
+#   reproductive_female   Female-exclusive reproductive tract & lactating breast.
+#                         Presents antigen normally, so a safety signal only in
+#                         female patients (matches OncoRef female_sex_compartments).
+#   reproductive_male     Male-exclusive reproductive tract. Presents antigen
+#                         normally, so a safety signal only in male patients.
+#                         Default (sex unknown) = permissive, i.e. NOT counted as
+#                         a somatic safety signal (src_healthy_tissue).
+#   resting_mammary       Resting breast / mammary gland. Present in BOTH adult
+#                         females and adult males (matches OncoRef
+#                         male_adult_protected_compartments); therefore counted
+#                         as a somatic safety tissue (src_healthy_tissue=True)
+#                         rather than female-only (src_healthy_reproductive_female=False).
 
 reproductive:
   - testis
@@ -26,8 +31,6 @@ reproductive:
   - embryo
 
 reproductive_female:
-  - breast
-  - mammary gland
   - lactating breast
   - ovary
   - uterus
@@ -40,6 +43,10 @@ reproductive_female:
 reproductive_male:
   - prostate
   - seminal vesicle
+
+resting_mammary:
+  - breast
+  - mammary gland
 
 thymus:
   - thymus

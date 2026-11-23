@@ -84,11 +84,25 @@ of affected sequences because many already have candidate evidence elsewhere.
 
 Ramarathinam gains 76,855 rows and **62,467 unique deposited sequences** across
 DR, DQ and DP. Its locus counts are 52,826 DR sequences, 6,872 DQ and 3,877 DP;
-their sum exceeds the paper-level union because sequences can overlap loci.
+their sum (63,575) exceeds the paper-level union (62,467) by 1,108 because
+sequences can overlap loci (DR∩DQ=592, DR∩DP=453, DQ∩DP=205, all three=142).
 The paper reports 71,350 unique peptides; that publication count is not the
 same population as these deposited observations and is not used as the audit
 denominator. No unreported chain or peptide is added to reconcile them.
-The source-count reconciliation is tracked in [#632](https://github.com/pirl-unc/hitlist/issues/632).
+
+Source-count reconciliation ([#632](https://github.com/pirl-unc/hitlist/issues/632);
+fingerprinted ledger in
+`hitlist/data/evidence_revisions/ramarathinam_2021_34357683_reconciliation.json`):
+
+| Stage / Population | Length window | Total rows / entries | Distinct linear sequences | Distinct seq+PTM forms | Notes |
+|---|---|---:|---:|---:|---|
+| PRIDE `PXD025877` (18 Peaks X Pro `.mzid.gz`: 7 DR, 6 DQ, 5 DP) | 7–50+ aa | — | 74,880 | 89,957 | Includes 1,835 `<9` aa and 2,260 `>30` aa peptides outside IEDB's window plus 1,138 `9–30`-mers absent from IEDB |
+| Ramarathinam et al. 2021 abstract (`PMID 34357683`, `10.1002/pmic.202000160`) | Paper-defined | — | 71,350 | — | Reported collective DR12/DQ7/DP4 haplodome count |
+| Live IEDB `mhc_search` (`pubmed_id=34357683`) | 9–30 aa | 84,751 | 69,647 | 82,559 | 100% subset of PRIDE (`69,647/69,647`); DR 71,169 (`59,117`), DQ 8,262 (`7,312`), DP 5,320 (`4,444`); 68,898 unmodified + 15,853 modified (M-ox 10,554, NQ-deam 4,608, K-acet 691) |
+| Hitlist `observations.parquet` (`ci-corpus-v2`) | 12–30 aa | 76,855 | 62,467 | 74,844 | DR 64,357 (`52,826`), DQ 7,795 (`6,872`), DP 4,703 (`3,877`); 100% of the 7,896 dropped IEDB rows (`7,180` sequences: 9-mer 1,674, 10-mer 2,349, 11-mer 3,873) are filtered by `#122` (`peptide < 12 aa`); 0 `>=12` aa IEDB rows are lost |
+
+DR, DQ, and DP locus restrictions (`HLA-DR`, `HLA-DQ`, `HLA-DP`) remain
+unchanged; inferred alleles are never promoted to reported assignments.
 
 All 29 papers with gene/locus gains:
 

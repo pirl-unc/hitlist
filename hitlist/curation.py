@@ -25,8 +25,11 @@ Source categories (mutually exclusive priority order)::
     healthy_thymus      Direct ex vivo thymus (expected for CTAs)
     healthy_reproductive Direct ex vivo immune-privileged reproductive tissue
                         (testis, epididymis, placenta, embryo; CTA-safe in either sex)
-    healthy_reproductive_female Direct ex vivo female reproductive tract / breast
-                        (sex-stratified: a safety signal only in female patients)
+    healthy_reproductive_female Direct ex vivo female-exclusive reproductive tract
+                        and lactating breast (sex-stratified: a safety signal only
+                        in female patients; resting breast / mammary gland is
+                        somatic/healthy_tissue since both sexes have resting mammary
+                        tissue, aligned with OncoRef anatomy, #963)
     healthy_reproductive_male Direct ex vivo male reproductive tract
                         (sex-stratified: a safety signal only in male patients)
     ebv_lcl             EBV-transformed B-cell lines
@@ -678,16 +681,141 @@ def load_tissue_categories() -> dict[str, frozenset[str]]:
     -------
     dict[str, frozenset[str]]
         Keys: ``reproductive``, ``reproductive_female``, ``reproductive_male``,
-        ``thymus``, ``activated_apc_cell_names``, ``activated_apc_tissues``.
+        ``resting_mammary``, ``thymus``, ``activated_apc_cell_names``,
+        ``activated_apc_tissues``.
     """
     data = load_curation_yaml(_data_path("tissue_categories.yaml"))
     return {
         "reproductive": frozenset(data.get("reproductive", [])),
         "reproductive_female": frozenset(data.get("reproductive_female", [])),
         "reproductive_male": frozenset(data.get("reproductive_male", [])),
+        "resting_mammary": frozenset(data.get("resting_mammary", [])),
         "thymus": frozenset(data.get("thymus", [])),
         "activated_apc_cell_names": frozenset(data.get("activated_apc_cell_names", [])),
         "activated_apc_tissues": frozenset(data.get("activated_apc_tissues", [])),
+    }
+
+
+def tissue_anatomy_compartments() -> dict[str, frozenset[str]]:
+    """Return normal-tissue anatomy compartments aligned with OncoRef (#963).
+
+    Resting ``breast`` / ``mammary gland`` are separated from
+    ``female_sex_compartments`` (which retains ``lactating breast``, ``ovary``,
+    ``uterus``, ``cervix``, ``endometrium``, ``fallopian tube``, and ``vagina``)
+    because adult males also possess resting mammary tissue. Downstream safety
+    filters (e.g. ``tsarina``) can therefore apply identical sex-specific
+    normal-organ exclusion across RNA (OncoRef) and MS (Hitlist).
+    """
+    cats = load_tissue_categories()
+    return {
+        "privileged_reproductive": cats["reproductive"],
+        "female_sex_compartments": cats["reproductive_female"],
+        "male_sex_compartments": cats["reproductive_male"],
+        "resting_mammary_compartments": cats["resting_mammary"],
+        "thymus": cats["thymus"],
+    }
+
+
+def classify_tissue_anatomy(source_tissue: str | None) -> dict[str, object]:
+    """Classify a tissue string into an OncoRef-aligned anatomical compartment (#963).
+
+    Returns a dictionary with ``tissue_normalized``, ``compartment`` (one of
+    ``privileged_reproductive``, ``female_sex_only``, ``male_sex_only``,
+    ``resting_mammary``, ``thymus``, ``somatic``, ``unspecified``), boolean
+    compartment flags, and ``protected_in_female_adult`` /
+    ``protected_in_male_adult`` (``None`` when ``source_tissue`` is blank).
+    """
+    norm = (source_tissue or "").strip().lower()
+    if not norm:
+        return {
+            "tissue_normalized": "",
+            "compartment": "unspecified",
+            "is_somatic_safety_tissue": False,
+            "is_resting_mammary": False,
+            "is_female_sex_compartment": False,
+            "is_male_sex_compartment": False,
+            "is_privileged_reproductive": False,
+            "is_thymus": False,
+            "protected_in_female_adult": None,
+            "protected_in_male_adult": None,
+        }
+    cats = load_tissue_categories()
+    if norm in cats["reproductive"]:
+        return {
+            "tissue_normalized": norm,
+            "compartment": "privileged_reproductive",
+            "is_somatic_safety_tissue": False,
+            "is_resting_mammary": False,
+            "is_female_sex_compartment": False,
+            "is_male_sex_compartment": False,
+            "is_privileged_reproductive": True,
+            "is_thymus": False,
+            "protected_in_female_adult": False,
+            "protected_in_male_adult": False,
+        }
+    if norm in cats["reproductive_female"]:
+        return {
+            "tissue_normalized": norm,
+            "compartment": "female_sex_only",
+            "is_somatic_safety_tissue": False,
+            "is_resting_mammary": False,
+            "is_female_sex_compartment": True,
+            "is_male_sex_compartment": False,
+            "is_privileged_reproductive": False,
+            "is_thymus": False,
+            "protected_in_female_adult": True,
+            "protected_in_male_adult": False,
+        }
+    if norm in cats["reproductive_male"]:
+        return {
+            "tissue_normalized": norm,
+            "compartment": "male_sex_only",
+            "is_somatic_safety_tissue": False,
+            "is_resting_mammary": False,
+            "is_female_sex_compartment": False,
+            "is_male_sex_compartment": True,
+            "is_privileged_reproductive": False,
+            "is_thymus": False,
+            "protected_in_female_adult": False,
+            "protected_in_male_adult": True,
+        }
+    if norm in cats["resting_mammary"]:
+        return {
+            "tissue_normalized": norm,
+            "compartment": "resting_mammary",
+            "is_somatic_safety_tissue": True,
+            "is_resting_mammary": True,
+            "is_female_sex_compartment": False,
+            "is_male_sex_compartment": False,
+            "is_privileged_reproductive": False,
+            "is_thymus": False,
+            "protected_in_female_adult": True,
+            "protected_in_male_adult": True,
+        }
+    if norm in cats["thymus"]:
+        return {
+            "tissue_normalized": norm,
+            "compartment": "thymus",
+            "is_somatic_safety_tissue": False,
+            "is_resting_mammary": False,
+            "is_female_sex_compartment": False,
+            "is_male_sex_compartment": False,
+            "is_privileged_reproductive": False,
+            "is_thymus": True,
+            "protected_in_female_adult": False,
+            "protected_in_male_adult": False,
+        }
+    return {
+        "tissue_normalized": norm,
+        "compartment": "somatic",
+        "is_somatic_safety_tissue": True,
+        "is_resting_mammary": False,
+        "is_female_sex_compartment": False,
+        "is_male_sex_compartment": False,
+        "is_privileged_reproductive": False,
+        "is_thymus": False,
+        "protected_in_female_adult": True,
+        "protected_in_male_adult": True,
     }
 
 
