@@ -144,7 +144,6 @@ def builder_child(samples, destination):
 
 
 def run(label, n_rows, builder=False):
-
     if not label or any(c not in "abcdefghijklmnopqrstuvwxyz0123456789-_" for c in label):
         raise ValueError("Invalid experiment label")
     if not 1 <= n_rows <= 500000:

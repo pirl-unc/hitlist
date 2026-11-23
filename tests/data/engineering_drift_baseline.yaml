@@ -17,8 +17,6 @@
 # tests/test_qc.py asserts the audit's findings EQUAL this file, so a new
 # finding fails CI for whoever introduces it, and an entry fixed in the YAML but
 # left here fails too.  Never add an entry to silence a flag.
-29769354:
-- cells_erap2_negative_baseline|condition_overexpression_genes|error
 30778243:
 - c1r_class_ii_lcl_endogenous_dr_dq_dp|condition_mhc_context|error
 31495665:
@@ -59,9 +57,3 @@
 36010968:
 - saos_2_osteosarcoma_tp53_null_vector_control|condition_genetic_variants|error
 - saos_2_osteosarcoma_tp53_null_vector_control|condition_transfection|error
-38480730:
-- hela_cervical_carcinoma|condition_transfection|error
-- human_plasma_commercial_pool|condition_transfection|error
-- jy_ebv_lcl_titration_series|condition_transfection|error
-- raji_burkitt_s_lymphoma_ebv_lcl|condition_transfection|error
-- sk_mel_37_melanoma|condition_transfection|error

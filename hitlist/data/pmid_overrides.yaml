@@ -11520,32 +11520,80 @@
         mhc: "HLA-A*29:02"
 
   - pmid: 29769354
-    # Arm-resolution verdict (#366): recorded so this study is not
-    # re-investigated. Describes the deposited evidence, not the curation.
+    # Arm-resolution verdict (#366 / #715): the pooled 4,999-row IEDB deposit carries
+    # constant per-row metadata across all arms and is unsuitable for OE-vs-control
+    # training. Author-deposited PRIDE PXD007679/A29-19-3-18.zip MaxQuant tables recover
+    # run-attributed PF-GFP (A29(-)-1..3) vs PF-ERAP2 (A29(+)-1..3) quantities separately
+    # from the 3-line natural HLA-A*29:02 experiment in 50198-50206-A29-Lopez-DC-18-12-16.rar.
     arm_resolution: no_row_discriminator
     arm_resolution_note: >
-      Measured: all four per-row metadata fields are constant across all rows of the study.
-      The ERAP2-overexpression arm cannot be separated from its control.
+      Measured on pooled IEDB rows: all four per-row metadata fields are constant across
+      all 4,999 IEDB rows, which share the PF97387/GM19397/GM19452 material statement and
+      study-level ERAP2 transduction note. Pooled IEDB rows are NOT eligible for ERAP2-OE
+      versus PF-GFP training; use the PXD007679 MaxQuant quantitative package
+      (hitlist.erap2_oe_qualification / dataset 'sanz-bravo-2018b-erap2-oe') for
+      run-attributed PF-GFP vs PF-ERAP2 contrasts.
     study_label: "Sanz-Bravo 2018b — HLA-A*29:02 + ERAP2 overexpression"
     title: "Allele-specific Alterations in the Peptidome Underlie the Joint Association of HLA-A*29:02 and Endoplasmic Reticulum Aminopeptidase 2 (ERAP2) with Birdshot Chorioretinopathy"
     override: cell_line
     perturbations: ["ERAP2 lentiviral overexpression"]
+    note: >
+      Primary paper (PMC6072538, PRIDE PXD007679) includes two distinct HLA-A*29:02
+      immunopeptidome comparisons: (1) three natural LCLs (PF97387 natural ERAP2-negative,
+      GM19397 and GM19452 natural ERAP2-positive; Seq50198..Seq50206_QE2.raw), and
+      (2) lentivirally transduced PF-GFP (GFP control, A29(-)-1..3, Seq56011..Seq56013_QE2.raw)
+      versus PF-ERAP2 (ERAP2 OE, A29(+)-1..3, Seq56014..Seq56016_QE2.raw). PF-GFP is a
+      mock GFP-transduced lentiviral control, NOT nontransduced PF97387, and a parental
+      RNA profile is not measured RNA in each transduced arm (#715).
     ms_samples:
-      - sample_label: "cells (ERAP2-negative baseline)"
-        condition: "unperturbed"
-        condition_id: "cells_erap2_negative_baseline"
+      - sample_label: "PF97387 lymphoblastoid cells (nontransduced, natural ERAP2-negative)"
+        source: "PMC6072538 / PXD007679 natural LCL panel (50198-50206-A29-Lopez-DC-18-12-16.rar)"
+        condition: "unperturbed — natural ERAP2-negative parental LCL"
+        condition_id: "pf97387_nontransduced"
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_background: "ERAP2_negative"
+        condition_overexpression_genes: "none"
+        condition_transduction: "none"
         mhc_class: "I"
         mhc: "HLA-A*29:02"
-      - sample_label: "cells + ERAP2 lentiviral transduction"
-        condition: "ERAP2 overexpression"
-        condition_id: "cells_erap2_lentiviral_transduction"
+      - sample_label: "PF-GFP (PF97387 + GFP lentiviral control)"
+        source: "PMC6072538 / PXD007679 A29-19-3-18.zip A29(-)-1..3 (Seq56011..Seq56013_QE2)"
+        n_samples: 3
+        condition: "GFP lentiviral control transduction (matched mock control for PF-ERAP2)"
+        condition_id: "pf97387_gfp_lentiviral_control"
+        condition_status: "annotated"
+        condition_evidence: "curated_text"
+        condition_control: "mock"
+        condition_background: "ERAP2_negative"
+        condition_overexpression_genes: "GFP"
+        condition_transduction: "lentiviral_GFP_control"
+        mhc_class: "I"
+        mhc: "HLA-A*29:02"
+      - sample_label: "PF-ERAP2 (PF97387 + ERAP2 lentiviral overexpression)"
+        source: "PMC6072538 / PXD007679 A29-19-3-18.zip A29(+)-1..3 (Seq56014..Seq56016_QE2)"
+        n_samples: 3
+        condition: "ERAP2 lentiviral overexpression"
+        condition_id: "pf97387_erap2_lentiviral_oe"
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_combination: "single"
+        condition_background: "ERAP2_negative"
         condition_overexpression_genes: "ERAP2"
+        condition_transduction: "lentiviral_ERAP2"
+        mhc_class: "I"
+        mhc: "HLA-A*29:02"
+      - sample_label: "GM19397 / GM19452 lymphoblastoid cells (natural ERAP2-positive)"
+        source: "PMC6072538 / PXD007679 natural LCL panel (50198-50206-A29-Lopez-DC-18-12-16.rar)"
+        condition: "unperturbed — natural ERAP2-positive LCLs"
+        condition_id: "gm19397_gm19452_natural_erap2_positive"
+        condition_status: "annotated"
+        condition_evidence: "curated_text"
+        condition_control: "untreated"
+        condition_background: "ERAP2_positive"
+        condition_overexpression_genes: "none"
+        condition_transduction: "none"
         mhc_class: "I"
         mhc: "HLA-A*29:02"
 
@@ -13516,6 +13564,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_transfection: "none"
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*07:02 HLA-C*07:02"
         reference_proteomes:
@@ -13528,6 +13577,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_transfection: "none"
         mhc_class: I
         mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03"
       - sample_label: SK-MEL-37 (melanoma)
@@ -13537,6 +13587,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_transfection: "none"
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-A*11:01 HLA-B*15:01 HLA-B*56:01 HLA-C*01:02"
       - sample_label: Raji (Burkitt's lymphoma EBV-LCL)
@@ -13547,6 +13598,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_transfection: "none"
         mhc_class: I
         # Raji HLA typing from the paper's supplementary methods (issue #147).
         mhc: "HLA-A*03:01 HLA-B*15:10 HLA-C*03:04 HLA-C*04:01"
@@ -13579,6 +13631,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_transfection: "none"
         mhc_class: I
         # Donor HLA typing not reported; supplementary CSV carries per-peptide
         # NetMHCpan predictions (973 rows) against a pan-HLA-I background.
