@@ -68,6 +68,15 @@ def _parse_optional_float(raw: Any) -> float | None:
     return val if math.isfinite(val) else None
 
 
+def _clean_str(raw: Any) -> str:
+    if raw is None or (isinstance(raw, float) and math.isnan(raw)):
+        return ""
+    if pd.isna(raw):
+        return ""
+    text = str(raw).strip()
+    return "" if text.lower() == "nan" else text
+
+
 def qualify_dc_immunoproteasome_records(
     df: pd.DataFrame,
     *,
@@ -89,11 +98,9 @@ def qualify_dc_immunoproteasome_records(
         raise ValueError("Input DataFrame must contain a 'peptide' column")
 
     rows: list[dict[str, Any]] = []
-    for idx, rec in df.iterrows():
-        peptide = str(rec["peptide"]).strip()
-        arm_role = str(rec.get("arm_role", "wt_vs_psmb8_psmb10_dko_contrast")).strip()
-        if not arm_role or arm_role.lower() == "nan":
-            arm_role = "wt_vs_psmb8_psmb10_dko_contrast"
+    for row_num, (_, rec) in enumerate(df.iterrows(), start=2):
+        peptide = _clean_str(rec["peptide"])
+        arm_role = _clean_str(rec.get("arm_role")) or "wt_vs_psmb8_psmb10_dko_contrast"
 
         wt_val = _parse_optional_float(rec.get("wt_intensity"))
         dko_val = _parse_optional_float(rec.get("dko_intensity"))
@@ -151,9 +158,7 @@ def qualify_dc_immunoproteasome_records(
             ratio_qualifier = "missing"
             ratio_value = None
 
-        pred_allele = str(rec.get("predicted_mhc_allele", "")).strip()
-        if pred_allele.lower() == "nan":
-            pred_allele = ""
+        pred_allele = _clean_str(rec.get("predicted_mhc_allele"))
 
         rows.append(
             {
@@ -162,7 +167,7 @@ def qualify_dc_immunoproteasome_records(
                 "pmc_id": "PMC2938112",
                 "source_asset": source_asset,
                 "source_sha256": source_sha256,
-                "source_row": int(idx) + 2,
+                "source_row": row_num,
                 "species": "Mus musculus",
                 "strain_background": "C57BL/6",
                 "cell_type": "primary_bone_marrow_derived_dendritic_cell",
@@ -187,13 +192,13 @@ def qualify_dc_immunoproteasome_records(
                 "peptide": peptide,
                 "wt_intensity": wt_val,
                 "dko_intensity": dko_val,
-                "wt_to_dko_ratio_raw": "" if raw_ratio is None else str(raw_ratio),
+                "wt_to_dko_ratio_raw": _clean_str(raw_ratio),
                 "ratio_qualifier": ratio_qualifier,
                 "wt_to_dko_ratio_value": ratio_value,
                 "detection_limit_value": DETECTION_LIMIT_VALUE if at_detection_limit else None,
                 "value_state": value_state,
-                "source_gene": str(rec.get("source_gene", "")).strip(),
-                "source_protein": str(rec.get("source_protein", "")).strip(),
+                "source_gene": _clean_str(rec.get("source_gene")),
+                "source_protein": _clean_str(rec.get("source_protein")),
                 "rna_log2_fc": _parse_optional_float(rec.get("rna_log2_fc")),
                 "protein_log2_fc": _parse_optional_float(rec.get("protein_log2_fc")),
                 "rna_evidence_is_measured_precursor_protein": False,

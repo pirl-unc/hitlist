@@ -119,9 +119,21 @@ def _sha256_file(path: Path) -> str:
 
 
 def _http_range_get(url: str, start: int, end_inclusive: int, *, timeout: float = 60.0) -> bytes:
+    expected_len = end_inclusive - start + 1
     req = urllib.request.Request(url, headers={"Range": f"bytes={start}-{end_inclusive}"})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return resp.read()
+        status = getattr(resp, "status", None)
+        if status is not None and status != 206:
+            raise OSError(
+                f"Expected HTTP 206 Partial Content for range request on {url}, got HTTP {status}"
+            )
+        data = resp.read(expected_len + 1)
+    if len(data) != expected_len:
+        raise OSError(
+            f"HTTP range response length mismatch for {url} ({start}-{end_inclusive}): "
+            f"expected {expected_len} bytes, got {len(data)}"
+        )
+    return data
 
 
 def _parse_zip_central_directory(

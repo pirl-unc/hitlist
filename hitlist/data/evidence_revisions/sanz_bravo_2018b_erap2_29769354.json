@@ -143,7 +143,7 @@
           "filename": "mqpar.xml",
           "member_suffix": "mqpar.xml",
           "size_bytes": 12447,
-          "sha256": "92c20d4806f3be94dcc9f82586646ec64637e585bdebdb56373f5b4f521c4",
+          "sha256": "92c20d4806f3be94dcc9f82586645746ec64637e585bdebdb56373f5b4f521c4",
           "role": "maxquant_configuration_partial_run_list",
           "note": "mqpar.xml inside A29-19-3-18.zip lists only A29(+)-1..3 (Seq56014..16), whereas summary.txt and peptides.txt contain all 6 runs (A29(-)-1..3 and A29(+)-1..3)."
         }

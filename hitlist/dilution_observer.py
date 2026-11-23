@@ -331,8 +331,20 @@ def dilution_observer_nominal_dose_recipe(
         on="library_precursor_id",
         how="inner",
     )
+    # Collapse feature_links to 1 row per measurement_id so ambiguous multi-candidate links
+    # never duplicate standard slots during the join.
+    if links["measurement_id"].duplicated().any():
+        dup_ids = set(links.loc[links["measurement_id"].duplicated(keep=False), "measurement_id"])
+        dedup_links = links.drop_duplicates("measurement_id", keep="first").copy()
+        is_dup = dedup_links["measurement_id"].isin(dup_ids)
+        dedup_links.loc[is_dup, "feature_link_status"] = "ambiguous_feature_id"
+        for flag_col in ("form_agrees", "charge_agrees", "precursor_agrees", "target_agrees"):
+            dedup_links.loc[is_dup, flag_col] = False
+    else:
+        dedup_links = links
+
     std_slots = std_slots.merge(
-        links[
+        dedup_links[
             [
                 "measurement_id",
                 "identification_id",
@@ -391,6 +403,9 @@ def dilution_observer_nominal_dose_recipe(
         lambda x: f"DIA{int(x)}" if pd.notna(x) else "unknown"
     )
 
+    def _is_true(value: Any) -> bool:
+        return bool(pd.notna(value) and value is not False and bool(value))
+
     dispositions: list[str] = []
     reasons: list[str] = []
     for row in std_slots.itertuples(index=False):
@@ -398,10 +413,10 @@ def dilution_observer_nominal_dose_recipe(
         fstatus = str(row.feature_link_status) if pd.notna(row.feature_link_status) else "missing"
         exact_match = (
             fstatus in {"matched_identity", "exact_unique_match", "exact_match"}
-            and bool(row.form_agrees)
-            and bool(row.charge_agrees)
-            and bool(row.precursor_agrees)
-            and bool(row.target_agrees)
+            and _is_true(row.form_agrees)
+            and _is_true(row.charge_agrees)
+            and _is_true(row.precursor_agrees)
+            and _is_true(row.target_agrees)
         )
         missing_feature = (
             pd.isna(row.native_feature_id)

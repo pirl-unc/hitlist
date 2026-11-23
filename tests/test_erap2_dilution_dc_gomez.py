@@ -277,6 +277,12 @@ class TestSanzBravo2018bErap2OE:
         assert contract["verified_peptides_txt_counts"]["n_total_rows"] == 6308
         assert contract["verified_peptides_txt_counts"]["n_clean_peptides"] == 5502
         assert contract["verified_peptides_txt_counts"]["n_shared_intensity_both_arms"] == 1603
+        for member in contract["pride_inventory"]["lentiviral_oe_archive"][
+            "verified_extracted_members"
+        ].values():
+            assert len(member["sha256"]) == 64
+            int(member["sha256"], 16)
+        assert len(contract["pride_inventory"]["verified_sdrf_asset"]["sha256"]) == 64
 
         cat = available_dataset_catalog(category="perturbation_and_calibration")
         assert "sanz-bravo-2018b-erap2-oe" in cat
@@ -315,6 +321,25 @@ class TestSanzBravo2018bErap2OE:
 
         with pytest.raises(OfflineError):
             fetch_erap2_oe_maxquant_sources(dest_dir=tmp_path / "erap2", offline=True)
+
+    def test_http_range_get_rejects_non_206_response(self, monkeypatch):
+        from hitlist.erap2_oe_qualification import _http_range_get
+
+        class _FakeResp:
+            status = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self, _n=-1):
+                return b"full-body"
+
+        monkeypatch.setattr("urllib.request.urlopen", lambda _req, timeout=60.0: _FakeResp())
+        with pytest.raises(OSError, match="Expected HTTP 206 Partial Content"):
+            _http_range_get("https://example.org/huge.zip", 0, 15)
 
     def test_parse_contrast_recipe_and_package_roundtrip(self, tmp_path):
         src_dir = tmp_path / "src"
@@ -530,6 +555,27 @@ class TestDilutionObserverRecipeAndCatalog:
             assert grp["leave_level_out_fold"].nunique() == 1
             assert set(grp["dia_method"]) == {"DIA1", "DIA2"}
 
+    def test_nominal_dose_recipe_handles_nullable_booleans_and_ambiguous_links(self):
+        tables = self._build_90_slot_tables()
+        links = tables["feature_links"].copy()
+        # Use PyArrow/pandas nullable boolean dtype with pd.NA (matches real Parquet output)
+        for col in ("form_agrees", "charge_agrees", "precursor_agrees", "target_agrees"):
+            links[col] = links[col].astype("boolean")
+            links.loc[links["feature_link_status"] == "missing_feature_id", col] = pd.NA
+        # Add an ambiguous duplicate feature_link row for slot 4
+        dup_row = links[links["measurement_id"] == "meas_4"].copy()
+        dup_row["identification_id"] = "id_4_ambig"
+        tables["feature_links"] = pd.concat([links, dup_row], ignore_index=True)
+
+        recipe = dilution_observer_nominal_dose_recipe(tables)
+        # Slot cardinality must stay strictly 90 (never duplicated to 91) and slot 4 is excluded
+        assert recipe["summary"]["n_total_standard_slots"] == 90
+        assert recipe["summary"]["n_admitted_slots"] == 86
+        assert recipe["summary"]["n_excluded_slots"] == 4
+        meas4 = recipe["all_slots"].set_index("measurement_id").loc["meas_4"]
+        assert meas4["feature_link_status"] == "ambiguous_feature_id"
+        assert meas4["recipe_disposition"] == "excluded"
+
 
 class TestDeVerteuil2010DCImmunoproteasome:
     def test_source_contract_pins_non_oa_and_machinery_semantics(self):
@@ -626,6 +672,26 @@ class TestDeVerteuil2010DCImmunoproteasome:
             qualified, include_lower_bound_inequalities=True
         )
         assert with_ineq["summary"]["n_admitted_contrasts"] == 2
+
+    def test_qualify_handles_string_index_and_nan_text_cells(self):
+        raw = pd.DataFrame(
+            [
+                {
+                    "peptide": "SIINFEKL",
+                    "wt_intensity": 60000.0,
+                    "dko_intensity": 30000.0,
+                    "source_gene": float("nan"),
+                    "source_protein": None,
+                }
+            ],
+            index=["row_alpha"],
+        )
+        qualified = qualify_dc_immunoproteasome_records(
+            raw, source_asset="Table_S1_authorized.xlsx", source_sha256="deadbeef"
+        )
+        assert qualified.loc[0, "source_row"] == 2
+        assert qualified.loc[0, "source_gene"] == ""
+        assert qualified.loc[0, "source_protein"] == ""
 
 
 class TestGomezZepeda2024Closure:
