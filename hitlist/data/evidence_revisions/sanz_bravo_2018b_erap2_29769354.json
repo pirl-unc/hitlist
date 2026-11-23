@@ -1,0 +1,203 @@
+{
+  "study_id": "sanz_bravo_2018b_erap2_29769354",
+  "pmid": 29769354,
+  "pmc_id": "PMC6072538",
+  "doi": "10.1074/mcp.RA118.000778",
+  "pride_accession": "PXD007679",
+  "study_label": "Sanz-Bravo 2018b — HLA-A*29:02 + ERAP2 overexpression",
+  "mhc_class": "I",
+  "mhc_allele": "HLA-A*29:02",
+  "species": "Homo sapiens",
+  "pmc_access_receipt": {
+    "pmc_id": "PMC6072538",
+    "is_open_access": false,
+    "has_suppl": true,
+    "pmc_s3_objects": 0,
+    "note": "PMC6072538 is non-OA on EuropePMC/PMC S3; however, the authors deposited complete MaxQuant quantitative results for the PF-GFP vs PF-ERAP2 comparison in PRIDE PXD007679/A29-19-3-18.zip."
+  },
+  "iedb_pooled_table_status": {
+    "n_pooled_rows_audited": 4999,
+    "eligible_for_oe_vs_control_training": false,
+    "reason": "All 4,999 IEDB rows carry identical PF97387/GM19397/GM19452 alternative-material text and the study-level ERAP2 transduction note; no row identifies PF-GFP versus PF-ERAP2 or nontransduced PF.",
+    "deduplication_required_against_pxd007679": true
+  },
+  "material_and_arm_contract": {
+    "parent_reference_rna_is_not_measured_transduced_arm_rna": true,
+    "arms": [
+      {
+        "arm_id": "pf97387_nontransduced",
+        "arm_label": "PF97387",
+        "experiment_panel": "natural_erap2_lcl_panel",
+        "condition_control": "untreated",
+        "condition_background": "ERAP2_negative",
+        "condition_overexpression_genes": "none",
+        "condition_transduction": "none",
+        "pride_archive": "50198-50206-A29-Lopez-DC-18-12-16.rar",
+        "matched_control_for_pf_erap2": false
+      },
+      {
+        "arm_id": "pf97387_gfp_lentiviral_control",
+        "arm_label": "PF-GFP",
+        "maxquant_prefix": "A29(-)",
+        "experiment_panel": "lentiviral_erap2_oe_panel",
+        "condition_control": "mock",
+        "condition_background": "ERAP2_negative",
+        "condition_overexpression_genes": "GFP",
+        "condition_transduction": "lentiviral_GFP_control",
+        "pride_archive": "A29-19-3-18.zip",
+        "matched_control_for_pf_erap2": true,
+        "runs": [
+          {"raw_file": "Seq56011_QE2", "experiment_label": "A29(-)-1", "replicate_index": 1, "n_peptides_identified_summary": 1503},
+          {"raw_file": "Seq56012_QE2", "experiment_label": "A29(-)-2", "replicate_index": 2, "n_peptides_identified_summary": 2017},
+          {"raw_file": "Seq56013_QE2", "experiment_label": "A29(-)-3", "replicate_index": 3, "n_peptides_identified_summary": 1717}
+        ]
+      },
+      {
+        "arm_id": "pf97387_erap2_lentiviral_oe",
+        "arm_label": "PF-ERAP2",
+        "maxquant_prefix": "A29(+)",
+        "experiment_panel": "lentiviral_erap2_oe_panel",
+        "condition_control": "treated",
+        "condition_background": "ERAP2_negative",
+        "condition_overexpression_genes": "ERAP2",
+        "condition_transduction": "lentiviral_ERAP2",
+        "pride_archive": "A29-19-3-18.zip",
+        "matched_control_for_pf_erap2": false,
+        "runs": [
+          {"raw_file": "Seq56014_QE2", "experiment_label": "A29(+)-1", "replicate_index": 1, "n_peptides_identified_summary": 3328},
+          {"raw_file": "Seq56015_QE2", "experiment_label": "A29(+)-2", "replicate_index": 2, "n_peptides_identified_summary": 3250},
+          {"raw_file": "Seq56016_QE2", "experiment_label": "A29(+)-3", "replicate_index": 3, "n_peptides_identified_summary": 3095}
+        ]
+      },
+      {
+        "arm_id": "gm19397_gm19452_natural_erap2_positive",
+        "arm_label": "GM19397/GM19452",
+        "experiment_panel": "natural_erap2_lcl_panel",
+        "condition_control": "untreated",
+        "condition_background": "ERAP2_positive",
+        "condition_overexpression_genes": "none",
+        "condition_transduction": "none",
+        "pride_archive": "50198-50206-A29-Lopez-DC-18-12-16.rar",
+        "matched_control_for_pf_erap2": false
+      }
+    ]
+  },
+  "pride_inventory": {
+    "accession": "PXD007679",
+    "project_url": "https://www.ebi.ac.uk/pride/archive/projects/PXD007679",
+    "n_total_files": 20,
+    "n_raw_files": 15,
+    "natural_lcl_archive": {
+      "filename": "50198-50206-A29-Lopez-DC-18-12-16.rar",
+      "size_bytes": 8075654400,
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2018/05/PXD007679/50198-50206-A29-Lopez-DC-18-12-16.rar",
+      "raw_files": [
+        "Seq50198_QE2.raw",
+        "Seq50199_QE2.raw",
+        "Seq50200_QE2.raw",
+        "Seq50201_QE2.raw",
+        "Seq50202_QE2.raw",
+        "Seq50203_QE2.raw",
+        "Seq50204_QE2.raw",
+        "Seq50205_QE2.raw",
+        "Seq50206_QE2.raw"
+      ],
+      "scope": "Three natural HLA-A*29:02 LCLs (PF97387, GM19397, GM19452); separate from lentiviral PF-GFP vs PF-ERAP2 panel."
+    },
+    "lentiviral_oe_archive": {
+      "filename": "A29-19-3-18.zip",
+      "size_bytes": 6122461218,
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2018/05/PXD007679/A29-19-3-18.zip",
+      "http_range_extractable": true,
+      "raw_files": [
+        "Seq56011_QE2.raw",
+        "Seq56012_QE2.raw",
+        "Seq56013_QE2.raw",
+        "Seq56014_QE2.raw",
+        "Seq56015_QE2.raw",
+        "Seq56016_QE2.raw"
+      ],
+      "verified_extracted_members": {
+        "peptides.txt": {
+          "filename": "peptides.txt",
+          "member_suffix": "combined/txt/peptides.txt",
+          "size_bytes": 2593233,
+          "sha256": "c47c5f02a1996b8c52db32eaf53070caf9aaf26d23ba8815f4510abc57c32eeb",
+          "role": "maxquant_peptides_quantitative_table"
+        },
+        "summary.txt": {
+          "filename": "summary.txt",
+          "member_suffix": "combined/txt/summary.txt",
+          "size_bytes": 3484,
+          "sha256": "71101c7f4e527e32b4a6c26688134af33579cf3aabcf291890580f3c8645e861",
+          "role": "maxquant_run_summary"
+        },
+        "parameters.txt": {
+          "filename": "parameters.txt",
+          "member_suffix": "combined/txt/parameters.txt",
+          "size_bytes": 3347,
+          "sha256": "b7bf374607dc686a4dbee22f4354bd4f736a7e8d7f3fe224d503c1a3557309e1",
+          "role": "maxquant_search_parameters"
+        },
+        "mqpar.xml": {
+          "filename": "mqpar.xml",
+          "member_suffix": "mqpar.xml",
+          "size_bytes": 12447,
+          "sha256": "92c20d4806f3be94dcc9f82586645746ec64637e585bdebdb56373f5b4f521c4",
+          "role": "maxquant_configuration_partial_run_list",
+          "note": "mqpar.xml inside A29-19-3-18.zip lists only A29(+)-1..3 (Seq56014..16), whereas summary.txt and peptides.txt contain all 6 runs (A29(-)-1..3 and A29(+)-1..3)."
+        }
+      }
+    },
+    "verified_sdrf_asset": {
+      "filename": "PXD007679_community_annotated.sdrf.tsv",
+      "size_bytes": 6695,
+      "sha256": "e7a950178bb18e0e6626ce4c32b6f4cf315244d20df8d7c3c02ad99bc331695c",
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2018/05/PXD007679/PXD007679_community_annotated.sdrf.tsv",
+      "authoritative_for_enzyme_or_arms": false,
+      "recorded_discrepancies": [
+        "Community SDRF reports cleavage agent NT=Trypsin;AC=MS:1001251, contradicting authoritative MaxQuant summary.txt/parameters.txt which used Unspecific (8-25 aa) cleavage.",
+        "Community SDRF omits PF-GFP vs PF-ERAP2 vs natural LCL arm labels."
+      ]
+    }
+  },
+  "search_provenance": {
+    "search_engine": "MaxQuant",
+    "search_engine_version": "1.5.8.3",
+    "enzyme_mode": "Unspecific",
+    "min_peptide_length": 8,
+    "max_peptide_length": 25,
+    "fixed_modifications": [],
+    "variable_modifications": [
+      "Oxidation (M)",
+      "Acetyl (Protein N-term)",
+      "Gln->pyro-Glu"
+    ],
+    "psm_fdr": 0.05,
+    "match_between_runs": true,
+    "matching_time_window_min": 0.7,
+    "alignment_time_window_min": 20.0,
+    "fasta_file": "uniprot-proteome 20-4-17 (70946 entries).fasta",
+    "decoy_mode": "randomize",
+    "mbr_caveat": "Match Between Runs was enabled; run-level Identification type ('By MS/MS' vs 'By matching') must be preserved so downstream users can separate direct MS/MS identifications from MBR-transferred intensities."
+  },
+  "verified_peptides_txt_counts": {
+    "n_total_rows": 6308,
+    "n_reverse": 728,
+    "n_contaminant": 83,
+    "n_reverse_or_contaminant": 806,
+    "n_clean_peptides": 5502,
+    "n_shared_intensity_both_arms": 1603,
+    "n_shared_direct_msms_both_arms": 977,
+    "n_shared_mbr_assisted": 626,
+    "n_pf_gfp_only_intensity": 1160,
+    "n_pf_erap2_only_intensity": 2610,
+    "n_zero_intensity_all_runs": 129
+  },
+  "training_eligibility_guards": {
+    "ms_nondetection_is_measured_negative": false,
+    "shared_detection_is_contradictory_supervision": false,
+    "missing_annotation_is_unknown": true,
+    "pooled_iedb_rows_eligible_for_oe_contrast": false
+  }
+}

@@ -1964,6 +1964,8 @@ _PERTURBATION_NAMES = frozenset(
         "stopfer-2021-iso18",
         "pollock-2021-neotoma",
         "sarango-2022-pxd024417-sdrf",
+        "sanz-bravo-2018b-erap2-oe",
+        "pxd024809-dilution-observer",
         "perturbation-quantities",
         "dlbcl-35561310-supplements",
         "pxd013455",

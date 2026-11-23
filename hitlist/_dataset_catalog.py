@@ -1069,6 +1069,148 @@ def _sarango_2022_datasets() -> dict[str, ManagedDataset]:
     }
 
 
+def _erap2_and_dilution_datasets() -> dict[str, ManagedDataset]:
+    from .dilution_observer import (
+        _contract as dilution_contract,
+    )
+    from .dilution_observer import (
+        fetch_dilution_observer_sources,
+    )
+    from .downloads import data_dir
+    from .erap2_oe_qualification import (
+        erap2_oe_source_contract,
+        fetch_erap2_oe_maxquant_sources,
+    )
+
+    erap2_contract = erap2_oe_source_contract()
+    erap2_members = erap2_contract["pride_inventory"]["lentiviral_oe_archive"][
+        "verified_extracted_members"
+    ]
+    erap2_sdrf = erap2_contract["pride_inventory"]["verified_sdrf_asset"]
+
+    def erap2_root() -> Path:
+        return data_dir() / "sanz_bravo_2018b_erap2_29769354"
+
+    def _erap2_files() -> list[dict[str, Any]]:
+        root = erap2_root()
+        out = [
+            {
+                "name": meta["filename"],
+                "path": root / meta["filename"],
+                "exists": (root / meta["filename"]).is_file(),
+                "expected_size_bytes": int(meta["size_bytes"]),
+            }
+            for meta in erap2_members.values()
+        ]
+        out.append(
+            {
+                "name": erap2_sdrf["filename"],
+                "path": root / erap2_sdrf["filename"],
+                "exists": (root / erap2_sdrf["filename"]).is_file(),
+                "expected_size_bytes": int(erap2_sdrf["size_bytes"]),
+            }
+        )
+        return out
+
+    def _erap2_exists() -> bool:
+        return all(item["exists"] for item in _erap2_files())
+
+    def _erap2_info() -> dict[str, Any]:
+        files = _erap2_files()
+        installed = all(item["exists"] for item in files)
+        return {
+            "name": "sanz-bravo-2018b-erap2-oe",
+            "type": "managed bundle",
+            "description": (
+                "Sanz-Bravo 2018b (PMID 29769354, PXD007679) MaxQuant PF-GFP vs PF-ERAP2 "
+                "quantitative tables (HTTP-Range extracted from A29-19-3-18.zip, ~2.6 MB) + SDRF"
+            ),
+            "path": str(erap2_root()),
+            "exists": installed,
+            "status": "installed" if installed else "not installed",
+            "files": [item["name"] for item in files],
+            "terms": "https://www.ebi.ac.uk/pride/archive/projects/PXD007679",
+        }
+
+    def _erap2_fetch(force: bool) -> Path:
+        return fetch_erap2_oe_maxquant_sources(dest_dir=erap2_root(), force=force)
+
+    dil_contract = dilution_contract()
+
+    def dil_root() -> Path:
+        return data_dir() / "pxd024809_dilution_observer"
+
+    def _dil_files() -> list[dict[str, Any]]:
+        root = dil_root()
+        return [
+            {
+                "name": asset["filename"],
+                "path": root / asset["filename"],
+                "exists": (root / asset["filename"]).is_file(),
+                "expected_size_bytes": int(asset["size_bytes"]),
+            }
+            for asset in dil_contract["assets"]
+        ]
+
+    def _dil_exists() -> bool:
+        return all(item["exists"] for item in _dil_files())
+
+    def _dil_info() -> dict[str, Any]:
+        files = _dil_files()
+        installed = all(item["exists"] for item in files)
+        return {
+            "name": "pxd024809-dilution-observer",
+            "type": "managed bundle",
+            "description": (
+                "PXD024809 (PMC12406853) DIA nominal-dose dilution observer aligned quantities, "
+                "10 per-run scored TSVs, master library, and protocol assets"
+            ),
+            "path": str(dil_root()),
+            "exists": installed,
+            "status": "installed" if installed else "not installed",
+            "files": [item["name"] for item in files],
+            "terms": "https://www.ebi.ac.uk/pride/archive/projects/PXD024809",
+        }
+
+    def _dil_fetch(force: bool) -> Path:
+        return fetch_dilution_observer_sources(dest_dir=dil_root(), force=force)
+
+    return {
+        "sanz-bravo-2018b-erap2-oe": ManagedDataset(
+            name="sanz-bravo-2018b-erap2-oe",
+            kind="bundle",
+            description=(
+                "Sanz-Bravo 2018b (PMID 29769354, PXD007679) MaxQuant PF-GFP vs PF-ERAP2 "
+                "quantitative tables (HTTP-Range extracted from A29-19-3-18.zip, ~2.6 MB) + SDRF"
+            ),
+            terms="https://www.ebi.ac.uk/pride/archive/projects/PXD007679",
+            path_fn=erap2_root,
+            files_fn=_erap2_files,
+            exists_fn=_erap2_exists,
+            fetch_fn=_erap2_fetch,
+            info_fn=_erap2_info,
+            remove_fn=lambda delete_file: _remove_tree(erap2_root(), delete_file=delete_file),
+            cache_kind="managed source",
+        ),
+        "pxd024809-dilution-observer": ManagedDataset(
+            name="pxd024809-dilution-observer",
+            kind="bundle",
+            description=(
+                "PXD024809 (PMC12406853) DIA nominal-dose dilution observer aligned quantities, "
+                "10 per-run scored TSVs, master library, and protocol assets"
+            ),
+            terms="https://www.ebi.ac.uk/pride/archive/projects/PXD024809",
+            path_fn=dil_root,
+            files_fn=_dil_files,
+            exists_fn=_dil_exists,
+            fetch_fn=_dil_fetch,
+            info_fn=_dil_info,
+            remove_fn=lambda delete_file: _remove_tree(dil_root(), delete_file=delete_file),
+            cache_kind="managed source",
+        ),
+    }
+
+
 def managed_datasets() -> dict[str, ManagedDataset]:
     """Return every catalog-managed external dataset and bundle."""
     entries: dict[str, ManagedDataset] = {}
@@ -1084,6 +1226,7 @@ def managed_datasets() -> dict[str, ManagedDataset]:
         _dodm_ratio_datasets,
         _iso18_and_neotoma_datasets,
         _sarango_2022_datasets,
+        _erap2_and_dilution_datasets,
     ):
         entries.update(loader())
     return entries

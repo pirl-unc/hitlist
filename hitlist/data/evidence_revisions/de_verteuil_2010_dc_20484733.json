@@ -1,0 +1,80 @@
+{
+  "study_id": "de_verteuil_2010_dc_20484733",
+  "pmid": 20484733,
+  "pmc_id": "PMC2938112",
+  "doi": "10.1074/mcp.M900566-MCP200",
+  "study_label": "de Verteuil 2010 — Primary mouse DC LMP7/MECL1 dKO immunopeptidome",
+  "journal": "Molecular & Cellular Proteomics",
+  "year": 2010,
+  "species": "Mus musculus",
+  "strain_background": "C57BL/6",
+  "cell_type": "primary_bone_marrow_derived_dendritic_cell",
+  "mhc_class": "I",
+  "sample_mhc_repertoire": [
+    "H2-Kb",
+    "H2-Db"
+  ],
+  "n_biological_replicates_per_group": 3,
+  "n_reported_wt_mhc_i_peptides": 417,
+  "primary_supplement_table": "Supplemental Table S1",
+  "access_status": {
+    "public_quantitative_supplement_available": false,
+    "status": "non_open_access_supplement_unavailable_publicly",
+    "receipts": {
+      "europepmc_is_open_access": "N",
+      "europepmc_has_suppl": "Y",
+      "europepmc_suppl_endpoint": "HTTP 200 XML error declining non-OA distribution (not an archive)",
+      "pmc_public_s3_objects": 0,
+      "pride_matching_projects": 0,
+      "mcp_elsevier_doi_http_status": 403,
+      "access_controls_bypassed": false
+    },
+    "admission_policy": "No original quantitative table is fabricated or redistributed; local authorized copies of Supplemental Table S1 can be qualified and converted into explicit contrast recipes via hitlist.dc_immunoproteasome_qualification."
+  },
+  "perturbation_contract": {
+    "concurrent_genotype_knockouts": [
+      {
+        "canonical_mouse_symbol": "Psmb8",
+        "human_ortholog": "PSMB8",
+        "aliases": ["LMP7", "beta5i"],
+        "assertion_kind": "engineered_genotype_knockout"
+      },
+      {
+        "canonical_mouse_symbol": "Psmb10",
+        "human_ortholog": "PSMB10",
+        "aliases": ["MECL1", "MECL-1", "beta2i"],
+        "assertion_kind": "engineered_genotype_knockout"
+      }
+    ],
+    "secondary_observed_protein_changes": [
+      {
+        "canonical_mouse_symbol": "Psmb9",
+        "human_ortholog": "PSMB9",
+        "aliases": ["LMP2", "beta1i"],
+        "assertion_kind": "observed_secondary_protein_reduction_not_genotype_knockout",
+        "catalytic_activity_measured": false,
+        "note": "Reduced LMP2/PSMB9 protein is reported alongside LMP7/MECL1 double loss; keep separate from genotype knockouts and do not model as an isolated single-parameter cleavage change."
+      }
+    ],
+    "unreported_machinery_inferred_lost": false,
+    "b2m_control_contract": {
+      "gene_symbol": "B2m",
+      "arm_role": "specificity_background_control",
+      "eligible_as_peptide_abundance_training_negative": false,
+      "note": "Beta2m-deficient DCs serve as MHC-I IP specificity/background controls, never as ordinary peptide-abundance training negatives."
+    }
+  },
+  "measurement_and_ascertainment_guards": {
+    "detection_limit_value": 15000.0,
+    "detection_limit_ratio_semantics": "lower_bound_inequality",
+    "wt_only_conversion_to_ko_zero_allowed": false,
+    "detection_limit_note": "WT/dKO fold-change ratios computed using the reported 15,000 detection limit must be retained as lower-bound inequalities (>=) rather than exact finite ratios or numeric KO zeros.",
+    "predicted_mhc_motif_filtering_applied": true,
+    "predicted_allele_is_measured_single_allele": false,
+    "ascertainment_note": "Primary study applied predicted-MHC-motif search filtering (H2-Kb/H2-Db); preserve algorithmic allele assignment as ascertainment metadata distinct from measured single-allele labels and sample repertoire.",
+    "rna_evidence_is_measured_precursor_protein": false,
+    "assume_unchanged_input_precursor_abundance": false,
+    "evidence_scope": "mhc_eluted_response_evidence_not_free_intracellular_concentration",
+    "identifies_processing_independently_of_selection": false
+  }
+}
