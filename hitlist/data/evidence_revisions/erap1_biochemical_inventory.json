@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "inventory_family": "independent_erap1_biochemical_substrate_product_assays",
+  "scope_warning": "Isolated biochemical aminopeptidase measurements; NOT cellular APC concentration, NOT MHC binding, NOT elution, and NOT MS detectability.",
+  "sources": {
+    "maben_2021": {
+      "study_label": "Maben et al. 2021 — ERAP1 biochemical source data",
+      "doi": "10.1038/s41467-021-25564-w",
+      "correction_doi": "10.1038/s41467-023-37300-7",
+      "correction_affects_numeric_data": false,
+      "license_reported": "CC BY 4.0 (with stated third-party exceptions)",
+      "availability_status": "public_deposited_numeric_source_data",
+      "archive_asset": {
+        "filename": "41467_2021_25564_MOESM3_ESM.zip",
+        "url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41467-021-25564-w/MediaObjects/41467_2021_25564_MOESM3_ESM.zip",
+        "size_bytes": 479402,
+        "sha256": "a9d7bcbae52b25e55aec5f725578238fd0e6719720153dc829b999dd4bde5d2c",
+        "members": {
+          "Source Data_Main Figures.xlsx": {"size_bytes": 83636},
+          "Source Data_Supplementary Figures.xlsx": {"size_bytes": 441065}
+        }
+      },
+      "audit_summary": {
+        "n_sheets": 34,
+        "n_populated_cells": 3726,
+        "n_numeric_cells": 3390,
+        "n_direct_peptide_assay_panels": 2,
+        "fig2h_numeric_responses": 70,
+        "fig2h_total_slots": 72,
+        "fig2h_missing_cells": ["H14", "I15"],
+        "figs8d_numeric_responses": 35,
+        "figs8d_total_slots": 36,
+        "figs8d_missing_cells": ["D5"],
+        "figs8d_n_values_above_100": 4,
+        "figs8d_clip_above_100_allowed": false,
+        "figs8d_probe_chemistry": "BPA_probe_same_N_terminal_residue",
+        "fig2i_duplicate_concentration_warning": "K11:K16 and L11:L16 are duplicate concentration values despite nearby enzyme heading; never ingest column L as a rate replicate.",
+        "ovalbumin_panel_role": "structural_panel_not_trimming_time_course",
+        "passes_sequence_diverse_specificity_training_gate": false
+      }
+    },
+    "chang_2005": {
+      "study_label": "Chang et al. 2005 — ERAP1 length and terminal-context trimming",
+      "pmid": 16286653,
+      "pmc_id": "PMC1287962",
+      "doi": "10.1073/pnas.0500721102",
+      "availability_status": "pdf_supporting_info_only_no_machine_readable_numeric_tables",
+      "deposited_numeric_tables_available": false,
+      "fabricate_labels_from_prose_allowed": false,
+      "figure_points_are_independent_biological_replicates": false
+    },
+    "evnouchidou_2008": {
+      "study_label": "Evnouchidou et al. 2008 — Internal sequence specificity of ERAP1",
+      "pmid": 18987748,
+      "doi": "10.1371/journal.pone.0003658",
+      "availability_status": "published_graphs_and_aggregates_only_no_raw_replicate_tables",
+      "deposited_numeric_tables_available": false,
+      "expand_unresolved_library_mixtures_allowed": false,
+      "figure_points_are_independent_biological_replicates": false
+    }
+  },
+  "allowed_endpoint_families": [
+    "initial_rate",
+    "endpoint_fraction",
+    "kinetic_parameter",
+    "intermediate_product_time_course",
+    "small_molecule_reporter",
+    "structural_not_trimming"
+  ],
+  "allowed_source_kinds": [
+    "deposited_numeric_table",
+    "digitized_figure"
+  ]
+}
