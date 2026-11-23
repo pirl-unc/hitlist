@@ -335,6 +335,11 @@ class HttpSeekableFile:
             },
         )
         with urllib.request.urlopen(req) as resp:
+            status = getattr(resp, "status", None)
+            if status is not None and status != 206:
+                raise RuntimeError(
+                    f"Expected HTTP 206 Partial Content for range request on {self.url}, got {status}"
+                )
             data = resp.read()
         self.pos += len(data)
         return data
@@ -485,13 +490,17 @@ def extract(verbose: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
         for exp in sorted(skipped_experiments):
             print(f"  {exp}  (documented skip: Pandey reanalysis / tissue / SY5Y)")
 
-    # Intensity column indices for experiments we keep.
+    # Intensity and identification-type column indices for experiments we keep.
     intensity_cols: dict[str, int] = {}
+    id_type_cols: dict[str, int] = {}
     for exp in experiment_axes:
         key = f"Intensity {exp}"
         if key not in col_idx:
             raise RuntimeError(f"peptides.txt has no column {key!r}")
         intensity_cols[exp] = col_idx[key]
+        id_key = f"Identification type {exp}"
+        if id_key in col_idx:
+            id_type_cols[exp] = col_idx[id_key]
 
     i_seq = col_idx["Sequence"]
     i_proteins = col_idx["Proteins"]
@@ -602,12 +611,23 @@ def extract(verbose: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
                     "enrichment": axes["enrichment"],
                     "fractionation_ph": axes["fractionation_ph"],
                     "modifications": mod_str,
+                    "modifications_scope": "deposit_aggregate_peptides_txt",
                     "_replicates": set(),
+                    "_exp_raw_intensities": {},
+                    "_msms_exps": set(),
+                    "_mbr_exps": set(),
                     "source": "Bekker-Jensen_2017",
                     "reference": "PMID:28601559",
                 }
                 kept_rows += 1
             pep_rows[key]["_replicates"].add(axes["replicate"])
+            pep_rows[key]["_exp_raw_intensities"][exp] = intensity
+            if exp in id_type_cols:
+                id_type = row[id_type_cols[exp]].strip()
+                if id_type == "By MS/MS":
+                    pep_rows[key]["_msms_exps"].add(exp)
+                elif id_type == "By matching":
+                    pep_rows[key]["_mbr_exps"].add(exp)
 
             # Protein-level aggregation — same arm granularity as peptide
             # rows, which now includes fractionation_ph so the two
@@ -634,10 +654,31 @@ def extract(verbose: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
             flush=True,
         )
 
-    # Materialize peptide frame (convert replicate set -> count).
+    # Materialize peptide frame with separate raw-MS1 intensity stats and MBR provenance (#95/#654).
     out_rows = []
     for v in pep_rows.values():
         v["n_replicates_detected"] = len(v.pop("_replicates"))
+        exp_raw = v.pop("_exp_raw_intensities")
+        msms_exps = v.pop("_msms_exps")
+        mbr_exps = v.pop("_mbr_exps") - msms_exps
+        log2_vals = [math.log2(val) for val in exp_raw.values() if val > 0]
+        mean_log2 = sum(log2_vals) / len(log2_vals) if log2_vals else float("nan")
+        if len(log2_vals) >= 2:
+            var = sum((x - mean_log2) ** 2 for x in log2_vals) / (len(log2_vals) - 1)
+            std_log2 = math.sqrt(var)
+        else:
+            std_log2 = float("nan")
+        v["experiment_ids_detected"] = ";".join(sorted(exp_raw))
+        v["n_direct_msms_experiments"] = len(msms_exps)
+        v["n_mbr_only_experiments"] = len(mbr_exps)
+        v["log2_raw_intensity"] = mean_log2
+        v["log2_raw_intensity_std"] = std_log2
+        # Peptide-level PXD004452 tables have 0 LFQ columns; keep LFQ explicitly NaN (never mix).
+        v["log2_lfq_intensity"] = float("nan")
+        v["log2_lfq_intensity_std"] = float("nan")
+        v["log2_intensity"] = mean_log2
+        v["log2_intensity_std"] = std_log2
+        v["intensity_scale"] = "raw_ms1_intensity"
         out_rows.append(v)
     pep_df = pd.DataFrame.from_records(out_rows)
 
@@ -655,7 +696,18 @@ def extract(verbose: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
             "enrichment",
             "fractionation_ph",
             "modifications",
+            "modifications_scope",
             "n_replicates_detected",
+            "experiment_ids_detected",
+            "n_direct_msms_experiments",
+            "n_mbr_only_experiments",
+            "log2_raw_intensity",
+            "log2_raw_intensity_std",
+            "log2_lfq_intensity",
+            "log2_lfq_intensity_std",
+            "log2_intensity",
+            "log2_intensity_std",
+            "intensity_scale",
             "source",
             "reference",
         ]
