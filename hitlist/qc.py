@@ -495,10 +495,9 @@ def _engineering_remedy(column: str) -> str:
             f"record the real value; or 'none' if this arm genuinely lacks {column}; or {separate}"
         )
     return (
-        f"record the real value; or {separate}.  'none' is NOT permitted in {column}, so "
-        f"this column cannot state absence: an arm whose MHC really is not introduced has "
-        f"no token to say so, and leaving it blank keeps this finding.  That is a "
-        f"documented gap in the vocabulary, not a curation error"
+        f"record the real value (or 'endogenous_mhc' if MHC is strictly endogenous); or {separate}.  "
+        f"'none' is NOT permitted in {column}, so use 'endogenous_mhc' when the sampled MHC is "
+        f"strictly endogenous rather than introduced"
     )
 
 
@@ -541,13 +540,14 @@ def engineering_drift_audit(overrides: Mapping[int, dict] | None = None) -> pd.D
       observation rows, so no anchor is ever resolved for them.
     - Studies that curate no condition block at all, which
       :func:`hitlist.conditions.validate_study_conditions` also skips.
-    - A ``condition_mhc_context`` naming only capture tokens (``soluble_mhc``,
-      ``refolded_mhc``) beside an engineered sibling.  Silence here is an empty
-      cell, not "no engineering token", because ``none`` is not permitted in
-      this column, so there would be no truthful remedy to offer an arm whose
-      MHC really was only captured — patient plasma sHLA is exactly that.  The
-      cost is a known miss: a transfectant curated ``soluble_mhc`` alone reads
-      as unengineered and is not flagged.
+    - A ``condition_mhc_context`` naming only non-engineered tokens
+      (``soluble_mhc``, ``refolded_mhc``, ``endogenous_mhc``) beside an
+      engineered sibling.  Silence here is an empty cell, not "no engineering
+      token"; an arm whose cellular MHC is strictly endogenous records
+      ``endogenous_mhc`` (since ``none`` is not permitted in this column), and
+      an arm whose MHC was only captured records ``soluble_mhc`` or
+      ``refolded_mhc``.  The cost is a known miss: a transfectant curated
+      ``soluble_mhc`` alone reads as unengineered and is not flagged.
 
     Material identity is thin in practice — ``sample_group`` is set on a
     minority of arms — so arms of one study often group together on the

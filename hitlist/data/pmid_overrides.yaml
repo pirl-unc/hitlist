@@ -4895,6 +4895,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_transfection: "none"
         condition_mhc_context: mhc_transfectant;monoallelic
         condition_baseline_engineering: MAPTAC_tagged_HLA_transfection
         condition_material: cultured
@@ -4910,6 +4911,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_transfection: "none"
         condition_mhc_context: mhc_transfectant;monoallelic
         condition_baseline_engineering: MAPTAC_tagged_HLA_transfection
         condition_material: cultured
@@ -4925,6 +4927,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_transfection: "none"
         condition_mhc_context: mhc_transfectant;monoallelic
         condition_baseline_engineering: MAPTAC_tagged_HLA_transfection
         condition_material: cultured
@@ -4940,6 +4943,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_transfection: "none"
         condition_mhc_context: mhc_transfectant;monoallelic
         condition_baseline_engineering: MAPTAC_tagged_HLA_transfection
         condition_material: cultured
@@ -4955,6 +4959,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_transfection: "none"
         condition_mhc_context: mhc_transfectant;monoallelic
         condition_baseline_engineering: MAPTAC_tagged_HLA_transfection
         condition_material: cultured
@@ -5005,6 +5010,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_transfection: "none"
         condition_mhc_context: mhc_transfectant;monoallelic
         condition_baseline_engineering: MAPTAC_tagged_HLA_transfection
         condition_material: cultured
@@ -6904,6 +6910,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         mhc: "HLA-DPB1*09:01/DPA1*02:01"
         reference_proteomes:
@@ -6917,6 +6924,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         mhc: "HLA-DPB1*10:01/DPA1*02:01"
         reference_proteomes:
@@ -6930,6 +6938,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         mhc: "HLA-DPB1*14:01/DPA1*02:01"
         reference_proteomes:
@@ -6943,6 +6952,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         mhc: "HLA-DPB1*03:01/DPA1*01:03"
         reference_proteomes:
@@ -6956,6 +6966,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         mhc: "HLA-DPB1*03:01/DPA1*01:03"
         reference_proteomes:
@@ -6969,6 +6980,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         mhc: "HLA-DPB1*05:01/DPA1*02:02"
         reference_proteomes:
@@ -6982,6 +6994,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         mhc: "HLA-DPB1*05:01/DPA1*02:02"
         reference_proteomes:
@@ -6995,6 +7008,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         mhc: "HLA-DPB1*01:01/DPA1*02:01"
         reference_proteomes:
@@ -7008,6 +7022,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         mhc: "HLA-DPB1*13:01/DPA1*02:01"
         reference_proteomes:
@@ -7021,6 +7036,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         mhc: "HLA-DPB1*02:01/DPA1*01:03"
         reference_proteomes:
@@ -7034,6 +7050,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         mhc: "HLA-DPB1*04:01/DPA1*01:03"
         reference_proteomes:
@@ -7047,6 +7064,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         mhc: "HLA-DPB1*04:01/DPA1*01:03"
         reference_proteomes:
@@ -7060,6 +7078,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         mhc: "HLA-DPB1*04:01/DPA1*01:03"
         reference_proteomes:
@@ -7073,6 +7092,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         mhc: "HLA-DPB1*04:02/DPA1*01:03"
         reference_proteomes:
@@ -7086,6 +7106,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         mhc: "HLA-DPB1*02:01/DPA1*01:03 HLA-DPB1*02:01/DPA1*02:01"
         reference_proteomes:
@@ -7099,6 +7120,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         mhc: "HLA-DPB1*04:01 HLA-DPB1*17:01 HLA-DPA1*01:03 HLA-DPA1*02:01"
         reference_proteomes:
@@ -7112,6 +7134,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         mhc: "HLA-DPB1*04:01 HLA-DPB1*10:01 HLA-DPA1*01:03 HLA-DPA1*02:01"
         reference_proteomes:
@@ -7125,6 +7148,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         mhc: "HLA-DPB1*04:01 HLA-DPB1*14:01 HLA-DPA1*01:03 HLA-DPA1*02:01"
         reference_proteomes:
@@ -7138,6 +7162,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         mhc: "HLA-DPB1*04:01 HLA-DPB1*06:01 HLA-DPA1*01:03"
         reference_proteomes:
@@ -8092,6 +8117,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_combination: "single"
+        condition_knockout_genes: "none"
         condition_transduction: "MHC-I"
         condition_mhc_context: "mhc_coexpression"
         mhc_class: "I"
@@ -8103,6 +8129,7 @@
         condition_evidence: "curated_text"
         condition_combination: "simultaneous"
         condition_knockout_genes: "TAP1"
+        condition_transduction: "MHC-I"
         condition_mhc_context: "mhc_coexpression"
         mhc_class: "I"
         mhc: "H-2Kd"
@@ -8120,6 +8147,9 @@
         condition_id: "skin_grafts_7_days_post_transplant"
         condition_status: "partial"
         condition_evidence: "curated_text"
+        condition_knockout_genes: "none"
+        condition_transduction: "none"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "I"
         mhc: "H-2Kb H-2Db"
 
@@ -8385,6 +8415,8 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "empty_vector"
+        condition_genetic_variants: "none"
+        condition_transfection: "empty_vector"
         mhc_class: "I"
         mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*13:02 HLA-B*44:02 HLA-C*06:02 HLA-C*07:04"
       - sample_label: "SaOS-2 + TP53 R175H"
@@ -14271,6 +14303,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         ip_antibody: "LB3.1 (HLA-DR) + SPV-L3 (HLA-DQ) + B721 (HLA-DP)"
         # C1R is EBV-transformed and expresses endogenous class II from
@@ -14320,6 +14353,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_mhc_context: "endogenous_mhc"
         mhc_class: "II"
         # Per Methods: "HLA-DR12, -DPB1*04:01, 04:02 and -DQ7" (DQ7
         # corresponds to HLA-DQB1*03:01).

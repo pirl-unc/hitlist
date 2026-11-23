@@ -59,7 +59,7 @@ def _synthetic_stability_file(path: Path) -> Path:
         "HLA-B*14:01(C67S) KLADMSIYC 108.40",
         "HLA-B*14:02(C67S) SLFNTIAVL 0.50",
         "HLA-B*39:06(C67S) THDGSLQRL 0.00",
-        "HLA-B*99:01(Y9F) SLYNTVATL 2.40",
+        "HLA-X*99:01(Y9F) SLYNTVATL 2.40",
         "HLA-B*07:02 APRTVALTA 4.20",
         "HLA-B*15:01 FVRQCFNPM 2.90",
     ]
@@ -136,12 +136,20 @@ def test_line_provenance_censor_semantics_constructs_and_chemistry(tmp_path):
     assert df.loc[2, "stability_value_status"] == "positive_extrapolated_beyond_48h_window"
     assert df.loc[2, "peptide_chemistry_status"] == "synthetic_unannotated_plain_sequence_with_cys"
 
-    # Row 5: Unverified mutant construct is never stripped to wild-type HLA-B*99:01
-    assert df.loc[5, "reported_mhc_construct"] == "HLA-B*99:01(Y9F)"
-    assert df.loc[5, "mhc_restriction"] == "HLA-B*99:01(Y9F)"
+    # Row 5: Unverified/unparseable mutant construct is never stripped to wild-type
+    assert df.loc[5, "reported_mhc_construct"] == "HLA-X*99:01(Y9F)"
+    assert df.loc[5, "mhc_restriction"] == "HLA-X*99:01(Y9F)"
     assert df.loc[5, "construct_resolution_status"] == "unresolved_construct"
     assert df.loc[5, "allele_resolution"] == "unresolved"
     assert bool(df.loc[5, "is_mutant_mhc"]) is True
+
+    # Parenthesized mutants parsed natively by newer mhcgnomes (#268) must also never
+    # strip mutations into wild-type HLA-B*99:01.
+    native_mut = tmp_path / "native_mut.txt"
+    native_mut.write_text("HLA\tPep\tThalf\nHLA-B*99:01(Y9F) SLYNTVATL 2.40\n", encoding="utf-8")
+    nm_df = scan_netmhcstabpan_stability(native_mut, verify_pinned_digest=False)
+    assert nm_df.loc[0, "mhc_restriction"] != "HLA-B*99:01"
+    assert bool(nm_df.loc[0, "is_mutant_mhc"]) is True
 
 
 def test_iedb_reconciliation_separates_dtu_lineage_from_cross_study_overlaps(tmp_path):

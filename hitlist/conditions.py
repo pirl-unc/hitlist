@@ -128,6 +128,10 @@ CONDITION_MHC_CONTEXT_VALUES = (
     "refolded_mhc",
     # An additional MHC allele co-expressed alongside the endogenous ones.
     "mhc_coexpression",
+    # Strictly endogenous cellular MHC (no introduced MHC transfectant/transgene;
+    # deliberately excluded from ENGINEERED_MHC_CONTEXT_VALUES so wild-type /
+    # parental / primary arms can state absence of MHC engineering explicitly, #593).
+    "endogenous_mhc",
 )
 
 #: Reported physical state of the material.
@@ -271,8 +275,10 @@ GENE_CONDITION_COLUMNS = frozenset(
 #: expressed in an HLA-null or HLA-low host (``monoallelic`` — every curated
 #: arm with it is a transfectant or an engineered construct), or an allele
 #: co-expressed alongside the endogenous ones (``mhc_coexpression``).
-#: ``soluble_mhc`` and ``refolded_mhc`` describe how MHC was captured, not
-#: what was done to the cells, so on their own they are not engineering.
+#: ``soluble_mhc`` and ``refolded_mhc`` describe how MHC was captured, and
+#: ``endogenous_mhc`` explicitly states that cellular MHC is strictly endogenous
+#: (no introduced MHC transfectant/transgene), so on their own none of them
+#: represent engineering.
 ENGINEERED_MHC_CONTEXT_VALUES = frozenset(
     {"monoallelic", "mhc_transfectant", "mhc_transgenic", "mhc_coexpression"}
 )
