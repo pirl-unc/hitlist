@@ -1956,7 +1956,7 @@ DATASET_CATEGORIES: tuple[str, ...] = (
 _VIRAL_DATASET_NAMES = frozenset(
     {"ebv", "hbv", "hcv", "hiv1", "hpv16", "hpv18", "htlv1", "kshv", "mcpyv"}
 )
-_EXPRESSION_PREFIXES = ("depmap", "hpa_", "ccle_", "bekker_jensen_", "gm12878_")
+_EXPRESSION_PREFIXES = ("depmap", "hpa_", "ccle_", "bekker_jensen_", "bekker-jensen-", "gm12878_")
 _PERTURBATION_NAMES = frozenset(
     {
         "bergseng-2015-dq",
@@ -1966,6 +1966,8 @@ _PERTURBATION_NAMES = frozenset(
         "sarango-2022-pxd024417-sdrf",
         "sanz-bravo-2018b-erap2-oe",
         "pxd024809-dilution-observer",
+        "pxd052314-goldberg-mapp-metadata",
+        "pxd052314-goldberg-mapp",
         "perturbation-quantities",
         "dlbcl-35561310-supplements",
         "pxd013455",

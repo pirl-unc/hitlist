@@ -1,0 +1,92 @@
+{
+  "study_id": "bekker_jensen_2017_pxd004452",
+  "pmid": 28601559,
+  "wrong_historical_pmid_corrected": 28591648,
+  "pmc_id": "PMC5493283",
+  "doi": "10.1016/j.cels.2017.05.009",
+  "pride_accession": "PXD004452",
+  "study_label": "Bekker-Jensen 2017 — Deep multi-enzyme / multi-depth human shotgun proteome",
+  "species": "Homo sapiens",
+  "archive": {
+    "filename": "SearchResults.zip",
+    "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2017/06/PXD004452/SearchResults.zip",
+    "http_range_extractable": true,
+    "verified_members": {
+      "parameters.txt": {
+        "filename": "parameters.txt",
+        "member_suffix": "parameters.txt",
+        "size_bytes": 1678,
+        "compressed_size_bytes": 717,
+        "sha256": "d1d760c86966a60c1ad6aabc4967978de97bb75dfe333d77eca30812db26f4c1",
+        "role": "maxquant_search_parameters"
+      },
+      "summary.txt": {
+        "filename": "summary.txt",
+        "member_suffix": "summary.txt",
+        "size_bytes": 587345,
+        "compressed_size_bytes": 117207,
+        "sha256": "5eb5c41af2c7929be8a9354bf7c9fcb021ead7f47c07d0774a146b352e1a8860",
+        "role": "maxquant_run_summary"
+      },
+      "peptides.txt": {
+        "filename": "peptides.txt",
+        "member_suffix": "peptides.txt",
+        "size_bytes": 984010232,
+        "compressed_size_bytes": 171426951,
+        "role": "maxquant_peptides_deposit_aggregate_mods",
+        "n_total_columns": 662,
+        "n_intensity_columns": 32,
+        "n_lfq_columns": 0,
+        "n_identification_type_columns": 32
+      },
+      "modificationSpecificPeptides.txt": {
+        "filename": "modificationSpecificPeptides.txt",
+        "member_suffix": "modificationSpecificPeptides.txt",
+        "size_bytes": 1224792401,
+        "compressed_size_bytes": 190028869,
+        "role": "maxquant_per_experiment_modifications_and_raw_intensity",
+        "n_total_columns": 641,
+        "n_intensity_columns": 32,
+        "n_lfq_columns": 0,
+        "n_identification_type_columns": 32
+      }
+    }
+  },
+  "search_provenance": {
+    "maxquant_version_deposited_parameters": "1.5.3.19",
+    "maxquant_version_paper_text": "1.5.3.6",
+    "fixed_modifications": ["Carbamidomethyl (C)"],
+    "decoy_mode": "revert",
+    "include_contaminants": true,
+    "match_between_runs_enabled_in_deposit": true,
+    "min_peptide_length": 7,
+    "enzymes_and_missed_cleavages": {
+      "Trypsin/P": {"max_missed_cleavages": 3, "cleaves_before_proline": true},
+      "Chymotrypsin+": {"max_missed_cleavages": 4, "cleaves_before_proline": true},
+      "GluC;D.P": {"max_missed_cleavages": 3, "cleaves_before_proline": null},
+      "LysC/P": {"max_missed_cleavages": 2, "cleaves_before_proline": true}
+    },
+    "original_fasta_status": {
+      "reported_path": "HUMAN.fasta",
+      "original_bytes_available_in_pride": false,
+      "uniprot_release_date_recorded": false,
+      "can_reconstruct_from_current_proteome": false,
+      "paired_reanalysis_accession": "PXD013455",
+      "paired_reanalysis_fasta": "Human-ReferenceProteome-Canonical-Isoform-71591.fasta",
+      "paired_reanalysis_fasta_sha256": "88e76d6479481fe18f4420c1d5f3082b6d7bfbf4c091316cf42506a64471b9cc",
+      "silent_join_between_pxd004452_and_pxd013455_allowed": false
+    }
+  },
+  "measurement_and_modification_contract": {
+    "peptide_level_intensity_scale": "raw_ms1_intensity",
+    "peptide_level_lfq_available": false,
+    "mix_lfq_and_raw_intensity_allowed": false,
+    "invent_detection_limit_from_distribution_allowed": false,
+    "missing_or_zero_software_output_semantics": "unobserved_in_search_scope_not_intrinsically_undetectable",
+    "peptides_txt_modifications_scope": "deposit_aggregate_peptides_txt",
+    "modification_specific_peptides_scope": "per_arm_modification_specific_peptides",
+    "reused_14frac_dataset_note": "Tryp-14Frac-A/B/C are reused from an earlier dataset (PMC5493283) and are not comparable biological replicates with 39/46/70-fraction runs.",
+    "hela_46frac_pooled_experiments": ["Tryp-46fracs", "HeLa-46fracs-IT-E1", "HeLa-46fracs-IT-E2"],
+    "first_seen_depth_comparable_across_protocols": false
+  }
+}

@@ -1211,6 +1211,181 @@ def _erap2_and_dilution_datasets() -> dict[str, ManagedDataset]:
     }
 
 
+def _bekker_and_goldberg_datasets() -> dict[str, ManagedDataset]:
+    import json
+
+    from .bekker_jensen_qualification import (
+        bekker_jensen_source_contract,
+        fetch_bekker_jensen_provenance_files,
+    )
+    from .downloads import data_dir
+    from .mapp_qualification import _GOLDBERG_PATH, fetch_goldberg_mapp_sources
+
+    bj_contract = bekker_jensen_source_contract()
+    bj_members = {
+        k: bj_contract["archive"]["verified_members"][k] for k in ("parameters.txt", "summary.txt")
+    }
+
+    def bj_root() -> Path:
+        return data_dir() / "bekker_jensen_2017_pxd004452"
+
+    def _bj_files() -> list[dict[str, Any]]:
+        root = bj_root()
+        return [
+            {
+                "name": meta["filename"],
+                "path": root / meta["filename"],
+                "exists": (root / meta["filename"]).is_file(),
+                "expected_size_bytes": int(meta["size_bytes"]),
+            }
+            for meta in bj_members.values()
+        ]
+
+    def _bj_exists() -> bool:
+        return all(item["exists"] for item in _bj_files())
+
+    def _bj_info() -> dict[str, Any]:
+        files = _bj_files()
+        installed = all(item["exists"] for item in files)
+        return {
+            "name": "bekker-jensen-2017-pxd004452-provenance",
+            "type": "managed bundle",
+            "description": (
+                "Bekker-Jensen 2017 (PMID 28601559, PXD004452) MaxQuant parameters.txt and "
+                "summary.txt provenance files (HTTP-Range extracted from SearchResults.zip)"
+            ),
+            "path": str(bj_root()),
+            "exists": installed,
+            "status": "installed" if installed else "not installed",
+            "files": [item["name"] for item in files],
+            "terms": "https://www.ebi.ac.uk/pride/archive/projects/PXD004452",
+        }
+
+    def _bj_fetch(force: bool) -> Path:
+        return fetch_bekker_jensen_provenance_files(dest_dir=bj_root(), force=force)
+
+    gb_contract = json.loads(_GOLDBERG_PATH.read_text(encoding="utf-8"))
+    large_roles = {"complete_publisher_supplement", "original_mapp_search_results"}
+    gb_meta_assets = [a for a in gb_contract["assets"] if a["role"] not in large_roles]
+    gb_all_assets = list(gb_contract["assets"])
+
+    def gb_root() -> Path:
+        return data_dir() / "pxd052314_goldberg_mapp"
+
+    def _gb_files_for(assets: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        root = gb_root()
+        return [
+            {
+                "name": asset["filename"],
+                "path": root / asset["filename"],
+                "exists": (root / asset["filename"]).is_file(),
+                "expected_size_bytes": int(asset["size_bytes"]),
+            }
+            for asset in assets
+        ]
+
+    def _gb_meta_files() -> list[dict[str, Any]]:
+        return _gb_files_for(gb_meta_assets)
+
+    def _gb_all_files() -> list[dict[str, Any]]:
+        return _gb_files_for(gb_all_assets)
+
+    def _gb_meta_exists() -> bool:
+        return all(item["exists"] for item in _gb_meta_files())
+
+    def _gb_all_exists() -> bool:
+        return all(item["exists"] for item in _gb_all_files())
+
+    def _gb_meta_info() -> dict[str, Any]:
+        files = _gb_meta_files()
+        installed = all(item["exists"] for item in files)
+        return {
+            "name": "pxd052314-goldberg-mapp-metadata",
+            "type": "managed bundle",
+            "description": (
+                "Goldberg 2025 (PXD052314) MAPP PRIDE project/file metadata, "
+                "Data_Deposition_Table.xlsx, and community SDRF (~83 KB)"
+            ),
+            "path": str(gb_root()),
+            "exists": installed,
+            "status": "installed" if installed else "not installed",
+            "files": [item["name"] for item in files],
+            "terms": "https://www.ebi.ac.uk/pride/archive/projects/PXD052314",
+        }
+
+    def _gb_all_info() -> dict[str, Any]:
+        files = _gb_all_files()
+        installed = all(item["exists"] for item in files)
+        return {
+            "name": "pxd052314-goldberg-mapp",
+            "type": "managed bundle",
+            "description": (
+                "Goldberg 2025 (PXD052314) complete pinned MAPP source assets including "
+                "supplement.zip and EC_infection_Degradome_MAPP_Peptides.zip (~404 MB)"
+            ),
+            "path": str(gb_root()),
+            "exists": installed,
+            "status": "installed" if installed else "not installed",
+            "files": [item["name"] for item in files],
+            "terms": "https://www.ebi.ac.uk/pride/archive/projects/PXD052314",
+        }
+
+    return {
+        "bekker-jensen-2017-pxd004452-provenance": ManagedDataset(
+            name="bekker-jensen-2017-pxd004452-provenance",
+            kind="bundle",
+            description=(
+                "Bekker-Jensen 2017 (PMID 28601559, PXD004452) MaxQuant parameters.txt and "
+                "summary.txt provenance files (HTTP-Range extracted from SearchResults.zip)"
+            ),
+            terms="https://www.ebi.ac.uk/pride/archive/projects/PXD004452",
+            path_fn=bj_root,
+            files_fn=_bj_files,
+            exists_fn=_bj_exists,
+            fetch_fn=_bj_fetch,
+            info_fn=_bj_info,
+            remove_fn=lambda delete_file: _remove_tree(bj_root(), delete_file=delete_file),
+            cache_kind="managed source",
+        ),
+        "pxd052314-goldberg-mapp-metadata": ManagedDataset(
+            name="pxd052314-goldberg-mapp-metadata",
+            kind="bundle",
+            description=(
+                "Goldberg 2025 (PXD052314) MAPP PRIDE project/file metadata, "
+                "Data_Deposition_Table.xlsx, and community SDRF (~83 KB)"
+            ),
+            terms="https://www.ebi.ac.uk/pride/archive/projects/PXD052314",
+            path_fn=gb_root,
+            files_fn=_gb_meta_files,
+            exists_fn=_gb_meta_exists,
+            fetch_fn=lambda force: fetch_goldberg_mapp_sources(
+                dest_dir=gb_root(), include_large_archives=False, force=force
+            ),
+            info_fn=_gb_meta_info,
+            remove_fn=lambda delete_file: _remove_tree(gb_root(), delete_file=delete_file),
+            cache_kind="managed source",
+        ),
+        "pxd052314-goldberg-mapp": ManagedDataset(
+            name="pxd052314-goldberg-mapp",
+            kind="bundle",
+            description=(
+                "Goldberg 2025 (PXD052314) complete pinned MAPP source assets including "
+                "supplement.zip and EC_infection_Degradome_MAPP_Peptides.zip (~404 MB)"
+            ),
+            terms="https://www.ebi.ac.uk/pride/archive/projects/PXD052314",
+            path_fn=gb_root,
+            files_fn=_gb_all_files,
+            exists_fn=_gb_all_exists,
+            fetch_fn=lambda force: fetch_goldberg_mapp_sources(
+                dest_dir=gb_root(), include_large_archives=True, force=force
+            ),
+            info_fn=_gb_all_info,
+            remove_fn=lambda delete_file: _remove_tree(gb_root(), delete_file=delete_file),
+            cache_kind="managed source",
+        ),
+    }
+
+
 def managed_datasets() -> dict[str, ManagedDataset]:
     """Return every catalog-managed external dataset and bundle."""
     entries: dict[str, ManagedDataset] = {}
@@ -1227,6 +1402,7 @@ def managed_datasets() -> dict[str, ManagedDataset]:
         _iso18_and_neotoma_datasets,
         _sarango_2022_datasets,
         _erap2_and_dilution_datasets,
+        _bekker_and_goldberg_datasets,
     ):
         entries.update(loader())
     return entries

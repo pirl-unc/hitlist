@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "study_family": "proteasome_associated_mapp_and_parallel_proteomes",
+  "scope_warning": "MAPP measures proteasome-captured endogenous peptides, NOT MHC-II-associated MAPPs, NOT free intracellular molar concentration, and NOT production flux.",
+  "captured_fragment_projects": {
+    "PXD009092": {
+      "issue_id": 752,
+      "study": "Wolf-Levy et al. 2018 (DOI 10.1038/nbt.4279)",
+      "n_runs": 18,
+      "n_peptide_rows": 10673,
+      "n_evidence_rows": 149959,
+      "n_filtered_zeros_with_positive_evidence": 9276,
+      "run_roles": ["UT", "TNF+IFN", "CHX", "NO-DSP", "NO-INH", "BEADS"],
+      "publisher_workbook_redistribution_rights": {
+        "status": "unverified_caller_supplied_not_bundled_in_pypi",
+        "bundled_in_pypi": false,
+        "caller_supplied_required": true
+      },
+      "original_fasta_status": {
+        "reported_filename": "Human_UP_2016_02.fasta",
+        "original_bytes_available": false,
+        "later_model_references_distinct": true
+      },
+      "ef_imputed_header_conflict_preserved": true,
+      "mapp_bead_filt_kept_separate_from_evidence_intensity": true
+    },
+    "PXD009508": {
+      "issue_id": 759,
+      "study": "Wolf-Levy et al. 2018 controlled proteasome-inhibition panel",
+      "n_runs": 18,
+      "n_peptide_rows": 6060,
+      "n_evidence_rows": 19581,
+      "archive_sha256": "87d3711ad4a0e59d2618d079c2d6e95e14b8c544739701349d2b36bb4d5a14b8",
+      "capture_labels": ["alpha6", "iso", "gap"],
+      "capture_gene_alias_status": "run_alpha6_vs_publication_PSMA1_unresolved_alias",
+      "treatment_labels": ["ut", "epoxo"],
+      "live_cell_inhibitor_distinct_from_lysate_inhibitors": true,
+      "velcade_and_zsgreen_reporter_audit": {
+        "found_in_processed_pxd009508_pxd007263": false,
+        "proves_absence_in_raw_acquisitions": false,
+        "note": "Human-only search reference is not a reporter-negative assay; Velcade and ZsGreen PRM run mappings remain unreported in processed deposits."
+      },
+      "yield_vs_composition_audit": {
+        "complete_case_59_peptides_epoxo_to_ut_ratio": 0.7119,
+        "all_qualifying_training_alpha6_epoxo_to_ut_ratio": 0.2334,
+        "unit_sum_composition_captures_global_yield_drop": false
+      },
+      "original_fasta_status": {
+        "reported_filename": "Human_UP_2016_02.fasta",
+        "original_bytes_available": false
+      }
+    },
+    "PXD007263": {
+      "issue_id": 759,
+      "study": "Wolf-Levy et al. 2018 cytokine time-course panel",
+      "n_runs": 12,
+      "n_peptide_rows": 3146,
+      "n_evidence_rows": 27196,
+      "archive_sha256": "05e46c2be2bc6046a4dee1f264d2c4ffd5fd3cba821ae778ece8c34906e8dde4",
+      "treatment_label_scope_conflict": "deposited_TNF_TP_0_6_literal_vs_publication_TNF_alpha_plus_IFN_gamma",
+      "original_fasta_status": {
+        "reported_filename": "Human_UP_2016_02.fasta",
+        "original_bytes_available": false
+      }
+    },
+    "PXD009438": {
+      "issue_id": 820,
+      "study": "Wolf-Levy et al. 2018 CTRL vs LUPUS cohort",
+      "n_runs": 14,
+      "n_ctrl_runs": 6,
+      "n_lupus_runs": 8,
+      "n_measurement_decisions": 13790,
+      "ctrl_dependence_components": 6,
+      "lupus_dependence_components": 7,
+      "required_transfer_components": 20,
+      "meets_frozen_transfer_support_gate": false,
+      "material_metadata_conflict": {
+        "pride_project_organism_part": "blood serum",
+        "publication_reported_material": "peripheral blood mononuclear cell (PBMC)",
+        "resolution_status": "competing_assertions_preserved"
+      },
+      "original_fasta_status": {
+        "reported_filename": "Human_UP_2016_02.fasta",
+        "original_bytes_available": false
+      }
+    },
+    "PXD052314": {
+      "issue_id": 825,
+      "study": "Goldberg et al. 2025 (DOI 10.1038/s41586-025-08615-w)",
+      "cell_line": "A549",
+      "a549_is_professional_apc": false,
+      "n_deposited_raw_files": 36,
+      "n_original_mapp_peptide_rows": 30364,
+      "n_publisher_table5_peptide_rows": 21082,
+      "n_publisher_omitted_rows": 9282,
+      "original_archive_sha256": "a7314be5a1fd268736bd40b6a96e92ff74303bde53822bdac7d6941f367f6fe4",
+      "supplement_zip_sha256": "4de056f094c34e1cfcdde14410d5ac35c45de7d187e9c6b987b7c5c75ff78714",
+      "recorded_conflicts": [
+        "Publisher Table 5 suffixes 5450/Infect4_2 and 5454/Infect4_3 disagree with original search 5450/Infect4_3 and 5454/Infect4_4.",
+        "Community SDRF calls all 36 runs tryptic shotgun and cites nonexistent EX480YM_120_5582_20112023.raw instead of deposited EX480YM_120_5566_20112023.raw.",
+        "Search parameters cite Human_SP_27042020_with_E-coli.fasta (bytes absent from deposit), conflicting with human-only project prose."
+      ],
+      "table3_pooled_audit": {
+        "n_rows": 199281,
+        "n_embedded_numeric_tokens": 3095695,
+        "n_ordered_label_patterns": 33,
+        "n_distinct_labels": 141,
+        "n_date_styled_gene_cells": 202,
+        "eligible_for_supervised_cohort": false,
+        "collapse_repeated_labels_to_dict_allowed": false
+      }
+    }
+  },
+  "companion_tryptic_audit_reference": "wolf_levy_companion_crosswalk_audit.json",
+  "companion_tryptic_projects": {
+    "PXD009360": {
+      "issue_id": 757,
+      "n_raw_files": 9,
+      "run_labels": ["448", "449", "450", "451", "452", "453", "454", "455", "456"],
+      "n_raw_files_with_sample_properties": 0,
+      "archive_sha256": "45b1f2b278937b43a40913798b96c7fb31a0d1a7753ebcf99951287c0ebe91c7",
+      "archive_size_bytes": 733580954,
+      "material_link_status": "condition_specimen_aliquot_and_mapp_crosswalk_unresolved",
+      "publisher_data3_131_gene_panel_unbiased_denominator": false,
+      "fragment_derived_lfq_is_independent_precursor": false,
+      "maxquant_lfq_is_copies_per_cell": false
+    },
+    "PXD009181": {
+      "issue_id": 820,
+      "n_raw_files": 24,
+      "n_raw_files_with_sample_properties": 0,
+      "material_link_status": "condition_specimen_aliquot_and_mapp_crosswalk_unresolved"
+    },
+    "PXD009112": {
+      "issue_id": 820,
+      "n_raw_files": 14,
+      "n_raw_files_with_sample_properties": 0,
+      "material_link_status": "condition_specimen_aliquot_and_mapp_crosswalk_unresolved"
+    }
+  },
+  "material_pairing_rules": {
+    "allowed_exact_precisions": ["exact_aliquot", "exact_specimen"],
+    "opt_in_surrogate_precisions": ["condition_surrogate"],
+    "deferred_unresolved_precisions": ["project_level_only", "publication_level_only", "unresolved"],
+    "forbidden_heuristic_precisions": [
+      "order_inferred",
+      "replicate_number_inferred",
+      "cell_line_only",
+      "peptide_overlap_inferred",
+      "abundance_correlated"
+    ]
+  }
+}

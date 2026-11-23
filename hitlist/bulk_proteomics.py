@@ -584,6 +584,9 @@ def load_bulk_peptides(
     # Source-backed counts are independent of query filters. Reapplication to
     # a current parquet retains the original reported values and is idempotent.
     df = _add_n_replicates_possible(df)
+    from .bekker_jensen_qualification import qualify_bekker_jensen_peptide_table
+
+    df = qualify_bekker_jensen_peptide_table(df)
 
     df = _apply_cell_line_filter(df, cell_line)
     df = _apply_gene_filter(df, gene_name)
