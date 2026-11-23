@@ -1386,6 +1386,244 @@ def _bekker_and_goldberg_datasets() -> dict[str, ManagedDataset]:
     }
 
 
+def _calibration_erap1_degradomics_datasets() -> dict[str, ManagedDataset]:
+    import json
+
+    from .degradomics_native_qualification import (
+        _INTACT_ASSETS_PATH,
+        _NATIVE_ASSETS_PATH,
+        fetch_pxd018722_sahu_metadata_sources,
+        fetch_pxd058121_intact_degradomics_sources,
+    )
+    from .downloads import data_dir
+    from .erap1_biochemical_qualification import (
+        erap1_biochemical_inventory_contract,
+        fetch_maben_2021_erap1_source,
+    )
+    from .ms_calibration_qualification import (
+        _PXD004886_ASSETS_PATH,
+        fetch_pxd004886_calibration_sources,
+    )
+
+    pxd004886_manifest = json.loads(_PXD004886_ASSETS_PATH.read_text(encoding="utf-8"))
+
+    def cal_root() -> Path:
+        return data_dir() / "pxd004886_ms_calibration"
+
+    def _cal_files() -> list[dict[str, Any]]:
+        root = cal_root()
+        return [
+            {
+                "name": filename,
+                "path": root / filename,
+                "exists": (root / filename).is_file(),
+                "expected_size_bytes": int(meta["size"]),
+            }
+            for filename, meta in sorted(pxd004886_manifest["assets"].items())
+        ]
+
+    def _cal_info() -> dict[str, Any]:
+        files = _cal_files()
+        installed = all(item["exists"] for item in files)
+        return {
+            "name": "pxd004886-ms-calibration",
+            "type": "managed bundle",
+            "description": (
+                "Collins 2017 (PXD004886) SWATH MS-response calibration workbooks and article XML "
+                "(8 CC-BY 4.0 assets, ~420 KB)"
+            ),
+            "path": str(cal_root()),
+            "exists": installed,
+            "status": "installed" if installed else "not installed",
+            "files": [item["name"] for item in files],
+            "terms": "https://www.nature.com/articles/s41467-017-00249-5",
+        }
+
+    maben_asset = erap1_biochemical_inventory_contract()["sources"]["maben_2021"]["archive_asset"]
+
+    def maben_root() -> Path:
+        return data_dir() / "maben_2021_erap1_source_data"
+
+    def maben_path() -> Path:
+        return maben_root() / maben_asset["filename"]
+
+    def _maben_files() -> list[dict[str, Any]]:
+        p = maben_path()
+        return [
+            {
+                "name": maben_asset["filename"],
+                "path": p,
+                "exists": p.is_file(),
+                "expected_size_bytes": int(maben_asset["size_bytes"]),
+            }
+        ]
+
+    def _maben_info() -> dict[str, Any]:
+        p = maben_path()
+        return {
+            "name": "maben-2021-erap1-source-data",
+            "type": "managed file",
+            "description": (
+                "Maben 2021 (DOI 10.1038/s41467-021-25564-w) ERAP1 biochemical Source Data ZIP "
+                "(CC BY 4.0, 479 KB)"
+            ),
+            "path": str(p),
+            "exists": p.is_file(),
+            "status": "installed" if p.is_file() else "not installed",
+            "size_bytes": int(maben_asset["size_bytes"]),
+            "files": [maben_asset["filename"]],
+            "terms": "https://www.nature.com/articles/s41467-021-25564-w",
+        }
+
+    intact_manifest = json.loads(_INTACT_ASSETS_PATH.read_text(encoding="utf-8"))
+
+    def intact_root() -> Path:
+        return data_dir() / "pxd058121_intact_degradomics"
+
+    def _intact_files() -> list[dict[str, Any]]:
+        root = intact_root()
+        return [
+            {
+                "name": asset["filename"],
+                "path": root / asset["filename"],
+                "exists": (root / asset["filename"]).is_file(),
+                "expected_size_bytes": int(asset["size_bytes"]),
+            }
+            for asset in intact_manifest["assets"]
+        ]
+
+    def _intact_info() -> dict[str, Any]:
+        files = _intact_files()
+        installed = all(item["exists"] for item in files)
+        return {
+            "name": "pxd058121-intact-degradomics",
+            "type": "managed bundle",
+            "description": (
+                "PXD058121 (PMC11874349) intact-degradomics processed workbooks, PMC supplements, "
+                "and inventories (14 assets, ~4.7 MB)"
+            ),
+            "path": str(intact_root()),
+            "exists": installed,
+            "status": "installed" if installed else "not installed",
+            "files": [item["name"] for item in files],
+            "terms": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11874349/",
+        }
+
+    native_manifest = json.loads(_NATIVE_ASSETS_PATH.read_text(encoding="utf-8"))
+    native_meta_assets = [
+        a
+        for a in native_manifest["assets"]
+        if a["role"] in {"original_metadata", "primary_publication"} and "#" not in a["source_url"]
+    ]
+
+    def native_root() -> Path:
+        return data_dir() / "pxd018722_sahu_2021_psmd2"
+
+    def _native_files() -> list[dict[str, Any]]:
+        root = native_root()
+        return [
+            {
+                "name": asset["filename"],
+                "path": root / asset["filename"],
+                "exists": (root / asset["filename"]).is_file(),
+                "expected_size_bytes": int(asset["size_bytes"]),
+            }
+            for asset in native_meta_assets
+        ]
+
+    def _native_info() -> dict[str, Any]:
+        files = _native_files()
+        installed = all(item["exists"] for item in files)
+        return {
+            "name": "pxd018722-sahu-2021-psmd2-metadata",
+            "type": "managed bundle",
+            "description": (
+                "Sahu 2021 (PXD018722, PMC8548400) Hi20S PSMD2-KD experimental design, mqpar.xml, "
+                "PRIDE inventories, and article XML (~327 KB)"
+            ),
+            "path": str(native_root()),
+            "exists": installed,
+            "status": "installed" if installed else "not installed",
+            "files": [item["name"] for item in files],
+            "terms": "https://www.ebi.ac.uk/pride/archive/projects/PXD018722",
+        }
+
+    return {
+        "pxd004886-ms-calibration": ManagedDataset(
+            name="pxd004886-ms-calibration",
+            kind="bundle",
+            description=(
+                "Collins 2017 (PXD004886) SWATH MS-response calibration workbooks and article XML "
+                "(8 CC-BY 4.0 assets, ~420 KB)"
+            ),
+            terms="https://www.nature.com/articles/s41467-017-00249-5",
+            path_fn=cal_root,
+            files_fn=_cal_files,
+            exists_fn=lambda: all(item["exists"] for item in _cal_files()),
+            fetch_fn=lambda force: fetch_pxd004886_calibration_sources(
+                dest_dir=cal_root(), force=force
+            ),
+            info_fn=_cal_info,
+            remove_fn=lambda delete_file: _remove_tree(cal_root(), delete_file=delete_file),
+            cache_kind="managed source",
+        ),
+        "maben-2021-erap1-source-data": ManagedDataset(
+            name="maben-2021-erap1-source-data",
+            kind="file",
+            description=(
+                "Maben 2021 (DOI 10.1038/s41467-021-25564-w) ERAP1 biochemical Source Data ZIP "
+                "(CC BY 4.0, 479 KB)"
+            ),
+            terms="https://www.nature.com/articles/s41467-021-25564-w",
+            path_fn=maben_path,
+            files_fn=_maben_files,
+            exists_fn=lambda: maben_path().is_file(),
+            fetch_fn=lambda force: fetch_maben_2021_erap1_source(
+                dest_dir=maben_root(), force=force
+            ),
+            info_fn=_maben_info,
+            remove_fn=lambda delete_file: _remove_tree(maben_root(), delete_file=delete_file),
+            cache_kind="managed source",
+        ),
+        "pxd058121-intact-degradomics": ManagedDataset(
+            name="pxd058121-intact-degradomics",
+            kind="bundle",
+            description=(
+                "PXD058121 (PMC11874349) intact-degradomics processed workbooks, PMC supplements, "
+                "and inventories (14 assets, ~4.7 MB)"
+            ),
+            terms="https://pmc.ncbi.nlm.nih.gov/articles/PMC11874349/",
+            path_fn=intact_root,
+            files_fn=_intact_files,
+            exists_fn=lambda: all(item["exists"] for item in _intact_files()),
+            fetch_fn=lambda force: fetch_pxd058121_intact_degradomics_sources(
+                dest_dir=intact_root(), force=force
+            ),
+            info_fn=_intact_info,
+            remove_fn=lambda delete_file: _remove_tree(intact_root(), delete_file=delete_file),
+            cache_kind="managed source",
+        ),
+        "pxd018722-sahu-2021-psmd2-metadata": ManagedDataset(
+            name="pxd018722-sahu-2021-psmd2-metadata",
+            kind="bundle",
+            description=(
+                "Sahu 2021 (PXD018722, PMC8548400) Hi20S PSMD2-KD experimental design, mqpar.xml, "
+                "PRIDE inventories, and article XML (~327 KB)"
+            ),
+            terms="https://www.ebi.ac.uk/pride/archive/projects/PXD018722",
+            path_fn=native_root,
+            files_fn=_native_files,
+            exists_fn=lambda: all(item["exists"] for item in _native_files()),
+            fetch_fn=lambda force: fetch_pxd018722_sahu_metadata_sources(
+                dest_dir=native_root(), include_fasta=False, force=force
+            ),
+            info_fn=_native_info,
+            remove_fn=lambda delete_file: _remove_tree(native_root(), delete_file=delete_file),
+            cache_kind="managed source",
+        ),
+    }
+
+
 def managed_datasets() -> dict[str, ManagedDataset]:
     """Return every catalog-managed external dataset and bundle."""
     entries: dict[str, ManagedDataset] = {}
@@ -1403,6 +1641,7 @@ def managed_datasets() -> dict[str, ManagedDataset]:
         _sarango_2022_datasets,
         _erap2_and_dilution_datasets,
         _bekker_and_goldberg_datasets,
+        _calibration_erap1_degradomics_datasets,
     ):
         entries.update(loader())
     return entries

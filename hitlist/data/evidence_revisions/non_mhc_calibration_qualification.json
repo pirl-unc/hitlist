@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "calibration_family": "non_mhc_known_load_ms_response_calibration",
+  "identifiability_rule": {
+    "statement": "With an approximately shared response factor k for matched isotope labels, I_light = k * amount_light and I_heavy = k * amount_heavy; their ratio cancels k. Ratio-only calibration curves cannot identify absolute cross-sequence detector response.",
+    "separate_isotope_channel_areas_required_for_absolute_response": true,
+    "ratio_only_curves_eligible_for_absolute_response": false,
+    "stock_concentration_is_on_column_injected_dose": false,
+    "swath_or_mrm_transfers_directly_to_mapp_or_mhc_elution": false
+  },
+  "candidates": {
+    "PXD004886": {
+      "study": "Collins et al., Nature Communications 2017 (DOI 10.1038/s41467-017-00249-5)",
+      "shipped_in_hitlist_version": "2.0.6",
+      "recipe_id": "ms_calibration_raw_s4_nominal_response_v1",
+      "asset_manifest": "ms_calibration_assets.json",
+      "n_panel_sequences": 30,
+      "n_data4_reporter_labels": 31,
+      "n_cross_table_reporter_labels": 32,
+      "n_form_eligible_observed_sequences": 22,
+      "n_raw_s4_slots": 3069,
+      "n_admitted_positive_observations": 1974,
+      "n_peptide_by_site_summaries": 224,
+      "remaining_limits": [
+        "Four _HUMAN labels in Data4 omit heavy-isotope suffix present in Data2 (excluded from nominal-form join).",
+        "CNNVLYIR CAM and PCm forms share one nominal sequence amount.",
+        "Data8 uses .sum4 aggregation suffix not aliased to Data4 SMD2.NNTQVLINC[CAM]R[+10].",
+        "Single-dose selected 22-peptide SWATH slice cannot identify general sequence response or transfer to MAPP/MHC."
+      ]
+    },
+    "PXD021013": {
+      "study": "ProteomeTools nontryptic MS1 (DOI 10.1038/s41467-021-23713-9)",
+      "shipped_in_hitlist_version": "2.0.26",
+      "n_intended_pool_map_rows": 305331,
+      "n_pools": 421,
+      "n_evaluated_disjoint_pools": 24,
+      "n_admitted_measured_responses": 12877,
+      "remaining_limits": [
+        "Each evaluated pool shares one C-terminal residue, so run-centering removes direct C-terminal effects.",
+        "Crude synthesis products with unresolved per-run 200 vs 500 fmol loading and unknown individual purity.",
+        "Planned-but-unobserved sequences have unknown failure cause (synthesis/handling/LC/MS), not pure detector negatives."
+      ]
+    },
+    "PASS01163_PASS01200": {
+      "study": "Michaud et al. 2018 (PMC6123701, DOI 10.1038/s42003-018-0087-6)",
+      "n_selected_mouse_plasma_mrm_standards": 500,
+      "n_audited_supplement_cells": 60825,
+      "stock_aaa_and_cze_purity_available": true,
+      "separate_isotope_channel_areas_in_supplements": false,
+      "absolute_response_admission_status": "failed_ratio_and_inferred_concentration_only_in_supplements"
+    },
+    "PASS05890": {
+      "study": "Sobsey et al. 2025 (PMC11812018)",
+      "n_title_assays": 53,
+      "n_table_s3_peptide_assay_links": 48,
+      "panel_count_reconciled": false,
+      "matrix_selectivity_performed": false,
+      "target_skyline_asset": "CPTAC_Exp1_Curves_CS.sky",
+      "target_skyline_size_approx": "7.8M",
+      "access_receipts": {
+        "panorama_cptac6077_status": "requires_sign_in",
+        "peptideatlas_ftps_status": "tls_certificate_expired_and_hostname_mismatch",
+        "certificate_validation_disabled": false,
+        "skyline_bytes_downloaded": 0
+      },
+      "absolute_response_admission_status": "blocked_pending_verified_https_or_restored_ftps_route"
+    }
+  }
+}
