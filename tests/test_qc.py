@@ -1844,20 +1844,34 @@ def test_engineering_drift_only_prescribes_a_remedy_the_loader_accepts():
     the third was prescribing ``none`` for ``condition_mhc_context``, the one
     engineering column ``NONE_PERMITTED_CONDITION_COLUMNS`` excludes — a
     curator following it would stop the package loading.  This asserts the
-    property over every finding in the packaged corpus rather than the one
-    column that happened to be wrong.
+    property across every engineering column using synthetic sibling studies
+    now that the packaged corpus itself carries zero drift debt (#593).
     """
-    from hitlist.conditions import NONE_PERMITTED_CONDITION_COLUMNS
+    from hitlist.conditions import ENGINEERING_CONDITION_COLUMNS, NONE_PERMITTED_CONDITION_COLUMNS
     from hitlist.qc import engineering_drift_audit
 
-    found = engineering_drift_audit()
-    assert not found.empty, "the corpus must exercise this"
+    assert engineering_drift_audit().empty, "packaged corpus drift debt was cleared in #593"
+    frames = []
+    for col in sorted(ENGINEERING_CONDITION_COLUMNS):
+        sample_val = (
+            "monoallelic"
+            if col == "condition_mhc_context"
+            else ("B2M" if "genes" in col else "unspecified")
+        )
+        frames.append(
+            engineering_drift_audit(
+                _eng_study({"condition_id": "a", col: sample_val}, {"condition_id": "b"})
+            )
+        )
+    found = pd.concat(frames, ignore_index=True)
+    assert set(found["column"]) == set(ENGINEERING_CONDITION_COLUMNS)
     offered_none = found[found["reason"].str.contains("or 'none' if")]
     bad = set(offered_none["column"]) - set(NONE_PERMITTED_CONDITION_COLUMNS)
     assert not bad, f"remedy prescribes 'none' where the loader rejects it: {sorted(bad)}"
     for column in set(found["column"]) - set(NONE_PERMITTED_CONDITION_COLUMNS):
         text = found[found["column"] == column].iloc[0]["reason"]
         assert f"'none' is NOT permitted in {column}" in text
+        assert "endogenous_mhc" in text
 
 
 def test_engineering_drift_baseline_entries_carry_a_severity():

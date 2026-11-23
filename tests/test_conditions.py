@@ -735,6 +735,35 @@ def test_mask_agrees_with_the_record_predicate():
 def test_engineered_mhc_contexts_are_declared_vocabulary():
     """A token outside the vocabulary could never match a curated arm."""
     assert set(ENGINEERED_MHC_CONTEXT_VALUES) <= set(CONDITION_MHC_CONTEXT_VALUES)
+    assert "endogenous_mhc" in CONDITION_MHC_CONTEXT_VALUES
+    assert "endogenous_mhc" not in ENGINEERED_MHC_CONTEXT_VALUES
+
+
+def test_endogenous_mhc_context_is_unengineered():
+    """``endogenous_mhc`` states absence of MHC engineering without demoting tiers (#593)."""
+    rec = {"condition_mhc_context": "endogenous_mhc", "condition_transduction": "none"}
+    assert is_engineered_material(rec) is False
+    frame = pd.DataFrame([rec, {"condition_mhc_context": "monoallelic"}])
+    assert engineered_material_mask(frame).tolist() == [False, True]
+
+    overrides = load_pmid_overrides()
+    for pmid, cid in [
+        (30778243, "c1r_class_ii_lcl_endogenous_dr_dq_dp"),
+        (34006841, "c1r_class_ii_lcl_endogenous_dr_dq_dp"),
+        (34428180, "skin_grafts_7_days_post_transplant"),
+    ]:
+        arm = next(s for s in overrides[pmid]["ms_samples"] if s["condition_id"] == cid)
+        assert arm["condition_mhc_context"] == "endogenous_mhc"
+        assert is_engineered_material(arm) is False
+
+    saos_ctrl = next(
+        s
+        for s in overrides[36010968]["ms_samples"]
+        if s["condition_id"] == "saos_2_osteosarcoma_tp53_null_vector_control"
+    )
+    assert saos_ctrl["condition_transfection"] == "empty_vector"
+    assert saos_ctrl["condition_genetic_variants"] == "none"
+    assert is_engineered_material(saos_ctrl) is True
 
 
 #: Condition columns the sibling guard deliberately gives no role: they
