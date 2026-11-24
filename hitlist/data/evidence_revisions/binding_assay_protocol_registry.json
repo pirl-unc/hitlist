@@ -1,0 +1,468 @@
+{
+  "schema_version": 1,
+  "revision": "binding_assay_protocol_registry_v1",
+  "issues": [
+    "pirl-unc/hitlist#721",
+    "pirl-unc/hitlist#785"
+  ],
+  "policy": {
+    "project_study_conditions_onto_rows": false,
+    "convert_ic50_to_kd_without_evidenced_derivation": false,
+    "relabel_exact_values_to_censored": false
+  },
+  "protocols": [
+    {
+      "protocol_id": "iedb:pmid:28481943:binding_protocol:sec003:v1",
+      "source": {
+        "pmid": 28481943,
+        "pmcid": "PMC5421785",
+        "doi": "10.1371/journal.pone.0177140",
+        "article_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0177140",
+        "source_xml_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC5421785/fullTextXML",
+        "source_xml_sha256": "948816f8584a2779082048ad161bf12d8c8f0ebae2c2a70315d9d22efcaf65aa",
+        "license": "CC BY 4.0",
+        "section_id": "sec003",
+        "section_title": "MHC purification and peptide binding studies"
+      },
+      "scope": {
+        "allowed_methods": [
+          "purified MHC/competitive/radioactivity"
+        ],
+        "allowed_endpoint_families": [
+          "literal_ic50"
+        ],
+        "allowed_mhc_classes": [
+          "II"
+        ],
+        "allowed_alleles": []
+      },
+      "upper_measurement_limit_nm": null,
+      "upper_measurement_limit_source_excerpt": null,
+      "field_availability": {
+        "assay_format_status": "study_scope_only",
+        "temperature_status": "unresolved",
+        "ph_status": "unreported",
+        "tracer_status": "unreported",
+        "competitor_status": "study_scope_only",
+        "incubation_status": "study_scope_only",
+        "range_status": "unresolved",
+        "replicate_status": "unreported",
+        "uncertainty_status": "unreported"
+      },
+      "claims": [
+        {
+          "predicate": "assay_format",
+          "value": "purified HLA class II MHC competitive radioligand binding",
+          "unit": null,
+          "status": "reported_study_scope",
+          "applicability": "all_study_binding_assays",
+          "source_excerpt": "assays based on the inhibition of binding of a high affinity radiolabeled peptide"
+        },
+        {
+          "predicate": "incubation_temperature_alternatives",
+          "value": "room temperature or 37°C",
+          "unit": "°C",
+          "status": "reported_alternatives_per_assay_unresolved",
+          "applicability": "all_study_binding_assays",
+          "source_excerpt": "at room temperature or 37°C"
+        },
+        {
+          "predicate": "incubation_duration",
+          "value": "2",
+          "unit": "days",
+          "status": "reported_study_scope",
+          "applicability": "all_study_binding_assays",
+          "source_excerpt": "Following a two-day incubation"
+        },
+        {
+          "predicate": "tracer_concentration_range",
+          "value": "0.1–1",
+          "unit": "nM",
+          "status": "reported_range_per_assay_unresolved",
+          "applicability": "all_study_binding_assays",
+          "source_excerpt": "radiolabeled peptide (0.1–1 nM)"
+        },
+        {
+          "predicate": "competitor_concentration_span",
+          "value": "100000",
+          "unit": "fold",
+          "status": "reported_study_scope",
+          "applicability": "all_study_binding_assays",
+          "source_excerpt": "covering a 100,000-fold range"
+        },
+        {
+          "predicate": "min_n_independent_experiments",
+          "value": "3",
+          "unit": "experiments",
+          "status": "reported_study_scope",
+          "applicability": "all_study_binding_assays",
+          "source_excerpt": "in three or more independent experiments"
+        }
+      ]
+    },
+    {
+      "protocol_id": "iedb:pmid:24130917:binding_protocol:s2n_radioligand:v1",
+      "source": {
+        "pmid": 24130917,
+        "pmcid": "PMC3794980",
+        "doi": "10.1371/journal.pntd.0002497",
+        "article_url": "https://journals.plos.org/plosntds/article?id=10.1371/journal.pntd.0002497",
+        "source_xml_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC3794980/fullTextXML",
+        "source_xml_sha256": "0e40d7f507386e3dd9b72df0ad7eebd4caed945edaf5d4c8ad468c31135c2b3a",
+        "license": "CC BY 4.0",
+        "section_id": "s2n",
+        "section_title": "HLA purification and binding assays"
+      },
+      "scope": {
+        "allowed_methods": [
+          "purified MHC/competitive/radioactivity"
+        ],
+        "allowed_endpoint_families": [
+          "literal_ic50",
+          "kd_ic50"
+        ],
+        "allowed_mhc_classes": [
+          "I",
+          "II"
+        ],
+        "allowed_alleles": []
+      },
+      "upper_measurement_limit_nm": null,
+      "upper_measurement_limit_source_excerpt": null,
+      "field_availability": {
+        "assay_format_status": "study_scope_only",
+        "temperature_status": "unresolved",
+        "ph_status": "unreported",
+        "tracer_status": "unreported",
+        "competitor_status": "study_scope_only",
+        "incubation_status": "study_scope_only",
+        "range_status": "unresolved",
+        "replicate_status": "unreported",
+        "uncertainty_status": "unreported"
+      },
+      "claims": [
+        {
+          "predicate": "assay_format",
+          "value": "purified HLA class I (A*24:02, B*07:02) and class II (14 DR alleles) competitive radioligand binding",
+          "unit": null,
+          "status": "reported_study_scope",
+          "applicability": "radioligand_competition_panel",
+          "source_excerpt": "quantification of peptide binding based on competitive inhibition assay against binding of a high affinity radiolabeled standard peptide"
+        },
+        {
+          "predicate": "incubation_temperature_alternatives",
+          "value": "room temperature or 37°C",
+          "unit": "°C",
+          "status": "reported_alternatives_per_assay_unresolved",
+          "applicability": "radioligand_competition_panel",
+          "source_excerpt": "A high affinity radiolabeled peptide (0.1–1 nM) was co-incubated at room temperature or 37C with purified HLA"
+        },
+        {
+          "predicate": "incubation_duration",
+          "value": "2",
+          "unit": "days",
+          "status": "reported_study_scope",
+          "applicability": "radioligand_competition_panel",
+          "source_excerpt": "Following a two-day incubation, HLA bound radioactivity was determined"
+        },
+        {
+          "predicate": "competitor_concentration_span",
+          "value": "100000",
+          "unit": "fold",
+          "status": "reported_study_scope",
+          "applicability": "radioligand_competition_panel",
+          "source_excerpt": "Each competitor peptide was tested at six different concentrations covering a 100,000-fold range, and in three or more independent experiments."
+        }
+      ]
+    },
+    {
+      "protocol_id": "iedb:pmid:24130917:binding_protocol:s2o_hla_a2_ig_fp:v1",
+      "source": {
+        "pmid": 24130917,
+        "pmcid": "PMC3794980",
+        "doi": "10.1371/journal.pntd.0002497",
+        "article_url": "https://journals.plos.org/plosntds/article?id=10.1371/journal.pntd.0002497",
+        "source_xml_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC3794980/fullTextXML",
+        "source_xml_sha256": "0e40d7f507386e3dd9b72df0ad7eebd4caed945edaf5d4c8ad468c31135c2b3a",
+        "license": "CC BY 4.0",
+        "section_id": "s2o",
+        "section_title": "Dengue competitive binding assay using HLA-A2:Ig fusion protein"
+      },
+      "scope": {
+        "allowed_methods": [
+          "purified MHC/competitive/fluorescence"
+        ],
+        "allowed_endpoint_families": [
+          "literal_ic50",
+          "kd_ic50"
+        ],
+        "allowed_mhc_classes": [
+          "I"
+        ],
+        "allowed_alleles": [
+          "HLA-A*02:01"
+        ]
+      },
+      "upper_measurement_limit_nm": null,
+      "upper_measurement_limit_source_excerpt": null,
+      "field_availability": {
+        "assay_format_status": "study_scope_only",
+        "temperature_status": "study_scope_only",
+        "ph_status": "unreported",
+        "tracer_status": "study_scope_only",
+        "competitor_status": "unreported",
+        "incubation_status": "study_scope_only",
+        "range_status": "unreported",
+        "replicate_status": "unreported",
+        "uncertainty_status": "unreported"
+      },
+      "claims": [
+        {
+          "predicate": "assay_format",
+          "value": "soluble HLA-A2:Ig dimer fusion protein competitive fluorescence polarization (ex 485 nm / em 530 nm)",
+          "unit": null,
+          "status": "reported_study_scope",
+          "applicability": "HLA-A*02:01",
+          "source_excerpt": "Binding assay for HLA-A*0201 was performed using HLA-A2:Ig fusion protein."
+        },
+        {
+          "predicate": "tracer_identity",
+          "value": "ALMDKVLKV (fluorescein at P8)",
+          "unit": null,
+          "status": "reported_study_scope",
+          "applicability": "HLA-A*02:01",
+          "source_excerpt": "A fluorescein moiety was introduced into position P8 of the designed peptide (ALMDKVLKV)."
+        },
+        {
+          "predicate": "incubation_temperature",
+          "value": "room temperature",
+          "unit": "°C",
+          "status": "reported_study_scope",
+          "applicability": "HLA-A*02:01",
+          "source_excerpt": "The competitive binding assays were carried out at room temperature for an incubation period of 3 days."
+        },
+        {
+          "predicate": "incubation_duration",
+          "value": "3",
+          "unit": "days",
+          "status": "reported_study_scope",
+          "applicability": "HLA-A*02:01",
+          "source_excerpt": "The competitive binding assays were carried out at room temperature for an incubation period of 3 days."
+        }
+      ]
+    },
+    {
+      "protocol_id": "iedb:pmid:30828331:binding_protocol:class_ii_delfia_trf:v1",
+      "source": {
+        "pmid": 30828331,
+        "pmcid": "PMC6384241",
+        "doi": "10.3389/fimmu.2019.00207",
+        "article_url": "https://www.frontiersin.org/articles/10.3389/fimmu.2019.00207/full",
+        "source_xml_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC6384241/fullTextXML",
+        "source_xml_sha256": "f02b7a681bf8180855c049453a1cb96972e52be4a64de6f0d822d679d5f89705",
+        "license": "CC BY 4.0",
+        "section_id": "HLA Class II Binding Assay",
+        "section_title": "HLA Class II Binding Assay"
+      },
+      "scope": {
+        "allowed_methods": [
+          "purified MHC/competitive/fluorescence"
+        ],
+        "allowed_endpoint_families": [
+          "literal_ic50",
+          "kd_ic50"
+        ],
+        "allowed_mhc_classes": [
+          "II"
+        ],
+        "allowed_alleles": []
+      },
+      "upper_measurement_limit_nm": 100000.0,
+      "upper_measurement_limit_source_excerpt": "Epitopes with IC50 values too high to accurately measure under binding conditions tested (>100 μM) or with no dose-dependent responses were considered non-binders.",
+      "field_availability": {
+        "assay_format_status": "study_scope_only",
+        "temperature_status": "study_scope_only",
+        "ph_status": "unreported",
+        "tracer_status": "study_scope_only",
+        "competitor_status": "study_scope_only",
+        "incubation_status": "study_scope_only",
+        "range_status": "study_scope_only",
+        "replicate_status": "study_scope_only",
+        "uncertainty_status": "unreported"
+      },
+      "claims": [
+        {
+          "predicate": "assay_format",
+          "value": "50 nM soluble HLA class II competition assay captured with L243 and detected by DELFIA Europium-streptavidin TRF",
+          "unit": null,
+          "status": "reported_study_scope",
+          "applicability": "HLA-DR",
+          "source_excerpt": "competed for binding to 50 nM soluble class II molecules (Benaroya Institute, Seattle, WA) against a biotinylated standard peptide at a fixed concentration (25 nM) at 37°C for 24 h to reach equilibrium."
+        },
+        {
+          "predicate": "incubation_temperature",
+          "value": "37",
+          "unit": "°C",
+          "status": "reported_study_scope",
+          "applicability": "HLA-DR",
+          "source_excerpt": "at 37°C for 24 h to reach equilibrium."
+        },
+        {
+          "predicate": "incubation_duration",
+          "value": "24",
+          "unit": "hours",
+          "status": "reported_study_scope",
+          "applicability": "HLA-DR",
+          "source_excerpt": "at 37°C for 24 h to reach equilibrium."
+        },
+        {
+          "predicate": "tracer_concentration",
+          "value": "25",
+          "unit": "nM",
+          "status": "reported_study_scope",
+          "applicability": "HLA-DR",
+          "source_excerpt": "against a biotinylated standard peptide at a fixed concentration (25 nM)"
+        },
+        {
+          "predicate": "competitor_concentration_span",
+          "value": "1000",
+          "unit": "fold",
+          "status": "reported_study_scope",
+          "applicability": "HLA-DR",
+          "source_excerpt": "non-biotinylated test peptides over a three-log concentration range"
+        },
+        {
+          "predicate": "replicate_count",
+          "value": "3",
+          "unit": "replicates",
+          "status": "reported_study_scope",
+          "applicability": "HLA-DR",
+          "source_excerpt": "All assays were performed in triplicate."
+        },
+        {
+          "predicate": "upper_measurement_limit",
+          "value": "100000",
+          "unit": "nM",
+          "status": "reported_study_scope",
+          "applicability": "HLA-DR",
+          "source_excerpt": "Epitopes with IC50 values too high to accurately measure under binding conditions tested (>100 μM) or with no dose-dependent responses were considered non-binders."
+        }
+      ]
+    },
+    {
+      "protocol_id": "iedb:pmid:30828331:binding_protocol:class_i_fp:v1",
+      "source": {
+        "pmid": 30828331,
+        "pmcid": "PMC6384241",
+        "doi": "10.3389/fimmu.2019.00207",
+        "article_url": "https://www.frontiersin.org/articles/10.3389/fimmu.2019.00207/full",
+        "source_xml_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC6384241/fullTextXML",
+        "source_xml_sha256": "f02b7a681bf8180855c049453a1cb96972e52be4a64de6f0d822d679d5f89705",
+        "license": "CC BY 4.0",
+        "section_id": "HLA Class I Binding Assay",
+        "section_title": "HLA Class I Binding Assay"
+      },
+      "scope": {
+        "allowed_methods": [
+          "purified MHC/competitive/fluorescence"
+        ],
+        "allowed_endpoint_families": [
+          "literal_ic50",
+          "kd_ic50"
+        ],
+        "allowed_mhc_classes": [
+          "I"
+        ],
+        "allowed_alleles": []
+      },
+      "upper_measurement_limit_nm": 1000000.0,
+      "upper_measurement_limit_source_excerpt": "Binding strength was classified according to IC50 value: high (<5 μM), moderate (5–50 μM), low (50–1,000 μM) or no affinity (>1,000 μM or no dose-dependent response).",
+      "field_availability": {
+        "assay_format_status": "study_scope_only",
+        "temperature_status": "unreported",
+        "ph_status": "unreported",
+        "tracer_status": "unreported",
+        "competitor_status": "study_scope_only",
+        "incubation_status": "unreported",
+        "range_status": "study_scope_only",
+        "replicate_status": "unreported",
+        "uncertainty_status": "unreported"
+      },
+      "claims": [
+        {
+          "predicate": "assay_format",
+          "value": "soluble HLA class I competitive fluorescence polarization (Buchli et al.)",
+          "unit": null,
+          "status": "reported_study_scope",
+          "applicability": "HLA-I",
+          "source_excerpt": "A competition-based assay based on fluorescence polarization, where reference fluorescent-labeled peptide is incubated with soluble HLA with or without competitor test peptides, was performed according to Buchli et al. (46)."
+        },
+        {
+          "predicate": "competitor_concentration_span",
+          "value": "1000",
+          "unit": "fold",
+          "status": "reported_study_scope",
+          "applicability": "HLA-I",
+          "source_excerpt": "Peptide binding over a three-log concentration range was assessed for the A*0101, A*0201, A*0301, A*2402, B*0702, and B*4402 alleles."
+        },
+        {
+          "predicate": "upper_measurement_limit",
+          "value": "1000000",
+          "unit": "nM",
+          "status": "reported_study_scope",
+          "applicability": "HLA-I",
+          "source_excerpt": "Binding strength was classified according to IC50 value: high (<5 μM), moderate (5–50 μM), low (50–1,000 μM) or no affinity (>1,000 μM or no dose-dependent response)."
+        }
+      ]
+    },
+    {
+      "protocol_id": "iedb:pmid:33521695:binding_protocol:sec4_4_2_2_radioligand:v1",
+      "source": {
+        "pmid": 33521695,
+        "pmcid": "PMC7837622",
+        "doi": "10.1016/j.xcrm.2021.100204",
+        "article_url": "https://www.cell.com/cell-reports-medicine/fulltext/S2666-3791(21)00015-X",
+        "source_xml_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC7837622/fullTextXML",
+        "source_xml_sha256": "6f2fa5c649df0894aa5969213d33d1befc585d0e6a82cd2110577a1fe510ccb9",
+        "license": "CC BY-NC-ND 4.0",
+        "section_id": "sec4.4.2.2",
+        "section_title": "HLA binding assays"
+      },
+      "scope": {
+        "allowed_methods": [
+          "purified MHC/competitive/radioactivity"
+        ],
+        "allowed_endpoint_families": [
+          "literal_ic50"
+        ],
+        "allowed_mhc_classes": [
+          "II"
+        ],
+        "allowed_alleles": []
+      },
+      "upper_measurement_limit_nm": null,
+      "upper_measurement_limit_source_excerpt": null,
+      "field_availability": {
+        "assay_format_status": "study_scope_only",
+        "temperature_status": "unreported",
+        "ph_status": "unreported",
+        "tracer_status": "unreported",
+        "competitor_status": "study_scope_only",
+        "incubation_status": "unreported",
+        "range_status": "unreported",
+        "replicate_status": "unreported",
+        "uncertainty_status": "unreported"
+      },
+      "claims": [
+        {
+          "predicate": "assay_format",
+          "value": "purified HLA class II classical radiolabeled peptide competition assay (Sidney 2013 / Voic 2020)",
+          "unit": null,
+          "status": "reported_study_scope",
+          "applicability": "HLA-DR",
+          "source_excerpt": "the binding is quantified by each peptide’s capacity to inhibit the binding of a radiolabeled peptide probe to purified MHC in classical competition assays."
+        }
+      ]
+    }
+  ]
+}

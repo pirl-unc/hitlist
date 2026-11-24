@@ -517,6 +517,13 @@ def qualify_binding_measurements(df: pd.DataFrame) -> pd.DataFrame:
         from .binding_assay_context import review_binding_assay_methods
 
         result = review_binding_assay_methods(result)
+    if "censor_review_status" not in result.columns and any(
+        col in result.columns
+        for col in ("measurement_value", "quantitative_value", "measurement_inequality")
+    ):
+        from .binding_assay_context import review_binding_censoring
+
+        result = review_binding_censoring(result)
     return result
 
 
@@ -554,12 +561,16 @@ def _prepare_quantitative_binding_task(
     )
     allowed_endpoint_set = set(allowed_endpoints)
 
-    from .binding_assay_context import METHOD_REVIEW_COLUMNS
+    from .binding_assay_context import CENSOR_REVIEW_COLUMNS, METHOD_REVIEW_COLUMNS
     from .netmhcstabpan import NETMHCSTABPAN_PROVENANCE_COLUMNS
 
     optional_source_cols = [
         c
-        for c in (*METHOD_REVIEW_COLUMNS, *NETMHCSTABPAN_PROVENANCE_COLUMNS)
+        for c in (
+            *METHOD_REVIEW_COLUMNS,
+            *CENSOR_REVIEW_COLUMNS,
+            *NETMHCSTABPAN_PROVENANCE_COLUMNS,
+        )
         if c in qualified.columns
     ]
     accepted_columns = [

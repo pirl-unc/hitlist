@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import tempfile
@@ -10,6 +11,7 @@ from collections import Counter
 from importlib.resources import files
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.dataset as ds
@@ -644,4 +646,344 @@ def summarize_binding_method_reviews(df: pd.DataFrame) -> dict:
                 ).items()
             )
         ),
+    }
+
+
+PROTOCOL_REGISTRY_REVISION = "binding_assay_protocol_registry_v1"
+PROTOCOL_REGISTRY_LEDGER_SOURCE = files("hitlist").joinpath(
+    "data/evidence_revisions/binding_assay_protocol_registry.json"
+)
+CONTEXT_AVAILABILITY_FIELDS: tuple[str, ...] = (
+    "assay_format_status",
+    "temperature_status",
+    "ph_status",
+    "tracer_status",
+    "competitor_status",
+    "incubation_status",
+    "range_status",
+    "replicate_status",
+    "uncertainty_status",
+)
+VALID_AVAILABILITY_STATUSES: frozenset[str] = frozenset(
+    {
+        "study_scope_only",
+        "unresolved",
+        "unreported",
+        "explicit_absence",
+        "not_applicable",
+        "conflicting",
+        "unreviewed",
+    }
+)
+
+
+def binding_protocol_registry_contract(path=PROTOCOL_REGISTRY_LEDGER_SOURCE) -> dict:
+    """Load and validate the multi-study source-reviewed binding protocol registry (#721, #785)."""
+    contract = json.loads(Path(path).read_text(encoding="utf-8"))
+    if (
+        contract.get("schema_version") != 1
+        or contract.get("revision") != PROTOCOL_REGISTRY_REVISION
+    ):
+        raise ValueError("Unsupported binding assay protocol registry revision")
+    policy = contract.get("policy") or {}
+    if (
+        policy.get("project_study_conditions_onto_rows") is not False
+        or policy.get("convert_ic50_to_kd_without_evidenced_derivation") is not False
+        or policy.get("relabel_exact_values_to_censored") is not False
+    ):
+        raise ValueError("Binding protocol registry policy invariant violated")
+
+    protocols = contract.get("protocols")
+    if not isinstance(protocols, list) or not protocols:
+        raise ValueError("Binding protocol registry missing protocols")
+
+    seen_ids: set[str] = set()
+    for proto in protocols:
+        pid = proto.get("protocol_id")
+        if not pid or pid in seen_ids:
+            raise ValueError(f"Duplicate or missing protocol_id: {pid!r}")
+        seen_ids.add(pid)
+        src = proto.get("source") or {}
+        if not isinstance(src.get("pmid"), int) or not src.get("source_xml_sha256"):
+            raise ValueError(f"Protocol {pid!r} missing verified source pmid/sha256")
+        avail = proto.get("field_availability") or {}
+        if set(avail) != set(CONTEXT_AVAILABILITY_FIELDS):
+            raise ValueError(f"Protocol {pid!r} field_availability keys mismatch")
+        for field_name, val in avail.items():
+            if val not in VALID_AVAILABILITY_STATUSES:
+                raise ValueError(f"Invalid availability status {val!r} for {pid!r}.{field_name}")
+        claims = proto.get("claims")
+        if not isinstance(claims, list) or not claims:
+            raise ValueError(f"Protocol {pid!r} missing source-linked claims")
+    return contract
+
+
+CENSOR_REVIEW_REVISION = "binding_censor_review_v1"
+CENSOR_REVIEW_STATUSES: frozenset[str] = frozenset(
+    {
+        "explicit_right_censored",
+        "explicit_left_censored",
+        "explicit_exact_unflagged",
+        "blank_inequality_unreviewed",
+        "suspected_upper_limit_heap_same_value_bound",
+        "suspected_upper_limit_heap_negative_max",
+        "non_quantitative",
+    }
+)
+LIMIT_APPLICABILITY_STATUSES: frozenset[str] = frozenset(
+    {
+        "not_applicable",
+        "explicit_reported_bound",
+        "suspected_limit_unconfirmed",
+        "source_confirmed_study_limit",
+        "suspected_limit_matching_study_ceiling",
+    }
+)
+CENSOR_REVIEW_COLUMNS: tuple[str, ...] = (
+    "censor_review_status",
+    "censor_heap_cell_id",
+    "censor_heap_n_rows",
+    "censor_heap_negative_fraction",
+    "limit_applicability_status",
+)
+
+
+def _pick_series(df: pd.DataFrame, candidates: tuple[str, ...], default: str = "") -> pd.Series:
+    for col in candidates:
+        if col in df.columns:
+            return df[col].astype("string").fillna(default).str.strip()
+    return pd.Series(default, index=df.index, dtype="string")
+
+
+def _pick_numeric_series(df: pd.DataFrame, candidates: tuple[str, ...]) -> pd.Series:
+    for col in candidates:
+        if col in df.columns:
+            return pd.to_numeric(df[col], errors="coerce").astype("float64")
+    return pd.Series(np.nan, index=df.index, dtype="float64")
+
+
+def _build_study_key_series(df: pd.DataFrame) -> pd.Series:
+    refs = _pick_series(df, ("reference_iri",))
+    subs = _pick_series(df, ("submission_id",))
+    pmids = _pick_series(df, ("pmid", "source_pmid"))
+    sources = _pick_series(df, ("source", "source_dataset", "measurement_source"))
+    key = refs.copy()
+    blank = key.eq("")
+    if blank.any():
+        has_pmid = blank & pmids.ne("") & ~pmids.str.casefold().isin({"nan", "none", "<na>"})
+        key.loc[has_pmid] = "pmid:" + pmids.loc[has_pmid]
+    blank = key.eq("")
+    if blank.any():
+        has_sub = blank & subs.ne("")
+        key.loc[has_sub] = "submission:" + subs.loc[has_sub]
+    blank = key.eq("")
+    if blank.any():
+        key.loc[blank] = "source:" + sources.loc[blank].replace("", "unknown")
+    return key
+
+
+def _cell_digest(parts: tuple[str, ...]) -> str:
+    joined = "|".join(parts).encode("utf-8")
+    return "heap:" + hashlib.sha256(joined).hexdigest()[:16]
+
+
+def review_binding_censoring(
+    df: pd.DataFrame,
+    *,
+    min_heap_size: int = 3,
+    min_negative_fraction: float = 0.5,
+    protocol_registry: dict | None = None,
+) -> pd.DataFrame:
+    """Attach censoring and suspected-upper-limit heap review state without altering raw values.
+
+    Implements the non-destructive censoring review requested in #721 across
+    both binding affinity and stability assay frames (accepting either raw
+    ``quantitative_value``/``measurement_units``/``measurement_inequality`` or
+    canonical ``measurement_value``/``measurement_unit``/``raw_measurement_inequality``
+    columns symmetrically).
+
+    Invariants:
+    - Never converts exact (``=``) or blank-inequality rows into right-censored
+      bounds (``>`` / ``>=``).
+    - Separates blank raw inequalities (``blank_inequality_unreviewed``) from
+      explicit exact equalities (``explicit_exact_unflagged``).
+    - Screens within-``(study, mhc, method, endpoint, unit)`` cells for
+      suspected upper-limit heaps where exact/blank rows either share a value
+      with an explicit right bound (``suspected_upper_limit_heap_same_value_bound``)
+      or sit at the cell's maximum value with ``n_rows >= min_heap_size`` and
+      qualitative negative fraction ``>= min_negative_fraction``
+      (``suspected_upper_limit_heap_negative_max``).
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("df must be a pandas DataFrame")
+    if min_heap_size < 2:
+        raise ValueError("min_heap_size must be >= 2")
+    if not (0.0 <= min_negative_fraction <= 1.0):
+        raise ValueError("min_negative_fraction must be in [0.0, 1.0]")
+
+    registry = (
+        binding_protocol_registry_contract() if protocol_registry is None else protocol_registry
+    )
+    result = df.copy()
+    if len(result) == 0:
+        result["censor_review_status"] = pd.Series(dtype="string")
+        result["censor_heap_cell_id"] = pd.Series(dtype="string")
+        result["censor_heap_n_rows"] = pd.Series(dtype="Int64")
+        result["censor_heap_negative_fraction"] = pd.Series(dtype="float64")
+        result["limit_applicability_status"] = pd.Series(dtype="string")
+        return result
+
+    raw_ineq = _pick_series(result, ("raw_measurement_inequality", "measurement_inequality"))
+    vals = _pick_numeric_series(result, ("measurement_value", "quantitative_value"))
+    units = _pick_series(result, ("measurement_unit", "measurement_units"))
+    mhcs = _pick_series(result, ("mhc_restriction", "reported_mhc_restriction", "allele"))
+    methods = _pick_series(result, ("assay_method",))
+    endpoints = _pick_series(result, ("response_measured", "endpoint_reported", "measurement_kind"))
+    quals = _pick_series(result, ("qualitative_measurement", "qualitative_result")).str.casefold()
+    pmids = _pick_series(result, ("pmid", "source_pmid"))
+    mhc_classes = _pick_series(result, ("mhc_class",))
+    study_keys = _build_study_key_series(result)
+
+    finite_mask = np.isfinite(vals.to_numpy(dtype="float64", na_value=np.nan))
+    finite = pd.Series(finite_mask, index=result.index, dtype=bool)
+    right_mask = finite & raw_ineq.isin({">", ">="})
+    left_mask = finite & raw_ineq.isin({"<", "<="})
+    explicit_eq_mask = finite & raw_ineq.eq("=")
+    blank_mask = finite & raw_ineq.eq("")
+    exact_or_blank = explicit_eq_mask | blank_mask
+    is_neg = quals.eq("negative")
+
+    status = pd.Series("non_quantitative", index=result.index, dtype="string")
+    status.loc[right_mask] = "explicit_right_censored"
+    status.loc[left_mask] = "explicit_left_censored"
+    status.loc[explicit_eq_mask] = "explicit_exact_unflagged"
+    status.loc[blank_mask] = "blank_inequality_unreviewed"
+
+    heap_cell_id = pd.Series("", index=result.index, dtype="string")
+    heap_n_rows = pd.Series(0, index=result.index, dtype="Int64")
+    heap_neg_frac = pd.Series(np.nan, index=result.index, dtype="float64")
+    limit_status = pd.Series("not_applicable", index=result.index, dtype="string")
+    limit_status.loc[right_mask | left_mask] = "explicit_reported_bound"
+
+    # Build study-level documented upper ceilings (nM) from source-reviewed protocols.
+    study_ceilings: dict[tuple[str, str], float] = {}
+    for proto in registry.get("protocols", []):
+        ceiling = proto.get("upper_measurement_limit_nm")
+        if ceiling is None:
+            continue
+        pmid_str = str(proto["source"]["pmid"])
+        classes = proto.get("scope", {}).get("allowed_mhc_classes") or [""]
+        for cls_tok in classes:
+            study_ceilings[(pmid_str, str(cls_tok))] = float(ceiling)
+
+    if exact_or_blank.any():
+        work = pd.DataFrame(
+            {
+                "_study": study_keys,
+                "_mhc": mhcs,
+                "_method": methods,
+                "_endpoint": endpoints,
+                "_unit": units,
+                "_val": vals,
+                "_exact_or_blank": exact_or_blank,
+                "_right": right_mask,
+                "_neg": is_neg,
+            },
+            index=result.index,
+        )
+        fin = work[finite]
+        cell_cols = ["_study", "_mhc", "_method", "_endpoint", "_unit"]
+        val_cols = [*cell_cols, "_val"]
+
+        cell_max = fin.groupby(cell_cols, sort=False, observed=True)["_val"].transform("max")
+        has_right_same_val = fin.groupby(val_cols, sort=False, observed=True)["_right"].transform(
+            "any"
+        )
+        eb = fin[fin["_exact_or_blank"]]
+        if not eb.empty:
+            eb_grp = eb.groupby(val_cols, sort=False, observed=True)
+            eb_count = eb_grp["_val"].transform("size")
+            eb_neg_frac = eb_grp["_neg"].transform("mean")
+            same_val_mask = has_right_same_val.loc[eb.index]
+            neg_max_mask = (
+                ~same_val_mask
+                & eb["_val"].eq(cell_max.loc[eb.index])
+                & eb_count.ge(min_heap_size)
+                & eb_neg_frac.ge(min_negative_fraction)
+            )
+            flagged_mask = same_val_mask | neg_max_mask
+            if flagged_mask.any():
+                flagged_idx = eb.index[flagged_mask]
+                same_idx = eb.index[same_val_mask]
+                neg_idx = eb.index[neg_max_mask]
+                if len(same_idx):
+                    status.loc[same_idx] = "suspected_upper_limit_heap_same_value_bound"
+                if len(neg_idx):
+                    status.loc[neg_idx] = "suspected_upper_limit_heap_negative_max"
+                cell_tuples = eb.loc[flagged_idx, cell_cols].itertuples(index=False, name=None)
+                unique_digests: dict[tuple[str, ...], str] = {}
+                digests = []
+                for tup in cell_tuples:
+                    str_tup = tuple(str(part) for part in tup)
+                    digest = unique_digests.get(str_tup)
+                    if digest is None:
+                        digest = _cell_digest(str_tup)
+                        unique_digests[str_tup] = digest
+                    digests.append(digest)
+                heap_cell_id.loc[flagged_idx] = pd.Series(
+                    digests, index=flagged_idx, dtype="string"
+                )
+                heap_n_rows.loc[flagged_idx] = eb_count.loc[flagged_idx].astype("Int64")
+                heap_neg_frac.loc[flagged_idx] = eb_neg_frac.loc[flagged_idx].astype("float64")
+                limit_status.loc[flagged_idx] = "suspected_limit_unconfirmed"
+
+    # Annotate source-confirmed study ceilings where unit is nM (without mutating inequalities).
+    if study_ceilings:
+        is_nm = units.str.casefold().eq("nm")
+        for (pmid_str, cls_tok), ceiling_nm in study_ceilings.items():
+            in_study = finite & is_nm & pmids.eq(pmid_str)
+            if cls_tok:
+                in_study = in_study & mhc_classes.eq(cls_tok)
+            if not in_study.any():
+                continue
+            confirmed_right = in_study & right_mask & vals.ge(ceiling_nm)
+            if confirmed_right.any():
+                limit_status.loc[confirmed_right] = "source_confirmed_study_limit"
+            exact_at_ceiling = in_study & exact_or_blank & vals.ge(ceiling_nm)
+            if exact_at_ceiling.any():
+                limit_status.loc[exact_at_ceiling] = "suspected_limit_matching_study_ceiling"
+
+    result["censor_review_status"] = status
+    result["censor_heap_cell_id"] = heap_cell_id
+    result["censor_heap_n_rows"] = heap_n_rows
+    result["censor_heap_negative_fraction"] = heap_neg_frac
+    result["limit_applicability_status"] = limit_status
+    return result
+
+
+def summarize_binding_censoring_reviews(df: pd.DataFrame) -> dict:
+    """Summarize censoring and suspected-limit heap review counts across a binding/stability frame."""
+    reviewed = df if "censor_review_status" in df.columns else review_binding_censoring(df)
+    statuses = reviewed["censor_review_status"].astype("string")
+    limits = reviewed["limit_applicability_status"].astype("string")
+    suspected_mask = statuses.isin(
+        {
+            "suspected_upper_limit_heap_same_value_bound",
+            "suspected_upper_limit_heap_negative_max",
+        }
+    )
+    cells = {
+        val for val in reviewed.loc[suspected_mask, "censor_heap_cell_id"].astype("string") if val
+    }
+    return {
+        "review_revision": CENSOR_REVIEW_REVISION,
+        "n_rows": len(reviewed),
+        "n_explicit_right_censored_rows": int(statuses.eq("explicit_right_censored").sum()),
+        "n_explicit_left_censored_rows": int(statuses.eq("explicit_left_censored").sum()),
+        "n_explicit_exact_unflagged_rows": int(statuses.eq("explicit_exact_unflagged").sum()),
+        "n_blank_inequality_unreviewed_rows": int(statuses.eq("blank_inequality_unreviewed").sum()),
+        "n_suspected_heap_rows": int(suspected_mask.sum()),
+        "n_suspected_heap_cells": len(cells),
+        "by_censor_review_status": dict(sorted(Counter(statuses).items())),
+        "by_limit_applicability_status": dict(sorted(Counter(limits).items())),
     }
