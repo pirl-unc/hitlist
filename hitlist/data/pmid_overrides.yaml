@@ -5886,9 +5886,23 @@
     title: "HLA class II immunopeptidomics reveals that co-inherited HLA-allotypes within an extended haplotype can improve proteome coverage for immunosurveillance"
     override: cell_line
     note: >
-      C1R B-LCL (HLA-I-low) expressing class II haplotype
-      DR12/DQ7/DP4. IEDB annotation "Blood" is misleading — this is
-      a cell line, not primary blood. 71K class II peptides.
+      C1R B-LCL (HLA-I-low) expressing class II haplotype DR12/DQ7/DP4,
+      immunoaffinity-purified with LB3.1 (HLA-DR), SPVL3 (HLA-DQ), and B721
+      (HLA-DP); PRIDE PXD025877 (18 Peaks X Pro .mzid.gz files: 7 DR, 6 DQ, 5 DP;
+      UniProt v2020_03; variable PTMs M-ox, NQ-deam, K-acet). IEDB annotation
+      "Blood" is misleading — this is a cell line, not primary blood.
+      Coverage reconciliation (#632): PRIDE PXD025877 contains 74,880 distinct
+      linear sequences (7..50+ aa; 89,957 seq+PTM proteoforms); the abstract
+      reports 71,350 unique peptides; live IEDB contains 84,751 rows / 69,647
+      distinct linear sequences (9..30 aa, 100% subset of PRIDE; 68,898 unmodified
+      + 15,853 modified); Hitlist observations.parquet retains 76,855 rows /
+      62,467 distinct linear sequences (12..30 aa). 100% of the 7,896 IEDB rows
+      (7,180 distinct sequences) absent from observations.parquet are 9-11mers
+      dropped by Hitlist's #122 MHC-II <12 aa filter; zero >=12 aa IEDB rows are
+      lost. Locus-level DR/DQ/DP restrictions are retained verbatim without
+      promoting inferred alleles. See
+      hitlist/data/evidence_revisions/ramarathinam_2021_34357683_reconciliation.json.
+    ip_antibody: "LB3.1 (DR) + SPVL3 (DQ) + B721 (DP)"
     hla_alleles:
       class_ii: ["HLA-DRB1*12:01", "HLA-DQB1*03:01", "HLA-DPB1*04:01"]
     ms_samples:

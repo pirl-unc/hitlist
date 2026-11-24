@@ -154,7 +154,7 @@ options:
   -h, --help  show this help message and exit
 
 ===== hitlist data register --help =====
-usage: hitlist data register [-h] [--description DESCRIPTION] name path
+usage: hitlist data register [-h] [--description DESCRIPTION] [--resolve-symlink] name path
 
 positional arguments:
   name                  Dataset name
@@ -164,6 +164,7 @@ options:
   -h, --help            show this help message and exit
   --description DESCRIPTION, -d DESCRIPTION
                         Optional description
+  --resolve-symlink     Store the dereferenced target path instead of preserving a symlink
 
 ===== hitlist data preflight --help =====
 usage: hitlist data preflight [-h] [--force] name

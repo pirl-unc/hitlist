@@ -1,0 +1,316 @@
+{
+  "schema_version": 1,
+  "revision": "ramarathinam_2021_34357683_reconciliation_v1",
+  "issue": "pirl-unc/hitlist#632",
+  "source": {
+    "pmid": 34357683,
+    "doi": "10.1002/pmic.202000160",
+    "title": "HLA class II immunopeptidomics reveals that co-inherited HLA-allotypes within an extended haplotype can improve proteome coverage for immunosurveillance",
+    "authors": "Ramarathinam SH, Ho BK, Dudek NL, Purcell AW",
+    "journal": "Proteomics",
+    "year": 2021,
+    "pride_accession": "PXD025877",
+    "cell_line": "C1R",
+    "reported_haplotype": "HLA-DR12/DQ7/DP4",
+    "antibodies_by_locus": {
+      "HLA-DR": "LB3.1",
+      "HLA-DQ": "SPVL3",
+      "HLA-DP": "B721"
+    },
+    "search_engine": "Peaks X Pro",
+    "search_database": "UniProt human reviewed v2020_03",
+    "variable_modifications": [
+      "Oxidation (M)",
+      "Deamidation (N, Q)",
+      "Acetylation (K)"
+    ]
+  },
+  "fingerprints": {
+    "ci_corpus_v2_observations_parquet_sha256": "0b34bd12471882eb28d4f9a1dad6cc48252fb93a3644f912f69a0a186228f847",
+    "pride_sdrf": {
+      "file_name": "PXD025877_community_annotated.sdrf.tsv",
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/08/PXD025877/PXD025877_community_annotated.sdrf.tsv",
+      "size_bytes": 141802,
+      "sha256": "78f4b29446cdb0a456c1895026b83796463b317730c40e645259b1b8e7b4551e",
+      "n_assay_rows": 149
+    },
+    "pride_mzid_files": [
+      {
+        "locus": "HLA-DP",
+        "file_name": "DPrep1_peptides_1_1_0.mzid.gz",
+        "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/08/PXD025877/DPrep1_peptides_1_1_0.mzid.gz",
+        "compressed_bytes": 404746,
+        "sha256": "dc969e6a32c43961e7150d2a06582fa728f9cdfdb443bbd0aa9bc822a8d2ec5f",
+        "n_peptide_entries": 1671
+      },
+      {
+        "locus": "HLA-DP",
+        "file_name": "DPrep2_peptides_1_1_0.mzid.gz",
+        "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/08/PXD025877/DPrep2_peptides_1_1_0.mzid.gz",
+        "compressed_bytes": 296477,
+        "sha256": "0cab10ae078c31d512c5487430e7fb3e7ecbd26373cd0deb559b876218a88571",
+        "n_peptide_entries": 1230
+      },
+      {
+        "locus": "HLA-DP",
+        "file_name": "DPrep3_peptides_1_1_0.mzid.gz",
+        "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/08/PXD025877/DPrep3_peptides_1_1_0.mzid.gz",
+        "compressed_bytes": 520456,
+        "sha256": "711076234d3bda6a2589fb7aa3733d578076e73c79ac397882ea8a7d1b818e09",
+        "n_peptide_entries": 2220
+      },
+      {
+        "locus": "HLA-DP",
+        "file_name": "DPrep4_peptides_1_1_0.mzid.gz",
+        "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/08/PXD025877/DPrep4_peptides_1_1_0.mzid.gz",
+        "compressed_bytes": 765370,
+        "sha256": "fee5eac6a87660932e8ccafe868f160bf3fc97d86706e87f80f30a5d1ef20ec2",
+        "n_peptide_entries": 3146
+      },
+      {
+        "locus": "HLA-DP",
+        "file_name": "DPrep5_peptides_1_1_0.mzid.gz",
+        "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/08/PXD025877/DPrep5_peptides_1_1_0.mzid.gz",
+        "compressed_bytes": 789729,
+        "sha256": "1fbaf6d422009ac290e28d12dd9a01b9361cb1008fb0d149bf87552c39b72247",
+        "n_peptide_entries": 2714
+      },
+      {
+        "locus": "HLA-DQ",
+        "file_name": "DQrep1_peptides_1_1_0.mzid.gz",
+        "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/08/PXD025877/DQrep1_peptides_1_1_0.mzid.gz",
+        "compressed_bytes": 463756,
+        "sha256": "6b2c95fee89fe812515c40851aae7f2faba2eb82d8cc0290eb235044a6c35e13",
+        "n_peptide_entries": 1826
+      },
+      {
+        "locus": "HLA-DQ",
+        "file_name": "DQrep2_peptides_1_1_0.mzid.gz",
+        "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/08/PXD025877/DQrep2_peptides_1_1_0.mzid.gz",
+        "compressed_bytes": 490928,
+        "sha256": "63f57d9821be2c8bb476da02d4853d7f9d2e30b929279158d9edcda548f4be04",
+        "n_peptide_entries": 1745
+      },
+      {
+        "locus": "HLA-DQ",
+        "file_name": "DQrep3_peptides_1_1_0.mzid.gz",
+        "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/08/PXD025877/DQrep3_peptides_1_1_0.mzid.gz",
+        "compressed_bytes": 395409,
+        "sha256": "651427f4c154183b06218a003913c1dcc7e34803b4b26be1127770cf941764d9",
+        "n_peptide_entries": 1520
+      },
+      {
+        "locus": "HLA-DQ",
+        "file_name": "DQrep4_peptides_1_1_0.mzid.gz",
+        "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/08/PXD025877/DQrep4_peptides_1_1_0.mzid.gz",
+        "compressed_bytes": 378990,
+        "sha256": "a01ecce03429ac90a2620566cde6581524de1bdabfbc8d60332d1e2cc47a4e79",
+        "n_peptide_entries": 1636
+      },
+      {
+        "locus": "HLA-DQ",
+        "file_name": "DQrep5_peptides_1_1_0.mzid.gz",
+        "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/08/PXD025877/DQrep5_peptides_1_1_0.mzid.gz",
+        "compressed_bytes": 323942,
+        "sha256": "2aec9c7399a3cdb6c629b8c6d1fc63724859cc7491d825c59599755812783bdd",
+        "n_peptide_entries": 1206
+      },
+      {
+        "locus": "HLA-DQ",
+        "file_name": "DQrep6_peptides_1_1_0.mzid.gz",
+        "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/08/PXD025877/DQrep6_peptides_1_1_0.mzid.gz",
+        "compressed_bytes": 1672226,
+        "sha256": "8ab41669096c001e4936cd773be70fcc8743429da48ab7460e401ec8ef428a5a",
+        "n_peptide_entries": 6847
+      },
+      {
+        "locus": "HLA-DR",
+        "file_name": "DRrep1_peptides_1_1_0.mzid.gz",
+        "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/08/PXD025877/DRrep1_peptides_1_1_0.mzid.gz",
+        "compressed_bytes": 1341944,
+        "sha256": "012b6492d39544f0abdd454f62e2f61458d7b3154d4bc44b5155ecf6c43153f8",
+        "n_peptide_entries": 5768
+      },
+      {
+        "locus": "HLA-DR",
+        "file_name": "DRrep2_peptides_1_1_0.mzid.gz",
+        "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/08/PXD025877/DRrep2_peptides_1_1_0.mzid.gz",
+        "compressed_bytes": 573886,
+        "sha256": "fc63b110234791a87f267d00143de0a9c772dd88cf69de372afc3e0f047aa26b",
+        "n_peptide_entries": 2138
+      },
+      {
+        "locus": "HLA-DR",
+        "file_name": "DRrep3_peptides_1_1_0.mzid.gz",
+        "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/08/PXD025877/DRrep3_peptides_1_1_0.mzid.gz",
+        "compressed_bytes": 1097434,
+        "sha256": "616aba83c3d07be6d3cc32aa11f0da32c6e022a0ab9ee75cc71e2f6295a36ca0",
+        "n_peptide_entries": 4871
+      },
+      {
+        "locus": "HLA-DR",
+        "file_name": "DRrep4_peptides_1_1_0.mzid.gz",
+        "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/08/PXD025877/DRrep4_peptides_1_1_0.mzid.gz",
+        "compressed_bytes": 4347866,
+        "sha256": "7f39b943129fc2fabebda973aa7cb167751493128670a71109a58d5e03c2e8e8",
+        "n_peptide_entries": 19791
+      },
+      {
+        "locus": "HLA-DR",
+        "file_name": "DRrep5_peptides_1_1_0.mzid.gz",
+        "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/08/PXD025877/DRrep5_peptides_1_1_0.mzid.gz",
+        "compressed_bytes": 3932772,
+        "sha256": "6ccd14bbdc368b4e9b42cd035e3ed14671fc757436e666a9e3360414ba84404e",
+        "n_peptide_entries": 16707
+      },
+      {
+        "locus": "HLA-DR",
+        "file_name": "DRrep6_peptides_1_1_0.mzid.gz",
+        "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/08/PXD025877/DRrep6_peptides_1_1_0.mzid.gz",
+        "compressed_bytes": 11802443,
+        "sha256": "5047922a6b30b4003659f866ec9701665dc34a0e6ff5c7ad36d7bbb9ad5c76fe",
+        "n_peptide_entries": 60220
+      },
+      {
+        "locus": "HLA-DR",
+        "file_name": "DRrep7_peptides_1_1_0.mzid.gz",
+        "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/08/PXD025877/DRrep7_peptides_1_1_0.mzid.gz",
+        "compressed_bytes": 8028928,
+        "sha256": "ba9a95bee67d24330f049a76b9d7927451e98eaeb353378ad39ba89ba3a310ce",
+        "n_peptide_entries": 36644
+      }
+    ]
+  },
+  "reconciliation": {
+    "publication_abstract": {
+      "n_unique_peptides_reported": 71350,
+      "scope_note": "Paper abstract reports 71,350 unique naturally processed peptides across C1R HLA-DR12/DQ7/DP4; intermediate between raw Peaks X Pro mzid deposits (74,880 distinct sequences) and IEDB 9-30 aa curated rows (69,647 distinct sequences)."
+    },
+    "pride_pxd025877_mzid": {
+      "n_files": 18,
+      "n_files_by_locus": {
+        "HLA-DR": 7,
+        "HLA-DQ": 6,
+        "HLA-DP": 5
+      },
+      "length_min": 7,
+      "n_distinct_peptides_union": 74880,
+      "n_distinct_proteoforms_union": 89957,
+      "n_distinct_peptides_locus_sum": 76240,
+      "n_distinct_peptides_by_locus": {
+        "HLA-DR": 63972,
+        "HLA-DQ": 7544,
+        "HLA-DP": 4724
+      },
+      "n_distinct_proteoforms_by_locus": {
+        "HLA-DR": 77510,
+        "HLA-DQ": 8397,
+        "HLA-DP": 5601
+      },
+      "n_distinct_peptides_by_length_bucket": {
+        "lt_9": 1835,
+        "len_9_11": 7413,
+        "len_12_30": 63372,
+        "gt_30": 2260
+      }
+    },
+    "iedb_deposited_34357683": {
+      "length_min": 9,
+      "length_max": 30,
+      "n_rows_total": 84751,
+      "n_rows_unmodified": 68898,
+      "n_rows_modified": 15853,
+      "n_rows_by_modification": {
+        "Oxidation": 10554,
+        "Deamidation|DEAM": 4608,
+        "Acetylation|ACET": 691
+      },
+      "n_distinct_peptides_union": 69647,
+      "n_distinct_proteoforms_union": 82559,
+      "n_distinct_peptides_locus_sum": 70873,
+      "n_distinct_peptides_shared_across_loci": 1226,
+      "n_rows_by_locus": {
+        "HLA-DR": 71169,
+        "HLA-DQ": 8262,
+        "HLA-DP": 5320
+      },
+      "n_distinct_peptides_by_locus": {
+        "HLA-DR": 59117,
+        "HLA-DQ": 7312,
+        "HLA-DP": 4444
+      },
+      "n_distinct_proteoforms_by_locus": {
+        "HLA-DR": 70603,
+        "HLA-DQ": 8110,
+        "HLA-DP": 5241
+      },
+      "locus_overlap_distinct_peptides": {
+        "dr_and_dq": 640,
+        "dr_and_dp": 514,
+        "dq_and_dp": 228,
+        "all_three": 156
+      },
+      "n_distinct_peptides_in_pride": 69647,
+      "n_distinct_peptides_iedb_only": 0,
+      "n_distinct_peptides_pride_only": 5233,
+      "n_distinct_peptides_pride_only_by_length_bucket": {
+        "lt_9": 1835,
+        "len_9_11": 233,
+        "len_12_30": 905,
+        "gt_30": 2260
+      }
+    },
+    "hitlist_observations_parquet": {
+      "length_min": 12,
+      "length_max": 30,
+      "n_rows_total": 76855,
+      "n_distinct_peptides_union": 62467,
+      "n_distinct_proteoforms_union": 74844,
+      "n_distinct_peptides_locus_sum": 63575,
+      "n_distinct_peptides_shared_across_loci": 1108,
+      "n_rows_by_locus": {
+        "HLA-DR": 64357,
+        "HLA-DQ": 7795,
+        "HLA-DP": 4703
+      },
+      "n_distinct_peptides_by_locus": {
+        "HLA-DR": 52826,
+        "HLA-DQ": 6872,
+        "HLA-DP": 3877
+      },
+      "locus_overlap_distinct_peptides": {
+        "dr_and_dq": 592,
+        "dr_and_dp": 453,
+        "dq_and_dp": 205,
+        "all_three": 142
+      }
+    },
+    "iedb_to_hitlist_filter_diff": {
+      "filter_issue": "pirl-unc/hitlist#122",
+      "filter_rule": "mhc_class == II and len(peptide) < 12",
+      "n_rows_dropped": 7896,
+      "n_distinct_peptides_dropped": 7180,
+      "n_rows_dropped_by_length": {
+        "9": 1674,
+        "10": 2349,
+        "11": 3873
+      },
+      "n_rows_dropped_by_locus": {
+        "HLA-DR": 6812,
+        "HLA-DQ": 467,
+        "HLA-DP": 617
+      },
+      "n_rows_ge_12_lost": 0,
+      "n_distinct_peptides_ge_12_lost": 0
+    },
+    "restriction_policy": {
+      "retained_reported_restrictions": [
+        "HLA-DR",
+        "HLA-DQ",
+        "HLA-DP"
+      ],
+      "promote_inferred_alleles_to_reported": false,
+      "invent_unreported_rows": false
+    }
+  }
+}

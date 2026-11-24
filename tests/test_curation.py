@@ -37,11 +37,14 @@ def test_load_tissue_categories():
     cats = load_tissue_categories()
     assert "testis" in cats["reproductive"]
     assert "thymus" in cats["thymus"]
-    # Sex-stratified medium reproductive tiers (#286).
-    assert "breast" in cats["reproductive_female"]
+    # Sex-stratified medium reproductive tiers (#286), aligned with OncoRef anatomy (#963).
     assert "ovary" in cats["reproductive_female"]
+    assert "lactating breast" in cats["reproductive_female"]
+    assert "breast" not in cats["reproductive_female"]
+    assert "mammary gland" not in cats["reproductive_female"]
+    assert {"breast", "mammary gland"} <= cats["resting_mammary"]
     assert "prostate" in cats["reproductive_male"]
-    # Privileged tier stays sex-agnostic; medium tissues are NOT in it.
+    # Privileged tier stays sex-agnostic; medium/somatic tissues are NOT in it.
     assert "breast" not in cats["reproductive"]
     assert "prostate" not in cats["reproductive"]
 
@@ -180,14 +183,72 @@ def test_healthy_reproductive():
     assert flags["src_healthy_tissue"] is False
 
 
-def test_healthy_reproductive_female_breast():
-    """Issue #286: healthy ex-vivo breast is a sex-stratified female-reproductive
-    tissue, NOT a somatic safety signal (src_healthy_tissue)."""
-    flags = classify_ms_row("No immunization", "healthy", "Direct Ex Vivo", "Breast")
-    assert flags["src_healthy_reproductive_female"] is True
-    assert flags["src_healthy_tissue"] is False
-    assert flags["src_healthy_reproductive"] is False
-    assert flags["src_healthy_reproductive_male"] is False
+def test_healthy_resting_breast_is_somatic_safety_tissue():
+    """Issue #963: resting breast / mammary gland is present in both adult males
+    and females (aligned with OncoRef anatomy), so it counts as somatic
+    ``src_healthy_tissue`` rather than female-exclusive ``src_healthy_reproductive_female``."""
+    for tissue in ("Breast", "Mammary Gland"):
+        flags = classify_ms_row("No immunization", "healthy", "Direct Ex Vivo", tissue)
+        assert flags["src_healthy_tissue"] is True
+        assert flags["src_healthy_reproductive_female"] is False
+        assert flags["src_healthy_reproductive"] is False
+        assert flags["src_healthy_reproductive_male"] is False
+
+
+def test_healthy_reproductive_female_lactating_breast_and_ovary():
+    """Female-exclusive reproductive tissues and lactating breast remain
+    ``src_healthy_reproductive_female`` and excluded from ``src_healthy_tissue`` (#963)."""
+    for tissue in ("Lactating Breast", "Ovary", "Fallopian Tube", "Uterus", "Endometrium"):
+        flags = classify_ms_row("No immunization", "healthy", "Direct Ex Vivo", tissue)
+        assert flags["src_healthy_reproductive_female"] is True
+        assert flags["src_healthy_tissue"] is False
+        assert flags["src_healthy_reproductive"] is False
+        assert flags["src_healthy_reproductive_male"] is False
+
+
+def test_tissue_anatomy_compartments_aligned_with_oncoref():
+    """OncoRef-aligned anatomy helpers distinguish resting mammary from female-only (#963)."""
+    import hitlist
+
+    comp = hitlist.tissue_anatomy_compartments()
+    assert {"breast", "mammary gland"} <= comp["resting_mammary_compartments"]
+    assert "lactating breast" in comp["female_sex_compartments"]
+    assert "breast" not in comp["female_sex_compartments"]
+    assert "prostate" in comp["male_sex_compartments"]
+    assert "testis" in comp["privileged_reproductive"]
+
+    resting = hitlist.classify_tissue_anatomy("Breast")
+    assert resting["compartment"] == "resting_mammary"
+    assert resting["is_somatic_safety_tissue"] is True
+    assert resting["is_resting_mammary"] is True
+    assert resting["protected_in_female_adult"] is True
+    assert resting["protected_in_male_adult"] is True
+
+    lactating = hitlist.classify_tissue_anatomy("Lactating Breast")
+    assert lactating["compartment"] == "female_sex_only"
+    assert lactating["is_somatic_safety_tissue"] is False
+    assert lactating["protected_in_female_adult"] is True
+    assert lactating["protected_in_male_adult"] is False
+
+    prostate = hitlist.classify_tissue_anatomy("Prostate")
+    assert prostate["compartment"] == "male_sex_only"
+    assert prostate["protected_in_female_adult"] is False
+    assert prostate["protected_in_male_adult"] is True
+
+    testis = hitlist.classify_tissue_anatomy("Testis")
+    assert testis["compartment"] == "privileged_reproductive"
+    assert testis["protected_in_female_adult"] is False
+    assert testis["protected_in_male_adult"] is False
+
+    liver = hitlist.classify_tissue_anatomy("Liver")
+    assert liver["compartment"] == "somatic"
+    assert liver["protected_in_female_adult"] is True
+    assert liver["protected_in_male_adult"] is True
+
+    blank = hitlist.classify_tissue_anatomy("")
+    assert blank["compartment"] == "unspecified"
+    assert blank["protected_in_female_adult"] is None
+    assert blank["protected_in_male_adult"] is None
 
 
 def test_healthy_reproductive_male_prostate():

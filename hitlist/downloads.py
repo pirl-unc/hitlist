@@ -1444,11 +1444,34 @@ def packaged_or_cached(packaged_path, filename: str) -> Path | None:
 # ── Core API ────────────────────────────────────────────────────────────────
 
 
-def register(name: str, path: str | Path, description: str | None = None) -> Path:
-    """Register a local file path for a named dataset."""
-    p = Path(path).resolve()
-    if not p.exists():
-        raise FileNotFoundError(f"File not found: {p}")
+def register(
+    name: str,
+    path: str | Path,
+    description: str | None = None,
+    *,
+    preserve_symlink: bool = True,
+) -> Path:
+    """Register a local file path for a named dataset.
+
+    By default (``preserve_symlink=True``), symlinks are recorded by their
+    normalized absolute path rather than dereferenced, so stable symlinks
+    (e.g. ``iedb_latest.csv -> iedb_2026_11.csv``) stay live and report
+    ``symlink_status == "valid_symlink"`` consistently with :func:`info`,
+    :func:`preflight`, and ``build_observations()`` (#954, #958, #964).
+    Target existence is always validated via ``Path.resolve(strict=True)``.
+    Pass ``preserve_symlink=False`` to store the dereferenced target path.
+    """
+    normalized = Path(os.path.abspath(os.path.expanduser(os.fspath(path))))
+    try:
+        resolved = normalized.resolve(strict=True)
+    except FileNotFoundError as exc:
+        if normalized.is_symlink():
+            raise FileNotFoundError(
+                f"Broken symlink: {normalized} -> {os.readlink(normalized)}"
+            ) from exc
+        raise FileNotFoundError(f"File not found: {normalized}") from exc
+
+    p = normalized if preserve_symlink else resolved
 
     desc = description
     if desc is None and name in MANUAL_DATASETS:
@@ -1460,7 +1483,7 @@ def register(name: str, path: str | Path, description: str | None = None) -> Pat
         manifest.setdefault("datasets", {})[name] = {
             "path": str(p),
             "registered": datetime.now(timezone.utc).isoformat(),
-            "size_bytes": p.stat().st_size,
+            "size_bytes": resolved.stat().st_size,
             "description": desc or "",
             "source": "registered",
         }
