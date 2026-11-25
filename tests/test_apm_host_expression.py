@@ -41,18 +41,62 @@ def test_every_curated_hap1_ko_uses_parent_rna():
     assert rows.tpm.notna().all() and rows.tpm.ge(0).all()
 
 
-def test_packaged_hap1_matches_its_build_report():
-    # Catches an edited CSV whose recorded provenance was not regenerated.
+def test_packaged_apm_hosts_match_build_report():
+    # Catches any edited packaged CSV whose recorded provenance was not regenerated.
     data = files("hitlist.data.line_expression")
     report = yaml.safe_load(data.joinpath("apm_rna_build_report.yaml").read_text())
-    (entry,) = report["sources"]
-    raw = data.joinpath(entry["file"]).read_bytes()
-    assert hashlib.sha256(raw).hexdigest() == entry["sha256"]
-    assert hashlib.sha256(gzip.decompress(raw)).hexdigest() == entry["content_sha256"]
-    rows = load_line_expression(source_id=entry["source_id"])
-    assert len(rows) == entry["n_genes"]
-    assert int(rows.tpm.gt(0).sum()) == entry["n_positive_genes"]
-    assert rows.tpm.sum() == pytest.approx(entry["sum_tpm"])
+    source_ids = [entry["source_id"] for entry in report["sources"]]
+    assert source_ids == [
+        "DepMap_24Q4_HAP1_gene",
+        "SRP142649_C1R_parental_gene",
+        "GSE228188_721_221_Cas9_sgNT_gene",
+    ]
+    for entry in report["sources"]:
+        raw = data.joinpath(entry["file"]).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == entry["sha256"], entry["source_id"]
+        assert hashlib.sha256(gzip.decompress(raw)).hexdigest() == entry["content_sha256"]
+        rows = load_line_expression(source_id=entry["source_id"])
+        assert len(rows) == entry["n_genes"]
+        assert int(rows.tpm.gt(0).sum()) == entry["n_positive_genes"]
+        assert rows.tpm.sum() == pytest.approx(entry["sum_tpm"])
+
+
+def test_packaged_c1r_and_721_221_tiers_and_biology():
+    # Parental C1R resolves at tier 1; C1R-HLA transfectants resolve at tier 2.
+    c1r_parent = resolve_sample_expression_anchor("C1R")
+    assert c1r_parent.expression_match_tier == 1
+    assert c1r_parent.expression_key == "C1R"
+    assert c1r_parent.expression_parent_key is None
+    assert c1r_parent.source_ids == ("SRP142649_C1R_parental_gene",)
+
+    c1r_hla = resolve_sample_expression_anchor("C1R-HLA-B*27:02")
+    assert c1r_hla.expression_match_tier == 2
+    assert c1r_hla.expression_key == "C1R"
+    assert c1r_hla.expression_parent_key == "C1R"
+    assert c1r_hla.source_ids == ("SRP142649_C1R_parental_gene",)
+
+    # 721.221 and 721.221-HLA resolve at tier 2 via 721.221-Cas9-sgNT (engineered control),
+    # never falsely claiming unmodified parental tier-1 RNA.
+    for label in ("721.221", "721.221-HLA-A*11:01", "721.221-B*51:01 ERAP1 KO"):
+        anchor = resolve_sample_expression_anchor(label)
+        assert anchor.expression_match_tier == 2, label
+        assert anchor.expression_key == "721.221-Cas9-sgNT", label
+        assert anchor.expression_parent_key == "721.221-Cas9-sgNT", label
+        assert anchor.source_ids == ("GSE228188_721_221_Cas9_sgNT_gene",), label
+
+    # Biological sanity check: 721.221 is HLA-A/B null while expressing B2M and HLA-DRA.
+    b721 = load_line_expression(line_key="721.221-Cas9-sgNT", granularity="gene")
+    b721_by_sym = b721.groupby("gene_name")["tpm"].sum()
+    assert b721_by_sym["HLA-A"] < 1.0
+    assert b721_by_sym["HLA-B"] < 1.0
+    assert b721_by_sym["B2M"] > 1000.0
+    assert b721_by_sym["HLA-DRA"] > 500.0
+
+    c1r = load_line_expression(line_key="C1R", granularity="gene")
+    c1r_by_sym = c1r.groupby("gene_name")["tpm"].sum()
+    assert c1r_by_sym["B2M"] > 1000.0
+    assert c1r_by_sym["HLA-DRA"] > 500.0
+    assert c1r_by_sym["TAP1"] > 10.0
 
 
 def test_downloaded_bundle_adds_hap1_transcripts_without_duplicating_genes(tmp_path):

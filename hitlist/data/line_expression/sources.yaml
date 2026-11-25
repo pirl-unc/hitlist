@@ -174,3 +174,49 @@ sources:
       This independent parental reference is not RNA measured in the Shapiro
       KO arms. The downloadable gene copy is excluded to avoid duplication;
       optional transcript rows retain the original DepMap transcript source.
+
+  - source_id: SRP142649_C1R_parental_gene
+    pmid: 30479382
+    reference: "PMID:30479382 / SRA:SRP142649 / SRR7065975 / BioSample:SAMN08984896"
+    study_label: "SRP142649 parental C1R poly(A)+ RNA-seq (kallisto Ensembl 110)"
+    backend: packaged_rnaseq
+    granularity: gene
+    normalization: tpm
+    quantifier: kallisto
+    species: "Homo sapiens (human)"
+    build_status: packaged
+    file: c1r_srp142649_gene_tpm.csv.gz
+    cell_lines_covered:
+      - C1R
+    license: "Public SRA/ENA sequence data (re-quantified from SRR7065975 via kallisto 0.51.1)"
+    notes: >
+      Parental Hmy2.CIR (C1R) bulk RNA-seq run SRR7065975 (138,345,534 read
+      pairs; 83.4% pseudoaligned) quantified with kallisto 0.51.1 --rf-stranded
+      against Ensembl release 110 GRCh38 cDNA+ncRNA, summed to 23,217
+      protein-coding Ensembl gene IDs preserving the full transcriptome TPM
+      denominator and zero values. Parental C1R resolves at tier 1; C1R-HLA
+      transfectants and engineered derivatives resolve at tier 2.
+
+  - source_id: GSE228188_721_221_Cas9_sgNT_gene
+    pmid: null
+    reference: "GEO:GSE228188 / GSM7116268-GSM7116270 / SRR23958328-SRR23958330"
+    study_label: "GSE228188 721.221 Cas9/sgNT control RNA-seq (kallisto Ensembl 110, n=3)"
+    backend: packaged_rnaseq
+    granularity: gene
+    normalization: tpm
+    quantifier: kallisto
+    species: "Homo sapiens (human)"
+    build_status: packaged
+    file: b721_221_gse228188_sgnt_gene_tpm.csv.gz
+    cell_lines_covered:
+      - 721.221-Cas9-sgNT
+    license: "Public GEO/SRA sequence data (re-quantified from SRR23958328-SRR23958330 via kallisto 0.51.1)"
+    notes: >
+      Mean gene-level TPM across three biological replicates of 721.221
+      Cas9/non-targeting sgRNA control cells (GSM7116268/SRR23958330 92.0%,
+      GSM7116269/SRR23958329 93.6%, GSM7116270/SRR23958328 93.4% pseudoaligned;
+      pairwise log2(TPM+1) Pearson r = 0.982-0.989), quantified with kallisto
+      0.51.1 --rf-stranded against Ensembl release 110 GRCh38 cDNA+ncRNA.
+      Because these controls carry Cas9/sgNT rather than unmodified parental
+      721.221, parental 721.221 and 721.221-HLA transfectants resolve to this
+      reference at tier 2 (engineered-control surrogate), never tier 1.
