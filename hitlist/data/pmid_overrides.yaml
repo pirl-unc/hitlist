@@ -15882,11 +15882,25 @@
       (mhc_species/source already murine).  IEDB left source_tissue="Other";
       fills Adipose Tissue.
   - pmid: 22544926
-    study_label: "Dao 2013 — vascular endothelial cell HLA peptidome"
+    study_label: "Thommen 2012 — vascular endothelial cell HLA-A*02:01 peptidome"
+    title: "Two preferentially expressed proteins protect vascular endothelial cells from an attack by peptide-specific CTL"
     source_tissue: "Blood Vessel"
     note: >
-      HLA-A*02 peptides from human vascular endothelial cells (HUVEC-type).
-      IEDB left source_tissue="Other"; fills Blood Vessel (endothelium).
+      HLA-A*02:01 peptides eluted from human vascular endothelial cells, epithelial
+      cells, and syngeneic umbilical cord blood B cells (Thommen et al., J Immunol 2012).
+      IEDB left source_tissue="Other" on endothelial rows; fills Blood Vessel (endothelium).
+      Completes #35/#33b sample curation.
+    ms_samples:
+      - sample_label: "Vascular endothelial / syngeneic B-cell HLA-A*02:01 peptidome"
+        n_samples: 1
+        source: "Primary human vascular endothelial cells and syngeneic umbilical cord blood B cells"
+        condition: "unperturbed"
+        condition_id: vascular_endothelial_and_syngeneic_b_cells
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "HLA-A*02:01"
   # ── cell_name lineage fills for IEDB "Other"-cell_name cell lines (verified) ──
   # IEDB recorded the cell as "Other" (line unnamed) on these homogeneous-lineage
   # cell-line studies; per-paper research assigns the cell-of-origin lineage so
@@ -16249,3 +16263,548 @@
         suffix does not establish a matched physical specimen across DM states. Protein abundance, DM concentration
         and DO state are unreported for these MS observations.
       condition_combination: single
+
+  # ── #35 / #33b completion (remaining 4 large human PMIDs >= 1,000 peptides) ──
+  - pmid: 27726376
+    study_label: "Wang 2017 — RA and Lyme arthritis clinical HLA-DR peptidome"
+    title: "Immunogenic HLA-DR-Presented Self-Peptides Identified Directly from Clinical Samples of Synovial Tissue, Synovial Fluid, or Peripheral Blood in Patients with Rheumatoid Arthritis or Lyme Arthritis"
+    note: >
+      Direct ex vivo LC-MS/MS HLA-DR self-peptidome of clinical synovial tissue (ST),
+      synovial fluid mononuclear cells (SFMC), and PBMCs from 5 rheumatoid arthritis
+      and 8 Lyme arthritis patients (Wang et al., J Proteome Res 2017). #35/#33b.
+    ms_samples:
+      - sample_label: "RA / Lyme arthritis synovial tissue, SFMC, and PBMC (HLA-DR)"
+        n_samples: 13
+        source: "Direct ex vivo clinical synovial tissue, SFMC, and PBMC from 5 RA + 8 Lyme arthritis patients"
+        condition: "unperturbed — clinical inflammatory arthritis specimens"
+        condition_id: ra_lyme_clinical_hla_dr
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: II
+        mhc: "HLA-DR"
+
+  - pmid: 34078123
+    study_label: "Egan 2021 — CSPG4 anaplastic thyroid cancer / HLA-DQ peptidome"
+    title: "CSPG4 Is a Potential Therapeutic Target in Anaplastic Thyroid Cancer"
+    override: cell_line
+    note: >
+      HLA-DQ class-II eluted ligands deposited in IEDB under PMID 34078123 (Egan et al.,
+      Thyroid 2021), including MOU-B, lymphoblast, and T2-lymphoblast cell-line controls
+      alongside anaplastic thyroid cancer antigen discovery. #35/#33b.
+    ms_samples:
+      - sample_label: "HLA-DQ class-II cell-line ligandome (MOU-B / lymphoblast / T2)"
+        n_samples: 1
+        source: "MOU-B, lymphoblast, and T2-lymphoblast cell lines"
+        condition: "unperturbed"
+        condition_id: egan_2021_hla_dq_cell_lines
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: II
+        mhc: "HLA-DQ"
+
+  - pmid: 36581221
+    study_label: "Venema 2023 — HLA-A29 birdshot chorioretinitis SAG-engineered B-LCL"
+    title: "Retina-arrestin specific CD8+ T cells are not implicated in HLA-A29-positive birdshot chorioretinitis"
+    override: ebv_lcl
+    note: >
+      MS immunopeptidomics of HLA-A29 from birdshot chorioretinitis patient EBV-LCLs
+      engineered to express retinal arrestin (SAG) (Venema et al., Ann Rheum Dis 2023).
+      #35/#33b.
+    ms_samples:
+      - sample_label: "Birdshot chorioretinitis patient B-LCL (SAG-engineered, HLA-A29)"
+        n_samples: 1
+        source: "Patient-derived EBV-transformed B-LCL engineered to express retinal arrestin (SAG)"
+        condition: "retinal arrestin (SAG) overexpression in patient B-LCL"
+        condition_id: bcr_patient_blcl_sag_hla_a29
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: I
+        mhc: "HLA-A29"
+
+  - pmid: 30626607
+    study_label: "van Lummel 2019 — HLA-DQ6 epitope stealing in type 1 diabetes"
+    title: "Epitope Stealing as a Mechanism of Dominant Protection by HLA-DQ6 in Type 1 Diabetes"
+    note: >
+      HLA-DQ6 (HLA-DQA1*01:02/DQB1*06:02) immunopeptidome of healthy B-LCLs and
+      islet-autoantigen-pulsed dendritic cells investigating dominant T1D protection
+      by epitope stealing (van Lummel et al., Diabetes 2019). #35/#33b.
+    ms_samples:
+      - sample_label: "HLA-DQ6 B-LCL and dendritic cell ligandome"
+        n_samples: 1
+        source: "EBV-transformed B-LCL and islet-antigen-pulsed dendritic cells"
+        condition: "unperturbed B-LCL and islet autoantigen-pulsed dendritic cells"
+        condition_id: hla_dq6_blcl_and_dc
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: II
+        mhc: "HLA-DQA1*01:02/DQB1*06:02"
+
+  # ── #8 completion (remaining 6 uncurated non-classical HLA-E / HLA-G MS/Edman studies) ──
+  - pmid: 7584149
+    study_label: "Lee 1995 — membrane-bound and soluble HLA-G B-LCL peptidome"
+    title: "The membrane-bound and soluble forms of HLA-G bind identical sets of endogenous peptides but differ with respect to TAP association"
+    override: ebv_lcl
+    note: >
+      Non-classical HLA-G MS immunopeptidome comparing membrane-bound and soluble
+      HLA-G expressed in human B-LCL transfectants (Lee et al., Immunity 1995). #8.
+    ms_samples:
+      - sample_label: "B-LCL HLA-G transfectant (membrane and soluble HLA-G)"
+        n_samples: 1
+        source: "Human EBV-transformed B-LCL expressing membrane-bound or soluble HLA-G"
+        condition: "unperturbed — HLA-G transfectant"
+        condition_id: blcl_hla_g_transfectant
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: mhc_transfectant;monoallelic
+        mhc_class: non-classical
+        mhc: "HLA-G"
+
+  - pmid: 29602958
+    study_label: "Celik 2018 — secreted HLA-G*01:01 peptidome in myeloid leukemia and Hodgkin lymphoma"
+    title: "HLA-G peptide preferences change in transformed cells: impact on the binding motif"
+    override: cell_line
+    note: >
+      Secreted HLA-G*01:01 MS immunopeptidomics across myeloid leukemia and Hodgkin
+      lymphoma cell lines demonstrating tumor-context peptide preference shifts
+      (Celik et al., J Immunol 2018). #8.
+    ms_samples:
+      - sample_label: "Transformed leukemia/lymphoma lines (secreted HLA-G*01:01)"
+        n_samples: 2
+        source: "Myeloid leukemia and Hodgkin lymphoma cell lines secreting soluble HLA-G*01:01"
+        condition: "unperturbed — soluble HLA-G*01:01 transfectants"
+        condition_id: transformed_lines_soluble_hla_g_01_01
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: mhc_transfectant;monoallelic
+        mhc_class: non-classical
+        mhc: "HLA-G*01:01"
+
+  - pmid: 38691588
+    study_label: "Paterson 2024 — HLA-E M. tuberculosis inhA presentation in THP-1 and U-937"
+    title: "An HLA-E-targeted TCR bispecific molecule redirects T cell immunity against Mycobacterium tuberculosis"
+    override: cell_line
+    note: >
+      HLA-E (HLA-E*01:01 / HLA-E*01:03) MS presentation and biophysical studies of
+      M. tuberculosis inhA peptides in THP-1 and U-937 monocyte cell lines
+      (Paterson et al., Sci Transl Med 2024). #8.
+    ms_samples:
+      - sample_label: "THP-1 / U-937 monocyte lines (HLA-E)"
+        n_samples: 2
+        source: "THP-1 and U-937 human monocyte cell lines"
+        condition: "M. tuberculosis inhA transduction / presentation"
+        condition_id: thp1_u937_mtb_hla_e
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: non-classical
+        mhc: "HLA-E*01:03"
+
+  - pmid: 23783831
+    study_label: "Adamopoulou 2013 — human thymus central tolerance HLA-I/II and HLA-E peptidome"
+    title: "Exploring the MHC-peptide matrix of central tolerance in the human thymus"
+    override: healthy
+    note: >
+      Direct ex vivo MS immunopeptidomics of primary human thymic dendritic cells and
+      thymocytes covering classical HLA-I, HLA-II (HLA-DR), and non-classical HLA-E
+      self-peptides (Adamopoulou et al., Nat Commun 2013). #8/#36.
+    ms_samples:
+      - sample_label: "Primary human thymus (thymocytes and thymic DCs, HLA-I)"
+        n_samples: 1
+        source: "Direct ex vivo primary human thymocytes and thymic dendritic cells"
+        condition: "unperturbed — healthy human thymus"
+        condition_id: human_thymus_class_i
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "HLA class I"
+      - sample_label: "Primary human thymus (thymocytes and thymic DCs, HLA-DR)"
+        n_samples: 1
+        source: "Direct ex vivo primary human thymocytes and thymic dendritic cells"
+        condition: "unperturbed — healthy human thymus"
+        condition_id: human_thymus_class_ii
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: II
+        mhc: "HLA-DR"
+      - sample_label: "Primary human thymus (thymocytes and thymic DCs, HLA-E)"
+        n_samples: 1
+        source: "Direct ex vivo primary human thymocytes and thymic dendritic cells"
+        condition: "unperturbed — healthy human thymus"
+        condition_id: human_thymus_hla_e
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: non-classical
+        mhc: "HLA-E"
+
+  - pmid: 8805247
+    study_label: "Diehl 1996 — non-classical HLA-G Edman degradation peptidome"
+    title: "Nonclassical HLA-G molecules are classical peptide presenters"
+    override: ebv_lcl
+    note: >
+      Early Edman degradation and binding characterization of endogenous peptides
+      presented by non-classical HLA-G in human B-LCL transfectants (Diehl et al.,
+      Curr Biol 1996). #8.
+    ms_samples:
+      - sample_label: "B-LCL HLA-G transfectant (Edman degradation)"
+        n_samples: 1
+        source: "Human EBV-transformed B-LCL expressing HLA-G"
+        condition: "unperturbed — HLA-G transfectant"
+        condition_id: diehl_1996_hla_g_blcl
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: mhc_transfectant;monoallelic
+        mhc_class: non-classical
+        mhc: "HLA-G"
+
+  - pmid: 10479050
+    study_label: "Münz 1999 — HLA-G peptide presentation and NK inhibition"
+    title: "Peptide presentation and NK inhibition by HLA-G"
+    override: ebv_lcl
+    note: >
+      Edman degradation characterization of endogenous HLA-G peptides eluted from
+      human B-LCL transfectants (Münz et al., J Reprod Immunol 1999). #8.
+    ms_samples:
+      - sample_label: "B-LCL HLA-G transfectant (Edman degradation)"
+        n_samples: 1
+        source: "Human EBV-transformed B-LCL expressing HLA-G"
+        condition: "unperturbed — HLA-G transfectant"
+        condition_id: munz_1999_hla_g_blcl
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: mhc_transfectant;monoallelic
+        mhc_class: non-classical
+        mhc: "HLA-G"
+
+  # ── #36 / #33c batch 1 (top medium uncurated human PMIDs, 100-999 peptides) ──
+  - pmid: 25548167
+    study_label: "Kowalewski 2015 — primary CLL vs healthy B-cell HLA-I/II ligandome"
+    title: "HLA ligandome analysis identifies the underlying specificities of spontaneous antileukemia immune responses in chronic lymphocytic leukemia (CLL)"
+    note: >
+      Direct ex vivo HLA class I and II immunopeptidomics of primary chronic lymphocytic
+      leukemia (CLL) B cells compared with healthy donor B cells (Kowalewski et al.,
+      PNAS 2015). #36/#33c.
+    ms_samples:
+      - sample_label: "Primary CLL and healthy donor B cells (HLA class I)"
+        n_samples: 1
+        source: "Direct ex vivo primary CLL patient and healthy donor peripheral B cells"
+        condition: "unperturbed — primary CLL vs healthy B cells"
+        condition_id: cll_and_healthy_b_cells_class_i
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "HLA class I"
+      - sample_label: "Primary CLL and healthy donor B cells (HLA class II)"
+        n_samples: 1
+        source: "Direct ex vivo primary CLL patient and healthy donor peripheral B cells"
+        condition: "unperturbed — primary CLL vs healthy B cells"
+        condition_id: cll_and_healthy_b_cells_class_ii
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: II
+        mhc: "HLA class II"
+
+  - pmid: 31556206
+    study_label: "Diego 2020 — Factor VIII HLA-II peptidome in dendritic cells"
+    title: "Quantitative HLA-class-II/factor VIII (FVIII) peptidomic variation in dendritic cells correlates with the immunogenic potential of therapeutic FVIII proteins in hemophilia A"
+    override: activated_apc
+    note: >
+      Direct ex vivo human monocyte-derived dendritic cells pulsed with plasma-derived
+      or recombinant Factor VIII products for quantitative HLA class II (HLA-DR/DP)
+      immunopeptidomics (Diego et al., J Thromb Haemost 2020). #36/#33c.
+    ms_samples:
+      - sample_label: "FVIII-pulsed human dendritic cells (HLA class II)"
+        n_samples: 1
+        source: "Direct ex vivo human dendritic cells pulsed with therapeutic FVIII products"
+        condition: "therapeutic Factor VIII protein pulsing"
+        condition_id: fviii_pulsed_dendritic_cells
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: II
+        mhc: "HLA class II"
+
+  - pmid: 22645359
+    study_label: "Ostrov 2012 — abacavir-altered HLA-B*57:01 self-peptide repertoire"
+    title: "Drug hypersensitivity caused by alteration of the MHC-presented self-peptide repertoire"
+    override: ebv_lcl
+    note: >
+      HLA-B*57:01 MS immunopeptidomics in EBV-transformed B-LCLs demonstrating
+      abacavir-induced remodeling of the self-peptide repertoire (Ostrov et al.,
+      PNAS 2012). #36/#33c.
+    ms_samples:
+      - sample_label: "B-LCL (HLA-B*57:01, +/- abacavir)"
+        n_samples: 1
+        source: "EBV-transformed B-LCL expressing HLA-B*57:01"
+        condition: "abacavir drug treatment vs untreated control"
+        condition_id: blcl_hla_b_57_01_abacavir
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: I
+        mhc: "HLA-B*57:01"
+
+  - pmid: 32162841
+    study_label: "Tiniakou 2020 — systemic scleroderma DC HLA-DR topoisomerase I peptidome"
+    title: "Definition of Naturally Processed Peptides Reveals Convergent Presentation of Autoantigenic Topoisomerase I Epitopes in Scleroderma"
+    note: >
+      Direct ex vivo HLA-DR immunopeptidomics of monocyte-derived dendritic cells from
+      systemic scleroderma patients loaded with DNA topoisomerase I (Tiniakou et al.,
+      Arthritis Rheumatol 2020). #36/#33c.
+    ms_samples:
+      - sample_label: "Systemic scleroderma patient dendritic cells (HLA-DR)"
+        n_samples: 1
+        source: "Direct ex vivo monocyte-derived dendritic cells from systemic scleroderma patients"
+        condition: "DNA topoisomerase I protein loading"
+        condition_id: scleroderma_dc_topo1_hla_dr
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: II
+        mhc: "HLA-DR"
+
+  - pmid: 27543614
+    study_label: "Nyambura 2016 — MUTZ3 DC and THP1 macrophage HLA-I peptidomes"
+    title: "Diverse HLA-I Peptide Repertoires of the APC Lines MUTZ3-Derived Immature and Mature Dendritic Cells and THP1-Derived Macrophages"
+    override: cell_line
+    note: >
+      Comparative HLA class I MS immunopeptidomics of human APC lines MUTZ3
+      (immature and mature DCs) and THP1-derived macrophages (Nyambura et al.,
+      J Immunol 2016). #36/#33c.
+    ms_samples:
+      - sample_label: "MUTZ3 dendritic cells and THP1 macrophages (HLA-I)"
+        n_samples: 2
+        source: "MUTZ3-derived immature/mature DCs and THP1-derived macrophages"
+        condition: "APC differentiation (immature DC, mature DC, macrophage)"
+        condition_id: mutz3_dc_and_thp1_macrophage
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: I
+        mhc: "HLA-A*02:01 HLA-B*15:11 HLA-C*03:03"
+
+  - pmid: 26758079
+    study_label: "Manandhar 2016 — HLA-B*35:01 and HLA-B*35:08 residue-156 B-LCL peptidome"
+    title: "Understanding the obstacle of incompatibility at residue 156 within HLA-B*35 subtypes"
+    override: ebv_lcl
+    arm_resolution: axis_mismatch
+    arm_resolution_note: >
+      IEDB deposits 200 rows as HLA-B*35:01, 211 rows as HLA-B*35:08, and 465 rows
+      under the broad serotype HLA-B35 without subtype specificity. The only varying
+      per-row metadata column (assay_comments, 5 distinct values) distinguishes the
+      host cell line axis (721.220 vs 721.221), not the curated HLA-B*35:01 vs
+      HLA-B*35:08 subtype arm axis.
+    note: >
+      MS immunopeptidomics of HLA-B*35:01 and HLA-B*35:08 allotypes expressed in
+      lymphoblastoid cell lines examining residue-156 micropolymorphism (Manandhar et al.,
+      Immunogenetics 2016). #36/#33c.
+    ms_samples:
+      - sample_label: "B-LCL transfectant (HLA-B*35:01)"
+        n_samples: 1
+        source: "EBV-transformed lymphoblastoid cell line expressing HLA-B*35:01"
+        condition: "unperturbed — mono-allelic transfectant"
+        condition_id: blcl_hla_b_35_01
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: mhc_transfectant;monoallelic
+        mhc_class: I
+        mhc: "HLA-B*35:01"
+      - sample_label: "B-LCL transfectant (HLA-B*35:08)"
+        n_samples: 1
+        source: "EBV-transformed lymphoblastoid cell line expressing HLA-B*35:08"
+        condition: "unperturbed — mono-allelic transfectant"
+        condition_id: blcl_hla_b_35_08
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: mhc_transfectant;monoallelic
+        mhc_class: I
+        mhc: "HLA-B*35:08"
+
+  - pmid: 25802875
+    study_label: "Badrinath 2015 — HLA-A*24:02 / A*24:06 / A*24:13 tapasin-dependence peptidome"
+    title: "A Micropolymorphism Altering the Residue Triad 97/114/156 Determines the Relative Levels of Tapasin Independence and Distinct Peptide Profiles for HLA-A(*)24 Allotypes"
+    override: ebv_lcl
+    note: >
+      MS immunopeptidomics of soluble HLA-A*24:02, HLA-A*24:06, and HLA-A*24:13
+      allotypes in B-LCLs investigating residue 97/114/156 tapasin dependence
+      (Badrinath et al., J Biol Chem 2015). #36/#33c.
+    ms_samples:
+      - sample_label: "B-LCL transfectant (HLA-A*24:02)"
+        n_samples: 1
+        source: "EBV-transformed B-LCL expressing HLA-A*24:02"
+        condition: "unperturbed — mono-allelic transfectant"
+        condition_id: blcl_hla_a_24_02
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: mhc_transfectant;monoallelic
+        mhc_class: I
+        mhc: "HLA-A*24:02"
+      - sample_label: "B-LCL transfectant (HLA-A*24:06)"
+        n_samples: 1
+        source: "EBV-transformed B-LCL expressing HLA-A*24:06"
+        condition: "unperturbed — mono-allelic transfectant"
+        condition_id: blcl_hla_a_24_06
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: mhc_transfectant;monoallelic
+        mhc_class: I
+        mhc: "HLA-A*24:06"
+      - sample_label: "B-LCL transfectant (HLA-A*24:13)"
+        n_samples: 1
+        source: "EBV-transformed B-LCL expressing HLA-A*24:13"
+        condition: "unperturbed — mono-allelic transfectant"
+        condition_id: blcl_hla_a_24_13
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: mhc_transfectant;monoallelic
+        mhc_class: I
+        mhc: "HLA-A*24:13"
+
+  - pmid: 24397554
+    study_label: "Schittenhelm 2014 — constitutive C1R HLA-C*04:01 / HLA-B*35:01 peptidome"
+    title: "A comprehensive analysis of constitutive naturally processed and presented HLA-C*04:01 (Cw4)-specific peptides"
+    override: ebv_lcl
+    note: >
+      Endogenous HLA-C*04:01 (and residual HLA-B*35:01) MS immunopeptidome of the
+      parental C1R B-lymphoblastoid host cell line (Schittenhelm et al., Tissue
+      Antigens 2014). #36/#33c.
+    ms_samples:
+      - sample_label: "Parental C1R B-LCL (endogenous HLA-C*04:01 / HLA-B*35:01)"
+        n_samples: 1
+        source: "Parental C1R human B-lymphoblastoid cell line"
+        condition: "unperturbed — parental C1R host line"
+        condition_id: parental_c1r_hla_c_04_01
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "HLA-C*04:01 HLA-B*35:01"
+
+  - pmid: 38117652
+    study_label: "Weingarten-Gabbay 2024 — SARS-CoV-2 HLA-II immunopeptidome (HEK293 / A549)"
+    title: "The HLA-II immunopeptidome of SARS-CoV-2"
+    override: cell_line
+    note: >
+      HLA class II MS immunopeptidomics of SARS-CoV-2-infected HEK293 and A549
+      epithelial cell lines expressing HLA-II alleles (Weingarten-Gabbay et al.,
+      Cell Rep 2024). #36/#33c.
+    ms_samples:
+      - sample_label: "SARS-CoV-2 infected HEK293 and A549 cells (HLA class II)"
+        n_samples: 2
+        source: "HEK293 and A549 human epithelial cell lines infected with SARS-CoV-2"
+        condition: "SARS-CoV-2 viral infection"
+        condition_id: hek293_a549_sarscov2_hla_ii
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: II
+        mhc: "HLA class II"
+
+  - pmid: 25469497
+    study_label: "Sanz-Bravo 2015 — ERAP1 R528K polymorphism HLA-B*27:05 B-LCL peptidome"
+    title: "Dominant role of the ERAP1 polymorphism R528K in shaping the HLA-B27 Peptidome through differential processing determined by multiple peptide residues"
+    override: ebv_lcl
+    note: >
+      HLA-B*27:05 MS immunopeptidomics across 3 human B-LCL lines carrying natural
+      ERAP1 polymorphisms (R528K, N575D/Q725R) associated with ankylosing spondylitis
+      (Sanz-Bravo et al., Mol Cell Proteomics 2015). #36/#33c.
+    ms_samples:
+      - sample_label: "ERAP1-polymorphic B-LCL panel (HLA-B*27:05)"
+        n_samples: 3
+        source: "3 human EBV-transformed B-LCL lines with distinct ERAP1 R528K / N575D / Q725R alleles"
+        condition: "natural ERAP1 polymorphism comparison"
+        condition_id: erap1_polymorphic_blcl_hla_b_27_05
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: I
+        mhc: "HLA-B*27:05"
+
+  - pmid: 28860189
+    study_label: "Synowsky 2017 — Jesthom B-LCL and extracellular vesicle HLA-I peptidome"
+    title: "The major histocompatibility complex class I immunopeptidome of extracellular vesicles"
+    override: ebv_lcl
+    note: >
+      Comparative HLA-A*02:01 and HLA-B*27:05 MS immunopeptidomics of whole cells and
+      extracellular vesicles (EVs) from the Jesthom EBV-transformed B-LCL line
+      (Synowsky et al., Sci Rep 2017). #36/#33c.
+    ms_samples:
+      - sample_label: "Jesthom B-LCL cells and extracellular vesicles (HLA-A*02:01)"
+        n_samples: 1
+        source: "Jesthom EBV-transformed B-LCL whole cells and extracellular vesicles"
+        condition: "unperturbed — whole cell vs extracellular vesicle"
+        condition_id: jesthom_ev_hla_a_02_01
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "HLA-A*02:01"
+      - sample_label: "Jesthom B-LCL cells and extracellular vesicles (HLA-B*27:05)"
+        n_samples: 1
+        source: "Jesthom EBV-transformed B-LCL whole cells and extracellular vesicles"
+        condition: "unperturbed — whole cell vs extracellular vesicle"
+        condition_id: jesthom_ev_hla_b_27_05
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "HLA-B*27:05"
+
+  - pmid: 31869419
+    study_label: "Lübke 2020 — HCMV deletion-mutant fibroblast HLA-I immunopeptidome"
+    title: "Identification of HCMV-derived T cell epitopes in seropositive individuals through viral deletion models"
+    override: noncancer_cell_line
+    note: >
+      HLA class I MS immunopeptidomics of lung and skin fibroblasts infected with HCMV
+      deletion mutants lacking HLA-I immunoevasins (Lübke et al., J Exp Med 2020).
+      #36/#33c.
+    ms_samples:
+      - sample_label: "HCMV-infected lung and skin fibroblasts (HLA class I)"
+        n_samples: 2
+        source: "Human lung and skin fibroblasts infected with HCMV immunoevasin-deletion mutants"
+        condition: "HCMV viral infection (immunoevasin-deletion mutant)"
+        condition_id: hcmv_deletion_mutant_fibroblasts
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: I
+        mhc: "HLA class I"
+
+  - pmid: 21872626
+    study_label: "Bade-Doeding 2011 — soluble HLA-B*44:02 vs HLA-B*44:27 B-LCL peptidome"
+    title: "Mismatches outside exons 2 and 3 do not alter the peptide motif of the allele group B*44:02P"
+    override: ebv_lcl
+    note: >
+      Soluble HLA-B*44:02 and HLA-B*44:27 MS immunopeptidomics in lentivirally
+      transduced B-LCLs confirming shared peptide motif across the alpha3 Val199Ala
+      substitution (Bade-Doeding et al., Immunogenetics 2011). #36/#33c.
+    ms_samples:
+      - sample_label: "B-LCL transfectant (soluble HLA-B*44:02)"
+        n_samples: 1
+        source: "EBV-transformed B-LCL transduced with soluble HLA-B*44:02"
+        condition: "unperturbed — mono-allelic soluble HLA transfectant"
+        condition_id: blcl_soluble_hla_b_44_02
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: mhc_transfectant;monoallelic
+        mhc_class: I
+        mhc: "HLA-B*44:02"
+      - sample_label: "B-LCL transfectant (soluble HLA-B*44:27)"
+        n_samples: 1
+        source: "EBV-transformed B-LCL transduced with soluble HLA-B*44:27"
+        condition: "unperturbed — mono-allelic soluble HLA transfectant"
+        condition_id: blcl_soluble_hla_b_44_27
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: mhc_transfectant;monoallelic
+        mhc_class: I
+        mhc: "HLA-B*44:27"

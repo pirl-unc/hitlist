@@ -3076,13 +3076,18 @@ def test_no_curated_mhc_token_has_an_inferred_species():
 #: (``HLA-DR15``, ``HLA-DQ8``) and class-II loci (``SLA-DR``,
 #: ``BoLA-DR``) are legitimate curation; tracked in #380.
 _KNOWN_NON_ALLELE_SAMPLES = {
+    (23783831, "Primary human thymus (thymocytes and thymic DCs, HLA-DR)"),
+    (27726376, "RA / Lyme arthritis synovial tissue, SFMC, and PBMC (HLA-DR)"),
     (28467828, "HLA-DR15 immunopeptidome component"),
+    (32162841, "Systemic scleroderma patient dendritic cells (HLA-DR)"),
     (32796065, "BMDCs (PRRSV-infected)"),
     (32796065, "PAMs (PRRSV-infected)"),
     (32796065, "hilar lymph node (PRRSV-infected piglets)"),
     (33789985, "bovine cell lines (BoLA-DR)"),
+    (34078123, "HLA-DQ class-II cell-line ligandome (MOU-B / lymphoblast / T2)"),
     (34433824, "HLA-DQ8 immunopeptidome component"),
     (36423003, "T. parva-infected bovine lymphocyte lines (BoLA-DR)"),
+    (36581221, "Birdshot chorioretinitis patient B-LCL (SAG-engineered, HLA-A29)"),
 }
 
 
