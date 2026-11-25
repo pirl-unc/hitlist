@@ -715,6 +715,15 @@ MANUAL_DATASETS: dict[str, dict[str, str]] = {
         "expected_filename": "lang_2026_splenic_dla_dr_peptides.tsv",
         "usage": "Offline access-aware loading via hitlist.load_lang_2026_splenic_dla_dr_ligands().",
     },
+    "peptidomicsdb_metadata": {
+        "download_url": "http://www.inbirg.com/ppd/download/",
+        "description": (
+            "PeptidomicsDB project/sample/dataset metadata workbooks "
+            "(10.1093/nar/gkag1032; audited before native-peptide admission, #811)"
+        ),
+        "expected_filename": "sample-download.xlsx",
+        "usage": "Capture-vs-compartment qualification via hitlist.qualify_peptidomicsdb_samples().",
+    },
 }
 
 
@@ -2054,6 +2063,8 @@ def _classify_catalog_entry(name: str, *, kind: str) -> tuple[str, str, str]:
     if name in _PERTURBATION_NAMES:
         species = "Mus musculus" if name == "pollock-2021-neotoma" else "Homo sapiens"
         return "perturbation_and_calibration", "source_qualified", species
+    if name == "peptidomicsdb_metadata":
+        return "perturbation_and_calibration", "peptidomics_qualification", "multi-species"
     if name.startswith(_EXPRESSION_PREFIXES):
         group = (
             "depmap"

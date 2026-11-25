@@ -480,3 +480,115 @@ def verify_response_contents(directory, manifest, source_package=None):
     if manifest["coverage"] != compiled["summary"]:
         raise RecipeError("Lymph composition response coverage differs")
     return manifest
+
+
+def nanaware_quantitative_grain_contract():
+    """Return explicit unresolved quantitative-grain & DC correspondence limits (#817)."""
+    return {
+        "tracked_issue": 817,
+        "recipe_id": RECIPE_ID,
+        "supported_aggregation_modes": ["representative_charge_feature"],
+        "disallowed_aggregation_modes": [
+            "sum_across_charge_features",
+            "pool_db_and_library_as_replicates",
+        ],
+        "safe_summed_total_peptide_quantity_established": False,
+        "peaks_area_integration_documented": False,
+        "dc_declared_replicates": {"cervical": 3, "mesenteric": 6},
+        "dc_exported_quantity_channels": {"cervical": 3, "mesenteric": 3},
+        "dc_channel_to_replicate_correspondence": "unresolved",
+        "dc_db_and_library_share_acquisitions": True,
+        "s4e_length_discrepancy_mass_verified_full_literal": True,
+        "human_instrument_conflict": {
+            "primary_methods": "Q-Exactive HF",
+            "community_sdrf": "Orbitrap Fusion Lumos",
+            "resolution": "preserved_unresolved_conflict",
+        },
+        "human_material_pool": "extracellular_lymph_ibd_not_intracellular_apc",
+        "dc_intervention": "B16-FLT3-L_expanded_not_untreated_baseline_apc",
+        "s4n_no_enzyme_search_reuses_digested_proteomics": True,
+    }
+
+
+def audit_nanaware_accession_token_normalization(raw_labels, reference_accessions):
+    """Audit Nanaware 2024 accession token normalization while preserving all raw labels (#817).
+
+    Supports ``sp|accession|name``, ``tr|accession|name``, ``accession|name``, and bare
+    ``accession`` tokens without altering original labels or substituting external
+    modern references for missing deposited entries.
+    """
+    ref_list = [str(acc).strip() for acc in reference_accessions if str(acc).strip()]
+    exact_refs = set(ref_list)
+    by_token = defaultdict(list)
+    for ref in ref_list:
+        tok = accession_token(ref)
+        if tok:
+            by_token[tok].append(ref)
+
+    audit_rows = []
+    n_exact_raw = 0
+    n_token_matched = 0
+    n_missing = 0
+    for raw in raw_labels:
+        raw_str = "" if raw is None else str(raw).strip()
+        tok = accession_token(raw_str)
+        if raw_str in exact_refs:
+            status = "exact_raw_match"
+            candidates = [raw_str]
+            n_exact_raw += 1
+        elif tok and tok in by_token:
+            status = "normalized_token_match"
+            candidates = sorted(set(by_token[tok]))
+            n_token_matched += 1
+        else:
+            status = "missing_deposited_reference"
+            candidates = []
+            n_missing += 1
+        audit_rows.append(
+            {
+                "raw_label": raw_str,
+                "normalized_token": tok or "",
+                "match_status": status,
+                "candidate_deposited_accessions": candidates,
+                "n_candidate_accessions": len(candidates),
+            }
+        )
+    return {
+        "tracked_issue": 817,
+        "preserves_original_raw_labels": True,
+        "substitutes_external_modern_references": False,
+        "n_input_labels": len(audit_rows),
+        "n_exact_raw_matches": n_exact_raw,
+        "n_normalized_token_matches": n_token_matched,
+        "n_missing_deposited_references": n_missing,
+        "rows": audit_rows,
+    }
+
+
+def guard_nanaware_quantity_aggregation(
+    mode="representative_charge_feature", *, dc_channel_map=None
+):
+    """Guard against unsafe PEAKS charge-feature summation or fabricated DC channel maps (#817)."""
+    contract = nanaware_quantitative_grain_contract()
+    if mode in contract["disallowed_aggregation_modes"]:
+        raise ValueError(
+            f"Aggregation mode {mode!r} is disallowed for Nanaware 2024 (#817): "
+            "PEAKS charge-feature summation and DB/library replicate pooling are unsupported"
+        )
+    if mode not in contract["supported_aggregation_modes"]:
+        raise ValueError(
+            f"Unknown Nanaware 2024 aggregation mode {mode!r}; supported: "
+            f"{contract['supported_aggregation_modes']}"
+        )
+    if dc_channel_map is not None:
+        raise ValueError(
+            "Nanaware 2024 DC channel-to-replicate correspondence (3+3 exported channels vs "
+            "3 cervical / 6 mesenteric declared replicates) remains unresolved (#817); "
+            "do not supply inferred channel-to-specimen assignments"
+        )
+    return {
+        "mode": mode,
+        "allowed": True,
+        "safe_summed_total_peptide_quantity_established": False,
+        "dc_channel_to_replicate_correspondence": "unresolved",
+    }

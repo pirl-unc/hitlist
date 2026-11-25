@@ -1,0 +1,116 @@
+{
+  "revision": "peptidomicsdb_qualification_v1",
+  "schema_version": 1,
+  "tracked_issue": 811,
+  "resource_name": "PeptidomicsDB",
+  "doi": "10.1093/nar/gkag1032",
+  "published_date": "2026-10-23",
+  "audited_date": "2026-10-24",
+  "download_page_url": "http://www.inbirg.com/ppd/download/",
+  "presto_audit_report": "https://github.com/pirl-unc/presto/blob/0248f11/experiments/2026-10-24_0938_codex_native-apc-source-search/README.md",
+  "admission_status": "metadata_qualified_no_apc_cohort_admitted",
+  "current_n_qualified_native_apc_cohorts": 0,
+  "metadata_workbooks": {
+    "project-download.xlsx": {
+      "url": "http://www.inbirg.com/ppd_static/exports/project-download.xlsx",
+      "size_bytes": 103364,
+      "sha256": "c777722f9a6bbfa9f39a8525821e7c621ad1e55d920dde81edc66574cef261cc",
+      "n_rows": 151,
+      "n_columns": 17
+    },
+    "sample-download.xlsx": {
+      "url": "http://www.inbirg.com/ppd_static/exports/sample-download.xlsx",
+      "size_bytes": 322696,
+      "sha256": "739fd96bf13f90988cc00548b0250d640a0f97bbf25ecb737b7d89fc165b1f39",
+      "n_rows": 3992,
+      "n_unique_raw_file_names": 3983,
+      "n_columns": 16
+    },
+    "datasets-download.xlsx": {
+      "url": "http://www.inbirg.com/ppd_static/exports/datasets-download.xlsx",
+      "size_bytes": 42613,
+      "sha256": "a06849f77df39c424580ffbd2a3f20fd462fee8d57dc4b5ee6850b2a31d0b327",
+      "n_pairwise_rows": 249,
+      "n_context_specific_rows": 14
+    }
+  },
+  "ooxml_verified_nonempty_values": 63761,
+  "orthogonal_preparation_fields": [
+    "specimen_compartment",
+    "molecular_capture_enrichment",
+    "post_extraction_digestion",
+    "ms_search_enzyme"
+  ],
+  "reanalysis_provenance": {
+    "pipeline": "PEAKS",
+    "distinct_identification_methods": [
+      "DB Search",
+      "DeepNovo",
+      "Homolog",
+      "Sequence Variants"
+    ],
+    "cross_project_intensity_comparable": false,
+    "missing_equals_zero": false,
+    "notes": [
+      "Original project identifications and PeptidomicsDB PEAKS reanalyses must stay distinct.",
+      "DB Search, DeepNovo, Homolog and Sequence Variants must never be collapsed into a single identification provenance.",
+      "Reanalysis intensities must not be silently equated across projects or treated as calibrated cellular concentrations."
+    ]
+  },
+  "primary_source_reviewed_dispositions": {
+    "PPD017": {
+      "project_id": "PPD017",
+      "original_accession": "PXD021177",
+      "primary_pmid": "34211107",
+      "primary_url": "https://pubmed.ncbi.nlm.nih.gov/34211107/",
+      "flagged_sample_ids": [
+        "PPD0170004"
+      ],
+      "source_category_raw": "MHC-I immunopeptidomics; Intracellular peptidomics",
+      "specimen_compartment": "whole_cell_and_ev_lysate",
+      "molecular_capture_enrichment": "hla_immunoaffinity",
+      "post_extraction_digestion": "none",
+      "verified_endpoint_class": "mhc_bound_eluted_ligand",
+      "disposition": "excluded",
+      "disposition_reason": "capture_vs_compartment_hazard_hla_ip_not_free_intracellular",
+      "notes": "Sample PPD0170004 (JY whole cell) carries both MHC-I and Intracellular tags, but PMID 34211107 explicitly uses HLA immunoaffinity purification. Selected HLA ligand evidence, never free intracellular peptide pool."
+    },
+    "PPD070": {
+      "project_id": "PPD070",
+      "original_accession": "PXD009801",
+      "primary_pmid": "24715725",
+      "primary_url": "https://pubmed.ncbi.nlm.nih.gov/24715725/",
+      "flagged_sample_ids": [],
+      "source_category_raw": "Peptidomics",
+      "specimen_compartment": "whole_cell_lysate",
+      "molecular_capture_enrichment": "hla_immunoaffinity_and_proteome",
+      "post_extraction_digestion": "mixed",
+      "verified_endpoint_class": "mhc_bound_dynamic_silac_and_proteome",
+      "disposition": "excluded",
+      "disposition_reason": "generic_peptidomics_category_hides_hla_i_dynamic_silac",
+      "notes": "Generically tagged Peptidomics across U937/RPMI/JY lines, but PMID 24715725 measures dynamic SILAC isotope labeling of HLA-I ligands and source proteomes. Must never be admitted as free intracellular peptides."
+    },
+    "PPD016": {
+      "project_id": "PPD016",
+      "original_accession": "PXD033369",
+      "primary_pmid": "",
+      "primary_url": "https://proteomecentral.proteomexchange.org/cgi/GetDataset?ID=PXD033369",
+      "flagged_sample_ids": [],
+      "source_category_raw": "Intracellular peptidomics",
+      "specimen_compartment": "intracellular_enteroendocrine",
+      "molecular_capture_enrichment": "unknown_unverified_native",
+      "post_extraction_digestion": "unknown",
+      "verified_endpoint_class": "non_apc_enteroendocrine_peptidomics",
+      "disposition": "excluded",
+      "disposition_reason": "non_apc_enteroendocrine_cells",
+      "notes": "All 20 solely Intracellular-tagged PeptidomicsDB samples belong to enteroendocrine cells (PPD016/PXD033369), not antigen-presenting cells."
+    }
+  },
+  "semantic_invariants": [
+    "Enzyme=None in PeptidomicsDB is an MS search-enzyme field and never proves native extraction or absence of laboratory digestion.",
+    "Original database category labels are preserved separately from primary-source verified endpoint interpretation.",
+    "Project-declared sample counts and unique raw-file names (3,983 across 3,992 rows) do not establish biological specimen independence.",
+    "Ex-vivo proteolysis uncertainty must be preserved explicitly on any future native-peptide candidate.",
+    "Metadata availability alone establishes zero cellular-concentration claims."
+  ]
+}
