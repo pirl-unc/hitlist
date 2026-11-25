@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -131,6 +132,23 @@ def validate_lineage(registry: dict) -> dict:
 def load_lineage(path=None) -> dict:
     """Read the versioned registry afresh so curation edits cannot stay cached."""
     return validate_lineage(load_curation_yaml(Path(path or lineage_path())))
+
+
+def lineage_registry_sha256(registry: dict | None = None) -> str:
+    """Return the canonical SHA-256 hex digest of a validated lineage registry (#680).
+
+    Freezes the exact reviewed entities, aliases, and contexts independent of
+    YAML formatting or in-memory key order so split-audit reports and training
+    release manifests bind unambiguously to one reviewed registry state.
+    """
+    validated = load_lineage() if registry is None else validate_lineage(registry)
+    canonical_json = json.dumps(
+        validated,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(canonical_json).hexdigest()
 
 
 def canonical_identities(registry: dict) -> dict[str, str]:
