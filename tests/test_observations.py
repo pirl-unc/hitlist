@@ -1276,8 +1276,12 @@ def test_species_axis_derived_columns(tmp_path, monkeypatch):
     # Normalized binomials, parentheticals/substrains stripped.
     assert df.loc["AAAAAAAAA", "host_organism"] == "Homo sapiens"
     assert df.loc["FFFFFFFFF", "host_organism"] == "Mus musculus"
-    # normalize_species canonicalizes the subspecies to the species binomial.
-    assert df.loc["DDDDDDDDD", "source_species"] == "Canis lupus"
+    # normalize_species delegates to mhcgnomes' canonical canine species name
+    # ("Canis lupus" in older releases, "Canis lupus familiaris" in >=3.78.0).
+    from hitlist.curation import normalize_species
+
+    assert df.loc["DDDDDDDDD", "source_species"] == normalize_species("Canis lupus familiaris")
+    assert df.loc["DDDDDDDDD", "source_species"] in {"Canis lupus", "Canis lupus familiaris"}
 
     # HLA-tg rat: chimeric + engineered MHC, not xenograft.
     assert bool(df.loc["CCCCCCCCC", "is_chimeric"]) is True

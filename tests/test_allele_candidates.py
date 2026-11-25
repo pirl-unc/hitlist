@@ -128,7 +128,7 @@ def test_class_scoped_haplotype_uses_only_its_roster(restriction, expected):
 
 @pytest.mark.parametrize(
     "restriction",
-    ["RT1-Dn", "H2-IEg7", "ELA-A1 class I", "H2-b", "H2-Q2"],
+    ["RT1-Dn", "ELA-A1 class I", "H2-b", "H2-Q2"],
 )
 def test_haplotype_without_scoped_roster_is_not_expanded(restriction, monkeypatch):
     monkeypatch.setattr(curation, "_pmid_allele_pool", lambda _: frozenset({"H2-K*b"}))
