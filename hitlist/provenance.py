@@ -94,11 +94,12 @@ class ContributorCollector:
     work sets live in the capped database, never a corpus-wide SQLite sort.
     """
 
-    _ROOT_BATCH_SIZE = 256
+    _ROOT_BATCH_SIZE = 4096
     _OUTPUT_BATCH_BYTES = 4 * 1024**2
     _OUTPUT_BATCH_ROWS = 10000
     _CAPTURE_BATCH_ROWS = 128
     _CAPTURE_BATCH_BYTES = 1024**2
+    _EDGE_BATCH_ROWS = 4096
     _DECODE_CACHE_BYTES = 4 * 1024**2
 
     def __init__(self, *, scratch_dir=None, max_scratch_bytes=None, min_free_bytes=None):
@@ -130,6 +131,9 @@ class ContributorCollector:
         self._codec = pa.Codec("zstd", compression_level=1)
         self._block_id = 0
         self._pending_payloads = []
+        self._pending_records = []
+        self._pending_edges = []
+        self._last_row_by_dataset: dict[str, int] = {}
         self._pending_bytes = 0
         self._decoded_blocks = OrderedDict()
         self._decoded_bytes = 0
@@ -178,8 +182,21 @@ class ContributorCollector:
                 raise translated from error
             raise
 
+    def _executemany(self, sql, parameters):
+        self._check_space()
+        try:
+            return self.db.executemany(sql, parameters)
+        except sqlite3.Error as error:
+            translated = self._translate_error(error)
+            if translated is not None:
+                raise translated from error
+            raise
+
     def _close(self):
         self._pending_payloads.clear()
+        self._pending_records.clear()
+        self._pending_edges.clear()
+        self._last_row_by_dataset.clear()
         self._decoded_blocks.clear()
         self._pending_bytes = self._decoded_bytes = 0
         if self.db is not None:
@@ -288,30 +305,39 @@ class ContributorCollector:
         prefixes = tuple(
             (json.dumps(name) + ": ", index) for name, index in sorted(columns.items())
         )
+        col_to_mapped: dict[int, list[tuple[int, str]]] = {}
+        for pos, (prefix, index) in enumerate(prefixes):
+            col_to_mapped.setdefault(index, []).append((pos, prefix))
+        col_to_mapped_tuples = {idx: tuple(items) for idx, items in col_to_mapped.items()}
         pmid_index = columns.get("pmid")
         escape = json.encoder.encode_basestring_ascii
+        record_payload = self._record_payload
+        max_cache_bytes = self._CAPTURE_BATCH_BYTES
         previous = ()
         encoded = []
         mapped = []
 
         def record_row(row_number, row_values):
             nonlocal previous, encoded, mapped
-            if len(previous) == len(row_values) and mapped:
-                for index, (value, old) in enumerate(zip(row_values, previous)):
-                    if value != old:
-                        encoded[index] = escape(value)
-                for position, (prefix, index) in enumerate(prefixes):
-                    if index < len(row_values) and row_values[index] != previous[index]:
-                        mapped[position] = prefix + encoded[index]
+            n_columns = len(row_values)
+            if len(previous) == n_columns and mapped:
+                for index in range(n_columns):
+                    value = row_values[index]
+                    if value != previous[index]:
+                        enc = escape(value)
+                        encoded[index] = enc
+                        targets = col_to_mapped_tuples.get(index)
+                        if targets is not None:
+                            for pos, prefix in targets:
+                                mapped[pos] = prefix + enc
             else:
                 encoded = list(map(escape, row_values))
                 mapped = [
-                    prefix + (encoded[index] if index < len(encoded) else '""')
+                    prefix + (encoded[index] if index < n_columns else '""')
                     for prefix, index in prefixes
                 ]
-            n_columns = len(encoded)
             payload = ("{" + ", ".join(mapped) + "}\n[" + ", ".join(encoded) + "]").encode()
-            if len(payload) <= self._CAPTURE_BATCH_BYTES:
+            if len(payload) <= max_cache_bytes:
                 # A caller may reuse and mutate its CSV row list.
                 previous = tuple(row_values)
             else:
@@ -319,29 +345,40 @@ class ContributorCollector:
             pmid = (
                 row_values[pmid_index] if pmid_index is not None and pmid_index < n_columns else ""
             )
-            return self._record_payload(dataset, row_number, payload, pmid)
+            return record_payload(dataset, row_number, payload, pmid)
 
         return record_row
 
     def _record_payload(self, dataset, row_number, payload, pmid):
-        record_id = f"{_record_prefix(dataset)}{row_number}"
+        row_int = int(row_number)
+        record_id = f"{_record_prefix(dataset)}{row_int}"
         if (
             self._pending_payloads
             and self._pending_bytes + len(payload) > self._CAPTURE_BATCH_BYTES
         ):
             self._flush_payloads()
-        self._execute(
-            "INSERT INTO records VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (
-                record_id,
-                dataset,
-                int(row_number),
-                self._block_id,
-                self._pending_bytes,
-                len(payload),
-                pmid,
-            ),
+        row_tuple = (
+            record_id,
+            dataset,
+            row_int,
+            self._block_id,
+            self._pending_bytes,
+            len(payload),
+            pmid,
         )
+        prev_row = self._last_row_by_dataset.get(dataset, -1)
+        if row_int > prev_row:
+            self._last_row_by_dataset[dataset] = row_int
+            self._pending_records.append(row_tuple)
+        else:
+            # Non-monotonic or duplicate row_number: flush pending rows and
+            # insert immediately so SQLite enforces PRIMARY KEY without delay.
+            if self._pending_records:
+                self._executemany(
+                    "INSERT INTO records VALUES (?, ?, ?, ?, ?, ?, ?)", self._pending_records
+                )
+                self._pending_records.clear()
+            self._execute("INSERT INTO records VALUES (?, ?, ?, ?, ?, ?, ?)", row_tuple)
         self._pending_payloads.append(payload)
         self._pending_bytes += len(payload)
         if (
@@ -351,8 +388,19 @@ class ContributorCollector:
             self._flush_payloads()
         return record_id
 
+    def _flush_edges(self):
+        if not self._pending_edges:
+            return
+        self._executemany("INSERT INTO edges VALUES (?, ?, ?, ?)", self._pending_edges)
+        self._pending_edges.clear()
+
     def _flush_payloads(self):
         """Publish one bounded scratch block; a single oversized row stands alone."""
+        if self._pending_records:
+            self._executemany(
+                "INSERT INTO records VALUES (?, ?, ?, ?, ?, ?, ?)", self._pending_records
+            )
+            self._pending_records.clear()
         if not self._pending_payloads:
             return
         payload = self._codec.compress(b"".join(self._pending_payloads), asbytes=True)
@@ -388,6 +436,8 @@ class ContributorCollector:
 
     def _set_scratch_limit(self, n_bytes):
         """Apply a temporary reservation within the caller's total scratch budget."""
+        self._flush_payloads()
+        self._flush_edges()
         n_pages = n_bytes // 4096
         if self.db.execute("PRAGMA page_count").fetchone()[0] > n_pages:
             raise self._storage_error("existing graph exceeds its reserved scratch space")
@@ -402,6 +452,7 @@ class ContributorCollector:
         if path.exists():
             raise ValueError("Contributor snapshot destination already exists")
         self._flush_payloads()
+        self._flush_edges()
         self.db.commit()
         self.db.close()
         self.db = None
@@ -413,6 +464,7 @@ class ContributorCollector:
         if self.sources.keys() & sources.keys():
             raise ValueError("Contributor snapshot repeats a source namespace")
         self._flush_payloads()
+        self._flush_edges()
         self.db.commit()
         self._execute("ATTACH DATABASE ? AS captured", (str(path),))
         try:
@@ -449,7 +501,9 @@ class ContributorCollector:
         node = f"observation:{record_id}"
         if sample_label:
             node += f"|sample:{quote(sample_label, safe='')}"
-        self._execute("INSERT INTO edges VALUES (?, ?, 0, ?)", (record_id, node, sample_label))
+        self._pending_edges.append((record_id, node, 0, sample_label))
+        if len(self._pending_edges) >= self._EDGE_BATCH_ROWS:
+            self._flush_edges()
         return node
 
     def begin_scan(self):
@@ -471,23 +525,34 @@ class ContributorCollector:
     def redirect(self, source: str, target: str, relationship: str):
         if source == target:
             raise ValueError("A contributor cannot redirect to itself")
-        self._execute(
-            "INSERT INTO edges VALUES (?, ?, ?, '')", (source, target, RELATIONS[relationship])
-        )
+        self._pending_edges.append((source, target, RELATIONS[relationship], ""))
+        if len(self._pending_edges) >= self._EDGE_BATCH_ROWS:
+            self._flush_edges()
 
     def retain_duplicates(self, frame, keys, relationship, *, uncertain_keys=()):
         """Record redirects before a keep-first deduplication of ``frame``."""
-        if "provenance_id" not in frame:
+        if "provenance_id" not in frame or frame.empty:
             return
-        work = frame[["provenance_id"]].copy()
-        work["key"] = keys.to_numpy()
-        winners = work.drop_duplicates("key").set_index("key")["provenance_id"]
-        for row in work[work["key"].duplicated()].itertuples(index=False):
-            self.redirect(
-                row.provenance_id,
-                winners.at[row.key],
-                "reference_overlap" if row.key in uncertain_keys else relationship,
-            )
+        pids = frame["provenance_id"].tolist()
+        key_list = keys.tolist()
+        rel_default = RELATIONS[relationship]
+        rel_uncertain = RELATIONS["reference_overlap"]
+        uncertain = (
+            uncertain_keys if isinstance(uncertain_keys, (set, frozenset)) else set(uncertain_keys)
+        )
+        winners: dict = {}
+        edges = self._pending_edges
+        batch_limit = self._EDGE_BATCH_ROWS
+        for pid, key in zip(pids, key_list):
+            winner = winners.get(key)
+            if winner is None:
+                winners[key] = pid
+            else:
+                if pid == winner:
+                    raise ValueError("A contributor cannot redirect to itself")
+                edges.append((pid, winner, rel_uncertain if key in uncertain else rel_default, ""))
+                if len(edges) >= batch_limit:
+                    self._flush_edges()
 
     def _iter_links(self):
         """Traverse narrow identities in capped tables before reading payloads.
@@ -551,6 +616,7 @@ class ContributorCollector:
         n_links = 0
         try:
             self._flush_payloads()
+            self._flush_edges()
             for frame in frames:
                 if "provenance_id" in frame:
                     self.db.executemany(
@@ -559,8 +625,35 @@ class ContributorCollector:
                     )
             self.db.commit()
             with pq.ParquetWriter(temporary, schema, compression="zstd") as writer:
-                records = []
+                c_node: list[str] = []
+                c_source: list[str] = []
+                c_dataset: list[str] = []
+                c_row: list[int] = []
+                c_pmid: list[str] = []
+                c_fields: list[str] = []
+                c_values: list[str] = []
+                c_label: list[str] = []
+                c_attr: list[str] = []
+                c_rel: list[str] = []
+                c_status: list[str] = []
+                columns = (
+                    c_node,
+                    c_source,
+                    c_dataset,
+                    c_row,
+                    c_pmid,
+                    c_fields,
+                    c_values,
+                    c_label,
+                    c_attr,
+                    c_rel,
+                    c_status,
+                )
                 batch_bytes = 0
+                batch_limit_bytes = self._OUTPUT_BATCH_BYTES
+                batch_limit_rows = self._OUTPUT_BATCH_ROWS
+                payload_fn = self._payload
+                rel_json = _relationship_json
                 for (
                     node,
                     source,
@@ -573,45 +666,31 @@ class ContributorCollector:
                     label,
                     flags,
                 ) in self._iter_links():
-                    decoded = self._payload(block_id, offset, length)
+                    decoded = payload_fn(block_id, offset, length)
                     fields, values = decoded.decode().split("\n", 1)
                     batch_bytes += len(decoded) + len(node) + len(source) + len(label)
-                    records.append(
-                        (
-                            node,
-                            source,
-                            dataset,
-                            row,
-                            pmid,
-                            fields,
-                            values,
-                            label,
-                            "curated_peptide_map" if label else "not_attributed",
-                            _relationship_json(flags),
-                            "overlap_unresolved" if flags & 28 else "source_record",
-                        )
-                    )
-                    if (
-                        batch_bytes >= self._OUTPUT_BATCH_BYTES
-                        or len(records) >= self._OUTPUT_BATCH_ROWS
-                    ):
+                    c_node.append(node)
+                    c_source.append(source)
+                    c_dataset.append(dataset)
+                    c_row.append(row)
+                    c_pmid.append(pmid)
+                    c_fields.append(fields)
+                    c_values.append(values)
+                    c_label.append(label)
+                    c_attr.append("curated_peptide_map" if label else "not_attributed")
+                    c_rel.append(rel_json(flags))
+                    c_status.append("overlap_unresolved" if flags & 28 else "source_record")
+                    if batch_bytes >= batch_limit_bytes or len(c_node) >= batch_limit_rows:
                         self._check_space(force=True)
-                        writer.write_table(
-                            pa.Table.from_pydict(
-                                dict(zip(CONTRIBUTOR_COLUMNS, zip(*records))), schema=schema
-                            )
-                        )
-                        n_links += len(records)
-                        records.clear()
+                        writer.write_table(pa.Table.from_arrays(columns, schema=schema))
+                        n_links += len(c_node)
+                        for col in columns:
+                            col.clear()
                         batch_bytes = 0
-                if records:
+                if c_node:
                     self._check_space(force=True)
-                    writer.write_table(
-                        pa.Table.from_pydict(
-                            dict(zip(CONTRIBUTOR_COLUMNS, zip(*records))), schema=schema
-                        )
-                    )
-                    n_links += len(records)
+                    writer.write_table(pa.Table.from_arrays(columns, schema=schema))
+                    n_links += len(c_node)
             # Catch source replacement during a long build instead of binding
             # rows to the digest of bytes that were never actually scanned.
             for source in self.sources.values():

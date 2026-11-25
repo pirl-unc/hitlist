@@ -282,6 +282,7 @@ _PUBLIC_API: dict[str, str] = {
     "normalize_serotype_query": ".curation",
     "tissue_anatomy_compartments": ".curation",
     "classify_tissue_anatomy": ".curation",
+    "blank_tissue_provenance_audit": ".qc",
     # Build the cached indexes, or ask whether they are current without
     # building, printing, or downloading anything (#448).
     "build_observations": ".builder",
