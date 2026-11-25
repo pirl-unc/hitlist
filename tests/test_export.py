@@ -909,20 +909,28 @@ def test_attach_peptide_origin_demotes_engineered_rows_to_parent_rna(tmp_path, m
 
 
 def test_expand_heterodimer_components_dp_pair():
-    """HLA-DP heterodimer string splits into full + beta + alpha components."""
+    """HLA-DP heterodimer string splits into full + alpha + beta components."""
+    from hitlist.curation import resolve_allele_identity
     from hitlist.export import _expand_heterodimer_components
 
-    out = _expand_heterodimer_components("HLA-DPB1*06:01/DPA1*01:03")
-    assert out[0] == "HLA-DPB1*06:01/DPA1*01:03"
+    pair = "HLA-DPB1*06:01/DPA1*01:03"
+    out = _expand_heterodimer_components(pair)
+    expected_pair = resolve_allele_identity(pair)
+    assert expected_pair in {"HLA-DPB1*06:01/DPA1*01:03", "HLA-DPA1*01:03/DPB1*06:01"}
+    assert out[0] == expected_pair
     assert "HLA-DPB1*06:01" in out
     assert "HLA-DPA1*01:03" in out
 
 
 def test_expand_heterodimer_components_dq_pair():
+    from hitlist.curation import resolve_allele_identity
     from hitlist.export import _expand_heterodimer_components
 
-    out = _expand_heterodimer_components("HLA-DQB1*06:04/DQA1*01:02")
-    assert out[0] == "HLA-DQB1*06:04/DQA1*01:02"
+    pair = "HLA-DQB1*06:04/DQA1*01:02"
+    out = _expand_heterodimer_components(pair)
+    expected_pair = resolve_allele_identity(pair)
+    assert expected_pair in {"HLA-DQB1*06:04/DQA1*01:02", "HLA-DQA1*01:02/DQB1*06:04"}
+    assert out[0] == expected_pair
     assert "HLA-DQB1*06:04" in out
     assert "HLA-DQA1*01:02" in out
 

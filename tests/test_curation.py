@@ -2822,10 +2822,13 @@ def test_extract_allele_tokens_rejects_free_text():
 
 
 def test_expand_allele_components_splits_pairs_via_mhcgnomes():
-    from hitlist.curation import expand_allele_components
+    from hitlist.curation import expand_allele_components, resolve_allele_identity
 
-    out = expand_allele_components("HLA-DPB1*06:01/DPA1*01:03")
-    assert out[0] == "HLA-DPB1*06:01/DPA1*01:03"
+    pair = "HLA-DPB1*06:01/DPA1*01:03"
+    out = expand_allele_components(pair)
+    expected_pair = resolve_allele_identity(pair)
+    assert expected_pair in {"HLA-DPB1*06:01/DPA1*01:03", "HLA-DPA1*01:03/DPB1*06:01"}
+    assert out[0] == expected_pair
     assert "HLA-DPB1*06:01" in out
     assert "HLA-DPA1*01:03" in out
     # Class-I alleles pass through unchanged.

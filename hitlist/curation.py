@@ -1926,7 +1926,7 @@ def _names_one_molecule(allele: Allele) -> bool:
     upstream catalog's source-backed, gene-specific names qualify.
     """
     if allele.num_allele_fields != 1:
-        return allele.num_allele_fields >= 2
+        return allele.num_allele_fields >= 2 and not getattr(allele, "is_allele_group", False)
     field = allele.allele_fields[0]
     return field in allele.species.haplotypes or (
         not field.isdigit() and allele.species.get_known_allele(allele.gene.name, field) is not None
@@ -2793,6 +2793,7 @@ def _scope_entry(parsed, token: str) -> tuple[str, bool] | None:
         if not (
             parsed.mhc_class == "Ia"
             and parsed.num_allele_fields >= 2
+            and not getattr(parsed, "is_allele_group", False)
             and parsed.is_human
             and not parsed.is_mutant
         ):
@@ -2995,7 +2996,11 @@ def reported_mhc_fields_overlap(first, second) -> bool | None:
     def precise_molecule(molecule):
         if isinstance(molecule, Pair):
             return precise_molecule(molecule.alpha) and precise_molecule(molecule.beta)
-        return isinstance(molecule, Allele) and molecule.num_allele_fields >= 2
+        return (
+            isinstance(molecule, Allele)
+            and molecule.num_allele_fields >= 2
+            and not getattr(molecule, "is_allele_group", False)
+        )
 
     def molecules(field):
         candidates = sample_mhc_candidates(field)

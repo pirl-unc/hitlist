@@ -39,7 +39,11 @@ def test_all_v3_deposited_contexts_preserve_named_sources_and_treatment_uncertai
         elif len(context["named_lines"]) == 1:
             name = context["named_lines"][0]
             assert row.condition_id
-            assert row.sample_attribution == "elution_conditions"
+            # With mhcgnomes >= 3.84 canonicalizing DP/DQ pairs to alpha/beta,
+            # unique-heterodimer samples resolve directly via allele_exact (still
+            # verified against the elution-condition statement), while shared-
+            # heterodimer samples disambiguate via elution_conditions.
+            assert row.sample_attribution in {"elution_conditions", "allele_exact"}
             if name.startswith("K562-"):
                 assert row.sample_label.startswith(
                     "K562 transfectant " + name.removeprefix("K562-")
