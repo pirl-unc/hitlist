@@ -13,12 +13,22 @@ from .lineage import (
     ASSAY_PREPARATIONS,
     AXES,
     CELLULAR_DEPENDENCY_AXES,
+    STATUSES,
     attach_lineage_applicability,
     canonical_identities,
+    lineage_registry_sha256,
     load_lineage,
 )
 
 SCHEMA_VERSION = 1
+_REUSE_AUDIT_AXES = (
+    "observation",
+    "experimental_origin",
+    "specimen",
+    "donor",
+    "acquisition",
+    "study",
+)
 POLICIES = {
     "report_only": (),
     "peptide_disjoint": ("peptide",),
@@ -96,21 +106,50 @@ def _partition_axes(frame, registry):
     }
     data = {}
 
-    def collect(axis, values, resolved):
+    def collect(axis, values, resolved, *, status_series=None):
         members = {}
         for key, row_values in zip(keys, values):
             for value in row_values:
                 members.setdefault(value, set()).add(key)
         # All mapping alternatives of one observation must agree on resolution.
         known = pd.DataFrame({"key": keys, "resolved": resolved}).groupby("key")["resolved"].all()
+        n_resolved_obs = int(known.sum())
+        n_unresolved_obs = int((~known).sum())
         entry = {
             "members": members,
-            "n_unresolved_observations": int((~known).sum()),
+            "n_resolved_observations": n_resolved_obs,
+            "n_unresolved_observations": n_unresolved_obs,
+            "coverage_fraction": (
+                float(n_resolved_obs / n_observations) if n_observations else 0.0
+            ),
             "available": bool(n_observations == 0 or axis in available),
         }
         if axis in AXES:
             resolved_mask = known.to_numpy(dtype=bool)
             n_app_resolved = int(resolved_mask.sum())
+            if status_series is not None and n_observations:
+                obs_status = (
+                    pd.DataFrame({"key": keys, "status": status_series})
+                    .groupby("key", sort=False)["status"]
+                    .agg(lambda s: s.iloc[0] if s.nunique() == 1 else "ambiguous")
+                )
+                # Preserve exact status breakdown while honoring resolved_mask
+                # (e.g., contributor uncertainty prevents claiming resolved).
+                aligned_status = obs_status.reindex(known.index).fillna("unknown")
+                aligned_status = aligned_status.where(
+                    known | aligned_status.isin({"unknown", "pooled", "ambiguous"}),
+                    "unknown",
+                )
+                status_counts = {
+                    status: int((aligned_status == status).sum()) for status in sorted(STATUSES)
+                }
+            else:
+                status_counts = {
+                    "ambiguous": 0,
+                    "pooled": 0,
+                    "resolved": n_resolved_obs,
+                    "unknown": n_unresolved_obs,
+                }
             if axis not in CELLULAR_DEPENDENCY_AXES:
                 n_app_unresolved = int((~resolved_mask).sum())
                 n_not_app = 0
@@ -130,6 +169,9 @@ def _partition_axes(frame, registry):
                 n_app_unknown = int(n_observations - n_app_resolved - n_not_app - n_app_unresolved)
             entry.update(
                 {
+                    "n_unknown_observations": status_counts["unknown"],
+                    "n_pooled_observations": status_counts["pooled"],
+                    "n_ambiguous_observations": status_counts["ambiguous"],
                     "n_applicable_observations": n_app_resolved + n_app_unresolved,
                     "n_applicable_resolved_observations": n_app_resolved,
                     "n_applicable_unresolved_observations": n_app_unresolved,
@@ -191,18 +233,31 @@ def _partition_axes(frame, registry):
         if {column, status} <= set(frame.columns):
             available.add(axis)
         values = [_identity_values(value) for value in _strings(frame, column)]
+        raw_statuses = _strings(frame, status).replace("", "unknown")
         known = []
         normalized = []
-        for ids, resolution in zip(values, _strings(frame, status)):
+        effective_statuses = []
+        for ids, resolution in zip(values, raw_statuses):
             if any(i not in canonical or entity_kinds[i] != axis for i in ids):
                 raise ValueError(f"Unreviewed or wrong-kind {axis} identity")
             normalized.append(tuple(canonical[i] for i in ids))
-            known.append(resolution == "resolved" and bool(ids))
+            is_resolved = resolution == "resolved" and bool(ids)
+            known.append(is_resolved)
+            if resolution in STATUSES:
+                effective_statuses.append(
+                    resolution if (resolution != "resolved" or ids) else "unknown"
+                )
+            else:
+                effective_statuses.append("unknown")
+        status_series = pd.Series(effective_statuses, index=frame.index, dtype="string")
         if "contributor_resolution" in frame:
-            known = pd.Series(known, index=frame.index) & frame.contributor_resolution.eq(
-                "captured"
+            captured_mask = frame.contributor_resolution.eq("captured")
+            known = pd.Series(known, index=frame.index) & captured_mask
+            status_series = status_series.where(
+                captured_mask | status_series.isin({"unknown", "pooled", "ambiguous"}),
+                "unknown",
             )
-        collect(axis, normalized, known)
+        collect(axis, normalized, known, status_series=status_series)
     return data, {
         "n_rows": len(frame),
         "n_observations": int(n_observations),
@@ -283,11 +338,39 @@ def audit_splits(
         pairs.append({"left": left, "right": right, "verdict": verdict, "overlaps": overlaps})
     verdicts = {p["verdict"] for p in pairs}
     verdict = next(v for v in ("fail", "inconclusive", "pass", "reported") if v in verdicts)
+    entity_counts_by_kind = {
+        axis: sum(1 for entity in registry.get("entities", []) if entity.get("kind") == axis)
+        for axis in AXES
+    }
+    cross_partition_reuse = []
+    for pair in pairs:
+        for axis in _REUSE_AUDIT_AXES:
+            overlap = pair["overlaps"].get(axis)
+            if overlap and overlap["n_shared_values"] > 0:
+                cross_partition_reuse.append(
+                    {
+                        "left": pair["left"],
+                        "right": pair["right"],
+                        "axis": axis,
+                        "n_shared_values": overlap["n_shared_values"],
+                        "shared_values": overlap["shared_values"],
+                        "n_left_observations": overlap["n_left_observations"],
+                        "n_right_observations": overlap["n_right_observations"],
+                    }
+                )
     return {
         "schema_version": SCHEMA_VERSION,
         "policy": policy,
         "verdict": verdict,
+        "lineage_registry_sha256": lineage_registry_sha256(registry),
+        "lineage_registry_summary": {
+            "n_entities": len(registry.get("entities", [])),
+            "n_aliases": len(registry.get("aliases", [])),
+            "n_contexts": len(registry.get("contexts", [])),
+            "entity_counts_by_kind": entity_counts_by_kind,
+        },
         "partitions": counts,
         "pairs": pairs,
+        "cross_partition_reuse": cross_partition_reuse,
         "scope": "Supplied partitions only; no claim about historical training weights.",
     }

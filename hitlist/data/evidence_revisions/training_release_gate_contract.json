@@ -1,0 +1,218 @@
+{
+  "revision": "training_release_gate_v1",
+  "schema_version": 1,
+  "tracked_issues": [
+    678,
+    680
+  ],
+  "historical_baseline": {
+    "release_tag": "human-cohort-corrected-v1",
+    "release_url": "https://github.com/pirl-unc/hitlist/releases/tag/human-cohort-corrected-v1",
+    "hitlist_version": "1.78.0",
+    "native_manifest_sha256": "b180eba804532f633a6d61bb350584dbe24f8df4b4b96f02c6ec492c60144372",
+    "corpus_release_tag": "ci-corpus-v4",
+    "corpus_release_url": "https://github.com/pirl-unc/hitlist/releases/tag/ci-corpus-v4",
+    "corpus_manifest_sha256": "2318bc53cdae228285218991d58fbcc2bd7266327cec1dd3ed9a03b1c944a5b7",
+    "n_baseline_observations": 4071463,
+    "n_baseline_changed_rows": 89567,
+    "n_baseline_audited_fields": 161,
+    "immutability_rule": "A refreshed export must receive a new versioned release tag, preserve original observation IDs, and never silently overwrite historical frozen inputs or claim predictive improvement."
+  },
+  "integrated_evidence_modules": [
+    {
+      "issue": 785,
+      "module": "hitlist.binding_audit",
+      "contract_file": "binding_assay_protocol_registry.json",
+      "role": "Full IC50/binding coverage audit and explicit context availability",
+      "status": "admitted",
+      "non_replacement_note": "Extends binding metadata provenance without mutating measured IC50/KD values or censoring flags."
+    },
+    {
+      "issue": 721,
+      "module": "hitlist.binding_audit",
+      "contract_file": "binding_assay_method_reviews.json",
+      "role": "Source-reviewed binding assay conditions, preparation distinctions, and replicate provenance",
+      "status": "admitted",
+      "non_replacement_note": "Separates purified recombinant MHC from cellular/lysate assays and keeps replicate provenance explicit."
+    },
+    {
+      "issue": 722,
+      "module": "hitlist.tcrvdb",
+      "contract_file": "tcrvdb_adapter_contract.json",
+      "role": "Access-aware TCRvdb receptor-specificity adapter with schema validation and anti-fabrication guards",
+      "status": "admitted",
+      "non_replacement_note": "Separate receptor evidence contract; never conflated with MHC binding or elution positives."
+    },
+    {
+      "issue": 358,
+      "module": "hitlist.line_expression",
+      "contract_file": null,
+      "packaged_asset": "hitlist/data/line_expression/",
+      "role": "Packaged HAP1, C1R (SRR7065975), and 721.221-Cas9-sgNT (SRR23958328-330) bulk RNA-seq TPM anchors",
+      "status": "admitted",
+      "non_replacement_note": "Cell-line expression sidecar; clone/perturbation provenance remains distinct from parental lines."
+    },
+    {
+      "issue": 811,
+      "module": "hitlist.peptidomicsdb",
+      "contract_file": "peptidomicsdb_qualification.json",
+      "role": "PeptidomicsDB metadata qualification and capture-vs-compartment / PEAKS reanalysis provenance guard",
+      "status": "metadata_qualified",
+      "non_replacement_note": "Zero native APC cohorts admitted; metadata availability does not establish cellular concentration."
+    },
+    {
+      "issue": 726,
+      "module": "hitlist.hap1_covariates",
+      "contract_file": "hap1_selection_covariates_contract.json",
+      "role": "Quantitative HAP1 elution/proteomics selection covariates and replicate lineage",
+      "status": "admitted",
+      "non_replacement_note": "Preserves HLA-selected elution vs whole-cell proteomics distinction and missing-is-not-zero semantics."
+    },
+    {
+      "issue": 817,
+      "module": "hitlist.nanaware_lymph",
+      "contract_file": "nanaware_lymph.json",
+      "role": "Nanaware 2024 lymph/DC quantitative measurement grain and preparation guards",
+      "status": "admitted",
+      "non_replacement_note": "Preserves raw vs normalized LFQ grain and prevents collapsing distinct lymph/DC preparations."
+    },
+    {
+      "issue": 705,
+      "module": "hitlist.atlas",
+      "contract_file": "hla_ligand_atlas_33858848_prediction_provenance.json",
+      "role": "HLA Ligand Atlas community SDRF, acquisition alias, and QC-inclusion lineage audit",
+      "status": "gated_on_consumer",
+      "non_replacement_note": "Primary donor cohort (atlas-donor-lineage-v1) is a separate evidence contract; physical specimen and acquisition lineage remain inconclusive until QC-included run/result crosswalk resolves, and mirrors must be excluded before Presto consumption."
+    },
+    {
+      "issue": 674,
+      "module": "hitlist.canine_dla",
+      "contract_file": "canine_dla_atlas_qualification.json",
+      "role": "Canine DLA-88 / DLA-DR qualification, vital-organ blacklist guard, and OncoRef bulk MS separation",
+      "status": "admitted",
+      "non_replacement_note": "Non-human DLA evidence stays separate from human training cohorts unless explicitly requested."
+    }
+  ],
+  "source_backed_reuse_links": [
+    {
+      "link_id": "abelin_2017_sarkizova_2020",
+      "pmids": [
+        28228285,
+        31844290
+      ],
+      "axis": "experimental_origin",
+      "identity_prefix": "origin:MSV000080527:",
+      "expected_n_shared_origins": 16,
+      "primary_reference": "https://www.nature.com/articles/s41587-019-0322-9#data-availability",
+      "rule": "Sarkizova 2020 (PMID 31844290) reuses 16 monoallelic 721.221 datasets from Abelin 2017 (PMID 28228285, MSV000080527). Original and reanalyzed datasets must remain in the same partition for experiment-independent evaluation."
+    },
+    {
+      "link_id": "bassani_sternberg_2015_liepe_2016",
+      "pmids": [
+        25576301,
+        27846572
+      ],
+      "axis": "experimental_origin",
+      "identity_prefix": "origin:pmid:25576301:fibroblast_immunopeptidome",
+      "expected_n_shared_origins": 1,
+      "primary_reference": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4349985/",
+      "rule": "Liepe 2016 (PMID 27846572) reuses the primary human fibroblast immunopeptidome dataset from Bassani-Sternberg 2015 (PMID 25576301). Original and reanalysis must stay together."
+    },
+    {
+      "link_id": "miyamae_2026_pxd074485_lola_dual_ip",
+      "pmids": [
+        42199926
+      ],
+      "axis": "donor",
+      "identity_prefix": "donor:pmid:42199926:lola",
+      "expected_n_shared_origins": 1,
+      "primary_reference": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/",
+      "rule": "Lola H58A and Lola BB7.6 are two immunoprecipitations from the same canine osteosarcoma tumor and donor; they must never be split across donor-disjoint or specimen-disjoint partitions."
+    },
+    {
+      "link_id": "hla_ligand_atlas_33858848_donor_cohort",
+      "pmids": [
+        33858848
+      ],
+      "axis": "donor",
+      "identity_prefix": "atlas-donor-lineage-v1",
+      "expected_n_shared_origins": 0,
+      "primary_reference": "https://github.com/pirl-unc/hitlist/releases/tag/atlas-donor-lineage-v1",
+      "rule": "Primary HLA Ligand Atlas donor cohort preserves 21 donors (967,449 observations), while physical specimen and raw acquisition lineage remain unknown/inconclusive; must not be combined with IEDB/reanalysis mirrors as independent evidence."
+    }
+  ],
+  "diff_column_classification": {
+    "source_acquisition_columns": [
+      "peptide",
+      "mhc_restriction",
+      "assay_method",
+      "assay_type",
+      "assay_iri",
+      "reference_iri",
+      "measurement_value",
+      "measurement_inequality",
+      "measurement_units",
+      "qualitative_measurement",
+      "quantitative_value",
+      "quantitative_inequality",
+      "quantitative_units",
+      "ic50_nm",
+      "evidence_kind",
+      "evidence_source_id",
+      "provenance_id",
+      "source_dataset",
+      "pmid"
+    ],
+    "measurement_invariant_columns": [
+      "peptide",
+      "measurement_value",
+      "measurement_inequality",
+      "measurement_units",
+      "qualitative_measurement",
+      "quantitative_value",
+      "quantitative_inequality",
+      "quantitative_units",
+      "ic50_nm"
+    ],
+    "annotation_curation_columns": [
+      "source_tissue",
+      "tissue_category",
+      "disease_state",
+      "disease_category",
+      "condition_id",
+      "sample_attribution",
+      "attributed_sample_label",
+      "mhc_class",
+      "mhc_species",
+      "has_peptide_level_allele",
+      "lineage_context_id",
+      "lineage_status",
+      "experimental_origin_ids",
+      "experimental_origin_status",
+      "specimen_ids",
+      "specimen_status",
+      "donor_ids",
+      "donor_status",
+      "acquisition_ids",
+      "acquisition_status",
+      "assay_preparation",
+      "assay_preparation_basis",
+      "experimental_origin_applicability",
+      "specimen_applicability",
+      "donor_applicability",
+      "acquisition_applicability",
+      "cell_lineage",
+      "contributor_resolution",
+      "contributor_pmids",
+      "contributor_study_status",
+      "protein_id",
+      "gene_name"
+    ]
+  },
+  "semantic_invariants": [
+    "No-overlap with unresolved required biological identities must emit verdict='inconclusive', never 'pass'.",
+    "Not-applicable cellular axes (purified_mhc) do not substitute for experiment/source/reanalysis reuse checks.",
+    "Original observation IDs must be preserved across curation refreshes; source acquisition updates must be distinguished from annotation-only curation changes.",
+    "Refreshed training exports must never silently overwrite historical frozen releases or claim predictive improvement without downstream evaluation."
+  ]
+}
