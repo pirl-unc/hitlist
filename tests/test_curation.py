@@ -1078,21 +1078,21 @@ def test_class_scoped_haplotype_rosters_have_class_resolution():
 
 
 def test_classify_allele_resolution_h2_ie_family_is_inconsistent_upstream():
-    """Pins ``H2-IEg7``; the cause is pirl-unc/mhcgnomes#201, NOT #604.
+    """Tracks ``H2-IEg7`` resolution across pirl-unc/mhcgnomes#201.
 
-    ``H2-IEg7`` is the only member of the mouse I-E / I-A heterodimer family
-    that ``mhcgnomes.parse`` dispatches to ``Haplotype`` -- and to one with an
-    empty ``alleles`` tuple. Every sibling becomes a ``Pair`` or an ``Allele``
-    and so resolves to ``four_digit``, including ``H2-IAg7``, which carries the
-    same ``g7`` haplotype. So the 93 corpus rows reading ``H2-IEg7`` differ from
-    their family for a reason that lives in the parse, not in this dispatch,
-    which is why the string is not special-cased here.
-
-    Grouping it with #604's populated class-scoped haplotypes would record the
-    wrong diagnosis: this is not "a statement over a known allele list", it is
-    the same I-E heterodimer as ``H2-IEk``.
+    Older ``mhcgnomes`` releases parsed ``H2-IEg7`` as an empty ``Haplotype``
+    (yielding ``unresolved`` here), while ``mhcgnomes >= 3.78.0`` resolves it
+    to ``Allele``/``Pair`` (``H2-EB*g7`` -> ``four_digit``), matching its
+    I-E / I-A siblings. ``classify_allele_resolution`` delegates directly to
+    ``mhcgnomes.parse`` without special-casing this string.
     """
-    assert classify_allele_resolution("H2-IEg7") == "unresolved"
+    import mhcgnomes
+
+    parsed = mhcgnomes.parse("H2-IEg7", raise_on_error=False)
+    expected = (
+        "four_digit" if isinstance(parsed, (mhcgnomes.Allele, mhcgnomes.Pair)) else "unresolved"
+    )
+    assert classify_allele_resolution("H2-IEg7") == expected
     for sibling in ("H2-IEk", "H2-IEb", "H2-IEd", "H2-IEs", "H2-IAg7", "H2-IAb", "H2-IAd"):
         assert classify_allele_resolution(sibling) == "four_digit", sibling
 

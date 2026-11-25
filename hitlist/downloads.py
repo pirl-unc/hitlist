@@ -691,6 +691,12 @@ MANUAL_DATASETS: dict[str, dict[str, str]] = {
         "expected_filename": "normal_tissue.tsv",
         "usage": "Protein-level tissue expression for CTA restriction analysis.",
     },
+    "tcrvdb": {
+        "download_url": "https://tcrvdb.nkiai.nl",
+        "description": "TCRvdb functionally validated paired TCR-pMHC database (access by request; DOI 10.1016/j.immuni.2026.09.007)",
+        "expected_filename": "2026-10-01_TCRvdb_ttd_gil_ylq_nlv_glc.csv",
+        "usage": "Paired alpha/beta TCR functional specificity evidence via hitlist.load_tcrvdb_functional_evidence() (#722).",
+    },
 }
 
 
@@ -2019,8 +2025,12 @@ def _classify_catalog_entry(name: str, *, kind: str) -> tuple[str, str, str]:
         return "reference_proteomes", "uniprot", "Homo sapiens"
     if name.startswith("canine-bulk"):
         return "canine_and_cross_species", "canine_bulk", "Canis lupus familiaris"
-    if name in ("tcell-assays", "hla-ligand-atlas", "hla-ligand-atlas-crosswalk"):
-        return "tcell_and_atlas", "atlas_and_tcell", "Homo sapiens"
+    if name in ("tcell-assays", "hla-ligand-atlas", "hla-ligand-atlas-crosswalk", "tcrvdb"):
+        return (
+            "tcell_and_atlas",
+            "tcr_functional" if name == "tcrvdb" else "atlas_and_tcell",
+            "Homo sapiens",
+        )
     if name in _PERTURBATION_NAMES:
         species = "Mus musculus" if name == "pollock-2021-neotoma" else "Homo sapiens"
         return "perturbation_and_calibration", "source_qualified", species
