@@ -697,6 +697,24 @@ MANUAL_DATASETS: dict[str, dict[str, str]] = {
         "expected_filename": "2026-10-01_TCRvdb_ttd_gil_ylq_nlv_glc.csv",
         "usage": "Paired alpha/beta TCR functional specificity evidence via hitlist.load_tcrvdb_functional_evidence() (#722).",
     },
+    "miyamae_2026_dla88": {
+        "download_url": "https://doi.org/10.64898/2026.10.06.756904",
+        "description": (
+            "Miyamae 2026 ten-allele canine DLA-88 ligand atlas "
+            "(bioRxiv license=cc_no; local acquisition only, #677)"
+        ),
+        "expected_filename": "miyamae_2026_dla88_ligands.tsv",
+        "usage": "Offline access-aware loading via hitlist.load_miyamae_2026_dla88_ligands().",
+    },
+    "lang_2026_splenic_dla_dr": {
+        "download_url": "https://academic.oup.com/jimmunol/article/215/9/vkag243/8812665",
+        "description": (
+            "Lang 2026 splenic DLA-DR MS peptide table "
+            "(PMID 42752862; pending authoritative MS deposit, #676)"
+        ),
+        "expected_filename": "lang_2026_splenic_dla_dr_peptides.tsv",
+        "usage": "Offline access-aware loading via hitlist.load_lang_2026_splenic_dla_dr_ligands().",
+    },
 }
 
 
@@ -2025,6 +2043,8 @@ def _classify_catalog_entry(name: str, *, kind: str) -> tuple[str, str, str]:
         return "reference_proteomes", "uniprot", "Homo sapiens"
     if name.startswith("canine-bulk"):
         return "canine_and_cross_species", "canine_bulk", "Canis lupus familiaris"
+    if name in ("miyamae_2026_dla88", "lang_2026_splenic_dla_dr"):
+        return "canine_and_cross_species", "canine_dla", "Canis lupus familiaris"
     if name in ("tcell-assays", "hla-ligand-atlas", "hla-ligand-atlas-crosswalk", "tcrvdb"):
         return (
             "tcell_and_atlas",

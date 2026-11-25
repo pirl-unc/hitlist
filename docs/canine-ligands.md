@@ -98,3 +98,31 @@ files and never fall back to an unrelated download-registry filename, even when
 default `attributed_sample_label`, and distinct labels preserve separate
 observations. Original fields and the complete manifest survive in contributors.
 Calls without explicit inputs preserve the existing packaged scanner behavior.
+
+## Vital-organ DLA blacklist guard and pending canine atlas sources
+
+Hitlist pins machine-readable qualification contracts and access-aware offline
+adapters in `hitlist.canine_dla_qualification` (`#674`, `#676`, `#677`, `#666`):
+
+- **`evaluate_canine_vital_organ_blacklist()` (`#674`)**: evaluates exact observed
+  canine DLA ligands in `>=2` distinct resolved individual dogs across nonmalignant
+  heart, brain, or lung, deduplicating repeated runs, multiple vital tissues from the
+  same animal, and republished donor aliases. Tumors, cell lines, unresolved pools,
+  bulk proteomics, nested windows, predictions, competition assays, and human HLA are
+  excluded. When no qualifying sources exist, `coverage_status` is explicitly
+  `"missing"` and `validated_empty_blacklist` is `False`.
+- **`load_miyamae_2026_dla88_ligands()` (`#677`)**: opt-in local-file loader for
+  Miyamae et al. 2026 (`10.64898/2026.10.06.756904`, bioRxiv `license=cc_no`, ten
+  DLA-88 alleles in engineered canine melanoma-derived cell populations), separating
+  measured eluted ligands from predicted binding, motif-neighbour extrapolations, and
+  normal-expression screens.
+- **`load_lang_2026_splenic_dla_dr_ligands()` (`#676`)**: opt-in local-file loader
+  for Lang et al. 2026 (`PMID 42752862`, `10.1093/jimmun/vkag243`), joining verified
+  Table S2 donor metadata (`SHA-256 c107a758...`) while keeping donor health,
+  treatment, and DRA typing explicitly `"unknown"`, preserving all accepted MS
+  observations separately from motif subsets (`in_motif_subset`), excluding non-MS
+  supplement tables (Tables S3/S4, S5/S6, competition CSVs), and enforcing that
+  spleen never satisfies `#674`.
+- **`summarize_canine_bulk_protein_evidence()` (`#666`)**: exposes OncoRef-ready
+  protein-abundance facts from verified `canine_bulk` bundles with explicit
+  `provides_dla_presentation_blacklist=False`.
