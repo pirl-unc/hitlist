@@ -1,0 +1,62 @@
+{
+  "revision": "shapiro2025_hap1_selection_covariates_v1",
+  "schema_version": 1,
+  "tracked_issue": 726,
+  "source_pmid": "40113210",
+  "source_pmc": "PMC12090245",
+  "source_accession": "PXD056426",
+  "hap1_genotype": [
+    "HLA-A*02:01",
+    "HLA-B*40:01",
+    "HLA-C*03:04"
+  ],
+  "paper_reported_predictor": {
+    "predictor_name": "MixMHCpred",
+    "predictor_version": "2.2",
+    "assignment_rule": "best_predicted_affinity_across_three_hap1_alleles"
+  },
+  "original_paper_outputs_status": "unrecovered",
+  "original_header_audit": {
+    "n_inspected_original_tabular_files": 9,
+    "inspected_archives": [
+      "supplements.zip (SHA-256 8f9327e501cdf4831fa2a9e25a67d986f631457ca331c15966f6180225b98153)",
+      "Search.zip (SHA-256 487af2106fa6f73d40c79dfc7d17c3c736a4e8c97a3aa97747bccf98797978b9)"
+    ],
+    "found_rank_hla_affinity_or_binding_columns": false,
+    "scope_note": "Bounded header audit of nine CSV/TSV/TXT files in supplements.zip and Search.zip found no rank/HLA/affinity/binding column. Does not rule out author-held output."
+  },
+  "distinct_assertion_types": [
+    "genotype",
+    "inferred_best_allele_prediction",
+    "measured_restriction"
+  ],
+  "allowed_derivation_origins": [
+    "recovered_original_paper_output",
+    "newly_computed_pinned_derivation"
+  ],
+  "required_derivation_metadata_fields": [
+    "derivation_origin",
+    "predictor_name",
+    "predictor_version",
+    "model_config",
+    "score_type",
+    "score_direction",
+    "rank_reference_population",
+    "assignment_rule",
+    "tie_rule",
+    "threshold",
+    "input_sha256",
+    "software_sha256",
+    "model_sha256",
+    "license_and_access",
+    "training_overlap_caveat"
+  ],
+  "join_invariants": [
+    "Must retain per-peptide scores/ranks for ALL supplied candidate alleles, including non-best alleles.",
+    "Must perform a non-filtering 1:1 join to quantitative response rows without adding binding-based eligibility filters.",
+    "Must preserve missing/unsupported lengths explicitly without imputing scores.",
+    "Must never alter existing split assignments or discard alternate parent protein origins.",
+    "Must never attribute a newly computed derivation retroactively to the original Shapiro 2025 paper.",
+    "Must keep genotype, inferred best-allele prediction and measured restriction strictly separate."
+  ]
+}
