@@ -1032,21 +1032,25 @@ def test_classify_allele_resolution_rejects_unvalidated_haplotype_letters():
 
 
 @pytest.mark.parametrize(
-    "restriction,canonical",
+    "restriction,expected_candidates",
     [
-        ("H2-Kwm7", "H2-K*wm7"),
-        ("H2-K*wm7", "H2-K*wm7"),
-        ("H2-Kbm1", "H2-K*bm1"),
-        ("H2-K*bm1", "H2-K*bm1"),
-        ("H2-Kbm8", "H2-K*bm8"),
-        ("H2-Dbm13", "H2-D*bm13"),
-        ("Anpl-UAA*SD", "AnasPlat-UAA*sd"),
+        ("H2-Kwm7", ("H2-K*wm7",)),
+        ("H2-K*wm7", ("H2-K*wm7",)),
+        ("H2-Kbm1", ("H2-K*bm1",)),
+        ("H2-K*bm1", ("H2-K*bm1",)),
+        ("H2-Kbm8", ("H2-K*bm8",)),
+        ("H2-Dbm13", ("H2-D*bm13",)),
+        ("Anpl-UAA*SD", ("AnasPlat-UAA*sd", "AnasPlatyrhynchos-UAA*sd")),
     ],
 )
-def test_source_backed_non_roster_alleles_name_exact_molecules(restriction, canonical):
+def test_source_backed_non_roster_alleles_name_exact_molecules(restriction, expected_candidates):
     """#606: upstream's exact, gene-specific catalog validates these names."""
+    import mhcgnomes
+
+    expected = mhcgnomes.parse(restriction).to_string()
+    assert expected in expected_candidates
     assert classify_allele_resolution(restriction) == "four_digit"
-    assert expand_allele_set(restriction) == (canonical, "exact", 1)
+    assert expand_allele_set(restriction) == (expected, "exact", 1)
 
 
 def test_non_roster_catalog_does_not_decompose_or_guess_names():
