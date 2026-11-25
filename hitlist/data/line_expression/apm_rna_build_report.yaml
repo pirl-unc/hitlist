@@ -6,3 +6,111 @@ sources:
   n_genes: 19193
   n_positive_genes: 15422
   sum_tpm: 950347.05
+- source_id: SRP142649_C1R_parental_gene
+  file: c1r_srp142649_gene_tpm.csv.gz
+  sha256: 4be89264a9aa55cfc966a4c51fde4d6b083931586fd4254ff93ae4be38850ca6
+  content_sha256: 0f5c76efb4df82bfd9e39be8de0af5d8ed72de8c49ab5174d6e7c6b8abfb37de
+  n_genes: 23217
+  n_positive_genes: 18221
+  sum_tpm: 920847.9438187464
+  quantifier: kallisto
+  kallisto_version: kallisto, version 0.51.1
+  strandedness: rf-stranded
+  kallisto_index_sha256: 5ddb5352eeb8750d0598af5028d131cf85a79fceac4fc25d2aa8506d271f1faa
+  ensembl_110_reference: &id001
+  - file: Homo_sapiens.GRCh38.cdna.all.fa.gz
+    url: https://ftp.ensembl.org/pub/release-110/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz
+    bsd_sum: '5675'
+    size_bytes: 78889691
+    md5: 6b2970f50037c089b837da5ca248a198
+    sha256: 1881e80298f19207159b60bf1eb79b0c5fe34eb38c24c5b4e796a35f016c1e7d
+  - file: Homo_sapiens.GRCh38.ncrna.fa.gz
+    url: https://ftp.ensembl.org/pub/release-110/fasta/homo_sapiens/ncrna/Homo_sapiens.GRCh38.ncrna.fa.gz
+    bsd_sum: '54510'
+    size_bytes: 19305692
+    md5: f67295099235020cfd79d084b8686ad3
+    sha256: b8d739bc209501fd947896d40e35f6b86aed2de82973842c81c91726dfafb9f3
+  n_replicates: 1
+  runs:
+  - run: SRR7065975
+    gsm: null
+    biosample: SAMN08984896
+    n_processed_reads: 138345534
+    n_pseudoaligned_reads: 115343614
+    p_pseudoaligned: 83.4
+    fastqs:
+    - file: SRR7065975_1.fastq.gz
+      url: https://ftp.sra.ebi.ac.uk/vol1/fastq/SRR706/005/SRR7065975/SRR7065975_1.fastq.gz
+      size_bytes: 6972979632
+      md5: 21698813c65be967bc4a8b43ddfab747
+      sha256: db5d8a58c9c5e1fd9fed8b2945004437c4e9a3cfd8fefa8dcda46f4165e5db5e
+    - file: SRR7065975_2.fastq.gz
+      url: https://ftp.sra.ebi.ac.uk/vol1/fastq/SRR706/005/SRR7065975/SRR7065975_2.fastq.gz
+      size_bytes: 7693403380
+      md5: cd7549525d0c80b08474fda09023b63a
+      sha256: faf38169be20f1cadeca141c65bd92f4fbc4567a84d432af9e0d5e5a76ade6d3
+- source_id: GSE228188_721_221_Cas9_sgNT_gene
+  file: b721_221_gse228188_sgnt_gene_tpm.csv.gz
+  sha256: afa8402be1f4f147e50575c5e046be9942fce0ec69ce0418b30c12dce39f2752
+  content_sha256: 30a2c600ac68fe2e9ec2d34d79c482c2f44179df2aeab50b4173f0f1b5ce478a
+  n_genes: 23217
+  n_positive_genes: 17594
+  sum_tpm: 935906.7582581581
+  quantifier: kallisto
+  kallisto_version: kallisto, version 0.51.1
+  strandedness: rf-stranded
+  kallisto_index_sha256: 5ddb5352eeb8750d0598af5028d131cf85a79fceac4fc25d2aa8506d271f1faa
+  ensembl_110_reference: *id001
+  n_replicates: 3
+  runs:
+  - run: SRR23958328
+    gsm: GSM7116270
+    biosample: SAMN33905863
+    n_processed_reads: 28595954
+    n_pseudoaligned_reads: 26715853
+    p_pseudoaligned: 93.4
+    fastqs:
+    - file: SRR23958328_1.fastq.gz
+      url: https://ftp.sra.ebi.ac.uk/vol1/fastq/SRR239/028/SRR23958328/SRR23958328_1.fastq.gz
+      size_bytes: 1178473750
+      md5: 5577b56380d2a7d5ef45d376ce43417c
+      sha256: c4c930a7e8c9e63fadc4f363e465923d3043235c8706e8f0b49cd1aa5b123e37
+    - file: SRR23958328_2.fastq.gz
+      url: https://ftp.sra.ebi.ac.uk/vol1/fastq/SRR239/028/SRR23958328/SRR23958328_2.fastq.gz
+      size_bytes: 1296631713
+      md5: b4928bbe2a3a6dc9bf81195687c3f4d2
+      sha256: b3951e77a8076c3f9c8462184eac1f58060076875b461f532d275530c0c8208f
+  - run: SRR23958329
+    gsm: GSM7116269
+    biosample: SAMN33905864
+    n_processed_reads: 21546470
+    n_pseudoaligned_reads: 20163742
+    p_pseudoaligned: 93.6
+    fastqs:
+    - file: SRR23958329_1.fastq.gz
+      url: https://ftp.sra.ebi.ac.uk/vol1/fastq/SRR239/029/SRR23958329/SRR23958329_1.fastq.gz
+      size_bytes: 873908044
+      md5: df98dfe2d0976f691b7597b5c4bcce46
+      sha256: bcf6d97fb95d0c0ad553a2ed42cf229819e633f86eb2b2609b1b689927d87ab9
+    - file: SRR23958329_2.fastq.gz
+      url: https://ftp.sra.ebi.ac.uk/vol1/fastq/SRR239/029/SRR23958329/SRR23958329_2.fastq.gz
+      size_bytes: 905625920
+      md5: b455b665b03ebdd0df85f47dae9ef7f1
+      sha256: dc1ebd15a3505b247a7282adf0088dff7b4c18f33db98e6a35fbcbe8ae25a82c
+  - run: SRR23958330
+    gsm: GSM7116268
+    biosample: SAMN33905865
+    n_processed_reads: 20487389
+    n_pseudoaligned_reads: 18855880
+    p_pseudoaligned: 92.0
+    fastqs:
+    - file: SRR23958330_1.fastq.gz
+      url: https://ftp.sra.ebi.ac.uk/vol1/fastq/SRR239/030/SRR23958330/SRR23958330_1.fastq.gz
+      size_bytes: 830360331
+      md5: d934fdf3807bab70afcebfd694994a24
+      sha256: 3aac24227a78f41d53a29e9a6614caef097d5cc926f56a77ec2dac6726e1d73a
+    - file: SRR23958330_2.fastq.gz
+      url: https://ftp.sra.ebi.ac.uk/vol1/fastq/SRR239/030/SRR23958330/SRR23958330_2.fastq.gz
+      size_bytes: 827926635
+      md5: 1e6794cf6e0b9c58e349b297735fb16a
+      sha256: 0e6dbe10e5faa0b56df159bfaa01ea4a6f16240941e6b1a580042a9195d63d77

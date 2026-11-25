@@ -196,13 +196,13 @@ def test_tier3_mono_allelic_host_t2_falls_to_k562(installed_depmap):
     assert a.expression_key == "K562"
 
 
-def test_tier3_c1r_transfectant_falls_to_k562_via_family(installed_depmap):
-    # C1R has no validated exact-line source, so tier 1 does not fire; its parent
-    # is itself (no parent line defined that has data); family =
-    # mono_allelic_host → K562 class anchor.
+def test_tier2_c1r_transfectant_resolves_to_packaged_c1r_parent(installed_depmap):
+    # C1R now ships packaged parental RNA-seq (SRP142649 / SRR7065975), so
+    # C1R-HLA single-allele transfectants resolve to parent C1R at tier 2.
     a = resolve_sample_expression_anchor("C1R-HLA-B*27:02")
-    assert a.expression_match_tier == 3
-    assert a.expression_key == "K562"
+    assert a.expression_match_tier == 2
+    assert a.expression_key == "C1R"
+    assert a.expression_parent_key == "C1R"
 
 
 # ── Resolver: tier 5 (tissue surrogate) + tier 6 (no anchor) ───────────────
@@ -513,7 +513,7 @@ def test_word_boundary_blocks_false_positives(label):
         ("HAP1 cells", 1, "HAP1"),
         ("HeLa", 1, "HeLa"),
         ("hela cells", 1, "HeLa"),  # case-insensitive
-        ("C1R", 3, "K562"),  # tier-3 via mono-allelic-host family
+        ("C1R", 1, "C1R"),  # packaged parental RNA-seq (SRP142649)
         ("HHC (EBV-LCL)", 3, "GM12878"),
         ("T2 cells", 3, "K562"),
     ],
@@ -529,9 +529,9 @@ def test_alias_starting_with_punctuation_matches_mid_string(installed_depmap):
     # character before ``.`` is alphanumeric.  The left-boundary check is
     # skipped for punctuation-initial aliases.
     a = resolve_sample_expression_anchor("721.221-B*51:01 ERAP1 KO")
-    assert a.expression_match_tier == 3  # .221 → 721.221 (no exact RNA) → K562 class anchor
-    assert a.expression_key == "K562"
-    assert a.expression_parent_key == "K562"
+    assert a.expression_match_tier == 2  # .221 → 721.221 → 721.221-Cas9-sgNT engineered control
+    assert a.expression_key == "721.221-Cas9-sgNT"
+    assert a.expression_parent_key == "721.221-Cas9-sgNT"
 
 
 def test_longest_alias_wins_over_shorter_substring(tmp_path, monkeypatch):

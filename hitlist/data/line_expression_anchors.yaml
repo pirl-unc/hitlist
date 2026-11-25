@@ -127,10 +127,10 @@ lines:
     line_family: mono_allelic_host
     lineage_tissue: "blood, b lymphocyte"
     cancer_type: null
-    expression_backend: none
+    expression_backend: packaged_rnaseq
     expression_key: "C1R"
-    source_ids: []
-    notes: "HLA-A/B low Hmy2.CIR B-lymphoblastoid host; retains weak HLA-B*35:03 / HLA-C*04:01. Parent for C1R-HLA-* transfectant series."
+    source_ids: ["SRP142649_C1R_parental_gene"]
+    notes: "HLA-A/B low Hmy2.CIR B-lymphoblastoid host; retains weak HLA-B*35:03 / HLA-C*04:01. Packaged parental bulk RNA-seq from SRP142649 / SRR7065975 (tier 1 for parental C1R; tier 2 parent for C1R-HLA-* transfectants)."
 
   - name: "C1R-HLA"
     aliases: ["c1r-hla", "c1r hla", "c1r.hla"]
@@ -142,16 +142,27 @@ lines:
     source_ids: []
     notes: "Catch-all for C1R single-allele transfectants (C1R-HLA-B*27:02, C1R-HLA-C*07:02, C1R HLA-E, etc.). Resolves to parent C1R expression (tier 2)."
 
+  - name: "721.221-Cas9-sgNT"
+    aliases: ["721.221-cas9-sgnt", "721.221 cas9 sgnt"]
+    parent_line: null
+    line_family: mono_allelic_host
+    lineage_tissue: "blood, b lymphocyte"
+    cancer_type: null
+    expression_backend: packaged_rnaseq
+    expression_key: "721.221-Cas9-sgNT"
+    source_ids: ["GSE228188_721_221_Cas9_sgNT_gene"]
+    notes: "Engineered-control 721.221 Cas9/non-targeting sgRNA reference (GSE228188, n=3 biological replicates). Serves as tier-2 surrogate for 721.221 and 721.221-HLA arms."
+
   - name: "721.221"
     aliases: ["721.221", "b721.221", ".221", "hla-deficient 721"]
-    parent_line: null
+    parent_line: "721.221-Cas9-sgNT"
     line_family: mono_allelic_host
     lineage_tissue: "blood, b lymphocyte"
     cancer_type: null
     expression_backend: none
     expression_key: "721.221"
     source_ids: []
-    notes: "HLA class I null EBV-transformed B-LCL. Parent for .221-HLA-* transfectant series and .221 ERAP1 KO."
+    notes: "HLA class I null EBV-transformed B-LCL. Resolves to 721.221-Cas9-sgNT engineered-control RNA at tier 2 rather than claiming unmodified parental tier-1 RNA."
 
   - name: "721.221-HLA"
     aliases: ["721.221-hla", "721.221 hla", ".221-hla", ".221 hla", "hla-a*11:01-221", "hla-b*51:01-221"]
@@ -161,7 +172,7 @@ lines:
     cancer_type: null
     expression_backend: none
     source_ids: []
-    notes: "721.221 single-allele transfectants (e.g. 721.221-HLA-A*11:01, 721.221-B*51:01 ERAP1 KO). Resolves to 721.221 via tier 2."
+    notes: "721.221 single-allele transfectants (e.g. 721.221-HLA-A*11:01, 721.221-B*51:01 ERAP1 KO). Resolves via 721.221 -> 721.221-Cas9-sgNT at tier 2."
 
   - name: "T2"
     aliases: ["174xcem.t2", "t2 cell", "t2 cells", "t2.dr1", "t2 (174xcem)", "t2"]
