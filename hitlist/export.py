@@ -1841,6 +1841,7 @@ def generate_observations_table(
     # molecules keep exact identity: two known pairs that merely share DQA1
     # or DPA1 are not the same molecule.
     _observed_pairs_by_component: dict[str, set[str]] = {}
+    _observed_pair_chains: dict[str, frozenset[str]] = {}
     _observed_restrictions_by_identity: dict[str, set[str]] = {}
     _pair_restrictions = set(_fillna_scalar_safe(obs["mhc_restriction"], "").astype(str).unique())
     if _study_context is not None:
@@ -1854,6 +1855,8 @@ def generate_observations_table(
         _restriction_components = _normalized_allele_components(_restriction)
         if len(_restriction_components) <= 1:
             continue
+        if len(_restriction_components) >= 3:
+            _observed_pair_chains[_restriction] = frozenset(_restriction_components[1:])
         for _component in _restriction_components[1:]:
             _observed_pairs_by_component.setdefault(_component, set()).add(_restriction)
 
@@ -1870,8 +1873,11 @@ def generate_observations_table(
         expanded += [
             (allele, True) for allele in sorted(candidates.serotype_alleles - candidates.exact)
         ]
+        sample_exact_single_chains: set[str] = set()
         for allele, from_serotype in expanded:
             normalized_components = _normalized_allele_components(allele)
+            if not from_serotype and len(normalized_components) == 1:
+                sample_exact_single_chains.add(normalized_components[0])
             for component in normalized_components:
                 row = {**meta, "_allele": component}
                 if from_serotype:
@@ -1886,6 +1892,15 @@ def generate_observations_table(
                 if from_serotype:
                     for pair_restriction in _observed_pairs_by_component.get(component, ()):
                         allele_rows.append({**row, "_allele": pair_restriction})
+
+        # An unphased heterozygous sample listing separate alpha and beta chains
+        # (e.g. DPA1*01:03 + DPB1*04:01) expresses any observed heterodimer whose
+        # BOTH chains are present in its exact single-chain allele set. Samples
+        # that curate explicit paired heterodimers do not cross-pair across them.
+        if len(sample_exact_single_chains) >= 2 and _observed_pair_chains:
+            for pair_restriction, req_chains in _observed_pair_chains.items():
+                if req_chains <= sample_exact_single_chains:
+                    allele_rows.append({**meta, "_allele": pair_restriction})
 
     allele_df_full = (
         pd.DataFrame(allele_rows)
