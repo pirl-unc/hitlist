@@ -1842,6 +1842,7 @@ def generate_observations_table(
     # or DPA1 are not the same molecule.
     _observed_pairs_by_component: dict[str, set[str]] = {}
     _observed_pair_chains: dict[str, frozenset[str]] = {}
+    _observed_pairs_by_exact_chain_set: dict[frozenset[str], set[str]] = {}
     _observed_restrictions_by_identity: dict[str, set[str]] = {}
     _pair_restrictions = set(_fillna_scalar_safe(obs["mhc_restriction"], "").astype(str).unique())
     if _study_context is not None:
@@ -1856,7 +1857,9 @@ def generate_observations_table(
         if len(_restriction_components) <= 1:
             continue
         if len(_restriction_components) >= 3:
-            _observed_pair_chains[_restriction] = frozenset(_restriction_components[1:])
+            _chain_set = frozenset(_restriction_components[1:])
+            _observed_pair_chains[_restriction] = _chain_set
+            _observed_pairs_by_exact_chain_set.setdefault(_chain_set, set()).add(_restriction)
         for _component in _restriction_components[1:]:
             _observed_pairs_by_component.setdefault(_component, set()).add(_restriction)
 
@@ -1878,6 +1881,14 @@ def generate_observations_table(
             normalized_components = _normalized_allele_components(allele)
             if not from_serotype and len(normalized_components) == 1:
                 sample_exact_single_chains.add(normalized_components[0])
+            elif not from_serotype and len(normalized_components) >= 3:
+                # Match an explicit heterodimer pair independent of whether
+                # mhcgnomes formats Pair.to_string() as alpha/beta or beta/alpha.
+                _pair_chain_set = frozenset(normalized_components[1:])
+                for pair_restriction in sorted(
+                    _observed_pairs_by_exact_chain_set.get(_pair_chain_set, ())
+                ):
+                    allele_rows.append({**meta, "_allele": pair_restriction})
             for component in normalized_components:
                 row = {**meta, "_allele": component}
                 if from_serotype:
