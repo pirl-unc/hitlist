@@ -1,0 +1,355 @@
+{
+  "revision": "canine_dla_atlas_qualification_v1",
+  "schema_version": 1,
+  "audited_dates": [
+    "2026-10-13",
+    "2026-11-25"
+  ],
+  "tracked_issues": [
+    666,
+    674,
+    676,
+    677
+  ],
+  "vital_organ_blacklist_policy": {
+    "issue": 674,
+    "target_species": "Canis lupus familiaris",
+    "target_taxon_id": 9615,
+    "qualifying_tissues": [
+      "heart",
+      "brain",
+      "lung"
+    ],
+    "tissue_aliases": {
+      "heart": "heart",
+      "myocardium": "heart",
+      "left ventricle": "heart",
+      "right ventricle": "heart",
+      "brain": "brain",
+      "cerebellum": "brain",
+      "cerebral cortex": "brain",
+      "cerebral_cortex": "brain",
+      "cortex": "brain",
+      "lung": "lung",
+      "pulmonary": "lung"
+    },
+    "min_distinct_resolved_dogs": 2,
+    "allele_independent": true,
+    "exact_ligand_match_only": true,
+    "deduplicate_across": [
+      "repeated_runs",
+      "multiple_tissues_same_dog",
+      "republished_source_aliases"
+    ],
+    "excluded_evidence_kinds": [
+      "tumor",
+      "cell_line",
+      "engineered_cell_line",
+      "unresolved_pool",
+      "bulk_proteomics",
+      "binding_prediction",
+      "competition_binding",
+      "motif_neighbour_extrapolation",
+      "normal_expression_screen",
+      "nested_window",
+      "human_hla",
+      "protein_count_summary"
+    ],
+    "current_coverage_status": "missing",
+    "current_n_qualifying_dogs": 0,
+    "current_n_qualifying_sources": 0,
+    "validated_empty_blacklist": false,
+    "policy_notes": [
+      "Missing canine normal heart/brain/lung DLA coverage is explicitly missing and never emitted as an experimentally validated empty blacklist.",
+      "Bulk digest proteomics (Pfizer, Labrador PeptideAtlas) can support protein existence and detectability controls, never DLA presentation.",
+      "Nested peptide windows, I/L inference, binding predictions, competition assays, tumors, cell lines, unresolved pools and human HLA data cannot satisfy this rule."
+    ],
+    "source_audit_ledger": [
+      {
+        "source_key": "lang_2026_splenic_dla_dr",
+        "citation": "Lang et al. 2026, PMID 42752862, DOI 10.1093/jimmun/vkag243",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/42752862/",
+        "tracked_issue": 676,
+        "evidence_kind": "primary_tissue_dla_elution",
+        "tissues_reported": [
+          "spleen"
+        ],
+        "disposition": "excluded_wrong_tissue",
+        "reason": "Direct DLA-DR ligand elution from two homozygous donor spleens; spleen cannot satisfy the heart/brain/lung requirement and the public supplement omits observed MS peptide sequences."
+      },
+      {
+        "source_key": "miyamae_2026_dla88",
+        "citation": "Miyamae, Murakami & Hemmi 2026, bioRxiv v1 (2026-10-12), DOI 10.64898/2026.10.06.756904",
+        "url": "https://doi.org/10.64898/2026.10.06.756904",
+        "tracked_issue": 677,
+        "evidence_kind": "engineered_cell_line_dla_elution",
+        "tissues_reported": [],
+        "disposition": "excluded_cell_line_or_tumor",
+        "reason": "Ten-allele DLA-88 atlas in engineered canine melanoma-derived cell populations; normal-tissue expression comparisons are not experimental normal-organ DLA presentation."
+      },
+      {
+        "source_key": "kaabinejadian_2026_pxd074485",
+        "citation": "Kaabinejadian et al. 2026, PMID 42199926, PXD074485",
+        "url": "https://proteomecentral.proteomexchange.org/cgi/GetDataset?ID=PXD074485",
+        "tracked_issue": 660,
+        "evidence_kind": "tumor_and_transfectant_dla_elution",
+        "tissues_reported": [
+          "tumor",
+          "HCT116 HLA-I KO"
+        ],
+        "disposition": "excluded_cell_line_or_tumor",
+        "reason": "Already curated primary canine tumors (4 dogs) and DLA-transduced human HCT116 cell lines; excluded from nonmalignant heart/brain/lung coverage."
+      },
+      {
+        "source_key": "barth_2016_ross_2018_nemec_2018",
+        "citation": "Barth et al. 2016 (10.1371/journal.pone.0167017), Ross et al. 2018 (PMC5850932), Nemec et al. 2018 (PMID 30239163)",
+        "url": "https://doi.org/10.1371/journal.pone.0167017",
+        "tracked_issue": 674,
+        "evidence_kind": "engineered_cell_line_dla_elution",
+        "tissues_reported": [],
+        "disposition": "excluded_cell_line_or_tumor",
+        "reason": "Allele and motif discovery in engineered cell lines rather than independently sampled nonmalignant heart, brain or lung."
+      },
+      {
+        "source_key": "canine_histiocytic_sarcoma_30854786",
+        "citation": "PMID 30854786 (canine histiocytic sarcoma CTA study)",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/30854786/",
+        "tracked_issue": 674,
+        "evidence_kind": "engineered_cell_line_dla_elution",
+        "tissues_reported": [],
+        "disposition": "excluded_cell_line_or_tumor",
+        "reason": "MS ligand discovery is in an engineered histiocytic-sarcoma cell line; normal-tissue comparisons use RT-PCR rather than DLA elution."
+      },
+      {
+        "source_key": "pfizer_2026_03",
+        "citation": "Oziolor et al. 2026 (Pfizer nonclinical atlas), DOI 10.1038/s41597-026-07512-9, MSV000099744 / PXD070290",
+        "url": "https://doi.org/10.1038/s41597-026-07512-9",
+        "tracked_issue": 666,
+        "evidence_kind": "bulk_proteomics",
+        "tissues_reported": [
+          "heart",
+          "brain",
+          "lung"
+        ],
+        "disposition": "excluded_bulk_proteomics",
+        "reason": "Pooled tryptic TMT bulk proteomics (pools of six dogs); provides bulk protein/peptide existence evidence only, never DLA presentation."
+      },
+      {
+        "source_key": "labrador_2024_01",
+        "citation": "Labrador PeptideAtlas & DIA spectral library, DOI 10.1038/s41597-026-06647-z, PXD052932 / PXD052902",
+        "url": "https://doi.org/10.1038/s41597-026-06647-z",
+        "tracked_issue": 666,
+        "evidence_kind": "bulk_proteomics",
+        "tissues_reported": [
+          "heart",
+          "brain",
+          "lung"
+        ],
+        "disposition": "excluded_bulk_proteomics",
+        "reason": "Bulk tryptic digest proteomics from a stillborn female and a 6-month-old male with hip dysplasia; never DLA presentation."
+      },
+      {
+        "source_key": "lumpp_dissertation",
+        "citation": "Lumpp dissertation (LMU Munich), English summary p. 141",
+        "url": "https://edoc.ub.uni-muenchen.de/21910/1/Lumpp_Leonie_M.pdf",
+        "tracked_issue": 674,
+        "evidence_kind": "engineered_cell_line_dla_elution",
+        "tissues_reported": [],
+        "disposition": "excluded_cell_line_or_tumor",
+        "reason": "Uses K562 transfectants and MDCK II cells; normal tissue immunopeptidomics is noted only prospectively."
+      },
+      {
+        "source_key": "ghosh_2020_planz_lead",
+        "citation": "Ghosh dissertation 2020 (Tuebingen), pp. 111-112, sections 5.4.1/5.4.8",
+        "url": "https://publikationen.uni-tuebingen.de/xmlui/bitstream/handle/10900/106886/Dissertation_MG_final.pdf",
+        "tracked_issue": 674,
+        "evidence_kind": "unresolved_lead",
+        "tissues_reported": [],
+        "disposition": "unresolved_lead",
+        "reason": "Mentions canine collaboration with the Planz group without tissue, donor or peptide tables; documented normal-vs-malignant database is human."
+      },
+      {
+        "source_key": "bautista_dtu_2025_poster_lead",
+        "citation": "Bautista, Nielsen & Arendt, DTU 2025 PhD poster P03, p. 6",
+        "url": "https://www.conferencemanager.dk/phdpostersession2025/download-zip?data=457287",
+        "tracked_issue": 674,
+        "evidence_kind": "unresolved_lead",
+        "tissues_reported": [],
+        "disposition": "unresolved_lead",
+        "reason": "Poster abstract describes planned healthy/tumor canine presentation and histiocytoma work; no qualifying normal-organ peptide table or donor list published."
+      }
+    ]
+  },
+  "sources": {
+    "miyamae_2026_dla88": {
+      "source_id": "miyamae_2026_dla88",
+      "tracked_issue": 677,
+      "title": "Miyamae 2026 ten-allele canine DLA-88 ligand atlas",
+      "citation": "Miyamae, Murakami & Hemmi, bioRxiv v1 (2026-10-12)",
+      "doi": "10.64898/2026.10.06.756904",
+      "biorxiv_api_url": "https://api.biorxiv.org/details/biorxiv/10.64898/2026.10.06.756904",
+      "preprint_version": 1,
+      "posted_date": "2026-10-12",
+      "last_checked_date": "2026-11-25",
+      "peer_reviewed": false,
+      "license": "cc_no",
+      "redistributable": false,
+      "access_mode": "opt_in_local_file_only",
+      "import_status": "qualification_pending_full_methods_and_deposit",
+      "public_ms_deposit_verified": false,
+      "source_taxon_id": 9615,
+      "mhc_species": "Canis lupus familiaris",
+      "mhc_class": "I",
+      "mhc_locus": "DLA-88",
+      "reported_n_alleles": 10,
+      "reported_n_peptides_7_15mer": 32702,
+      "host_context": "engineered canine melanoma-derived cell populations",
+      "is_cell_line": true,
+      "tissue_status": "malignant_cell_line",
+      "satisfies_vital_organ_blacklist": false,
+      "allowed_measured_evidence_kinds": [
+        "measured_eluted_ligand"
+      ],
+      "excluded_non_measured_evidence_kinds": [
+        "predicted_binding",
+        "motif_neighbour_extrapolation",
+        "candidate_selection",
+        "normal_expression_screen"
+      ],
+      "required_columns": [
+        "peptide",
+        "dla_allele",
+        "parental_line",
+        "construct_id",
+        "evidence_kind"
+      ],
+      "limitations": [
+        "bioRxiv API reports license=cc_no; do not bundle or redistribute preprint tables in Hitlist.",
+        "Preprint full methods, residual endogenous MHC, FDR/confidence, searched reference and raw deposit accession remain unverified as of 2026-11-25.",
+        "Normal-tissue source-protein expression comparisons are not experimental normal-organ DLA presentation and cannot satisfy #674.",
+        "Do not extrapolate the ten measured DLA-88 alleles to predicted motif neighbours or treat cultures as independent normal dogs."
+      ]
+    },
+    "lang_2026_splenic_dla_dr": {
+      "source_id": "lang_2026_splenic_dla_dr",
+      "tracked_issue": 676,
+      "title": "Lang 2026 splenic DLA-DR MS immunopeptidomics",
+      "citation": "Lang et al., Journal of Immunology 2026, 215(9):vkag243",
+      "pmid": "42752862",
+      "doi": "10.1093/jimmun/vkag243",
+      "publisher_url": "https://academic.oup.com/jimmunol/article/215/9/vkag243/8812665",
+      "authors_summary_url": "https://friedlab.org/2026/09/17/how-dogs-immune-cells-choose-what-to-recognize-a-summary-of-lang-et-al-2026/",
+      "published_date": "2026-09-17",
+      "last_checked_date": "2026-11-25",
+      "peer_reviewed": true,
+      "license": "publisher_controlled_no_redistribution",
+      "redistributable": false,
+      "access_mode": "opt_in_local_file_only",
+      "import_status": "source_acquisition_pending_ms_peptide_table",
+      "public_ms_deposit_verified": false,
+      "source_taxon_id": 9615,
+      "mhc_species": "Canis lupus familiaris",
+      "mhc_class": "II",
+      "mhc_locus": "DLA-DR",
+      "ip_antibody": "YKIX334.2",
+      "tissue": "spleen",
+      "is_cell_line": false,
+      "satisfies_vital_organ_blacklist": false,
+      "reviewed_supplement_archive": {
+        "filename": "vkag243_supplementary_data.zip",
+        "size_bytes": 1866144,
+        "sha256": "d79d05543f88a31cd70fd6ee68aaaffbfb72ab2bfd4d56c078a4f130b9c6c4d5",
+        "contains_ms_peptide_sequences": false,
+        "reviewed_date": "2026-10-13",
+        "content_inventory": [
+          {
+            "item": "Table S1",
+            "evidence_type": "rt_qpcr_primers",
+            "admissible_as_ms_presentation": false
+          },
+          {
+            "item": "Table S2",
+            "evidence_type": "donor_sample_metadata",
+            "sha256": "c107a758f38a79f7e67727c5fd0e15ddfb266bcf12e66c029ac7c987dc280cd2",
+            "admissible_as_ms_presentation": false
+          },
+          {
+            "item": "Tables S3/S4",
+            "evidence_type": "motif_derived_rabies_glycoprotein_predictions",
+            "admissible_as_ms_presentation": false
+          },
+          {
+            "item": "Tables S5/S6",
+            "evidence_type": "source_protein_count_summaries",
+            "admissible_as_ms_presentation": false
+          },
+          {
+            "item": "*_competition_averaged.csv",
+            "evidence_type": "rabies_peptide_competition_binding",
+            "admissible_as_ms_presentation": false
+          },
+          {
+            "item": "Motif R-script PDF and Supplementary Figure 1",
+            "evidence_type": "motif_scoring_code_and_figure",
+            "admissible_as_ms_presentation": false
+          }
+        ]
+      },
+      "verified_table_s2_donors": {
+        "1": {
+          "sample_id": "1",
+          "donor_id": "lang2026_spleen_donor_1",
+          "age_years": 3.8,
+          "reported_sex": "MN",
+          "breed": "Standard Poodle",
+          "haplotype_drb1_dqa1_dqb1": "015:01-006:01-023:01",
+          "dra_genotype": "unknown",
+          "health_status": "unknown",
+          "treatment_status": "unknown",
+          "tissue": "spleen"
+        },
+        "2": {
+          "sample_id": "2",
+          "donor_id": "lang2026_spleen_donor_2",
+          "age_years": 6.7,
+          "reported_sex": "MN",
+          "breed": "Golden Retriever",
+          "haplotype_drb1_dqa1_dqb1": "012:01-004:01-013:03",
+          "dra_genotype": "unknown",
+          "health_status": "unknown",
+          "treatment_status": "unknown",
+          "tissue": "spleen"
+        }
+      },
+      "required_ms_columns": [
+        "peptide",
+        "sample_id",
+        "source_record_id",
+        "evidence_kind"
+      ],
+      "limitations": [
+        "Reviewed vkag243_supplementary_data.zip (1,866,144 bytes) supplies no observed MS peptide sequences.",
+        "Donor health status, treatment history, DRA chain typing, raw run IDs and searched FASTA remain unknown until full methods and MS exports are acquired.",
+        "Spleen cannot satisfy #674's heart/brain/lung vital-organ coverage rule even though two individual homozygous donors exist.",
+        "Rabies competition assays, motif predictions (Tables S3/S4) and source-protein count summaries (Tables S5/S6) are kept outside naturally presented MS observations."
+      ]
+    },
+    "canine_bulk_proteomics": {
+      "source_id": "canine_bulk_proteomics",
+      "tracked_issue": 666,
+      "title": "Canine normal-tissue bulk MS (Pfizer & Labrador PeptideAtlas)",
+      "catalog_path": "hitlist/data/canine_bulk.yaml",
+      "sources": [
+        "pfizer_2026_03",
+        "labrador_2024_01"
+      ],
+      "provides_dla_presentation_blacklist": false,
+      "satisfies_vital_organ_blacklist": false,
+      "limitations": [
+        "Pfizer (MSV000099744 / PXD070290) measures tryptic TMT tissue pools of six dogs; a positive pool cannot be expanded into six individual dogs.",
+        "Labrador PeptideAtlas (PXD052932) tissue donors are a stillborn female and a 6-month-old male euthanized for hip dysplasia; developmental/health context must be retained and DIA spectral libraries (PXD052902, SAL00328-SAL00330) stay separate from DDA tissue detections.",
+        "Bulk digest proteomics never becomes DLA immunoprecipitation or satisfies #674's presentation blacklist."
+      ]
+    }
+  }
+}
