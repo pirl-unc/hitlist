@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "revision": "tcrvdb_paired_receptor_adapter_v1",
+  "issue": "pirl-unc/hitlist#722",
+  "source": {
+    "title": "A functionally validated TCR-pMHC database for TCR specificity model development",
+    "authors": "Messemaker et al.",
+    "journal": "Immunity",
+    "year": 2026,
+    "doi": "10.1016/j.immuni.2026.09.007",
+    "preprint_doi": "10.1101/2025.04.28.651095",
+    "pmcid": "PMC12132471",
+    "repository_url": "https://github.com/schumacherlab/TCRvdb",
+    "access_request_url": "https://tcrvdb.nkiai.nl",
+    "known_releases": [
+      {
+        "release_date": "2026-10-01",
+        "filename": "2026-10-01_TCRvdb_ttd_gil_ylq_nlv_glc.csv",
+        "epitope_panel": [
+          "TTDPSFLGRY",
+          "GILGFVFTL",
+          "YLQPRTFLL",
+          "NLVPMVATV",
+          "GLCTLVAML"
+        ]
+      },
+      {
+        "release_date": "2025-05-01",
+        "filename": "01_05_2025_TCRvdb.csv",
+        "epitope_panel": [
+          "YLQPRTFLL",
+          "GLCTLVAML"
+        ]
+      }
+    ]
+  },
+  "access_terms": {
+    "access_mode": "request_required_local_file_only",
+    "redistribution_allowed": false,
+    "public_package_embedding_prohibited": true,
+    "citation_required_doi": "10.1016/j.immuni.2026.09.007",
+    "vdjdb_score_is_ground_truth": false
+  },
+  "policies": {
+    "require_paired_alpha_beta_same_receptor": true,
+    "allow_pairing_unrelated_chains_by_epitope": false,
+    "label_reconstructed_sequences_as_observed_full_length": false,
+    "treat_non_validation_as_universal_nonbinding": false,
+    "treat_shuffled_or_unobserved_pairs_as_measured_negatives": false,
+    "claim_arbitrary_epitope_generalization": false,
+    "keep_separate_from_mhc_affinity_and_ms_elution": true
+  },
+  "validation_statuses": [
+    "validated",
+    "tested_not_validating",
+    "indeterminate",
+    "failed_qc",
+    "unassayed"
+  ],
+  "sequence_provenance_statuses": [
+    "experimentally_observed_full_length",
+    "reconstructed_from_vj_cdr3",
+    "cdr3_vj_only",
+    "missing"
+  ]
+}
