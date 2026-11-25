@@ -8462,8 +8462,11 @@
     # four PATIENT-DERIVED melanoma cell lines (pdMel-CLs, Pt-A..Pt-D) — bespoke
     # per-patient lines, not catalogued/named lines.  All melanoma, so curate the
     # melanocyte LINEAGE (merges into "Melanocyte"), not a fabricated line name
-    # (#36 "Other").
+    # (#36 "Other", #314).
     cell_name: Melanocyte
+    source_tissue: "Skin"
+    disease: "melanoma"
+    culture_condition: "Cell Line / Clone"
 
   - pmid: 35154160
     study_label: "Kaabinejadian 2022 — DRB3/4/5 class II motifs"
@@ -9130,9 +9133,12 @@
     study_label: "Fujiwara 2022 — PDAC tissue immunopeptidome"
     title: "Direct identification of HLA class I and class II-restricted T cell epitopes in pancreatic cancer tissues by mass spectrometry"
     override: cancer_patient
+    source_tissue: "Pancreas"
+    disease: "pancreatic ductal adenocarcinoma"
+    culture_condition: "Direct Ex Vivo"
     note: >
       Primary PDAC tissue from multiple patients. Direct tissue
-      immunopeptidomics (class I + class II).
+      immunopeptidomics (class I + class II). Provenance fields curated under #314.
     ms_samples:
       - sample_label: "PDAC tumor tissue"
         condition: "unperturbed — snap-frozen surgical resection"
@@ -9307,8 +9313,11 @@
     # All three sources are cutaneous-melanoma lines (in-house QIMR Berghofer
     # collection; exact line designations are behind the Wiley paywall), so
     # curate the melanocyte LINEAGE (merges into the "Melanocyte" group), not a
-    # fabricated single line name (#36 "Other").
+    # fabricated single line name (#36 "Other", #314).
     cell_name: Melanocyte
+    source_tissue: "Skin"
+    disease: "skin melanoma"
+    culture_condition: "Cell Line / Clone"
     ms_samples:
       - sample_label: "melanoma cell lines (3 lines)"
         n_samples: 3
@@ -12789,6 +12798,8 @@
   - pmid: 37938771
     study_label: "Yarmarkovich 2023 — neuroblastoma immunopeptidome"
     title: "Targeting of intracellular oncoproteins with peptide-centric CARs"
+    source_tissue: "Peripheral Nervous System"
+    disease: "neuroblastoma"
     override:
     ms_samples:
       - sample_label: "neuroblastoma cell lines + patient tumors"
@@ -15909,9 +15920,12 @@
   - pmid: 31921104
     study_label: "Bartok 2020 — melanoma neoepitope discovery"
     cell_name: "Melanocyte"
+    source_tissue: "Skin"
+    disease: "melanoma"
+    culture_condition: "Cell Line / Clone"
     note: >
       Patient-derived melanoma lines (KADA, ANRU) — melanocyte lineage.  IEDB
-      cell_name="Other".
+      cell_name="Other" and blank source_tissue curated under #314.
   - pmid: 33372950
     study_label: "Pollock 2021 — HaCaT keratinocyte hapten immunopeptidome"
     cell_name: "Epithelial cell"
@@ -15946,6 +15960,18 @@
       leukemia*, not multiple myeloma.  Per-row split between the two lines is
       not recoverable, so cell_name is left unset (groups as an unspecified-type
       cancer cell line).  #314.
+  - pmid: 30640174
+    study_label: "van der Lee 2019 — primary AML mutated NPM1 HLA-I ligandome"
+    title: "Mutated nucleophosmin 1 as immunotherapy target in acute myeloid leukemia"
+    override: cancer_patient
+    source_tissue: "Blood"
+    disease: "acute myeloid leukemia"
+    culture_condition: "Direct Ex Vivo"
+    note: >
+      HLA class I immunopeptidomics of primary acute myeloid leukemia (AML)
+      patient samples identifying mutated NPM1 (delta-NPM1) peptides including
+      HLA-A*02:01-restricted CLAVEEVSL. IEDB left source_tissue blank; curated
+      under #314.
 
   # Meurer 2021 — paired HLA-DP/DM native source recovery (#895).
   - pmid: 33025005

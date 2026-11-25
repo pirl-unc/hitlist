@@ -504,6 +504,8 @@ def test_run_all_returns_named_dataframes(tmp_path, monkeypatch):
         # #586: engineering drift is a curation axis of its own, and a curator
         # running `hitlist qc` saw none of it while it was absent here.
         "engineering_drift",
+        # #314: blank/unresolved source_tissue provenance audit.
+        "blank_tissue_provenance",
     }
     for v in results.values():
         assert isinstance(v, pd.DataFrame)

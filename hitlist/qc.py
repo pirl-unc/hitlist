@@ -249,25 +249,52 @@ def mhc_token_audit(
         *,
         curated: bool = False,
     ) -> None:
-        if field not in frame.columns:
+        if field not in frame.columns or frame.empty:
             return
-        values = frame[[field]].copy()
-        values["pmid"] = frame["pmid"] if "pmid" in frame.columns else ""
-        values["token"] = (
-            values[field]
-            .astype("object")
-            .map(lambda value: _split_mhc_audit_tokens(value, curated=curated))
-        )
-        counts = (
-            values[["pmid", "token"]]
-            .explode("token")
-            .dropna(subset=["token"])
-            .groupby(["pmid", "token"], dropna=False, observed=True)
-            .size()
-            .reset_index(name="n_records")
-        )
-        for row in counts.itertuples(index=False):
-            inspect(evidence_kind, field, row.token, row.pmid, int(row.n_records))
+        # Aggregate (pmid, raw_field_value) counts BEFORE splitting tokens (#63).
+        # Collapses ~4.5M rows to ~10-30K unique (pmid, value) pairs, avoiding
+        # 20M+ Python lambda calls and multi-GB DataFrame.explode() copies while
+        # producing identical per-(pmid, token) counts.
+        split_cache: dict[object, list[str]] = {}
+        if "pmid" in frame.columns:
+            pair_counts = frame.groupby(
+                ["pmid", field], dropna=False, observed=True, sort=False
+            ).size()
+            na_sentinel = object()
+            token_counts: dict[tuple[object, str], int] = {}
+            original_na: dict[object, object] = {}
+            for (pmid_val, raw_value), n_rows in pair_counts.items():
+                raw_key = na_sentinel if pd.isna(raw_value) else raw_value
+                tokens = split_cache.get(raw_key)
+                if tokens is None:
+                    tokens = _split_mhc_audit_tokens(raw_value, curated=curated)
+                    split_cache[raw_key] = tokens
+                if not tokens:
+                    continue
+                if pd.isna(pmid_val):
+                    pmid_key: object = na_sentinel
+                    original_na.setdefault(na_sentinel, pmid_val)
+                else:
+                    pmid_key = pmid_val
+                n_int = int(n_rows)
+                for tok in tokens:
+                    key = (pmid_key, tok)
+                    token_counts[key] = token_counts.get(key, 0) + n_int
+            for (pmid_key, tok), n_records in token_counts.items():
+                pmid_out = original_na[na_sentinel] if pmid_key is na_sentinel else pmid_key
+                inspect(evidence_kind, field, tok, pmid_out, n_records)
+        else:
+            val_counts = frame[field].value_counts(dropna=False)
+            token_counts_no_pmid: dict[str, int] = {}
+            for raw_value, n_rows in val_counts.items():
+                tokens = _split_mhc_audit_tokens(raw_value, curated=curated)
+                if not tokens:
+                    continue
+                n_int = int(n_rows)
+                for tok in tokens:
+                    token_counts_no_pmid[tok] = token_counts_no_pmid.get(tok, 0) + n_int
+            for tok, n_records in token_counts_no_pmid.items():
+                inspect(evidence_kind, field, tok, "", n_records)
 
     evidence_fields = ("mhc_restriction", "host_mhc_types", "serotype", "serotypes")
     for evidence_kind, frame in evidence_frames.items():
@@ -1350,6 +1377,150 @@ def discrepancies(
     return out[output_cols].reset_index(drop=True)
 
 
+_BLANK_TISSUE_AUDIT_COLUMNS = [
+    "pmid",
+    "n_observations",
+    "species",
+    "cell_names",
+    "diseases",
+    "cell_types",
+    "has_pmid_provenance",
+    "status",
+    "note",
+    "severity",
+]
+
+# Reviewed multi-line / non-single-tissue systems explicitly audited under #314
+# that must not be force-fit to a single anatomical source_tissue.
+_REVIEWED_NON_SINGLE_TISSUE_PMIDS: dict[int, str] = {
+    31495665: "Abelin 2019 9-line HLA-II MAPTAC transfectant panel (cell-line mixture)",
+    28628042: "Chang 2017 synthetic-precursor proteasome digestion + TCRm antibody study (not cellular elution)",
+    29712860: "Guillaume 2018 meta-analysis of ~7 prior peptidomics datasets (no single source line)",
+    40008881: "HCC in-silico prediction validated on donor/patient PBMCs (not liver/HCC elution)",
+    28422163: "Kim 2017 cell-free antigen processing system (not cellular/tissue elution)",
+    32218997: "Ascaris spp. in vitro antigen processing system (not cellular/tissue elution)",
+}
+_UNRESOLVED_TISSUE_VALUES = frozenset({"", "other", "unidentified", "unknown", "n/a", "na"})
+
+
+@dataset_snapshot()
+def _default_blank_tissue_frame() -> pd.DataFrame:
+    import pyarrow.parquet as pq
+
+    from .observations import observations_path
+
+    path = observations_path()
+    if not path.exists():
+        return pd.DataFrame()
+    wanted = [
+        "pmid",
+        "species",
+        "source_tissue",
+        "cell_name",
+        "cell_type",
+        "disease",
+        "src_cancer",
+        "src_cell_line",
+    ]
+    available = set(pq.read_schema(path).names)
+    cols = [c for c in wanted if c in available]
+    return pd.read_parquet(path, columns=cols)
+
+
+def blank_tissue_provenance_audit(
+    observations: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """List PMIDs with unresolved ``source_tissue`` despite cancer/cell-line/context fields (#314).
+
+    Distinguishes reviewed multi-line or cell-free systems (``status='reviewed_non_single_tissue'``,
+    ``severity='info'``) from unreviewed blank-tissue PMIDs (``status='missing_source_tissue'``,
+    ``severity='warn'``) so curators can target per-PMID ``pmid_provenance`` overrides cleanly.
+    """
+    if observations is None:
+        observations = _default_blank_tissue_frame()
+    if observations.empty or "source_tissue" not in observations.columns:
+        return pd.DataFrame(columns=_BLANK_TISSUE_AUDIT_COLUMNS)
+
+    tissue_norm = (
+        observations["source_tissue"].astype("string").fillna("").str.strip().str.casefold()
+    )
+    unresolved_mask = tissue_norm.isin(_UNRESOLVED_TISSUE_VALUES)
+    if not unresolved_mask.any():
+        return pd.DataFrame(columns=_BLANK_TISSUE_AUDIT_COLUMNS)
+
+    sub = observations.loc[unresolved_mask]
+    context_mask = pd.Series(False, index=sub.index)
+    for bool_col in ("src_cancer", "src_cell_line"):
+        if bool_col in sub.columns:
+            context_mask |= sub[bool_col].fillna(False).astype(bool)
+    for text_col in ("cell_name", "disease", "cell_type"):
+        if text_col in sub.columns:
+            context_mask |= sub[text_col].astype("string").fillna("").str.strip().ne("")
+    sub = sub.loc[context_mask]
+    if sub.empty:
+        return pd.DataFrame(columns=_BLANK_TISSUE_AUDIT_COLUMNS)
+
+    overrides = load_pmid_overrides()
+    rows: list[dict] = []
+    pmid_col = sub["pmid"] if "pmid" in sub.columns else pd.Series(pd.NA, index=sub.index)
+    for pmid_val, grp in sub.groupby(pmid_col, dropna=False, sort=False):
+        pmid_int: int | None = None
+        if not pd.isna(pmid_val):
+            try:
+                pmid_int = int(pmid_val)
+            except (TypeError, ValueError):
+                pmid_int = None
+
+        entry = overrides.get(pmid_int, {}) if pmid_int is not None else {}
+        has_prov = bool(
+            entry.get("source_tissue")
+            or entry.get("cell_name")
+            or entry.get("disease")
+            or entry.get("culture_condition")
+        )
+        if pmid_int in _REVIEWED_NON_SINGLE_TISSUE_PMIDS:
+            status = "reviewed_non_single_tissue"
+            note = _REVIEWED_NON_SINGLE_TISSUE_PMIDS[pmid_int]
+            severity = "info"
+        else:
+            status = "missing_source_tissue"
+            note = (
+                "pmid_overrides has partial provenance without source_tissue"
+                if has_prov
+                else "blank/unresolved source_tissue with populated cancer/cell-line/context fields"
+            )
+            severity = "warn"
+
+        def _join_unique(col_name: str, frame: pd.DataFrame = grp) -> str:
+            if col_name not in frame.columns:
+                return ""
+            vals = sorted(
+                {v for v in frame[col_name].astype("string").fillna("").str.strip().unique() if v}
+            )
+            return "; ".join(vals)
+
+        rows.append(
+            {
+                "pmid": pmid_val,
+                "n_observations": len(grp),
+                "species": _join_unique("species"),
+                "cell_names": _join_unique("cell_name"),
+                "diseases": _join_unique("disease"),
+                "cell_types": _join_unique("cell_type"),
+                "has_pmid_provenance": has_prov,
+                "status": status,
+                "note": note,
+                "severity": severity,
+            }
+        )
+
+    return (
+        pd.DataFrame(rows, columns=_BLANK_TISSUE_AUDIT_COLUMNS)
+        .sort_values(["severity", "n_observations"], ascending=[False, False], kind="stable")
+        .reset_index(drop=True)
+    )
+
+
 @dataset_snapshot()
 def run_all(mhc_class: str | None = None) -> dict[str, pd.DataFrame]:
     """Run every QC check and return a name → DataFrame mapping.
@@ -1367,6 +1538,7 @@ def run_all(mhc_class: str | None = None) -> dict[str, pd.DataFrame]:
         "discrepancies": discrepancies(mhc_class=mhc_class),
         "proteome_coverage": proteome_coverage(),
         "engineering_drift": engineering_drift_audit(),
+        "blank_tissue_provenance": blank_tissue_provenance_audit(),
     }
 
 
