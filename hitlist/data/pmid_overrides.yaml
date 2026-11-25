@@ -16592,6 +16592,13 @@
     study_label: "Manandhar 2016 — HLA-B*35:01 and HLA-B*35:08 residue-156 B-LCL peptidome"
     title: "Understanding the obstacle of incompatibility at residue 156 within HLA-B*35 subtypes"
     override: ebv_lcl
+    arm_resolution: axis_mismatch
+    arm_resolution_note: >
+      IEDB deposits 200 rows as HLA-B*35:01, 211 rows as HLA-B*35:08, and 465 rows
+      under the broad serotype HLA-B35 without subtype specificity. The only varying
+      per-row metadata column (assay_comments, 5 distinct values) distinguishes the
+      host cell line axis (721.220 vs 721.221), not the curated HLA-B*35:01 vs
+      HLA-B*35:08 subtype arm axis.
     note: >
       MS immunopeptidomics of HLA-B*35:01 and HLA-B*35:08 allotypes expressed in
       lymphoblastoid cell lines examining residue-156 micropolymorphism (Manandhar et al.,
