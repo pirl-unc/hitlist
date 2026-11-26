@@ -17400,3 +17400,662 @@
       In vitro refolding and X-ray crystallography of giant panda MHC class I (Aime-128)
       complexed with a canine distemper virus peptide (Yuan et al., Protein Sci 2020,
       doi:10.1002/pro.3980). No cellular MS elution. #14, #980.
+
+  # ── Large murine immunopeptidome studies (>=1,000 peptides, #13) ─────────
+
+  - pmid: 25428506
+    study_label: "Yadav 2014 — MC38 and TRAMP-C1 murine tumor neoepitope atlas"
+    title: "Predicting immunogenic tumour mutations by combining mass spectrometry and exome sequencing"
+    species: "Mus musculus"
+    override: cell_line
+    note: >
+      Foundational murine neoepitope discovery immunopeptidome (9,872 rows / 7,766 unique
+      peptides in IEDB) combining exome/RNA-seq and H2-K*b/H2-D*b MS elution in two
+      syngeneic C57BL/6 tumor models: MC38 colon carcinoma (6,241 rows) and TRAMP-C1
+      prostate cancer (3,631 rows; Yadav et al., Nature 2014, doi:10.1038/nature14001). #13.
+    ms_samples:
+      - sample_label: "MC38 colon carcinoma (C57BL/6, H2-K*b/H2-D*b)"
+        n_samples: 1
+        source: "Murine MC38 colon adenocarcinoma cell line (C57BL/6)"
+        condition: "unperturbed — murine colon cancer cell line"
+        condition_id: yadav_2014_mc38
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "H2-K*b H2-D*b"
+      - sample_label: "TRAMP-C1 prostate carcinoma (C57BL/6, H2-K*b/H2-D*b)"
+        n_samples: 1
+        source: "Murine TRAMP-C1 prostate carcinoma cell line (C57BL/6)"
+        condition: "unperturbed — murine prostate cancer cell line"
+        condition_id: yadav_2014_tramp_c1
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "H2-K*b H2-D*b"
+
+  - pmid: 29615400
+    study_label: "DeVette 2018 — NetH2pan soluble H2-D*q in HeLa and 721.221"
+    title: "NetH2pan: A Computational Tool to Guide MHC Peptide Prediction on Murine Tumors"
+    species: "Homo sapiens"
+    override: cell_line
+    rules:
+      - condition:
+          Cell Name: "B cell"
+        override: ebv_lcl
+        reason: "Soluble H2-D*q eluted from human 721.221 EBV-LCL transfectants"
+      - condition:
+          Assay Comments: "721"
+        override: ebv_lcl
+        reason: "Soluble H2-D*q eluted from human 721.221 EBV-LCL transfectants"
+    note: >
+      Chimeric human-host / murine-MHC mono-allelic elution (9,641 rows / 7,648 unique
+      peptides in IEDB) of soluble FVB H2-D*q expressed in human HeLa (cancer cell line)
+      and 721.221 (EBV-LCL) cells (DeVette et al., Cancer Immunol Res 2018,
+      doi:10.1158/2326-6066.CIR-17-0298). Rules separate 721.221 (ebv_lcl) from HeLa
+      (cell_line). #13.
+    ms_samples:
+      - sample_label: "HeLa transfected with soluble H2-D*q"
+        n_samples: 1
+        source: "Human HeLa cervical carcinoma cell line expressing soluble murine H2-D*q"
+        condition: "unperturbed — chimeric soluble H2-D*q mono-allelic transfectant"
+        condition_id: devette_2018_hela_h2_dq
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        mhc_class: I
+        mhc: "H2-D*q"
+      - sample_label: "721.221 transfected with soluble H2-D*q"
+        n_samples: 1
+        source: "Human 721.221 EBV-LCL expressing soluble murine H2-D*q"
+        condition: "unperturbed — chimeric soluble H2-D*q mono-allelic transfectant"
+        condition_id: devette_2018_721_221_h2_dq
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        mhc_class: I
+        mhc: "H2-D*q"
+
+  - pmid: 26495903
+    study_label: "Sofron 2016 — murine MHC class II spleen and A20 lymphoma atlas"
+    title: "High-resolution analysis of the murine MHC class II immunopeptidome"
+    species: "Mus musculus"
+    override: cell_line
+    rules:
+      - condition:
+          Culture Condition: "Direct Ex Vivo"
+        override: healthy
+        reason: "Primary healthy BALB/c and C57BL/6 murine splenocytes"
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      BALB/c healthy splenocytes (3,013 rows) and A20 BALB/c B-cell lymphoma cells (1,286
+      rows) both carry H2-d class II (H2-AA*d/AB*d, H2-EA*d/EB*d), while C57BL/6 splenocytes
+      (2,725 rows) carry H2-AA*b/AB*b. IEDB separates BALB/c spleen vs A20 via
+      culture_condition/cell_name/source_tissue, leaving per-arm mapping for future curation.
+    note: >
+      High-resolution Orbitrap murine MHC class II immunopeptidome (7,024 rows / 6,330
+      unique peptides in IEDB) across healthy BALB/c splenocytes (I-Ad/I-Ed), healthy
+      C57BL/6 splenocytes (I-Ab), and murine A20 B-cell lymphoma cells (Sofron et al.,
+      Eur J Immunol 2016, doi:10.1002/eji.201545930). #13.
+    ms_samples:
+      - sample_label: "BALB/c healthy splenocytes (H2-d class II)"
+        n_samples: 1
+        source: "Primary healthy BALB/c mouse splenocytes"
+        condition: "unperturbed — primary healthy murine spleen"
+        condition_id: sofron_2016_balbc_spleen_class2
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: II
+        mhc: "H2-AA*d/AB*d H2-EA*d/EB*d"
+      - sample_label: "C57BL/6 healthy splenocytes (H2-AA*b/AB*b)"
+        n_samples: 1
+        source: "Primary healthy C57BL/6 mouse splenocytes"
+        condition: "unperturbed — primary healthy murine spleen"
+        condition_id: sofron_2016_c57bl6_spleen_class2
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: II
+        mhc: "H2-AA*b/AB*b"
+      - sample_label: "A20 B-cell lymphoma (BALB/c, H2-d class II)"
+        n_samples: 1
+        source: "Murine A20 B-cell lymphoma cell line (BALB/c)"
+        condition: "unperturbed — murine B-cell lymphoma cell line"
+        condition_id: sofron_2016_a20_lymphoma_class2
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: II
+        mhc: "H2-AA*d/AB*d H2-EA*d/EB*d"
+
+  - pmid: 31219806
+    study_label: "Ebrahimi-Nik 2019 — Meth A BALB/c fibrosarcoma neoepitope MS"
+    title: "Mass spectrometry driven exploration reveals nuances of neoepitope-driven tumor rejection"
+    species: "Mus musculus"
+    override: cell_line
+    note: >
+      Unbiased discovery MS immunopeptidomics of murine Meth A fibrosarcoma cells (BALB/c,
+      H2-d haplotype; 6,208 rows / 6,208 unique peptides in IEDB, of which 6,202 carry only
+      generic "H2 class I" restriction in IEDB; Ebrahimi-Nik et al., JCI Insight 2019).
+      Curating the single Meth A BALB/c arm supplies the H2-K*d/H2-D*d/H2-L*d candidate set.
+      #13.
+    ms_samples:
+      - sample_label: "Meth A fibrosarcoma (BALB/c, H2-d class I)"
+        n_samples: 1
+        source: "Murine Meth A fibrosarcoma cell line (BALB/c, H2-d)"
+        condition: "unperturbed — murine fibrosarcoma cell line"
+        condition_id: ebrahimi_nik_2019_meth_a_class1
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "H2-K*d H2-D*d H2-L*d"
+
+  - pmid: 37828378
+    study_label: "Hogan 2023 — B6-CIITA-Ed engineered fibroblast MHC-II elution"
+    title: "Cryptic MHC-E epitope from influenza elicits a potent cytolytic T cell response"
+    species: "Mus musculus"
+    override: noncancer_cell_line
+    note: >
+      MHC class II immunopeptidome (6,049 rows / 6,049 unique peptides in IEDB) from
+      B6-CIITA-Ed engineered C57BL/6 skin fibroblasts retrovirally transduced with human
+      CIITA and BALB/c I-Ed (expressing H2-AA*b/AB*b and H2-EA*d/EB*d; Hogan et al.,
+      Nat Immunol 2023). #13.
+    ms_samples:
+      - sample_label: "B6-CIITA-Ed engineered skin fibroblasts (H2-IAb/H2-IEd)"
+        n_samples: 1
+        source: "C57BL/6 skin fibroblast line transduced with human CIITA and BALB/c I-Ed"
+        condition: "CIITA + H2-IEd retroviral transduction"
+        condition_id: hogan_2023_b6_ciita_ed_class2
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_mhc_context: mhc_transfectant
+        mhc_class: II
+        mhc: "H2-AA*b/AB*b H2-EA*d/EB*d"
+
+  - pmid: 30084848
+    study_label: "Schuster 2018 — C57BL/6 19-organ healthy tissue & 4-tumor MHC-I atlas"
+    title: "A tissue-based draft map of the murine MHC class I immunopeptidome"
+    species: "Mus musculus"
+    override: cell_line
+    rules:
+      - condition:
+          Culture Condition: "Direct Ex Vivo"
+        override: healthy
+        reason: "19 normal primary tissues from healthy C57BL/6 mice (PXD008733)"
+    arm_resolution: axis_mismatch
+    arm_resolution_note: >
+      Schuster 2018 (PXD008733, 34,498 rows) profiles 19 healthy C57BL/6 organs (Direct Ex
+      Vivo) and 4 murine cancer cell lines (EL4 lymphoma, B16F10 melanoma, GL261 glioma,
+      LLC1 lung cancer) all carrying identical H2-K*b/H2-D*b alleles; curated into healthy
+      tissue atlas vs tumor cell line summary cohorts while IEDB records per-organ rows.
+    note: >
+      Draft murine MHC class I tissue atlas (34,498 rows / 6,005 unique peptides in IEDB;
+      PRIDE PXD008733, SysteMHC SYSMHC00018) spanning 19 healthy C57BL/6 organs (spleen,
+      liver, small intestine, lung, thymus, colon, kidney, uterus, bone marrow, skin,
+      testis, bladder, adrenal gland, heart, brain, stomach, ovary, pancreas, spinal cord)
+      plus 4 murine tumor lines (EL4, B16F10, GL261, LLC1; Schuster et al., Sci Data 2018).
+      #13.
+    ms_samples:
+      - sample_label: "C57BL/6 healthy tissue atlas (19 normal organs, H2-K*b/H2-D*b)"
+        n_samples: 19
+        source: "19 normal primary organs from healthy C57BL/6 mice"
+        condition: "unperturbed — healthy murine multi-organ tissue atlas"
+        condition_id: schuster_2018_c57bl6_healthy_tissues
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "H2-K*b H2-D*b"
+      - sample_label: "C57BL/6 murine cancer cell lines (EL4, B16F10, GL261, LLC1)"
+        n_samples: 4
+        source: "Murine C57BL/6 tumor lines (EL4 lymphoma, B16F10 melanoma, GL261 glioma, LLC1 lung)"
+        condition: "unperturbed — murine cancer cell lines"
+        condition_id: schuster_2018_c57bl6_cancer_lines
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "H2-K*b H2-D*b"
+
+  - pmid: 35820727
+    study_label: "Fessenden 2022 — B16-F10 and BMDC cross-presentation MHC-I peptidome"
+    title: "Dendritic cell-mediated cross presentation of tumor-derived peptides is biased against plasma membrane proteins"
+    species: "Mus musculus"
+    override: cell_line
+    ip_antibody: "Y-3;B22-249.R1"
+    rules:
+      - condition:
+          Cell Name: "Dendritic cell"
+        override: activated_apc
+        reason: "Bone-marrow-derived dendritic cells (BMDCs) incubated with irradiated B16-F10 tumor cells"
+    note: >
+      SILAC immunopeptidomics of cross-presentation (3,741 rows / 3,087 unique peptides in
+      IEDB) comparing B16-F10 melanoma cells with C57BL/6 bone-marrow-derived dendritic cells
+      (BMDCs) incubated with irradiated/labeled/B2M-KO B16-F10 cells (Y-3 + B22-249.R1 IPs;
+      Fessenden et al., J Immunother Cancer 2022). BMDCs are curated activated_apc so they
+      do not pollute healthy somatic tissue. #13.
+    ms_samples:
+      - sample_label: "B16-F10 melanoma cell line (C57BL/6, H2-K*b/H2-D*b)"
+        n_samples: 1
+        source: "Murine B16-F10 melanoma cell line (C57BL/6)"
+        condition: "unperturbed — murine melanoma cell line"
+        condition_id: fessenden_2022_b16f10
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "H2-K*b H2-D*b"
+      - sample_label: "C57BL/6 BMDCs cross-presenting B16-F10 tumor antigens"
+        n_samples: 1
+        source: "C57BL/6 bone-marrow-derived dendritic cells incubated with irradiated B16-F10"
+        condition: "cross-presentation of irradiated/SILAC/B2M-KO B16-F10 tumor cells"
+        condition_id: fessenden_2022_bmdc_cross_presentation
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: I
+        mhc: "H2-K*b H2-D*b"
+
+  - pmid: 28011936
+    study_label: "Fugmann 2017 — C57BL/6 lymph node MHC-II in health and DSS colitis"
+    title: "The MHC Class II Immunopeptidome of Lymph Nodes in Health and in Chemically Induced Colitis"
+    species: "Mus musculus"
+    override: healthy
+    rules:
+      - condition:
+          Disease: "ulcerative colitis"
+        override:
+        reason: "DSS-induced experimental colitis lymph nodes are inflammatory/diseased, not healthy"
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      Healthy C57BL/6 lymph nodes (3,200 rows) and DSS-induced colitis lymph nodes (2,291
+      rows) both carry H2-b class II (H2-AA*b/AB*b) and identical cell_name/source_tissue;
+      IEDB separates the two arms on the disease column ("ulcerative colitis" vs blank).
+    perturbations:
+      - "Dextran sodium sulfate (DSS)-induced experimental colitis"
+    note: >
+      Murine MHC class II (I-Ab) immunopeptidome of C57BL/6 axillary, brachial, inguinal,
+      and mesenteric lymph nodes (5,491 rows / 2,988 unique peptides in IEDB) comparing
+      healthy mice with dextran sodium sulfate (DSS)-induced colitis (Fugmann et al.,
+      J Immunol 2017, doi:10.4049/jimmunol.1601157). #13.
+    ms_samples:
+      - sample_label: "Healthy C57BL/6 lymph nodes (H2-AA*b/AB*b)"
+        n_samples: 1
+        source: "Primary healthy C57BL/6 axillary, brachial, inguinal, and mesenteric lymph nodes"
+        condition: "unperturbed — healthy murine lymph nodes"
+        condition_id: fugmann_2017_healthy_ln
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_control_for: fugmann_2017_dss_colitis_ln
+        mhc_class: II
+        mhc: "H2-AA*b/AB*b"
+      - sample_label: "DSS colitis C57BL/6 lymph nodes (H2-AA*b/AB*b)"
+        n_samples: 1
+        source: "C57BL/6 lymph nodes during DSS-induced experimental colitis"
+        condition: "dextran sodium sulfate (DSS) colitis"
+        condition_id: fugmann_2017_dss_colitis_ln
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: II
+        mhc: "H2-AA*b/AB*b"
+
+  - pmid: 33995376
+    study_label: "Nanaware 2021 — C57BL/6 thymus vs splenic B-cell & DC I-Ab peptidome"
+    title: "Distinguishing Signal From Noise in Immunopeptidome Studies of Limiting-Abundance Biological Samples: Peptides Presented by I-Ab in C57BL/6 Mouse Thymus"
+    species: "Mus musculus"
+    override: healthy
+    note: >
+      C57BL/6 MHC class II (H2-AA*b/AB*b) elution (3,016 rows / 2,970 unique peptides in
+      IEDB) comparing primary healthy mouse thymus against splenic dendritic cells and
+      splenic B cells (Nanaware et al., Front Immunol 2021). #13.
+    ms_samples:
+      - sample_label: "C57BL/6 healthy thymus (H2-AA*b/AB*b)"
+        n_samples: 1
+        source: "Primary healthy C57BL/6 mouse thymus"
+        condition: "unperturbed — primary healthy thymus"
+        condition_id: nanaware_2021_c57bl6_thymus
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: II
+        mhc: "H2-AA*b/AB*b"
+      - sample_label: "C57BL/6 healthy splenic dendritic cells (H2-AA*b/AB*b)"
+        n_samples: 1
+        source: "Primary healthy C57BL/6 mouse splenic dendritic cells"
+        condition: "unperturbed — primary healthy splenic DCs"
+        condition_id: nanaware_2021_c57bl6_splenic_dc
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: II
+        mhc: "H2-AA*b/AB*b"
+      - sample_label: "C57BL/6 healthy splenic B cells (H2-AA*b/AB*b)"
+        n_samples: 1
+        source: "Primary healthy C57BL/6 mouse splenic B cells"
+        condition: "unperturbed — primary healthy splenic B cells"
+        condition_id: nanaware_2021_c57bl6_splenic_bcell
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: II
+        mhc: "H2-AA*b/AB*b"
+
+  - pmid: 27802388
+    study_label: "Karunakaran 2017 — Salmonella SL1344-infected C57BL/6 BMDCs (I+II)"
+    title: "Identification of MHC-Bound Peptides from Dendritic Cells Infected with Salmonella enterica Strain SL1344: Implications for a Nontyphoidal Salmonella Vaccine"
+    species: "Mus musculus"
+    override: activated_apc
+    perturbations:
+      - "Salmonella enterica serovar Typhimurium strain SL1344 infection"
+    note: >
+      MHC class I (H2-K*b, 1,074 rows) and MHC class II (H2-AA*b/AB*b, 1,741 rows) elution
+      from C57BL/6 bone-marrow-derived dendritic cells infected with Salmonella enterica
+      SL1344 (2,815 rows / 2,358 unique peptides in IEDB; PRIDE PXD004451; Karunakaran
+      et al., J Proteome Res 2017, doi:10.1021/acs.jproteome.6b00926). Override activated_apc
+      prevents infected in-vitro BMDCs (which IEDB tagged Direct Ex Vivo with blank disease)
+      from leaking into healthy somatic tissue. #13.
+    ms_samples:
+      - sample_label: "Salmonella SL1344-infected C57BL/6 BMDCs (H2-K*b)"
+        n_samples: 1
+        source: "C57BL/6 bone-marrow-derived dendritic cells infected with Salmonella SL1344"
+        condition: "Salmonella enterica SL1344 infection"
+        condition_id: karunakaran_2017_bmdc_salmonella_class1
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "Salmonella enterica"
+        mhc_class: I
+        mhc: "H2-K*b"
+      - sample_label: "Salmonella SL1344-infected C57BL/6 BMDCs (H2-AA*b/AB*b)"
+        n_samples: 1
+        source: "C57BL/6 bone-marrow-derived dendritic cells infected with Salmonella SL1344"
+        condition: "Salmonella enterica SL1344 infection"
+        condition_id: karunakaran_2017_bmdc_salmonella_class2
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "Salmonella enterica"
+        mhc_class: II
+        mhc: "H2-AA*b/AB*b"
+
+  - pmid: 32152506
+    study_label: "Wan 2020 — NOD mouse pancreatic islet, pLN, and spleen I-Ag7 peptidome"
+    title: "The MHC-II peptidome of pancreatic islets identifies key features of autoimmune peptides"
+    species: "Mus musculus"
+    override:
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      All 3,640 rows carry autoimmune NOD H2-AA*d/AB*g7 across pancreatic islets, pancreatic
+      lymph nodes, and spleen (including B-cell-deficient NOD.uMT mice); IEDB distinguishes
+      tissues/strains via cell_name, source_tissue, and host rather than allele.
+    note: >
+      Autoimmune NOD mouse MHC class II (I-Ag7 / H2-AA*d/AB*g7) immunopeptidome (3,640 rows /
+      2,255 unique peptides in IEDB) across pancreatic islets, pancreatic lymph nodes, and
+      spleen in prediabetic NOD and NOD.uMT mice (Wan et al., Nat Immunol 2020,
+      doi:10.1038/s41590-020-0623-7). IEDB records disease="prediabetes syndrome" so default
+      classification keeps rows out of healthy_tissue. #13.
+    ms_samples:
+      - sample_label: "NOD pancreatic lymph nodes (H2-AA*d/AB*g7)"
+        n_samples: 1
+        source: "Prediabetic NOD mouse pancreatic lymph nodes"
+        condition: "autoimmune prediabetes (NOD strain)"
+        condition_id: wan_2020_nod_pln
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: II
+        mhc: "H2-AA*d/AB*g7"
+      - sample_label: "NOD pancreatic islets (H2-AA*d/AB*g7)"
+        n_samples: 1
+        source: "Prediabetic NOD mouse pancreatic islets"
+        condition: "autoimmune prediabetes (NOD strain)"
+        condition_id: wan_2020_nod_islets
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: II
+        mhc: "H2-AA*d/AB*g7"
+      - sample_label: "NOD and NOD.uMT spleen (H2-AA*d/AB*g7)"
+        n_samples: 1
+        source: "Prediabetic NOD and B-cell-deficient NOD.uMT mouse splenocytes/B cells"
+        condition: "autoimmune prediabetes (NOD / NOD.uMT strains)"
+        condition_id: wan_2020_nod_spleen
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: II
+        mhc: "H2-AA*d/AB*g7"
+
+  - pmid: 35984892
+    study_label: "Clement 2022 — hepatic DC I-Ab peptidome in high-fat/high-fructose diet"
+    title: "PDIA3 epitope-driven immune autoreactivity contributes to hepatic damage in type 2 diabetes"
+    species: "Mus musculus"
+    override:
+    rules:
+      - condition:
+          Assay Comments: "high fat, high fructose"
+        override: activated_apc
+        reason: "Inflammatory hepatic DCs from high-fat/high-fructose-fed mice with NASH-like liver stress"
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      All 2,270 rows are C57BL/6 hepatic DCs presenting H2-AA*b/AB*b, and IEDB records
+      shared peptides with combined assay_comments ("fed a high fat, high fructose diet, or
+      a control diet"), positively placing peptides in both diet arms.
+    perturbations:
+      - "High-fat, high-fructose (HFHF) diet-induced metabolic stress / NASH"
+    note: >
+      Murine hepatic dendritic cell MHC class II (H2-AA*b/AB*b) elution (2,270 rows / 1,744
+      unique peptides in IEDB) comparing control-diet vs high-fat/high-fructose (HFHF)-diet
+      C57BL/6 mice (Clement et al., Sci Immunol 2022, doi:10.1126/sciimmunol.abl3795). #13.
+    ms_samples:
+      - sample_label: "C57BL/6 control-diet hepatic DCs (H2-AA*b/AB*b)"
+        n_samples: 1
+        source: "Primary C57BL/6 mouse hepatic dendritic cells (control diet)"
+        condition: "control diet"
+        condition_id: clement_2022_liver_dc_control
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_control_for: clement_2022_liver_dc_hfhf
+        mhc_class: II
+        mhc: "H2-AA*b/AB*b"
+      - sample_label: "C57BL/6 high-fat/high-fructose-diet hepatic DCs (H2-AA*b/AB*b)"
+        n_samples: 1
+        source: "Primary C57BL/6 mouse hepatic dendritic cells (HFHF diet)"
+        condition: "high-fat, high-fructose (HFHF) metabolic stress diet"
+        condition_id: clement_2022_liver_dc_hfhf
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: II
+        mhc: "H2-AA*b/AB*b"
+
+  - pmid: 25605945
+    study_label: "Garstka 2015 — RMA H2-K*b temperature-dependent peptide selection (26C vs 37C)"
+    title: "The first step of peptide selection in antigen presentation by MHC class I molecules"
+    species: "Mus musculus"
+    override: cell_line
+    ip_antibody: "Y-3"
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      All 1,614 rows derive from murine RMA T-cell lymphoma H2-K*b (Y-3 IP), and IEDB
+      records shared peptides with combined assay_comments ("cultured at 26C or 37C"),
+      positively placing peptides in both temperature arms.
+    perturbations:
+      - "26C low-temperature culture (stabilizes suboptimal H2-K*b binders)"
+    note: >
+      Temperature-dependent MHC class I peptide selection study (1,614 rows / 1,603 unique
+      peptides in IEDB) eluting H2-K*b (Y-3 IP) from murine RMA T-cell lymphoma cells
+      cultured at 26C vs 37C (Garstka et al., PNAS 2015, doi:10.1073/pnas.1416543112).
+      26C culture traps noncanonical and N-terminally extended suboptimal binders. #13.
+    ms_samples:
+      - sample_label: "RMA lymphoma at 37C (H2-K*b, Y-3 IP)"
+        n_samples: 1
+        source: "Murine RMA T-cell lymphoma line cultured at 37C"
+        condition: "physiological 37C culture (control)"
+        condition_id: garstka_2015_rma_37c
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_control_for: garstka_2015_rma_26c
+        mhc_class: I
+        mhc: "H2-K*b"
+      - sample_label: "RMA lymphoma at 26C (H2-K*b, Y-3 IP)"
+        n_samples: 1
+        source: "Murine RMA T-cell lymphoma line cultured at 26C for 72h"
+        condition: "low-temperature 26C culture (suboptimal peptide stabilization)"
+        condition_id: garstka_2015_rma_26c
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: I
+        mhc: "H2-K*b"
+
+  - pmid: 31599954
+    study_label: "Karunakaran 2020 — Bm1.11 oviduct epithelial cells + Chlamydia muridarum"
+    title: "Discordance in the Epithelial Cell-Dendritic Cell Major Histocompatibility Complex Class II Immunoproteome: Implications for Chlamydia Vaccine Development"
+    species: "Mus musculus"
+    override: noncancer_cell_line
+    perturbations:
+      - "Chlamydia muridarum infection (MOI 5)"
+    note: >
+      MHC class I (1,175 rows) and class II (368 rows) elution (1,543 rows / 1,543 unique
+      peptides in IEDB) from Bm1.11 murine oviduct epithelial cells (derived from a
+      B6.C-H2bm1/ByJ mouse carrying mutant H2-K*bm1, H2-D*b, and H2-AA*b/AB*b) infected
+      with Chlamydia muridarum (Karunakaran et al., J Infect Dis 2020,
+      doi:10.1093/infdis/jiz522). Known IEDB annotation bug: IEDB lists host_mhc_types as
+      wild-type H2-Kb instead of the B6.C-H2bm1 mutant H2-K*bm1. #13.
+    ms_samples:
+      - sample_label: "Bm1.11 oviduct epithelial cells + C. muridarum (H2-K*bm1/H2-D*b)"
+        n_samples: 1
+        source: "B6.C-H2bm1/ByJ murine oviduct epithelial cell line Bm1.11"
+        condition: "Chlamydia muridarum infection (MOI 5)"
+        condition_id: karunakaran_2020_bm111_class1
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "Chlamydia muridarum"
+        mhc_class: I
+        mhc: "H2-K*bm1 H2-D*b"
+      - sample_label: "Bm1.11 oviduct epithelial cells + C. muridarum (H2-AA*b/AB*b)"
+        n_samples: 1
+        source: "B6.C-H2bm1/ByJ murine oviduct epithelial cell line Bm1.11"
+        condition: "Chlamydia muridarum infection (MOI 5)"
+        condition_id: karunakaran_2020_bm111_class2
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "Chlamydia muridarum"
+        mhc_class: II
+        mhc: "H2-AA*b/AB*b"
+
+  - pmid: 33725478
+    study_label: "Clement 2021 — C57BL/6 vs Ob/Ob metabolic stress DC I-Ab peptidome"
+    title: "Pleiotropic consequences of metabolic stress for the major histocompatibility complex class II molecule antigen processing and presentation machinery"
+    species: "Mus musculus"
+    override:
+    ip_antibody: "Y-Ae"
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      All 1,790 rows present H2-AA*b/AB*b (Y-Ae IP) from nodal/blood DCs, and IEDB records
+      combined assay_comments ("eluted from C57BL/6 and Ob/Ob mice"), positively placing
+      peptides across both control and Ob/Ob metabolic-stress arms.
+    perturbations:
+      - "Ob/Ob high-fat-diet hyperglycemia / metabolic stress"
+    note: >
+      DDA and DIA MHC class II (H2-AA*b/AB*b, Y-Ae IP) immunopeptidome (1,790 rows / 1,328
+      unique peptides in IEDB) from lymph node and blood dendritic cells of C57BL/6 control
+      vs Ob/Ob high-fat-diet hyperglycemic mice (Clement et al., Immunity 2021,
+      doi:10.1016/j.immuni.2021.02.019). #13.
+    ms_samples:
+      - sample_label: "C57BL/6 control dendritic cells (H2-AA*b/AB*b, Y-Ae IP)"
+        n_samples: 1
+        source: "C57BL/6 mouse nodal and blood dendritic cells"
+        condition: "normoglycemic control"
+        condition_id: clement_2021_c57bl6_dc
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_control_for: clement_2021_obob_hfd_dc
+        mhc_class: II
+        mhc: "H2-AA*b/AB*b"
+      - sample_label: "Ob/Ob high-fat-diet dendritic cells (H2-AA*b/AB*b, Y-Ae IP)"
+        n_samples: 1
+        source: "Ob/Ob mouse nodal and blood dendritic cells on high-fat diet"
+        condition: "Ob/Ob high-fat-diet hyperglycemia / glycoxidative metabolic stress"
+        condition_id: clement_2021_obob_hfd_dc
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: II
+        mhc: "H2-AA*b/AB*b"
+
+  - pmid: 36210013
+    study_label: "Wang 2023 — NOD mouse thymus and pancreas MHC-I peptidome"
+    title: "Proteomic identification of MHC class I-associated peptidome derived from non-obese diabetic mouse thymus and pancreas"
+    species: "Mus musculus"
+    override:
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      Both NOD thymus (1,185 rows) and NOD pancreas (256 rows) present H2-K*d and H2-D*b;
+      IEDB separates them on source_tissue/cell_name and includes combined thymus-and-pancreas
+      assay_comments on shared peptides.
+    note: >
+      Autoimmune NOD mouse MHC class I (H2-K*d, H2-D*b) immunopeptidome of thymus and
+      pancreas (1,441 rows / 1,319 unique peptides in IEDB; PRIDE PXD031966; Wang et al.,
+      J Proteomics 2023, doi:10.1016/j.jprot.2022.104746). #13.
+    ms_samples:
+      - sample_label: "NOD mouse thymus (H2-K*d/H2-D*b)"
+        n_samples: 1
+        source: "Primary NOD mouse thymus"
+        condition: "autoimmune diabetes-prone NOD strain (thymus)"
+        condition_id: wang_2023_nod_thymus
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: I
+        mhc: "H2-K*d H2-D*b"
+      - sample_label: "NOD mouse pancreas (H2-K*d/H2-D*b)"
+        n_samples: 1
+        source: "Primary NOD mouse pancreas"
+        condition: "autoimmune diabetes-prone NOD strain (pancreas)"
+        condition_id: wang_2023_nod_pancreas
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: I
+        mhc: "H2-K*d H2-D*b"
+
+  - pmid: 34203471
+    study_label: "Borg 2021 — MIN6N8 pancreatic beta-cell insulinoma MHC-I (AGE-BSA / ALT)"
+    title: "Short Duration Alagebrium Chloride Therapy Prediabetes Does Not Inhibit Progression to Autoimmune Diabetes in an Experimental Model"
+    species: "Mus musculus"
+    override: cancer_patient
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      All 1,146 rows derive from MIN6N8 insulinoma cells presenting H2-K*b and H2-D*b across
+      BSA, AGE-BSA, ALT, and AGE-BSA+ALT treatments, and IEDB records multi-treatment
+      combinations in assay_comments on shared peptides.
+    perturbations:
+      - "AGE-modified BSA (AGE-BSA) and alagebrium chloride (ALT) treatment"
+    note: >
+      MHC class Ia (H2-K*b, H2-D*b) elution from NOD-derived MIN6N8 murine pancreatic
+      beta-cell insulinoma cells treated with BSA, AGE-BSA, and/or alagebrium chloride
+      (1,146 rows / 1,028 unique peptides in IEDB; Borg et al., Metabolites 2021).
+      Critical IEDB bug fixed: IEDB tagged culture_condition as "Cell Line / Clone (EBV
+      transformed, B-LCL)" on a murine insulinoma tumor cell line, which falsely suppressed
+      src_cancer; override: cancer_patient restores src_cancer=True. #13.
+    ms_samples:
+      - sample_label: "MIN6N8 insulinoma control (BSA, H2-K*b/H2-D*b)"
+        n_samples: 1
+        source: "Murine MIN6N8 pancreatic beta-cell insulinoma line (BSA control)"
+        condition: "BSA vehicle control"
+        condition_id: borg_2021_min6n8_bsa
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: vehicle
+        condition_control_for: borg_2021_min6n8_age_bsa_alt
+        mhc_class: I
+        mhc: "H2-K*b H2-D*b"
+      - sample_label: "MIN6N8 insulinoma AGE-BSA / ALT treated (H2-K*b/H2-D*b)"
+        n_samples: 1
+        source: "Murine MIN6N8 pancreatic beta-cell insulinoma line (AGE-BSA / ALT)"
+        condition: "AGE-modified BSA and/or alagebrium chloride (ALT) treatment"
+        condition_id: borg_2021_min6n8_age_bsa_alt
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: I
+        mhc: "H2-K*b H2-D*b"

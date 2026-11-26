@@ -3003,6 +3003,10 @@ _KNOWN_CHIMERIC_SAMPLES = {
     # Yair-Sabag 2018 also contains rat spleens carrying human HLA-B27;
     # these must stay separate from the paper's human HeLa/C1R transfectants.
     (29393594, "HLA-B27 transgenic rat spleens"),
+    # PMID 29615400 (DeVette 2018, NetH2pan): human HeLa and 721.221 cells
+    # expressing soluble murine H2-D*q.
+    (29615400, "HeLa transfected with soluble H2-D*q"),
+    (29615400, "721.221 transfected with soluble H2-D*q"),
     # PMID 42199926, Figure 1 and STAR Methods: human HLA-I KO cells
     # transduced with canine DLA; independently registered per condition.
     (42199926, "HCT116 DLA-88*003:02"),
