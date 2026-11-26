@@ -122,7 +122,7 @@ def test_lookup_proteome_herpesvirus_aliases():
     assert lookup_proteome("Human cytomegalovirus")["proteome_id"] == "UP000000938"
     assert lookup_proteome("Human alphaherpesvirus 1")["proteome_id"] == "UP000009294"  # HSV-1
     assert lookup_proteome("Human alphaherpesvirus 2")["proteome_id"] == "UP000001874"  # HSV-2
-    assert lookup_proteome("Human gammaherpesvirus 8")["proteome_id"] == "UP000009113"  # KSHV
+    assert lookup_proteome("Human gammaherpesvirus 8")["proteome_id"] == "UP000000942"  # KSHV
 
 
 def test_lookup_proteome_strain_variant_substring():
@@ -142,7 +142,7 @@ def test_lookup_proteome_genus_abbreviated():
     assert sus["proteome_id"] == "UP000008227"  # Sus scrofa
     canis = lookup_proteome("Canis sp.")
     assert canis is not None
-    assert canis["proteome_id"] == "UP000002254"  # Canis lupus
+    assert canis["proteome_id"] == "UP000805418"  # Canis lupus familiaris reference proteome
 
 
 def test_lookup_proteome_uniprot_fallback_uses_cache(tmp_path, monkeypatch):
