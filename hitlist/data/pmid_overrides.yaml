@@ -18318,15 +18318,25 @@
       2026). Override activated_apc prevents cultured/LPS-stimulated BMDMs from leaking into
       healthy somatic tissue. #13.
     ms_samples:
-      - sample_label: "Wild-type C57BL/6 BMDMs (untreated / LPS / OVA, H2-AA*b/AB*b)"
+      - sample_label: "Wild-type C57BL/6 BMDMs (unperturbed, H2-AA*b/AB*b)"
         n_samples: 1
-        source: "C57BL/6 wild-type bone-marrow-derived macrophages"
-        condition: "wild-type BMDMs (untreated, LPS-treated, or OVA-exposed)"
+        source: "C57BL/6 wild-type bone-marrow-derived macrophages (untreated)"
+        condition: "unperturbed — wild-type BMDMs"
         condition_id: niotis_2026_wt_bmdm
         condition_status: annotated
         condition_evidence: curated_text
         condition_control: untreated
-        condition_control_for: niotis_2026_ercc1_ko_bmdm
+        condition_control_for: "niotis_2026_ercc1_ko_bmdm;niotis_2026_wt_bmdm_lps_ova"
+        condition_knockout_genes: "none"
+        mhc_class: II
+        mhc: "H2-AA*b/AB*b"
+      - sample_label: "Wild-type C57BL/6 BMDMs (LPS / OVA stimulated, H2-AA*b/AB*b)"
+        n_samples: 1
+        source: "C57BL/6 wild-type bone-marrow-derived macrophages (LPS-treated or OVA-exposed)"
+        condition: "LPS activation or ovalbumin exposure"
+        condition_id: niotis_2026_wt_bmdm_lps_ova
+        condition_status: annotated
+        condition_evidence: curated_text
         condition_knockout_genes: "none"
         mhc_class: II
         mhc: "H2-AA*b/AB*b"
