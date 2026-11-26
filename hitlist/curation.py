@@ -3877,6 +3877,7 @@ def classify_ms_row(
             "Disease": disease,
             "Process Type": process_type,
             "Assay Comments": assay_comments_str,
+            "MHC Restriction": str(mhc_restriction or ""),
         }
 
         # Level 1: check conditional rules
@@ -3913,18 +3914,21 @@ def classify_ms_row(
     elif effective_override == "noncancer_cell_line":
         # Non-malignant immortalized line (hTERT / SV40-LT / engineered from
         # normal cells). A cell line, but not a tumor — so src_cell_line stays
-        # True while src_cancer is forced False. Force is_cell_line even when
-        # IEDB's culture_condition is missing/wrong (same as ebv_lcl).
+        # True while src_cancer is forced False. Force is_cell_line and clear
+        # is_ex_vivo even when IEDB's culture_condition is missing/wrong
+        # (same as ebv_lcl), so a cell line never leaks into src_healthy_tissue.
         is_cancer = False
         is_adjacent = False
         is_activated_apc = False
         is_cell_line = True
+        is_ex_vivo = False
     elif effective_override == "ebv_lcl":
         is_cancer = False
         is_adjacent = False
         is_activated_apc = False
         is_ebv_lcl = True  # force even if IEDB culture_condition is wrong
         is_cell_line = True
+        is_ex_vivo = False
     elif effective_override == "healthy":
         is_cancer = False
         is_adjacent = False

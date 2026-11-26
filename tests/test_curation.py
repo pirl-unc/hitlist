@@ -3100,7 +3100,6 @@ _KNOWN_NON_ALLELE_SAMPLES = {
     (32796065, "BMDCs (PRRSV-infected)"),
     (32796065, "PAMs (PRRSV-infected)"),
     (32796065, "hilar lymph node (PRRSV-infected piglets)"),
-    (33789985, "bovine cell lines (BoLA-DR)"),
     (34078123, "HLA-DQ class-II cell-line ligandome (MOU-B / lymphoblast / T2)"),
     (34433824, "HLA-DQ8 immunopeptidome component"),
     (36423003, "T. parva-infected bovine lymphocyte lines (BoLA-DR)"),
