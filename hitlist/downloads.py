@@ -815,6 +815,58 @@ SPECIES_PROTEOMES: dict[str, dict[str, str | int]] = {
         "proteome_id": "UP000002277",
         "expected_taxon_id": 9598,
     },
+    # Additional non-model vertebrate reference proteomes (#980; all UPIDs and
+    # NCBI taxon IDs live-verified streaming non-empty FASTA from UniProtKB).
+    "Felis catus": {
+        "kind": "uniprot",
+        "proteome_id": "UP000823872",
+        "expected_taxon_id": 9685,
+    },
+    "Pteropus alecto": {
+        "kind": "uniprot",
+        "proteome_id": "UP000010552",
+        "expected_taxon_id": 9402,
+    },
+    "Myotis lucifugus": {
+        "kind": "uniprot",
+        "proteome_id": "UP000001074",
+        "expected_taxon_id": 59463,
+    },
+    "Ovis aries": {
+        "kind": "uniprot",
+        "proteome_id": "UP000809102",
+        "expected_taxon_id": 9940,
+    },
+    "Capra hircus": {
+        "kind": "uniprot",
+        "proteome_id": "UP000291000",
+        "expected_taxon_id": 9925,
+    },
+    "Anas platyrhynchos": {
+        "kind": "uniprot",
+        "proteome_id": "UP000016666",
+        "expected_taxon_id": 8840,
+    },
+    "Xenopus laevis": {
+        "kind": "uniprot",
+        "proteome_id": "UP000186698",
+        "expected_taxon_id": 8355,
+    },
+    "Ailuropoda melanoleuca": {
+        "kind": "uniprot",
+        "proteome_id": "UP000008912",
+        "expected_taxon_id": 9646,
+    },
+    "Oryctolagus cuniculus": {
+        "kind": "uniprot",
+        "proteome_id": "UP000001811",
+        "expected_taxon_id": 9986,
+    },
+    "Callithrix jacchus": {
+        "kind": "uniprot",
+        "proteome_id": "UP000008225",
+        "expected_taxon_id": 9483,
+    },
     # Trichosurus vulpecula (brushtail possum, OX=9337) is intentionally NOT
     # registered: UniProt Proteomes has no proteome for Trichosurus (previously
     # UP000504604 erroneously resolved to Sesamum indicum / sesame seed, #977).
@@ -834,6 +886,21 @@ SPECIES_PROTEOMES: dict[str, dict[str, str | int]] = {
         "proteome_id": "UP000009136",
         "expected_taxon_id": 9913,
     },  # → Bos taurus
+    "Felis sp.": {
+        "kind": "uniprot",
+        "proteome_id": "UP000823872",
+        "expected_taxon_id": 9685,
+    },  # → Felis catus
+    "Ovis sp.": {
+        "kind": "uniprot",
+        "proteome_id": "UP000809102",
+        "expected_taxon_id": 9940,
+    },  # → Ovis aries
+    "Oryctolagus sp.": {
+        "kind": "uniprot",
+        "proteome_id": "UP000001811",
+        "expected_taxon_id": 9986,
+    },  # → Oryctolagus cuniculus
     "Rattus sp.": {"kind": "ensembl", "release": 112, "species": "rat"},
     # Parasites / plants / other with curated UPIDs
     "Theileria parva": {

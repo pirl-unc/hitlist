@@ -16808,3 +16808,152 @@
         condition_mhc_context: mhc_transfectant;monoallelic
         mhc_class: I
         mhc: "HLA-B*44:27"
+
+  - pmid: 29115832
+    study_label: "Nielsen 2018 — BoLA class I cellular immunopeptidome (A18/A10/A14)"
+    title: "Improved Prediction of Bovine Leucocyte Antigens (BoLA) Presented Ligands by Use of Mass-Spectrometry-Determined Ligand and in Vitro Binding Data"
+    species: "Bos taurus"
+    override: cell_line
+    note: >
+      Cellular MHC class I elution (W6/32 / IL-A88) across 5 bovine lymphoblast lines
+      representing BoLA haplotypes A18 (animal 641, T. parva-infected, monoallelic BoLA-6*013:01),
+      A10 (animal 1011 T. parva-infected and animal 500004 ConA lymphoblasts; BoLA-2*012:01,
+      BoLA-3*002:01), and A14 (animal 104003 ConA lymphoblasts and animal 2229 T. parva-infected;
+      BoLA-1*023:01, BoLA-4*024:01, BoLA-2*025:01). Deposited in PRIDE PXD008151 and ingested via
+      supplementary.yaml (nielsen_2018_bola_class1.csv.gz, #980).
+    ms_samples:
+      - sample_label: "641_A18_Tpm (BoLA-I A18)"
+        n_samples: 1
+        source: "Theileria parva-infected bovine lymphoblast line 641 (BoLA haplotype A18)"
+        condition: "Theileria parva (Muguga) infection"
+        condition_id: bola_641_a18_tpm
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "Theileria parva"
+        mhc_class: I
+        mhc: "BoLA-6*013:01"
+      - sample_label: "1011_A10_Tpm (BoLA-I A10)"
+        n_samples: 1
+        source: "Theileria parva-infected bovine lymphoblast line 1011 (BoLA haplotype A10)"
+        condition: "Theileria parva (Muguga) infection"
+        condition_id: bola_1011_a10_tpm
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "Theileria parva"
+        mhc_class: I
+        mhc: "BoLA-2*012:01 BoLA-3*002:01"
+      - sample_label: "500004_A10 (BoLA-I A10)"
+        n_samples: 1
+        source: "ConA-stimulated bovine PBMC lymphoblasts 500004 (BoLA haplotype A10)"
+        condition: "ConA stimulation — uninfected bovine lymphoblasts"
+        condition_id: bola_500004_a10_cona
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "BoLA-2*012:01 BoLA-3*002:01"
+      - sample_label: "104003_A14 (BoLA-I A14)"
+        n_samples: 1
+        source: "ConA-stimulated bovine PBMC lymphoblasts 104003 (BoLA haplotype A14)"
+        condition: "ConA stimulation — uninfected bovine lymphoblasts"
+        condition_id: bola_104003_a14_cona
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "BoLA-1*023:01 BoLA-4*024:01 BoLA-2*025:01"
+      - sample_label: "2229_A14_Tpm (BoLA-I A14)"
+        n_samples: 1
+        source: "Theileria parva-infected bovine lymphoblast line 2229 (BoLA haplotype A14)"
+        condition: "Theileria parva (Muguga) infection"
+        condition_id: bola_2229_a14_tpm
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "Theileria parva"
+        mhc_class: I
+        mhc: "BoLA-1*023:01 BoLA-4*024:01 BoLA-2*025:01"
+
+  - pmid: 40073263
+    study_label: "Qiao 2025 — feline FLA-E*003:01 / FLA-K*007:01 peptide elution"
+    title: "Precise motif and cross-presentation of coronavirus peptides by feline MHC class I: implications for the mild infection of SARS-CoV-2"
+    species: "Felis catus"
+    override: cell_line
+    note: >
+      Feline MHC class I (FLA-E*003:01 and FLA-K*007:01) natural peptide elution and
+      structural determination (PDB 7XQS, 7XQT, 7XQU) for SARS-CoV-2 and FECV
+      cross-presentation (Qiao et al., J Immunol 2025, doi:10.1093/jimmun/vkae006). #980.
+    ms_samples:
+      - sample_label: "FLA-E*003:01 mono-allelic elution"
+        n_samples: 1
+        source: "Mono-allelic feline FLA-E*003:01 MHC class I elution"
+        condition: "unperturbed — mono-allelic FLA-E*003:01"
+        condition_id: qiao_2025_fla_e_003_01
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: monoallelic
+        mhc_class: I
+        mhc: "FLA-E*003:01"
+      - sample_label: "FLA-K*007:01 mono-allelic elution"
+        n_samples: 1
+        source: "Mono-allelic feline FLA-K*007:01 MHC class I elution"
+        condition: "unperturbed — mono-allelic FLA-K*007:01"
+        condition_id: qiao_2025_fla_k_007_01
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: monoallelic
+        mhc_class: I
+        mhc: "FLA-K*007:01"
+
+  - pmid: 29263258
+    study_label: "Liang 2018 — feline FLA-E*018:01 crystal structure and binding"
+    title: "Major Histocompatibility Complex Class I (FLA-E*01801) Molecular Structure in Domestic Cats Demonstrates Species-Specific Characteristics in Presenting Viral Antigen Peptides"
+    species: "Felis catus"
+    exclude_from_ms: true
+    note: >
+      In vitro refolding, circular dichroism thermostability, and X-ray crystallography
+      of feline FLA-E*018:01 (wild-type and W167S mutant) with FIV/calicivirus peptides
+      (Liang et al., J Virol 2018, doi:10.1128/JVI.01631-17). No cellular MS elution. #980.
+
+  - pmid: 27183594
+    study_label: "Wynne 2016 — Pteropus alecto PaKiT03 Ptal-N*01:01 cellular elution"
+    title: "Characterization of the Antigen Processing Machinery and Endogenous Peptide Presentation of a Bat MHC Class I Molecule"
+    species: "Pteropus alecto"
+    override: cell_line
+    note: >
+      Endogenous cellular MHC class I peptide elution from Australian black flying fox
+      (Pteropus alecto) PaKiT03 kidney epithelial cells expressing Ptal-N*01:01 (including
+      Hendra virus infection; Wynne et al., J Immunol 2016, doi:10.4049/jimmunol.1502062). #980.
+    ms_samples:
+      - sample_label: "PaKiT03 (Pteropus alecto kidney, Ptal-N*01:01)"
+        n_samples: 1
+        source: "Pteropus alecto PaKiT03 immortalized kidney epithelial cells expressing Ptal-N*01:01"
+        condition: "unperturbed / Hendra-virus-infected bat kidney cells"
+        condition_id: wynne_2016_pakit03_ptal_n_01_01
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: I
+        mhc: "Ptal-N*01:01"
+
+  - pmid: 31076531
+    study_label: "Qu 2019 — Pteropus alecto Ptal-N*01:01 structure and RPLD-MS peptidome"
+    title: "Structure and Peptidome of the Bat MHC Class I Molecule Reveal a Novel Mechanism Leading to High-Affinity Peptide Binding"
+    species: "Pteropus alecto"
+    exclude_from_ms: true
+    note: >
+      X-ray crystallography (PDB 6J2I, 6J2J) and random peptide library refolding LC-MS/MS
+      (RPLD-MS) of Pteropus alecto Ptal-N*01:01 (Qu et al., J Immunol 2019,
+      doi:10.4049/jimmunol.1900001). Excluded from cellular MS elution because peptides
+      arise from in vitro synthetic random-library refolding rather than endogenous cellular
+      processing. #980.
+
+  - pmid: 31498797
+    study_label: "Lu 2019 — Pteropus alecto Ptal-N*01:01 viral peptide crystallography"
+    title: "Peptide presentation by bat MHC class I provides new insight into the antiviral immunity of bats"
+    species: "Pteropus alecto"
+    exclude_from_ms: true
+    note: >
+      In vitro refolding and X-ray crystallography of Pteropus alecto Ptal-N*01:01 bound
+      to Hendra, Ebola, MERS-CoV, and H17N10 viral peptides (Lu et al., PLoS Biol 2019,
+      doi:10.1371/journal.pbio.3000436). No cellular MS elution. #980.

@@ -30,6 +30,15 @@ wheels = [
 ]
 
 [[package]]
+name = "argcomplete"
+version = "3.8.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/19/0d/ca63f1b8b706c70590d0a4acc9c3c94ea8ed4dd9c83b4f7af195868abe76/argcomplete-3.8.0.tar.gz", hash = "sha256:0114d634013e11ac92cc329b3a7d886c3506e98ddc7bb23c99b1782aacc8b8bd", size = 82835, upload-time = "2026-11-22T04:11:04.043Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bb/4e/13adf25ba197e8b9abf9d99836e5346560b6467d9aa9cace98dddabd5450/argcomplete-3.8.0-py3-none-any.whl", hash = "sha256:1fcc7b143e22a22b04629773a40751fb78976bc9cc0912f1fef6c70b51b48ef9", size = 45456, upload-time = "2026-11-22T04:11:02.931Z" },
+]
+
+[[package]]
 name = "biotite"
 version = "1.6.0"
 source = { registry = "https://pypi.org/simple" }
@@ -606,18 +615,19 @@ wheels = [
 
 [[package]]
 name = "datacache"
-version = "1.29.3"
+version = "1.39.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "argcomplete" },
     { name = "filelock" },
     { name = "pandas" },
     { name = "platformdirs" },
     { name = "requests" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/44/cc/bc55177683a1cab92da417454afb5556fbb764d14030ef35b3adb543b71f/datacache-1.29.3.tar.gz", hash = "sha256:e2cdf9ea293a324a68b70178b16bcdbd85a974a33f66f293b6cb2d766036ee52", size = 296321, upload-time = "2026-10-24T01:53:15.242Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fa/f7/d1e9e3139830b026e9f1b87ef37e15651dc0e53af5b30af1cb941ff9d095/datacache-1.39.0.tar.gz", hash = "sha256:9a522f6b42c6306b3f5fdb96b533acd99f8d34c2f8af47c4c099dd1778c1e4be", size = 304188, upload-time = "2026-11-25T21:30:25.161Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/dc/bb/7a4e23f5e867b6e077ea90b7b11d1c07b69d834cb131019f6730d977754b/datacache-1.29.3-py3-none-any.whl", hash = "sha256:8cff53b1d2cbdad4d788c4b44c71bb378f61b43f3fd06697668094bb1c74521a", size = 113728, upload-time = "2026-10-24T01:53:13.894Z" },
+    { url = "https://files.pythonhosted.org/packages/0a/ed/9af03cb7c505580fb5fc68c84ccb28fe38ab4c38d30291a58097f46f2988/datacache-1.39.0-py3-none-any.whl", hash = "sha256:f2c2f60020392cbc349abe151169aaef305aa6d0c6782811164fa5400161d10b", size = 138755, upload-time = "2026-11-25T21:30:24.109Z" },
 ]
 
 [[package]]
@@ -732,6 +742,7 @@ dependencies = [
     { name = "datacache" },
     { name = "filelock" },
     { name = "mhcgnomes" },
+    { name = "mhcseqs" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "oncoref" },
@@ -760,7 +771,8 @@ dev = [
 requires-dist = [
     { name = "datacache", specifier = ">=1.27.1" },
     { name = "filelock", specifier = ">=3.13" },
-    { name = "mhcgnomes", specifier = ">=3.70.2" },
+    { name = "mhcgnomes", specifier = ">=3.91.0" },
+    { name = "mhcseqs", specifier = ">=2.14.0" },
     { name = "numpy", specifier = ">=1.22" },
     { name = "oncoref", specifier = ">=1.8.207" },
     { name = "openpyxl", marker = "extra == 'curation'", specifier = ">=3.1.5" },
@@ -1021,15 +1033,33 @@ sdist = { url = "https://files.pythonhosted.org/packages/70/db/23f8b5d86c9385299
 
 [[package]]
 name = "mhcgnomes"
-version = "3.70.3"
+version = "3.91.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "argcomplete" },
     { name = "pandas" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/39/15/c93063dae7bc1637d8883f9ee844c07f874947c86e8ac16eb67c274c97a0/mhcgnomes-3.70.3.tar.gz", hash = "sha256:47e06434882bdc7316a9b42b657784a5bea2639212ae438e51367ed70572366b", size = 275361, upload-time = "2026-11-12T14:13:21.906Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2c/31/e94a11ce627c7c42d0ceafeb0f5b62962d2293277bba78f7bb3dee9a885f/mhcgnomes-3.91.0.tar.gz", hash = "sha256:1e1c2a06b36e3cd9df55ac324d069c8879897166ce79d1e8dc39d644f5cdbe92", size = 292637, upload-time = "2026-11-26T04:19:49.998Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b7/f0/2472c6eca703ecbbaee3be6942368d63869a4459732f7e5629ed5c4837ee/mhcgnomes-3.70.3-py3-none-any.whl", hash = "sha256:02c7bf1257d556dbe20ba308dfe5c4d791093ba06962120aa5604c692e1e2c5b", size = 302181, upload-time = "2026-11-12T14:13:20.525Z" },
+    { url = "https://files.pythonhosted.org/packages/c4/7a/34e503014b1d9d57a63289767f9a1c1473502bc21561a38d5482aafd9e73/mhcgnomes-3.91.0-py3-none-any.whl", hash = "sha256:cd8d28ab4480f83b868b440d1338f99807fcd8b6c29485fa6a81ab202c47ba63", size = 318729, upload-time = "2026-11-26T04:19:48.742Z" },
+]
+
+[[package]]
+name = "mhcseqs"
+version = "2.14.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "argcomplete" },
+    { name = "biotite", version = "1.6.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "biotite", version = "2.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "datacache" },
+    { name = "mhcgnomes" },
+    { name = "pandas" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7d/0c/5b9da11fb75631f56a79f119d314e557d9412cb849973aacd74d154ae313/mhcseqs-2.14.0.tar.gz", hash = "sha256:67d2c5ddf4094621f9ac32ac3abe4c1bad62cdb471aef85eedccb3bad69380ba", size = 1650349, upload-time = "2026-11-25T21:32:02.908Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/57/e6/b25dcc3cb1fb93de4d77310fca7e9ae24a8c08bc6e8a6b9dd2ee1a9060d5/mhcseqs-2.14.0-py3-none-any.whl", hash = "sha256:9d0f09424088aba4340e9ef1a95b76866ce9feb9c625da51e7f35685f7850e07", size = 1628736, upload-time = "2026-11-25T21:32:00.807Z" },
 ]
 
 [[package]]

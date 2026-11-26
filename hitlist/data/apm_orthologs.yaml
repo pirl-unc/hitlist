@@ -106,7 +106,7 @@ ortholog_groups:
       Canis lupus familiaris: [PSMB11]
       Bos taurus: [PSMB11]
       Sus scrofa: [PSMB11]
-    absent_in_species: []
+    absent_in_species: [Gallus gallus]
 
   PSME1:
     pathway: proteasome_regulator

@@ -47,7 +47,7 @@ def test_lookup_proteome_viral_substring():
 
 
 def test_lookup_proteome_unknown():
-    assert lookup_proteome("Pteropus alecto") is None
+    assert lookup_proteome("Ornithorhynchus anatinus") is None
     assert lookup_proteome("unidentified") is None
     assert lookup_proteome("") is None
 
@@ -156,16 +156,15 @@ def test_lookup_proteome_uniprot_fallback_uses_cache(tmp_path, monkeypatch):
     # NOTE: organism here must be one we don't statically register in
     # SPECIES_PROTEOMES — otherwise the static registry short-circuits
     # before ever reaching the UniProt fallback path this test is
-    # exercising. Pteropus alecto (black flying fox) has IEDB rows but
-    # no curated UPID. v1.30.24 added Mtb to the static registry, which
-    # is why this used to use Mtb but no longer can.
+    # exercising. v2.28.0 added Pteropus alecto to the static registry (#980),
+    # so use Ornithorhynchus anatinus (platypus) as an unregistered vertebrate.
     def fake_resolve(organism, timeout=15):
         calls["n"] += 1
-        if organism == "Pteropus alecto":
+        if organism == "Ornithorhynchus anatinus":
             return {
-                "proteome_id": "UP000688127",
-                "scientific_name": "Pteropus alecto",
-                "taxon_id": 9402,
+                "proteome_id": "UP000002279",
+                "scientific_name": "Ornithorhynchus anatinus",
+                "taxon_id": 9258,
                 "proteome_type": "Reference proteome",
                 "protein_count": 20000,
             }
@@ -174,13 +173,13 @@ def test_lookup_proteome_uniprot_fallback_uses_cache(tmp_path, monkeypatch):
     monkeypatch.setattr(downloads, "resolve_proteome_via_uniprot", fake_resolve)
 
     # First call hits the mock
-    r1 = downloads.lookup_proteome("Pteropus alecto", use_uniprot=True)
+    r1 = downloads.lookup_proteome("Ornithorhynchus anatinus", use_uniprot=True)
     assert r1 is not None
-    assert r1["proteome_id"] == "UP000688127"
+    assert r1["proteome_id"] == "UP000002279"
     assert calls["n"] == 1
 
     # Second call should use the manifest cache, not the mock
-    r2 = downloads.lookup_proteome("Pteropus alecto", use_uniprot=True)
+    r2 = downloads.lookup_proteome("Ornithorhynchus anatinus", use_uniprot=True)
     assert r2 == r1
     assert calls["n"] == 1  # no new network call
 
@@ -205,7 +204,7 @@ def test_lookup_proteome_no_uniprot_by_default(tmp_path, monkeypatch):
     monkeypatch.setattr(downloads, "resolve_proteome_via_uniprot", fake_resolve)
 
     # Same caveat as the cache test above — has to be unregistered.
-    assert downloads.lookup_proteome("Pteropus alecto") is None
+    assert downloads.lookup_proteome("Ornithorhynchus anatinus") is None
 
 
 def test_fetch_species_proteome_ensembl_no_download(tmp_path, monkeypatch):
