@@ -128,11 +128,36 @@ def test_class_scoped_haplotype_uses_only_its_roster(restriction, expected):
 
 @pytest.mark.parametrize(
     "restriction",
-    ["RT1-Dn", "ELA-A1 class I", "H2-b", "H2-Q2"],
+    ["H2-b", "RT1-u", "H2-Q2"],
 )
 def test_haplotype_without_scoped_roster_is_not_expanded(restriction, monkeypatch):
     monkeypatch.setattr(curation, "_pmid_allele_pool", lambda _: frozenset({"H2-K*b"}))
     assert curation.expand_allele_set(restriction, pmid=999) == ("", "unmatched", 0)
+
+
+def test_mhcgnomes_390_rt1_d_and_ela_a1_expansion(monkeypatch):
+    """mhcgnomes >= 3.90.0 resolves RT1-Dn to an exact Pair and populates ELA-A1 class I."""
+    import mhcgnomes
+
+    monkeypatch.setattr(curation, "_pmid_allele_pool", lambda _: frozenset({"H2-K*b"}))
+    parsed_rt1 = mhcgnomes.parse("RT1-Dn", raise_on_error=False)
+    if isinstance(parsed_rt1, mhcgnomes.Pair):
+        assert curation.expand_allele_set("RT1-Dn", pmid=999) == (
+            parsed_rt1.to_string(),
+            "exact",
+            1,
+        )
+    else:
+        assert curation.expand_allele_set("RT1-Dn", pmid=999) == ("", "unmatched", 0)
+
+    parsed_ela = mhcgnomes.parse("ELA-A1 class I", raise_on_error=False)
+    if isinstance(parsed_ela, mhcgnomes.Haplotype) and parsed_ela.alleles:
+        alleles, provenance, n_alleles = curation.expand_allele_set("ELA-A1 class I", pmid=999)
+        assert provenance == "haplotype_roster"
+        assert n_alleles == len(parsed_ela.alleles)
+        assert alleles
+    else:
+        assert curation.expand_allele_set("ELA-A1 class I", pmid=999) == ("", "unmatched", 0)
 
 
 def test_haplotype_conflicting_row_class_is_unmatched():

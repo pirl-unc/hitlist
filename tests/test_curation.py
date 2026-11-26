@@ -1073,12 +1073,26 @@ def test_non_roster_catalog_does_not_decompose_or_guess_names():
 
 def test_class_scoped_haplotype_rosters_have_class_resolution():
     """#604: a populated roster bounds a class-scoped restriction."""
+    import mhcgnomes
+
     for restriction in ("H2-b class I", "H2-b class II", "H2-d class II", "H2-z/d class II"):
         assert classify_allele_resolution(restriction) == "class_only", restriction
-    # Empty-roster and class-ambiguous haplotypes still name no candidate set.
-    for restriction in ("RT1-Dn", "RT1-Du", "RT1-Dl", "ELA-A1 class I", "H2-b"):
+    # Class-ambiguous haplotypes and bare genes still name no candidate set.
+    for restriction in ("H2-b", "RT1-u"):
         assert classify_allele_resolution(restriction) == "unresolved", restriction
     assert classify_allele_resolution("H2-Q2") == "unresolved"
+    # mhcgnomes >= 3.90.0 resolves RT1-Dn/Du/Dl as exact class II Pairs and populates ELA-A1.
+    for restriction in ("RT1-Dn", "RT1-Du", "RT1-Dl"):
+        parsed = mhcgnomes.parse(restriction, raise_on_error=False)
+        expected = "four_digit" if isinstance(parsed, mhcgnomes.Pair) else "unresolved"
+        assert classify_allele_resolution(restriction) == expected, restriction
+    parsed_ela = mhcgnomes.parse("ELA-A1 class I", raise_on_error=False)
+    expected_ela = (
+        "class_only"
+        if isinstance(parsed_ela, mhcgnomes.Haplotype) and parsed_ela.alleles
+        else "unresolved"
+    )
+    assert classify_allele_resolution("ELA-A1 class I") == expected_ela
 
 
 def test_classify_allele_resolution_h2_ie_family_is_inconsistent_upstream():
