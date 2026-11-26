@@ -51,8 +51,13 @@ def fake_download(monkeypatch):
         calls.append((url, Path(dest)))
         label = kwargs.get("label") or ""
         floor = downloads.FETCHABLE_DATASETS.get(label, {}).get("min_size_bytes", 1)
-        Path(dest).write_bytes(b"x" * max(floor, 1))
-        return Path(dest)
+        target = Path(dest)
+        if target.suffix == ".fasta":
+            payload = b">sp|P1|MOCK\n" + b"M" * max(floor, 1) + b"\n"
+        else:
+            payload = b"x" * max(floor, 1)
+        target.write_bytes(payload)
+        return target
 
     monkeypatch.setattr(downloads, "download_to_file", fake)
     return calls

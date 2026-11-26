@@ -348,6 +348,8 @@ _PUBLIC_API: dict[str, str] = {
     "list_cache_files": ".downloads",
     "fetch_all_data_assets": ".downloads",
     "list_proteomes": ".downloads",
+    "validate_uniprot_fasta_headers": ".downloads",
+    "audit_cached_proteomes": ".downloads",
     "download_to_file": ".downloads",
     "is_offline": ".downloads",
     "set_offline": ".downloads",

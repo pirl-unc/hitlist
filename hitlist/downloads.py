@@ -58,10 +58,11 @@ import contextlib
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -545,66 +546,85 @@ def manifest_transaction() -> Iterator[dict]:
 # ``min_size_bytes`` is a floor well below the real artifact, there to reject the
 # empty/error bodies upstreams answer with HTTP 200 (#350, #882), not to pin a size.
 FETCHABLE_DATASETS: dict[str, dict[str, str | int]] = {
-    # Viral proteomes (auto-downloadable from UniProt REST API)
+    # Viral proteomes (auto-downloadable from UniProt REST API; UPIDs and NCBI
+    # taxon IDs verified against rest.uniprot.org/proteomes/{upid}, #977)
     "hpv16": {
-        "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000006729&format=fasta",
+        "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000009251&format=fasta",
         "filename": "hpv16.fasta",
-        "description": "HPV-16 proteome (UniProt UP000006729)",
+        "proteome_id": "UP000009251",
+        "expected_taxon_id": 333760,
+        "description": "HPV-16 proteome (UniProt UP000009251)",
         "usage": "Peptide generation for cervical/oropharyngeal cancer viral targets",
         "min_size_bytes": 500,
     },
     "hpv18": {
-        "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000006728&format=fasta",
+        "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000009109&format=fasta",
         "filename": "hpv18.fasta",
-        "description": "HPV-18 proteome (UniProt UP000006728)",
+        "proteome_id": "UP000009109",
+        "expected_taxon_id": 333761,
+        "description": "HPV-18 proteome (UniProt UP000009109)",
         "usage": "Peptide generation for cervical cancer viral targets",
         "min_size_bytes": 500,
     },
     "ebv": {
         "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000153037&format=fasta",
         "filename": "ebv.fasta",
+        "proteome_id": "UP000153037",
+        "expected_taxon_id": 10377,
         "description": "EBV/HHV-4 proteome (UniProt UP000153037)",
         "usage": "Peptide generation for Burkitt lymphoma, NPC, Hodgkin lymphoma",
         "min_size_bytes": 500,
     },
     "htlv1": {
-        "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000002063&format=fasta",
+        "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000001061&format=fasta",
         "filename": "htlv1.fasta",
-        "description": "HTLV-1 proteome (UniProt UP000002063)",
+        "proteome_id": "UP000001061",
+        "expected_taxon_id": 11927,
+        "description": "HTLV-1 proteome (UniProt UP000001061)",
         "usage": "Peptide generation for adult T-cell leukemia/lymphoma",
         "min_size_bytes": 500,
     },
     "hbv": {
-        "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000126453&format=fasta",
+        "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000007930&format=fasta",
         "filename": "hbv.fasta",
-        "description": "HBV proteome (UniProt UP000126453)",
+        "proteome_id": "UP000007930",
+        "expected_taxon_id": 490133,
+        "description": "HBV proteome (UniProt UP000007930)",
         "usage": "Peptide generation for hepatocellular carcinoma",
         "min_size_bytes": 500,
     },
     "hcv": {
         "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000000518&format=fasta",
         "filename": "hcv.fasta",
+        "proteome_id": "UP000000518",
+        "expected_taxon_id": 63746,
         "description": "HCV proteome (UniProt UP000000518)",
         "usage": "Peptide generation for hepatocellular carcinoma, B-cell lymphoma",
         "min_size_bytes": 500,
     },
     "kshv": {
-        "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000009113&format=fasta",
+        "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000000942&format=fasta",
         "filename": "kshv.fasta",
-        "description": "KSHV/HHV-8 proteome (UniProt UP000009113)",
+        "proteome_id": "UP000000942",
+        "expected_taxon_id": 868565,
+        "description": "KSHV/HHV-8 proteome (UniProt UP000000942)",
         "usage": "Peptide generation for Kaposi sarcoma",
         "min_size_bytes": 500,
     },
     "mcpyv": {
-        "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000116695&format=fasta",
+        "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000170366&format=fasta",
         "filename": "mcpyv.fasta",
-        "description": "MCPyV proteome (UniProt UP000116695)",
+        "proteome_id": "UP000170366",
+        "expected_taxon_id": 493803,
+        "description": "MCPyV proteome (UniProt UP000170366)",
         "usage": "Peptide generation for Merkel cell carcinoma",
         "min_size_bytes": 500,
     },
     "hiv1": {
         "url": "https://rest.uniprot.org/uniprotkb/stream?query=proteome:UP000002241&format=fasta",
         "filename": "hiv1.fasta",
+        "proteome_id": "UP000002241",
+        "expected_taxon_id": 11706,
         "description": "HIV-1 proteome (UniProt UP000002241)",
         "usage": "Peptide generation for Kaposi sarcoma, lymphoma (indirect)",
         "min_size_bytes": 500,
@@ -738,10 +758,14 @@ MANUAL_DATASETS: dict[str, dict[str, str]] = {
 #
 # Keys must match the output of ``curation.normalize_species()``.
 
+_UNIPROT_QUERY_URL = (
+    "https://rest.uniprot.org/uniprotkb/stream?query={query}&format=fasta&compressed=false"
+)
 _UNIPROT_PROTEOME_URL = (
     "https://rest.uniprot.org/uniprotkb/stream"
     "?query=proteome:{proteome_id}&format=fasta&compressed=false"
 )
+_UNIPROT_PROTEOME_META_URL = "https://rest.uniprot.org/proteomes/{proteome_id}?format=json"
 
 
 SPECIES_PROTEOMES: dict[str, dict[str, str | int]] = {
@@ -749,32 +773,103 @@ SPECIES_PROTEOMES: dict[str, dict[str, str | int]] = {
     "Homo sapiens": {"kind": "ensembl", "release": 112, "species": "human"},
     "Mus musculus": {"kind": "ensembl", "release": 112, "species": "mouse"},
     "Rattus norvegicus": {"kind": "ensembl", "release": 112, "species": "rat"},
-    # UniProt reference proteomes (auto-downloaded)
-    "Sarcophilus harrisii": {"kind": "uniprot", "proteome_id": "UP000007648"},
-    "Canis lupus": {"kind": "uniprot", "proteome_id": "UP000002254"},
-    "Bos taurus": {"kind": "uniprot", "proteome_id": "UP000009136"},
-    "Gallus gallus": {"kind": "uniprot", "proteome_id": "UP000000539"},
-    "Sus scrofa": {"kind": "uniprot", "proteome_id": "UP000008227"},
-    "Macaca mulatta": {"kind": "uniprot", "proteome_id": "UP000006718"},
-    "Equus caballus": {"kind": "uniprot", "proteome_id": "UP000002281"},
-    "Pan troglodytes": {"kind": "uniprot", "proteome_id": "UP000002277"},
-    "Trichosurus vulpecula": {"kind": "uniprot", "proteome_id": "UP000504604"},
+    # UniProt reference proteomes (auto-downloaded; UPIDs and NCBI taxon IDs
+    # verified against rest.uniprot.org/proteomes/{upid}, #977)
+    "Sarcophilus harrisii": {
+        "kind": "uniprot",
+        "proteome_id": "UP000007648",
+        "expected_taxon_id": 9305,
+    },
+    "Canis lupus": {
+        "kind": "uniprot",
+        "proteome_id": "UP000805418",
+        "expected_taxon_id": 9615,
+    },
+    "Bos taurus": {
+        "kind": "uniprot",
+        "proteome_id": "UP000009136",
+        "expected_taxon_id": 9913,
+    },
+    "Gallus gallus": {
+        "kind": "uniprot",
+        "proteome_id": "UP000000539",
+        "expected_taxon_id": 9031,
+    },
+    "Sus scrofa": {
+        "kind": "uniprot",
+        "proteome_id": "UP000008227",
+        "expected_taxon_id": 9823,
+    },
+    "Macaca mulatta": {
+        "kind": "uniprot",
+        "proteome_id": "UP000006718",
+        "expected_taxon_id": 9544,
+    },
+    "Equus caballus": {
+        "kind": "uniprot",
+        "proteome_id": "UP000002281",
+        "expected_taxon_id": 9796,
+    },
+    "Pan troglodytes": {
+        "kind": "uniprot",
+        "proteome_id": "UP000002277",
+        "expected_taxon_id": 9598,
+    },
+    # Trichosurus vulpecula (brushtail possum, OX=9337) is intentionally NOT
+    # registered: UniProt Proteomes has no proteome for Trichosurus (previously
+    # UP000504604 erroneously resolved to Sesamum indicum / sesame seed, #977).
     # IEDB genus-abbreviated names — treat as the type species
-    "Sus sp.": {"kind": "uniprot", "proteome_id": "UP000008227"},  # → Sus scrofa
-    "Canis sp.": {"kind": "uniprot", "proteome_id": "UP000002254"},  # → Canis lupus
-    "Bos sp.": {"kind": "uniprot", "proteome_id": "UP000009136"},  # → Bos taurus
+    "Sus sp.": {
+        "kind": "uniprot",
+        "proteome_id": "UP000008227",
+        "expected_taxon_id": 9823,
+    },  # → Sus scrofa
+    "Canis sp.": {
+        "kind": "uniprot",
+        "proteome_id": "UP000805418",
+        "expected_taxon_id": 9615,
+    },  # → Canis lupus
+    "Bos sp.": {
+        "kind": "uniprot",
+        "proteome_id": "UP000009136",
+        "expected_taxon_id": 9913,
+    },  # → Bos taurus
     "Rattus sp.": {"kind": "ensembl", "release": 112, "species": "rat"},
     # Parasites / plants / other with curated UPIDs
-    "Theileria parva": {"kind": "uniprot", "proteome_id": "UP000001949"},
-    "Ascaris suum": {"kind": "uniprot", "proteome_id": "UP000036681"},
-    "Ascaris lumbricoides": {"kind": "uniprot", "proteome_id": "UP000036681"},
+    "Theileria parva": {
+        "kind": "uniprot",
+        "proteome_id": "UP000001949",
+        "expected_taxon_id": 5875,
+    },
+    "Ascaris suum": {
+        "kind": "uniprot",
+        "proteome_id": "UP001319243",
+        "expected_taxon_id": 6253,
+    },
+    "Ascaris lumbricoides": {
+        "kind": "uniprot",
+        "proteome_id": "UP000036681",
+        "expected_taxon_id": 6252,
+    },
     # Bacteria — canonical reference strains.
-    "Mycobacterium tuberculosis": {"kind": "uniprot", "proteome_id": "UP000001584"},  # H37Rv
-    "Mycobacterium tuberculosis H37Rv": {"kind": "uniprot", "proteome_id": "UP000001584"},
+    "Mycobacterium tuberculosis": {
+        "kind": "uniprot",
+        "proteome_id": "UP000001584",
+        "expected_taxon_id": 83332,
+    },  # H37Rv
+    "Mycobacterium tuberculosis H37Rv": {
+        "kind": "uniprot",
+        "proteome_id": "UP000001584",
+        "expected_taxon_id": 83332,
+    },
     # Apicomplexan parasites — 3D7 is the canonical P. falciparum
     # reference used by virtually all immunology and antimalarial
     # epitope work.
-    "Plasmodium falciparum": {"kind": "uniprot", "proteome_id": "UP000001450"},  # 3D7
+    "Plasmodium falciparum": {
+        "kind": "uniprot",
+        "proteome_id": "UP000001450",
+        "expected_taxon_id": 36329,
+    },  # 3D7
 }
 
 
@@ -782,80 +877,302 @@ SPECIES_PROTEOMES: dict[str, dict[str, str | int]] = {
 # For matching, we lowercase both sides and check substring inclusion of the
 # registry key.  This tolerates IEDB variations (e.g. "Epstein-Barr virus
 # (strain B95-8)" matches "epstein-barr virus").
-VIRAL_PROTEOMES: dict[str, dict[str, str]] = {
+VIRAL_PROTEOMES: dict[str, dict[str, str | int]] = {
     # SARS coronaviruses — "sars-cov" must come before "sars-cov-2" check below
     # but we sort by key length at lookup time to match most-specific first
     "severe acute respiratory syndrome coronavirus 2": {
         "proteome_id": "UP000464024",
         "key": "sars-cov-2",
+        "expected_taxon_id": 2697049,
     },
-    "sars-cov2": {"proteome_id": "UP000464024", "key": "sars-cov-2"},
-    "sars-cov-2": {"proteome_id": "UP000464024", "key": "sars-cov-2"},
+    "sars-cov2": {
+        "proteome_id": "UP000464024",
+        "key": "sars-cov-2",
+        "expected_taxon_id": 2697049,
+    },
+    "sars-cov-2": {
+        "proteome_id": "UP000464024",
+        "key": "sars-cov-2",
+        "expected_taxon_id": 2697049,
+    },
     "severe acute respiratory syndrome coronavirus": {
         "proteome_id": "UP000000354",
         "key": "sars-cov-1",
+        "expected_taxon_id": 694009,
     },
-    "sars-cov1": {"proteome_id": "UP000000354", "key": "sars-cov-1"},
-    "sars-cov-1": {"proteome_id": "UP000000354", "key": "sars-cov-1"},
-    "sars coronavirus": {"proteome_id": "UP000000354", "key": "sars-cov-1"},
-    # Herpes viruses
-    "human immunodeficiency virus 1": {"proteome_id": "UP000002241", "key": "hiv1"},
-    "hiv-1": {"proteome_id": "UP000002241", "key": "hiv1"},
-    "epstein-barr virus": {"proteome_id": "UP000153037", "key": "ebv"},
-    "human gammaherpesvirus 4": {"proteome_id": "UP000153037", "key": "ebv"},
-    "human herpesvirus 4": {"proteome_id": "UP000153037", "key": "ebv"},
-    "human betaherpesvirus 5": {"proteome_id": "UP000000938", "key": "hcmv"},
-    "human cytomegalovirus": {"proteome_id": "UP000000938", "key": "hcmv"},
-    "human herpesvirus 5": {"proteome_id": "UP000000938", "key": "hcmv"},
-    "human gammaherpesvirus 8": {"proteome_id": "UP000009113", "key": "kshv"},
-    "human herpesvirus 8": {"proteome_id": "UP000009113", "key": "kshv"},
-    "kaposi": {"proteome_id": "UP000009113", "key": "kshv"},
-    "human alphaherpesvirus 1": {"proteome_id": "UP000009294", "key": "hsv-1"},
-    "herpes simplex virus type 1": {"proteome_id": "UP000009294", "key": "hsv-1"},
-    "human herpesvirus 1": {"proteome_id": "UP000009294", "key": "hsv-1"},
-    "human alphaherpesvirus 2": {"proteome_id": "UP000001874", "key": "hsv-2"},
-    "herpes simplex virus type 2": {"proteome_id": "UP000001874", "key": "hsv-2"},
-    "human herpesvirus 2": {"proteome_id": "UP000001874", "key": "hsv-2"},
-    "human betaherpesvirus 6b": {"proteome_id": "UP000006930", "key": "hhv-6b"},
-    "human herpesvirus 6b": {"proteome_id": "UP000006930", "key": "hhv-6b"},
-    "murid betaherpesvirus 1": {"proteome_id": "UP000008774", "key": "mcmv"},
-    "murid herpesvirus 1": {"proteome_id": "UP000008774", "key": "mcmv"},
-    "murine cytomegalovirus": {"proteome_id": "UP000008774", "key": "mcmv"},
+    "sars-cov1": {
+        "proteome_id": "UP000000354",
+        "key": "sars-cov-1",
+        "expected_taxon_id": 694009,
+    },
+    "sars-cov-1": {
+        "proteome_id": "UP000000354",
+        "key": "sars-cov-1",
+        "expected_taxon_id": 694009,
+    },
+    "sars coronavirus": {
+        "proteome_id": "UP000000354",
+        "key": "sars-cov-1",
+        "expected_taxon_id": 694009,
+    },
+    # Retroviruses / Herpesviruses
+    "human immunodeficiency virus 1": {
+        "proteome_id": "UP000002241",
+        "key": "hiv1",
+        "expected_taxon_id": 11706,
+    },
+    "hiv-1": {
+        "proteome_id": "UP000002241",
+        "key": "hiv1",
+        "expected_taxon_id": 11706,
+    },
+    "human t-lymphotropic virus 1": {
+        "proteome_id": "UP000001061",
+        "key": "htlv1",
+        "expected_taxon_id": 11927,
+    },
+    "human t-cell leukemia virus 1": {
+        "proteome_id": "UP000001061",
+        "key": "htlv1",
+        "expected_taxon_id": 11927,
+    },
+    "epstein-barr virus": {
+        "proteome_id": "UP000153037",
+        "key": "ebv",
+        "expected_taxon_id": 10377,
+    },
+    "human gammaherpesvirus 4": {
+        "proteome_id": "UP000153037",
+        "key": "ebv",
+        "expected_taxon_id": 10377,
+    },
+    "human herpesvirus 4": {
+        "proteome_id": "UP000153037",
+        "key": "ebv",
+        "expected_taxon_id": 10377,
+    },
+    "human betaherpesvirus 5": {
+        "proteome_id": "UP000000938",
+        "key": "hcmv",
+        "expected_taxon_id": 295027,
+    },
+    "human cytomegalovirus": {
+        "proteome_id": "UP000000938",
+        "key": "hcmv",
+        "expected_taxon_id": 295027,
+    },
+    "human herpesvirus 5": {
+        "proteome_id": "UP000000938",
+        "key": "hcmv",
+        "expected_taxon_id": 295027,
+    },
+    "human gammaherpesvirus 8": {
+        "proteome_id": "UP000000942",
+        "key": "kshv",
+        "expected_taxon_id": 868565,
+    },
+    "human herpesvirus 8": {
+        "proteome_id": "UP000000942",
+        "key": "kshv",
+        "expected_taxon_id": 868565,
+    },
+    "kaposi": {
+        "proteome_id": "UP000000942",
+        "key": "kshv",
+        "expected_taxon_id": 868565,
+    },
+    "human alphaherpesvirus 1": {
+        "proteome_id": "UP000009294",
+        "key": "hsv-1",
+        "expected_taxon_id": 10299,
+    },
+    "herpes simplex virus type 1": {
+        "proteome_id": "UP000009294",
+        "key": "hsv-1",
+        "expected_taxon_id": 10299,
+    },
+    "human herpesvirus 1": {
+        "proteome_id": "UP000009294",
+        "key": "hsv-1",
+        "expected_taxon_id": 10299,
+    },
+    "human alphaherpesvirus 2": {
+        "proteome_id": "UP000001874",
+        "key": "hsv-2",
+        "expected_taxon_id": 10315,
+    },
+    "herpes simplex virus type 2": {
+        "proteome_id": "UP000001874",
+        "key": "hsv-2",
+        "expected_taxon_id": 10315,
+    },
+    "human herpesvirus 2": {
+        "proteome_id": "UP000001874",
+        "key": "hsv-2",
+        "expected_taxon_id": 10315,
+    },
+    "human betaherpesvirus 6b": {
+        "proteome_id": "UP000006930",
+        "key": "hhv-6b",
+        "expected_taxon_id": 36351,
+    },
+    "human herpesvirus 6b": {
+        "proteome_id": "UP000006930",
+        "key": "hhv-6b",
+        "expected_taxon_id": 36351,
+    },
+    "murid betaherpesvirus 1": {
+        "proteome_id": "UP000008774",
+        "key": "mcmv",
+        "expected_taxon_id": 10367,
+    },
+    "murid herpesvirus 1": {
+        "proteome_id": "UP000008774",
+        "key": "mcmv",
+        "expected_taxon_id": 10367,
+    },
+    "murine cytomegalovirus": {
+        "proteome_id": "UP000008774",
+        "key": "mcmv",
+        "expected_taxon_id": 10367,
+    },
     # Hepatitis
-    "hepatitis b virus": {"proteome_id": "UP000126453", "key": "hbv"},
-    "hepatitis c virus": {"proteome_id": "UP000000518", "key": "hcv"},
-    "hepacivirus hominis": {"proteome_id": "UP000000518", "key": "hcv"},
-    # Papillomaviruses
-    "human papillomavirus type 16": {"proteome_id": "UP000006729", "key": "hpv16"},
-    "human papillomavirus 16": {"proteome_id": "UP000006729", "key": "hpv16"},
-    "human papillomavirus type 18": {"proteome_id": "UP000006728", "key": "hpv18"},
-    "human papillomavirus 18": {"proteome_id": "UP000006728", "key": "hpv18"},
-    # Influenza
-    "influenza a virus": {"proteome_id": "UP000009255", "key": "influenza-a"},
-    "influenza b virus": {"proteome_id": "UP000008158", "key": "influenza-b"},
-    # Poxviruses
-    "vaccinia virus": {"proteome_id": "UP000000344", "key": "vaccinia"},
-    "orf virus": {"proteome_id": "UP000000870", "key": "orf"},
-    # Animal pathogens
-    "canine distemper virus": {"proteome_id": "UP000117312", "key": "cdv"},
-    "african swine fever virus": {"proteome_id": "UP000000624", "key": "asfv"},
-    "porcine reproductive and respiratory syndrome virus": {
-        "proteome_id": "UP000006706",
-        "key": "prrsv",
+    "hepatitis b virus": {
+        "proteome_id": "UP000007930",
+        "key": "hbv",
+        "expected_taxon_id": 490133,
     },
-    "wobbly possum disease virus": {"proteome_id": "UP000147130", "key": "wpdv"},
-    "peste-des-petits-ruminants virus": {"proteome_id": "UP000100083", "key": "pprv"},
+    "hepatitis c virus": {
+        "proteome_id": "UP000000518",
+        "key": "hcv",
+        "expected_taxon_id": 63746,
+    },
+    "hepacivirus hominis": {
+        "proteome_id": "UP000000518",
+        "key": "hcv",
+        "expected_taxon_id": 63746,
+    },
+    # Papillomaviruses
+    "human papillomavirus type 16": {
+        "proteome_id": "UP000009251",
+        "key": "hpv16",
+        "expected_taxon_id": 333760,
+    },
+    "human papillomavirus 16": {
+        "proteome_id": "UP000009251",
+        "key": "hpv16",
+        "expected_taxon_id": 333760,
+    },
+    "human papillomavirus type 18": {
+        "proteome_id": "UP000009109",
+        "key": "hpv18",
+        "expected_taxon_id": 333761,
+    },
+    "human papillomavirus 18": {
+        "proteome_id": "UP000009109",
+        "key": "hpv18",
+        "expected_taxon_id": 333761,
+    },
+    # Influenza
+    "influenza a virus": {
+        "proteome_id": "UP000009255",
+        "key": "influenza-a",
+        "expected_taxon_id": 211044,
+    },
+    "influenza b virus": {
+        "proteome_id": "UP000008158",
+        "key": "influenza-b",
+        "expected_taxon_id": 518987,
+    },
+    # Poxviruses
+    "vaccinia virus": {
+        "proteome_id": "UP000000344",
+        "key": "vaccinia",
+        "expected_taxon_id": 10254,
+    },
+    "orf virus": {
+        "proteome_id": "UP000000870",
+        "key": "orf",
+        "expected_taxon_id": 647330,
+    },
+    # Animal pathogens
+    "canine distemper virus": {
+        "proteome_id": "UP000007634",
+        "key": "cdv",
+        "expected_taxon_id": 11233,
+    },
+    "african swine fever virus": {
+        "proteome_id": "UP000000624",
+        "key": "asfv",
+        "expected_taxon_id": 10498,
+    },
+    "porcine reproductive and respiratory syndrome virus": {
+        "proteome_id": "UP000006687",
+        "key": "prrsv",
+        "expected_taxon_id": 11049,
+    },
+    "wobbly possum disease virus": {
+        "proteome_id": "UP000203107",
+        "key": "wpdv",
+        "expected_taxon_id": 1118369,
+    },
+    "peste-des-petits-ruminants virus": {
+        "proteome_id": "UP000100083",
+        "key": "pprv",
+        "expected_taxon_id": 2593991,
+    },
     # Respiratory / other human viruses
-    "human respiratory syncytial virus": {"proteome_id": "UP000002472", "key": "rsv"},
-    "human orthopneumovirus": {"proteome_id": "UP000002472", "key": "rsv"},
-    "human metapneumovirus": {"proteome_id": "UP000001398", "key": "hmpv"},
-    "zika virus": {"proteome_id": "UP000054557", "key": "zika"},
-    "rotavirus a": {"proteome_id": "UP000001119", "key": "rotavirus-a"},
-    "lymphocytic choriomeningitis virus": {"proteome_id": "UP000002474", "key": "lcmv"},
+    "human respiratory syncytial virus": {
+        "proteome_id": "UP000002472",
+        "key": "rsv",
+        "expected_taxon_id": 79692,
+    },
+    "human orthopneumovirus": {
+        "proteome_id": "UP000002472",
+        "key": "rsv",
+        "expected_taxon_id": 79692,
+    },
+    "human metapneumovirus": {
+        "proteome_id": "UP000001398",
+        "key": "hmpv",
+        "expected_taxon_id": 694067,
+    },
+    "zika virus": {
+        "proteome_id": "UP000054557",
+        "key": "zika",
+        "expected_taxon_id": 64320,
+    },
+    "rotavirus a": {
+        "proteome_id": "UP000001119",
+        "key": "rotavirus-a",
+        "expected_taxon_id": 450149,
+    },
+    "lymphocytic choriomeningitis virus": {
+        "proteome_id": "UP000002474",
+        "key": "lcmv",
+        "expected_taxon_id": 11624,
+    },
     # Polyomaviruses
-    "betapolyomavirus hominis": {"proteome_id": "UP000008475", "key": "bkv"},
-    "bk polyomavirus": {"proteome_id": "UP000008475", "key": "bkv"},
-    "alphapolyomavirus muris": {"proteome_id": "UP000007212", "key": "mpyv"},
+    "betapolyomavirus hominis": {
+        "proteome_id": "UP000008475",
+        "key": "bkv",
+        "expected_taxon_id": 1891762,
+    },
+    "bk polyomavirus": {
+        "proteome_id": "UP000008475",
+        "key": "bkv",
+        "expected_taxon_id": 1891762,
+    },
+    "merkel cell polyomavirus": {
+        "proteome_id": "UP000170366",
+        "key": "mcpyv",
+        "expected_taxon_id": 493803,
+    },
+    "alphapolyomavirus muris": {
+        "proteome_id": "UP000116380",
+        "key": "mpyv",
+        "expected_taxon_id": 179241,
+    },
     # Adeno-associated viruses (gene-therapy capsid context — #213).
     # Each AAV serotype has a distinct UniProt reference proteome.
     # The "virus - 6" key handles IEDB's hyphen-space-hyphen variant
@@ -866,11 +1183,333 @@ VIRAL_PROTEOMES: dict[str, dict[str, str]] = {
     # AAV1 hit (UP000232962) resolves to "California sea lion AAV1"
     # which is the wrong organism for the human gene-therapy /
     # immunopeptidome context the IEDB rows come from.
-    "adeno-associated virus 2": {"proteome_id": "UP000180764", "key": "aav-2"},
-    "adeno-associated virus 6": {"proteome_id": "UP000119472", "key": "aav-6"},
-    "adeno-associated virus - 6": {"proteome_id": "UP000119472", "key": "aav-6"},
-    "adeno-associated virus 8": {"proteome_id": "UP000201958", "key": "aav-8"},
+    "adeno-associated virus 2": {
+        "proteome_id": "UP000180764",
+        "key": "aav-2",
+        "expected_taxon_id": 648242,
+    },
+    # AAV-6 (UP000119472) and AAV-8 (UP000201958) are Non-Reference proteomes
+    # in UniProt, so ``query=proteome:UP...`` returns 0 bytes on UniProtKB
+    # stream, whereas ``query=organism_id:<taxon>`` streams their exact Rep +
+    # VP1 capsid FASTA entries (#977).
+    "adeno-associated virus 6": {
+        "proteome_id": "UP000119472",
+        "key": "aav-6",
+        "expected_taxon_id": 68558,
+        "uniprot_query": "organism_id:68558",
+    },
+    "adeno-associated virus - 6": {
+        "proteome_id": "UP000119472",
+        "key": "aav-6",
+        "expected_taxon_id": 68558,
+        "uniprot_query": "organism_id:68558",
+    },
+    "adeno-associated virus 8": {
+        "proteome_id": "UP000201958",
+        "key": "aav-8",
+        "expected_taxon_id": 202813,
+        "uniprot_query": "organism_id:202813",
+    },
 }
+
+
+_UNIPROT_OX_RE = re.compile(r"\bOX=(\d+)\b")
+_UNIPROT_OS_RE = re.compile(r"\bOS=(.+?)(?:\s+OX=|\s+GN=|\s+PE=|\s+SV=|$)")
+# Historical UPIDs that were replaced in #977 because they pointed to the wrong
+# organism or a deprecated Non-Reference proteome returning 0 bytes.
+_REPLACED_WRONG_UPIDS: frozenset[str] = frozenset(
+    {
+        "UP000006729",  # Populus trichocarpa (was hpv16)
+        "UP000006728",  # Saccharopolyspora erythraea (was hpv18)
+        "UP000002063",  # Methanocaldococcus vulcanius (was htlv1)
+        "UP000126453",  # Influenza A virus (was hbv)
+        "UP000009113",  # HPV type 26 (was kshv)
+        "UP000116695",  # Influenza A virus (was mcpyv)
+        "UP000117312",  # Influenza A virus (was canine distemper virus)
+        "UP000006706",  # Aspergillus niger (was PRRSV)
+        "UP000147130",  # Influenza A virus (was wobbly possum disease virus)
+        "UP000007212",  # IHNV (was alphapolyomavirus muris)
+        "UP000504604",  # Sesamum indicum (was Trichosurus vulpecula)
+        "UP000002254",  # Deprecated Non-Reference Canis lupus proteome (0-byte stream)
+    }
+)
+
+
+def _expected_taxon_for_upid(upid: str) -> int | None:
+    """Return the curated NCBI taxon ID for a UniProt proteome ID, if registered."""
+    for entry in SPECIES_PROTEOMES.values():
+        if entry.get("proteome_id") == upid and entry.get("expected_taxon_id") is not None:
+            return int(entry["expected_taxon_id"])
+    for entry in VIRAL_PROTEOMES.values():
+        if entry.get("proteome_id") == upid and entry.get("expected_taxon_id") is not None:
+            return int(entry["expected_taxon_id"])
+    for ds in FETCHABLE_DATASETS.values():
+        if ds.get("proteome_id") == upid and ds.get("expected_taxon_id") is not None:
+            return int(ds["expected_taxon_id"])
+    return None
+
+
+def validate_uniprot_fasta_headers(
+    path: str | Path,
+    *,
+    expected_taxon_id: int | Iterable[int] | None = None,
+    expected_organism: str | None = None,
+    require_taxon_header: bool = False,
+    max_headers: int = 200,
+) -> dict[str, Any]:
+    """Validate that a UniProt FASTA file contains FASTA headers matching the expected taxon (#977).
+
+    Inspects up to ``max_headers`` header lines (lines starting with ``>``) and
+    extracts UniProt ``OS=`` organism names and ``OX=`` NCBI taxonomy IDs.
+
+    Validation rules:
+    - Always requires at least one FASTA header (rejects empty, HTML, or JSON
+      error payloads with :class:`IntegrityError`).
+    - When ``expected_taxon_id`` is provided (an ``int`` or iterable of accepted
+      ``int`` taxon IDs) and any inspected header carries an ``OX=`` tag (true
+      for all real UniProt FASTA downloads), raises :class:`IntegrityError`
+      unless at least one expected taxon ID appears in ``observed_taxon_ids``.
+    - When ``require_taxon_header=True``, raises :class:`IntegrityError` if no
+      inspected header carries an ``OX=`` tag.  Defaults to ``False`` so minimal
+      synthetic FASTA fixtures without ``OX=`` annotations remain usable.
+    """
+    fasta_path = Path(path)
+    if not fasta_path.exists():
+        raise IntegrityError(f"UniProt FASTA file does not exist: {fasta_path}")
+
+    expected_ids: set[int] = set()
+    if expected_taxon_id is not None:
+        if isinstance(expected_taxon_id, int):
+            expected_ids.add(expected_taxon_id)
+        else:
+            expected_ids.update(int(tid) for tid in expected_taxon_id)
+
+    n_headers_checked = 0
+    observed_taxon_ids: set[int] = set()
+    observed_organisms: set[str] = set()
+    try:
+        with open(fasta_path, encoding="utf-8", errors="replace") as handle:
+            for line in handle:
+                if not line.startswith(">"):
+                    continue
+                n_headers_checked += 1
+                ox_match = _UNIPROT_OX_RE.search(line)
+                if ox_match:
+                    observed_taxon_ids.add(int(ox_match.group(1)))
+                os_match = _UNIPROT_OS_RE.search(line)
+                if os_match:
+                    observed_organisms.add(os_match.group(1).strip())
+                if n_headers_checked >= max_headers:
+                    break
+    except OSError as exc:
+        raise IntegrityError(f"Could not read UniProt FASTA {fasta_path}: {exc}") from exc
+
+    org_note = f" for {expected_organism!r}" if expected_organism else ""
+    if n_headers_checked == 0:
+        raise IntegrityError(
+            f"UniProt FASTA {fasta_path.name}{org_note} contains no FASTA headers "
+            "(empty, truncated, or non-FASTA error response)"
+        )
+
+    has_taxon_headers = bool(observed_taxon_ids)
+    if require_taxon_header and not has_taxon_headers:
+        raise IntegrityError(
+            f"UniProt FASTA {fasta_path.name}{org_note} has {n_headers_checked} FASTA header(s) "
+            "but no UniProt OX=<taxon_id> annotations"
+        )
+
+    if expected_ids and has_taxon_headers and not (observed_taxon_ids & expected_ids):
+        observed_org_list = sorted(observed_organisms)[:3]
+        org_summary = f" (OS={observed_org_list})" if observed_org_list else ""
+        raise IntegrityError(
+            f"UniProt FASTA {fasta_path.name} taxon mismatch{org_note}: "
+            f"expected OX={sorted(expected_ids)}, "
+            f"observed OX={sorted(observed_taxon_ids)}{org_summary}"
+        )
+
+    return {
+        "path": str(fasta_path),
+        "n_headers_checked": n_headers_checked,
+        "observed_taxon_ids": sorted(observed_taxon_ids),
+        "observed_organisms": sorted(observed_organisms),
+        "expected_taxon_ids": sorted(expected_ids),
+        "has_taxon_headers": has_taxon_headers,
+    }
+
+
+def _proteome_filename_expectations() -> dict[str, dict[str, Any]]:
+    """Map canonical proteome filenames under ``proteomes/`` to expected taxon metadata."""
+    by_filename: dict[str, dict[str, Any]] = {}
+    for species_name, entry in SPECIES_PROTEOMES.items():
+        if entry.get("kind") != "uniprot":
+            continue
+        by_filename[_safe_filename(species_name)] = {
+            "expected_organism": species_name,
+            "proteome_id": entry.get("proteome_id"),
+            "expected_taxon_id": entry.get("expected_taxon_id"),
+        }
+    for viral_name, entry in VIRAL_PROTEOMES.items():
+        by_filename.setdefault(
+            _safe_filename(viral_name),
+            {
+                "expected_organism": viral_name,
+                "proteome_id": entry.get("proteome_id"),
+                "expected_taxon_id": entry.get("expected_taxon_id"),
+            },
+        )
+    return by_filename
+
+
+def audit_cached_proteomes(*, max_headers: int = 200) -> dict[str, Any]:
+    """Audit cached UniProt FASTA proteomes on disk for taxon mismatches and leftover tmp files (#977).
+
+    Inspects both ``<data_dir>/proteomes/*.fasta`` and cached viral FASTAs from
+    ``FETCHABLE_DATASETS``.  Read-only: never deletes or downloads files.
+    """
+    manifest = load_manifest()
+    proteomes_manifest = manifest.get("proteomes", {})
+    datasets_manifest = manifest.get("datasets", {})
+    filename_expectations = _proteome_filename_expectations()
+
+    # Map resolved paths to their manifest metadata when available.
+    manifest_by_path: dict[str, tuple[str, dict[str, Any]]] = {}
+    for canonical, entry in proteomes_manifest.items():
+        raw_path = entry.get("path")
+        if raw_path and entry.get("kind") == "uniprot":
+            manifest_by_path[str(Path(raw_path).resolve())] = (canonical, entry)
+
+    targets: list[dict[str, Any]] = []
+    seen_paths: set[str] = set()
+    leftover_tmp_files: list[Path] = []
+
+    proteomes_dir = data_dir() / "proteomes"
+    if proteomes_dir.is_dir():
+        for child in sorted(proteomes_dir.iterdir()):
+            if not child.is_file():
+                continue
+            if child.name.endswith(".tmp") or child.name.endswith(".staging"):
+                leftover_tmp_files.append(child)
+                continue
+            if child.suffix != ".fasta":
+                continue
+            resolved_key = str(child.resolve())
+            seen_paths.add(resolved_key)
+            meta = filename_expectations.get(child.name, {})
+            canonical_name = meta.get("expected_organism")
+            proteome_id = meta.get("proteome_id")
+            expected_taxon_id = meta.get("expected_taxon_id")
+            if resolved_key in manifest_by_path:
+                m_name, m_entry = manifest_by_path[resolved_key]
+                canonical_name = canonical_name or m_name
+                m_upid = m_entry.get("proteome_id")
+                if expected_taxon_id is None:
+                    # Prefer current registry lookup when the manifest entry has no
+                    # distinct strain-specific UPID or used a known-replaced UPID.
+                    looked_up = lookup_proteome(m_name, use_uniprot=False, allow_network=False)
+                    if (
+                        looked_up is not None
+                        and looked_up.get("kind") == "uniprot"
+                        and (
+                            m_upid is None
+                            or m_upid == looked_up.get("proteome_id")
+                            or m_upid in _REPLACED_WRONG_UPIDS
+                        )
+                    ):
+                        proteome_id = looked_up.get("proteome_id") or proteome_id
+                        expected_taxon_id = looked_up.get("expected_taxon_id")
+                if proteome_id is None:
+                    proteome_id = m_upid
+                if expected_taxon_id is None:
+                    expected_taxon_id = m_entry.get("expected_taxon_id")
+                    if expected_taxon_id is None and proteome_id:
+                        expected_taxon_id = _expected_taxon_for_upid(proteome_id)
+            targets.append(
+                {
+                    "path": child,
+                    "source": "proteomes",
+                    "expected_organism": canonical_name or child.stem,
+                    "proteome_id": proteome_id,
+                    "expected_taxon_id": expected_taxon_id,
+                }
+            )
+
+    base_dir = data_dir()
+    for name, ds in sorted(FETCHABLE_DATASETS.items()):
+        if ds.get("expected_taxon_id") is None:
+            continue
+        candidate_paths = [base_dir / ds["filename"]]
+        ds_entry = datasets_manifest.get(name)
+        if ds_entry and ds_entry.get("path"):
+            candidate_paths.append(Path(ds_entry["path"]))
+        for tmp_name in (f"{ds['filename']}.tmp", f".{ds['filename']}.staging"):
+            tmp_candidate = base_dir / tmp_name
+            if tmp_candidate.is_file():
+                leftover_tmp_files.append(tmp_candidate)
+        for cand in candidate_paths:
+            if not cand.is_file():
+                continue
+            resolved_key = str(cand.resolve())
+            if resolved_key in seen_paths:
+                continue
+            seen_paths.add(resolved_key)
+            targets.append(
+                {
+                    "path": cand,
+                    "source": f"dataset:{name}",
+                    "expected_organism": ds.get("description", name),
+                    "proteome_id": ds.get("proteome_id"),
+                    "expected_taxon_id": ds["expected_taxon_id"],
+                }
+            )
+
+    n_valid_files = 0
+    mismatches: list[dict[str, Any]] = []
+    for target in targets:
+        try:
+            validate_uniprot_fasta_headers(
+                target["path"],
+                expected_taxon_id=target["expected_taxon_id"],
+                expected_organism=target["expected_organism"],
+                require_taxon_header=False,
+                max_headers=max_headers,
+            )
+            n_valid_files += 1
+        except IntegrityError as exc:
+            observed_taxon_ids: list[int] = []
+            observed_organisms: list[str] = []
+            try:
+                info_dict = validate_uniprot_fasta_headers(
+                    target["path"],
+                    expected_taxon_id=None,
+                    require_taxon_header=False,
+                    max_headers=max_headers,
+                )
+                observed_taxon_ids = info_dict["observed_taxon_ids"]
+                observed_organisms = info_dict["observed_organisms"]
+            except IntegrityError:
+                pass
+            mismatches.append(
+                {
+                    "path": str(target["path"]),
+                    "source": target["source"],
+                    "expected_organism": target["expected_organism"],
+                    "proteome_id": target["proteome_id"],
+                    "expected_taxon_id": target["expected_taxon_id"],
+                    "observed_taxon_ids": observed_taxon_ids,
+                    "observed_organisms": observed_organisms,
+                    "error": str(exc),
+                }
+            )
+
+    unique_tmp_files = sorted({str(p) for p in leftover_tmp_files})
+    return {
+        "n_files_checked": len(targets),
+        "n_valid_files": n_valid_files,
+        "n_mismatched_files": len(mismatches),
+        "n_leftover_tmp_files": len(unique_tmp_files),
+        "mismatches": mismatches,
+        "leftover_tmp_files": unique_tmp_files,
+    }
 
 
 def _proteomes_dir() -> Path:
@@ -913,6 +1552,65 @@ _ORGANISM_DENYLIST: set[str] = {
 }
 
 
+_NON_STREAMABLE_PROTEOME_TYPES: frozenset[str] = frozenset(
+    {
+        "non reference proteome",
+        "redundant proteome",
+        "excluded proteome",
+    }
+)
+_ORGANISM_STOPWORDS: frozenset[str] = frozenset(
+    {
+        "virus",
+        "strain",
+        "isolate",
+        "type",
+        "subtype",
+        "serotype",
+        "subsp",
+        "var",
+        "sp",
+        "spp",
+        "group",
+        "human",
+        "mouse",
+        "murine",
+        "bovine",
+        "porcine",
+        "canine",
+        "avian",
+        "disease",
+        "syndrome",
+    }
+)
+
+
+def _organism_name_tokens(name: str) -> set[str]:
+    return {
+        tok
+        for tok in re.findall(r"[a-z0-9]+", name.lower())
+        if len(tok) >= 3 and tok not in _ORGANISM_STOPWORDS
+    }
+
+
+def _candidate_matches_organism(query_organism: str, candidate: dict[str, Any]) -> bool:
+    """Guard against UniProt free-text search matching host/description of another organism (#977)."""
+    tax = candidate.get("taxonomy") or {}
+    names = [tax.get("scientificName") or "", tax.get("commonName") or ""]
+    names.extend(tax.get("synonyms") or [])
+    combined = " ".join(n.lower() for n in names if n)
+    if not combined:
+        return False
+    q_lower = query_organism.lower().strip()
+    if q_lower in combined:
+        return True
+    q_tokens = _organism_name_tokens(query_organism)
+    c_tokens = _organism_name_tokens(combined)
+    if not q_tokens:
+        return True
+    return bool(q_tokens & c_tokens)
+
+
 def resolve_proteome_via_uniprot(
     organism: str,
     timeout: int = 15,
@@ -921,8 +1619,10 @@ def resolve_proteome_via_uniprot(
 
     Returns a dict with ``proteome_id``, ``scientific_name``, ``taxon_id``,
     ``proteome_type``, and ``protein_count`` fields.  Prefers "Reference
-    and representative" over plain "Representative" proteomes.  Returns
-    ``None`` if no match is found or if the organism is on the denylist
+    and representative" over plain "Representative" proteomes and skips
+    non-streamable ("Non Reference", "Redundant", "Excluded") proteomes as well
+    as free-text hits whose taxonomy names do not match *organism* (#977).
+    Returns ``None`` if no match is found or if the organism is on the denylist
     (e.g. ``"unidentified"``).
 
     The raw organism string is used as a free-text query, so strain
@@ -952,6 +1652,15 @@ def resolve_proteome_via_uniprot(
     if not results:
         return None
 
+    filtered = [
+        p
+        for p in results
+        if (p.get("proteomeType") or "").lower() not in _NON_STREAMABLE_PROTEOME_TYPES
+        and _candidate_matches_organism(cleaned, p)
+    ]
+    if not filtered:
+        return None
+
     def sort_key(p: dict) -> tuple:
         ptype = (p.get("proteomeType") or "").lower()
         rank = _PROTEOME_TYPE_RANK.get(ptype, 99)
@@ -961,7 +1670,7 @@ def resolve_proteome_via_uniprot(
         count = int(p.get("proteinCount") or 0)
         return (rank, tax_id, -count)
 
-    best = min(results, key=sort_key)
+    best = min(filtered, key=sort_key)
     tax = best.get("taxonomy", {})
     return {
         "proteome_id": best.get("id"),
@@ -970,6 +1679,20 @@ def resolve_proteome_via_uniprot(
         "proteome_type": best.get("proteomeType"),
         "protein_count": best.get("proteinCount"),
     }
+
+
+def _resolve_uniprot_proteome_taxon(upid: str, timeout: int = 15) -> int | None:
+    """Query UniProt Proteomes metadata JSON for a UPID's NCBI taxon ID."""
+    import urllib.request
+
+    url = _UNIPROT_PROTEOME_META_URL.format(proteome_id=upid)
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as r:
+            payload = json.load(r)
+    except Exception:
+        return None
+    tax_id = (payload.get("taxonomy") or {}).get("taxonId")
+    return int(tax_id) if tax_id is not None else None
 
 
 def _find_existing_proteome_by_upid(proteomes: dict, proteome_id: str) -> dict | None:
@@ -1032,12 +1755,16 @@ def lookup_proteome(
     for viral_key in sorted(VIRAL_PROTEOMES, key=len, reverse=True):
         if viral_key in lowered:
             viral_entry = VIRAL_PROTEOMES[viral_key]
-            return {
+            viral_result: dict[str, Any] = {
                 "kind": "uniprot",
                 "proteome_id": viral_entry["proteome_id"],
                 "canonical_species": species_or_organism,
                 "key": viral_entry["key"],
+                "expected_taxon_id": viral_entry.get("expected_taxon_id"),
             }
+            if viral_entry.get("uniprot_query"):
+                viral_result["uniprot_query"] = viral_entry["uniprot_query"]
+            return viral_result
 
     # Species-name substring fallback (handles strain suffixes like
     # "Theileria parva strain Muguga" → Theileria parva).  Skip
@@ -1066,6 +1793,7 @@ def lookup_proteome(
             "canonical_species": cached.get("scientific_name", species_or_organism),
             "source": "uniprot_search",
             "taxon_id": cached.get("taxon_id"),
+            "expected_taxon_id": cached.get("taxon_id"),
             "proteome_type": cached.get("proteome_type"),
         }
 
@@ -1087,6 +1815,7 @@ def lookup_proteome(
         "canonical_species": resolved["scientific_name"],
         "source": "uniprot_search",
         "taxon_id": resolved.get("taxon_id"),
+        "expected_taxon_id": resolved.get("taxon_id"),
         "proteome_type": resolved.get("proteome_type"),
     }
 
@@ -1145,68 +1874,107 @@ def fetch_species_proteome(
     # UniProt species: download the FASTA (dedup by UPID — multiple strain
     # variants often resolve to the same UniProt reference proteome)
     proteome_id = entry["proteome_id"]
-    url = _UNIPROT_PROTEOME_URL.format(proteome_id=proteome_id)
+    expected_taxon_id = entry.get("expected_taxon_id")
+    if expected_taxon_id is None:
+        expected_taxon_id = entry.get("taxon_id") or _expected_taxon_for_upid(proteome_id)
+    uniprot_query = entry.get("uniprot_query")
+    url = (
+        _UNIPROT_QUERY_URL.format(query=uniprot_query)
+        if uniprot_query
+        else _UNIPROT_PROTEOME_URL.format(proteome_id=proteome_id)
+    )
+
+    def _manifest_record(path: Path, *, registered: str | None = None) -> dict[str, Any]:
+        rec: dict[str, Any] = {
+            "kind": "uniprot",
+            "proteome_id": proteome_id,
+            "path": str(path),
+            "size_bytes": path.stat().st_size,
+            "source_url": url,
+            "canonical_species": canonical,
+            "registered": registered or datetime.now(timezone.utc).isoformat(),
+        }
+        if expected_taxon_id is not None:
+            rec["expected_taxon_id"] = int(expected_taxon_id)
+        return rec
 
     existing = _find_existing_proteome_by_upid(proteomes, proteome_id)
     if existing is not None and Path(existing["path"]).exists() and not force:
         dest = Path(existing["path"])
-        if verbose:
-            print(
-                f"  [{canonical}] reusing cached FASTA from "
-                f"{existing.get('canonical_species', '?')} ({dest.stat().st_size:,} bytes)"
+        try:
+            validate_uniprot_fasta_headers(
+                dest,
+                expected_taxon_id=expected_taxon_id,
+                expected_organism=canonical,
             )
-        with manifest_transaction() as manifest:
-            manifest.setdefault("proteomes", {})[canonical] = {
-                "kind": "uniprot",
-                "proteome_id": proteome_id,
-                "path": str(dest),
-                "size_bytes": dest.stat().st_size,
-                "source_url": url,
-                "canonical_species": canonical,
-                "registered": datetime.now(timezone.utc).isoformat(),
-            }
-        return dest
+        except IntegrityError as exc:
+            if not fetch_missing:
+                raise
+            print(
+                f"  [{canonical}] cached FASTA rejected ({exc}); re-downloading",
+                file=sys.stderr,
+            )
+        else:
+            if verbose:
+                print(
+                    f"  [{canonical}] reusing cached FASTA from "
+                    f"{existing.get('canonical_species', '?')} ({dest.stat().st_size:,} bytes)"
+                )
+            with manifest_transaction() as manifest:
+                manifest.setdefault("proteomes", {})[canonical] = _manifest_record(dest)
+            return dest
 
     fname = _safe_filename(canonical)
     dest = _proteomes_dir() / fname
 
     if dest.exists() and not force:
-        if verbose:
-            print(f"  [{canonical}] already cached ({dest.stat().st_size:,} bytes)")
-        with manifest_transaction() as manifest:
-            manifest.setdefault("proteomes", {})[canonical] = {
-                "kind": "uniprot",
-                "proteome_id": proteome_id,
-                "path": str(dest),
-                "size_bytes": dest.stat().st_size,
-                "source_url": url,
-                "canonical_species": canonical,
-                "registered": proteomes.get(canonical, {}).get(
-                    "registered", datetime.now(timezone.utc).isoformat()
-                ),
-            }
-        return dest
+        try:
+            validate_uniprot_fasta_headers(
+                dest,
+                expected_taxon_id=expected_taxon_id,
+                expected_organism=canonical,
+            )
+        except IntegrityError as exc:
+            if not fetch_missing:
+                raise
+            print(
+                f"  [{canonical}] cached FASTA rejected ({exc}); re-downloading",
+                file=sys.stderr,
+            )
+        else:
+            if verbose:
+                print(f"  [{canonical}] already cached ({dest.stat().st_size:,} bytes)")
+            with manifest_transaction() as manifest:
+                manifest.setdefault("proteomes", {})[canonical] = _manifest_record(
+                    dest,
+                    registered=proteomes.get(canonical, {}).get("registered"),
+                )
+            return dest
 
     if not fetch_missing:
         return None
 
     if verbose:
         print(f"  [{canonical}] fetching UniProt {proteome_id} ...")
-    download_to_file(url, dest, label=canonical, verbose=verbose, force=True)
+    staging = dest.with_name(f".{dest.name}.staging")
+    try:
+        download_to_file(url, staging, label=canonical, verbose=verbose, force=True)
+        validate_uniprot_fasta_headers(
+            staging,
+            expected_taxon_id=expected_taxon_id,
+            expected_organism=canonical,
+        )
+        staging.replace(dest)
+    except Exception:
+        staging.unlink(missing_ok=True)
+        raise
 
     size = dest.stat().st_size
     if verbose:
         print(f"  [{canonical}] downloaded {size:,} bytes → {dest}")
 
     with manifest_transaction() as manifest:
-        manifest.setdefault("proteomes", {})[canonical] = {
-            "kind": "uniprot",
-            "proteome_id": proteome_id,
-            "path": str(dest),
-            "size_bytes": size,
-            "source_url": url,
-            "registered": datetime.now(timezone.utc).isoformat(),
-        }
+        manifest.setdefault("proteomes", {})[canonical] = _manifest_record(dest)
     return dest
 
 
@@ -1221,6 +1989,8 @@ def fetch_proteome_by_upid(
     force: bool = False,
     verbose: bool = True,
     fetch_missing: bool = True,
+    *,
+    expected_taxon_id: int | None = None,
 ) -> Path | None:
     """Fetch (or return cached) a UniProt reference proteome by UPID.
 
@@ -1243,46 +2013,120 @@ def fetch_proteome_by_upid(
     fetch_missing
         Download the FASTA when it is not already cached. When False, return
         ``None`` without network access for a cache miss.
+    expected_taxon_id
+        Optional NCBI taxon ID to validate against FASTA ``OX=`` headers.
+        Falls back to the curated taxon ID when *upid* is in the registry.
     """
     if not upid:
         return None
     proteomes = load_manifest().get("proteomes", {})
+    resolved_expected_taxon = (
+        expected_taxon_id if expected_taxon_id is not None else _expected_taxon_for_upid(upid)
+    )
+    name = label or upid
 
     # Dedup by UPID if we already have this proteome under another key
     existing = _find_existing_proteome_by_upid(proteomes, upid)
     if existing is not None and Path(existing["path"]).exists() and not force:
         path = Path(existing["path"])
-        if verbose:
-            print(f"  [{label or upid}] reusing cached {path.name} ({path.stat().st_size:,} bytes)")
-        return path
+        try:
+            validate_uniprot_fasta_headers(
+                path,
+                expected_taxon_id=resolved_expected_taxon,
+                expected_organism=name,
+            )
+        except IntegrityError as exc:
+            if not fetch_missing:
+                raise
+            print(
+                f"  [{name}] cached FASTA rejected ({exc}); re-downloading",
+                file=sys.stderr,
+            )
+        else:
+            if verbose:
+                print(f"  [{name}] reusing cached {path.name} ({path.stat().st_size:,} bytes)")
+            return path
 
-    name = label or upid
     fname = _safe_filename(name)
     dest = _proteomes_dir() / fname
     url = _UNIPROT_PROTEOME_URL.format(proteome_id=upid)
 
+    cached_ok = False
     if dest.exists() and not force:
-        if verbose:
-            print(f"  [{name}] already cached ({dest.stat().st_size:,} bytes)")
-    else:
+        try:
+            validate_uniprot_fasta_headers(
+                dest,
+                expected_taxon_id=resolved_expected_taxon,
+                expected_organism=name,
+            )
+        except IntegrityError as exc:
+            if not fetch_missing:
+                raise
+            print(
+                f"  [{name}] cached FASTA rejected ({exc}); re-downloading",
+                file=sys.stderr,
+            )
+        else:
+            cached_ok = True
+            if verbose:
+                print(f"  [{name}] already cached ({dest.stat().st_size:,} bytes)")
+
+    if not cached_ok:
         if not fetch_missing:
             return None
         if verbose:
             print(f"  [{name}] fetching UniProt {upid} ...")
-        download_to_file(url, dest, label=name, verbose=verbose, force=True)
+        staging = dest.with_name(f".{dest.name}.staging")
+        try:
+            download_to_file(url, staging, label=name, verbose=verbose, force=True)
+            try:
+                validate_uniprot_fasta_headers(
+                    staging,
+                    expected_taxon_id=resolved_expected_taxon,
+                    expected_organism=name,
+                )
+            except IntegrityError as exc:
+                # UniProtKB ``query=proteome:UP...`` returns 0 bytes for Non-Reference
+                # proteomes (e.g. Measles Edmonston B UP000100252); fall back to
+                # ``organism_id:<taxon_id>`` when metadata resolves a taxon (#977).
+                if "contains no FASTA headers" not in str(exc):
+                    raise
+                fallback_taxon = resolved_expected_taxon or _resolve_uniprot_proteome_taxon(upid)
+                if fallback_taxon is None:
+                    raise
+                url = _UNIPROT_QUERY_URL.format(query=f"organism_id:{fallback_taxon}")
+                resolved_expected_taxon = fallback_taxon
+                if verbose:
+                    print(
+                        f"  [{name}] UniProt proteome:{upid} returned empty stream; "
+                        f"falling back to organism_id:{fallback_taxon}"
+                    )
+                download_to_file(url, staging, label=name, verbose=verbose, force=True)
+                validate_uniprot_fasta_headers(
+                    staging,
+                    expected_taxon_id=resolved_expected_taxon,
+                    expected_organism=name,
+                )
+            staging.replace(dest)
+        except Exception:
+            staging.unlink(missing_ok=True)
+            raise
         if verbose:
             print(f"  [{name}] downloaded {dest.stat().st_size:,} bytes → {dest}")
 
+    rec: dict[str, Any] = {
+        "kind": "uniprot",
+        "proteome_id": upid,
+        "path": str(dest),
+        "size_bytes": dest.stat().st_size,
+        "source_url": url,
+        "canonical_species": name,
+        "registered": datetime.now(timezone.utc).isoformat(),
+    }
+    if resolved_expected_taxon is not None:
+        rec["expected_taxon_id"] = int(resolved_expected_taxon)
     with manifest_transaction() as manifest:
-        manifest.setdefault("proteomes", {})[name] = {
-            "kind": "uniprot",
-            "proteome_id": upid,
-            "path": str(dest),
-            "size_bytes": dest.stat().st_size,
-            "source_url": url,
-            "canonical_species": name,
-            "registered": datetime.now(timezone.utc).isoformat(),
-        }
+        manifest.setdefault("proteomes", {})[name] = rec
     return dest
 
 
@@ -1667,6 +2511,16 @@ def fetch(name: str, force: bool = False, *, offline: bool | None = None) -> Pat
             f"(expected at least {ds['min_size_bytes']:,}); the server likely returned "
             f"an empty or error body"
         )
+    if ds.get("expected_taxon_id") is not None:
+        try:
+            validate_uniprot_fasta_headers(
+                dest,
+                expected_taxon_id=ds["expected_taxon_id"],
+                expected_organism=ds.get("description", name),
+            )
+        except IntegrityError:
+            dest.unlink(missing_ok=True)
+            raise
 
     with manifest_transaction() as manifest:
         manifest["datasets"][name] = {
@@ -1834,6 +2688,15 @@ def _cached_file_problem(name: str, dest: Path, entry: dict | None) -> str | Non
         return f"{size:,} bytes on disk, {ds['expected_size']:,} pinned"
     if "expected_sha256" in ds and _file_sha256(dest) != ds["expected_sha256"]:
         return "sha256 differs from the pinned source value"
+    if ds.get("expected_taxon_id") is not None:
+        try:
+            validate_uniprot_fasta_headers(
+                dest,
+                expected_taxon_id=ds["expected_taxon_id"],
+                expected_organism=ds.get("description", name),
+            )
+        except IntegrityError as exc:
+            return str(exc)
     if entry is None or Path(entry["path"]) != dest:
         return None
     if "size_bytes" in entry and entry["size_bytes"] != size:
