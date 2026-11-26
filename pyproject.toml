@@ -69,7 +69,13 @@ dependencies = [
     # boundaries significant in allele-alias lookup (keeping B*15:112 distinct
     # from B*15:11), adds Gaga-BF2*13:01 -> Gaga-BF2*004:01, and renames
     # Allele.annotation_cystosolic -> annotation_cytosolic (#897).
-    "mhcgnomes>=3.70.2",
+    # 3.91.0 adds alpha/beta Pair ordering, WHO XX-code allele groups, exact
+    # RT1-Dn/Du/Dl class II pairs, ELA-A1 class I haplotype rosters, and
+    # expanded non-model vertebrate allele/haplotype resolution (#980).
+    "mhcgnomes>=3.91.0",
+    # Non-model vertebrate MHC groove sequences and allele/accession
+    # normalization across 223 vertebrate species (#980); imported lazily.
+    "mhcseqs>=2.14.0",
     # Canonical bundled CTA panel; imported only when a gene set is queried.
     "oncoref>=1.8.207",
 ]

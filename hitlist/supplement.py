@@ -295,11 +295,16 @@ def scan_supplementary(
                 "species": species_default,
                 "host": defaults.get("host", ""),
                 "host_age": "",
-                # Supplementary rows don't carry IEDB's per-row "Host | MHC
-                # Types Present"; set expansion will fall back to the
-                # per-PMID curated allele pool when the row's
-                # mhc_restriction is class-only (issue #137).
-                "host_mhc_types": "",
+                # Per-row host_mhc_types (when present in the supplement CSV or
+                # manifest defaults) preserves measured per-animal/haplotype
+                # allele sets for multi-animal non-model studies (#980); when
+                # blank, set expansion falls back to the per-PMID curated allele
+                # pool for class-only rows (issue #137).
+                "host_mhc_types": (
+                    df["host_mhc_types"].str.strip().to_numpy()
+                    if "host_mhc_types" in df.columns
+                    else defaults.get("host_mhc_types", "")
+                ),
                 "process_type": process_type,
                 "disease": disease,
                 "disease_stage": "",
@@ -341,13 +346,20 @@ def scan_supplementary(
 
         # Within a single supplementary entry the non-allele inputs are
         # constant (from manifest defaults), so classify_ms_row varies
-        # only by mhc_restriction.  Set expansion (issue #137) is also
-        # per-allele since host_mhc_types is empty for supplements and
-        # pmid + mhc_class don't vary within an entry.
-        unique_alleles = record["mhc_restriction"].unique()
+        # by mhc_restriction and set expansion varies by
+        # (mhc_restriction, host_mhc_types).
+        unique_keys = list(
+            record[["mhc_restriction", "host_mhc_types"]]
+            .drop_duplicates()
+            .itertuples(index=False, name=None)
+        )
 
         def _set_for(
-            allele: str, _record=record, _pmid=pmid, _mhc_species_context=mhc_species_context
+            allele: str,
+            host_mhc: str,
+            _record=record,
+            _pmid=pmid,
+            _mhc_species_context=mhc_species_context,
         ) -> dict:
             mhc_class_filter = ""
             # Pull per-allele class from the just-built ``record`` if the
@@ -360,7 +372,7 @@ def scan_supplementary(
                 if len(cls_match):
                     mhc_class_filter = str(cls_match.iloc[0])
             allele_set, prov, size = expand_allele_set(
-                allele, "", _pmid, mhc_class_filter, species_context=_mhc_species_context
+                allele, host_mhc, _pmid, mhc_class_filter, species_context=_mhc_species_context
             )
             return {
                 "mhc_allele_set": allele_set,
@@ -407,28 +419,31 @@ def scan_supplementary(
             return classification
 
         if classify_source:
+            classification_cache = {a: _classification_for(a) for a in {k[0] for k in unique_keys}}
             flag_rows = [
                 {
                     "mhc_restriction": a,
-                    **_classification_for(a),
-                    **_set_for(a),
+                    "host_mhc_types": h,
+                    **classification_cache[a],
+                    **_set_for(a, h),
                 }
-                for a in unique_alleles
+                for a, h in unique_keys
             ]
         else:
             flag_rows = [
                 {
                     "mhc_restriction": a,
+                    "host_mhc_types": h,
                     "restriction_evidence": restriction_evidence_for_row(a, pmid=pmid),
-                    **_set_for(a),
+                    **_set_for(a, h),
                 }
-                for a in unique_alleles
+                for a, h in unique_keys
             ]
         flags = pd.DataFrame(flag_rows)
-        record = record.merge(flags, on="mhc_restriction", how="left")
+        record = record.merge(flags, on=["mhc_restriction", "host_mhc_types"], how="left")
 
         # Promote set → mhc_restriction (#45) for class-only supplement
-        # rows where PMID-pool expansion produced a tightened set.  When
+        # rows where PMID-pool / sample-typing expansion produced a tightened set.
         # Retain historical class-only promotion, as in scanner.py. Gene/locus
         # candidates never replace the reported restriction or its precision.
         if "mhc_allele_set" in record.columns and "mhc_allele_provenance" in record.columns:
@@ -442,16 +457,23 @@ def scan_supplementary(
                 record.loc[promote_mask, "mhc_restriction"] = record.loc[
                     promote_mask, "mhc_allele_set"
                 ]
-                promoted = [
-                    resolve_mhc_annotation(
-                        row["mhc_restriction"],
-                        row["mhc_class_reported"],
-                        mhc_species_context,
-                    )
-                    for _, row in record.loc[promote_mask].iterrows()
-                ]
+                promoted_pairs = (
+                    record.loc[promote_mask, ["mhc_restriction", "mhc_class_reported"]]
+                    .drop_duplicates()
+                    .itertuples(index=False, name=None)
+                )
+                promoted_by_pair = {
+                    (r, c): resolve_mhc_annotation(r, c, mhc_species_context).as_record_fields()
+                    for r, c in promoted_pairs
+                }
                 promoted_identity = pd.DataFrame(
-                    [annotation.as_record_fields() for annotation in promoted],
+                    [
+                        promoted_by_pair[(r, c)]
+                        for r, c in zip(
+                            record.loc[promote_mask, "mhc_restriction"],
+                            record.loc[promote_mask, "mhc_class_reported"],
+                        )
+                    ],
                     index=record.index[promote_mask],
                 )
                 for column in promoted_identity.columns:

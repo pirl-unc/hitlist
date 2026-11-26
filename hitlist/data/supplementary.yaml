@@ -592,3 +592,27 @@
     source_tissue: Cervix
     disease: cervical cancer
     attributed_sample_label: DP402_DM_B
+- pmid: 29115832
+  file: nielsen_2018_bola_class1.csv.gz
+  sha256: 3fb60f3e917c0c26964f09a217d590415820fc4e0afa7e1207b57fd55d9efb36
+  size_bytes: 378684
+  study_label: Nielsen 2018 — BoLA class I cellular immunopeptidome (A18/A10/A14, PXD008151)
+  source: PRIDE PXD008151 original PEAKS mzIdentML files (5 bovine cell lines); J Proteome Res 2018 (doi:10.1021/acs.jproteome.7b00675)
+  note: >
+    First non-human cellular MS immunopeptidome supplement in hitlist (#980).
+    36,943 peptide-sample detections (27,314 distinct peptides) from 5 bovine lymphoblast
+    cell lines spanning BoLA class I haplotypes A18 (641_A18_Tpm, monoallelic BoLA-6*013:01),
+    A10 (1011_A10_Tpm, 500004_A10; BoLA-2*012:01;BoLA-3*002:01), and A14 (104003_A14,
+    2229_A14_Tpm; BoLA-1*023:01;BoLA-4*024:01;BoLA-2*025:01). Derived deterministically
+    from passThreshold="true" non-decoy PSMs in all 5 PRIDE PXD008151 mzid files;
+    per-sample measured haplotype alleles preserved in host_mhc_types without predicted
+    deconvolution. See nielsen_2018_bola_class1_source.yaml.
+  defaults:
+    host: Bos taurus (cattle)
+    species: Bos taurus
+    source_organism: Bos taurus
+    culture_condition: Cell Line / Clone
+    cell_name: Lymphoblast
+    source_tissue: Blood
+    process_type: No immunization
+    disease: healthy

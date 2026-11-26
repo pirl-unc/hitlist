@@ -1,0 +1,83 @@
+pmid: 29115832
+doi: 10.1021/acs.jproteome.7b00675
+accession: PXD008151
+citation: Nielsen M, Connelley T, Ternette N (2018). Improved Prediction of Bovine Leucocyte Antigens
+  (BoLA) Presented Ligands by Use of Mass-Spectrometry-Determined Ligand and in Vitro Binding Data. J
+  Proteome Res 17(1):559-567.
+species: Bos taurus
+mhc_class: I
+derived_asset:
+  file: nielsen_2018_bola_class1.csv.gz
+  sha256: 3fb60f3e917c0c26964f09a217d590415820fc4e0afa7e1207b57fd55d9efb36
+  size_bytes: 378684
+  n_rows: 36943
+  n_distinct_peptides: 27314
+  n_samples: 5
+selection_rules:
+  mzid_filter: SpectrumIdentificationItem[@passThreshold='true'] excluding decoy-only PeptideEvidence
+  alphabet: canonical 20 amino acids
+  contaminant_flag: True when all non-decoy DBSequence matches are non-bovine/non-Theileria QC spike-ins
+    (e.g. E. coli BGAL)
+  allele_assignment: Measured sample-level BoLA haplotype typing only (641_A18_Tpm is monoallelic BoLA-6*013:01;
+    A10 and A14 samples retain measured 2-allele and 3-allele host_mhc_types without predicted deconvolution).
+source_files:
+- sample_key: 641_A18_Tpm
+  attributed_sample_label: 641_A18_Tpm (BoLA-I A18)
+  haplotype: A18
+  mhc_restriction: BoLA-6*013:01
+  host_mhc_types: BoLA-6*013:01
+  cell_type: Theileria parva-infected bovine lymphoblast line
+  filename: 641_A18_Tpm_PEAKS_125_peptides_1_1_0.mzid
+  url: https://ftp.pride.ebi.ac.uk/pride/data/archive/2017/11/PXD008151/641_A18_Tpm_PEAKS_125_peptides_1_1_0.mzid
+  size_bytes: 36305800
+  sha256: 0d48e946cc28e763a77a11db47e1feaea9120f3b8be5339b434f314a41f093f4
+  n_peptides: 6911
+  n_contaminant_peptides: 1
+- sample_key: 1011_A10_Tpm
+  attributed_sample_label: 1011_A10_Tpm (BoLA-I A10)
+  haplotype: A10
+  mhc_restriction: BoLA class I
+  host_mhc_types: BoLA-2*012:01;BoLA-3*002:01
+  cell_type: Theileria parva-infected bovine lymphoblast line
+  filename: 1011_A10_Tpm_PEAKS_129_peptides_1_1_0.mzid
+  url: https://ftp.pride.ebi.ac.uk/pride/data/archive/2017/11/PXD008151/1011_A10_Tpm_PEAKS_129_peptides_1_1_0.mzid
+  size_bytes: 34569022
+  sha256: c0712dacb1279ef07c625eaa1202e208f211120b4d1f61dd3d119b80f4d90747
+  n_peptides: 7696
+  n_contaminant_peptides: 1
+- sample_key: 500004_A10
+  attributed_sample_label: 500004_A10 (BoLA-I A10)
+  haplotype: A10
+  mhc_restriction: BoLA class I
+  host_mhc_types: BoLA-2*012:01;BoLA-3*002:01
+  cell_type: ConA-stimulated bovine PBMC lymphoblasts
+  filename: 500004_A10_PEAKS_127_peptides_1_1_0.mzid
+  url: https://ftp.pride.ebi.ac.uk/pride/data/archive/2017/11/PXD008151/500004_A10_PEAKS_127_peptides_1_1_0.mzid
+  size_bytes: 34867173
+  sha256: 98ad35558b4ff536ce1b5a839d7927a3ab7956f0851463c9f943fd57a56af1ef
+  n_peptides: 8460
+  n_contaminant_peptides: 1
+- sample_key: 104003_A14
+  attributed_sample_label: 104003_A14 (BoLA-I A14)
+  haplotype: A14
+  mhc_restriction: BoLA class I
+  host_mhc_types: BoLA-1*023:01;BoLA-4*024:01;BoLA-2*025:01
+  cell_type: ConA-stimulated bovine PBMC lymphoblasts
+  filename: 104003_A14_PEAKS_126_peptides_1_1_0.mzid
+  url: https://ftp.pride.ebi.ac.uk/pride/data/archive/2017/11/PXD008151/104003_A14_PEAKS_126_peptides_1_1_0.mzid
+  size_bytes: 30868161
+  sha256: 87fe7222836bcfd0f5ddeecf4be37b384587606881574f8baef0a680b54ed051
+  n_peptides: 6821
+  n_contaminant_peptides: 1
+- sample_key: 2229_A14_Tpm
+  attributed_sample_label: 2229_A14_Tpm (BoLA-I A14)
+  haplotype: A14
+  mhc_restriction: BoLA class I
+  host_mhc_types: BoLA-1*023:01;BoLA-4*024:01;BoLA-2*025:01
+  cell_type: Theileria parva-infected bovine lymphoblast line
+  filename: 2229_A14_Tpm_PEAKS_124_peptides_1_1_0.mzid
+  url: https://ftp.pride.ebi.ac.uk/pride/data/archive/2017/11/PXD008151/2229_A14_Tpm_PEAKS_124_peptides_1_1_0.mzid
+  size_bytes: 31692025
+  sha256: f03d06791c58f7de48872fb3f776d86ba2612afdee101bf05c4ed48f168183eb
+  n_peptides: 7055
+  n_contaminant_peptides: 1
