@@ -123,3 +123,45 @@ def test_nonhuman_non_ms_studies_excluded(pmid: int, expected_species: str) -> N
     assert pmid in excluded
     assert overrides[pmid]["species"] == expected_species
     assert overrides[pmid]["exclude_from_ms"] is True
+
+
+def test_load_observations_filters_ms_excluded_pmids_at_load_time(tmp_path, monkeypatch) -> None:
+    """load_observations() excludes newly-curated exclude_from_ms PMIDs even from a prebuilt parquet,
+    while preserving NULL pmids and leaving load_binding() untouched."""
+    import pandas as pd
+
+    from hitlist import observations
+
+    df = pd.DataFrame(
+        {
+            "peptide": ["GHAEEYGAETL", "SIINFEKL", "NOPMIDPEP"],
+            "pmid": pd.array([18083574, 25860507, None], dtype="Int64"),
+            "mhc_restriction": ["Gaga-BF2*021:01", "Gaga-BF2*002:01", "HLA-A*02:01"],
+            "mhc_class": ["I", "I", "I"],
+            "assay_method": [
+                "cellular MHC/mass spectrometry",
+                "cellular MHC/mass spectrometry",
+                "cellular MHC/mass spectrometry",
+            ],
+            "qualitative_measurement": ["Positive", "Positive", "Positive"],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    bind_path = tmp_path / "binding.parquet"
+    df.to_parquet(obs_path, index=False)
+    df.assign(assay_method="purified MHC/direct/fluorescence").to_parquet(bind_path, index=False)
+
+    monkeypatch.setattr(observations, "observations_path", lambda: obs_path)
+    monkeypatch.setattr(observations, "binding_path", lambda: bind_path)
+
+    ms = observations.load_observations(columns=["peptide", "pmid"])
+    assert list(ms["peptide"]) == ["SIINFEKL", "NOPMIDPEP"]
+    assert ms["pmid"].isna().sum() == 1
+
+    # Also verify projection without "pmid" still filters excluded PMIDs via arrow pushdown.
+    ms_no_pmid = observations.load_observations(columns=["peptide"])
+    assert list(ms_no_pmid["peptide"]) == ["SIINFEKL", "NOPMIDPEP"]
+
+    # Binding index must NOT drop exclude_from_ms PMIDs.
+    bd = observations.load_binding(columns=["peptide", "pmid"])
+    assert list(bd["peptide"]) == ["GHAEEYGAETL", "SIINFEKL", "NOPMIDPEP"]

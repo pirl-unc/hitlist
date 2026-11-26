@@ -5409,6 +5409,14 @@
     species: "Bos taurus"
     ip_antibody: "IL-A21"
     search_engine: "PEAKS"
+    arm_resolution: axis_mismatch
+    arm_resolution_note: >
+      PMC8113073 Table I profiles 11 bovine samples across 7 BoLA-DRB3 alleles, including
+      multiple cell lines sharing BoLA-DRB3*010:01 (5072TP, O11TA_n1, O11TA_n2) and
+      BoLA-DRB3*011:01 (2229TP, 2229TA). IEDB records only per-genotype Bota-DRB3*
+      restrictions with identical cell_name="PBMC" and source_tissue="blood" across all
+      40,051 rows, so rows sharing a homozygous genotype cannot be assigned to individual
+      lines from IEDB metadata alone.
     rules:
       - condition:
           MHC Restriction:
@@ -5421,12 +5429,12 @@
       BoLA-DR (class II, IL-A21 IP) immunopeptidome across 11 Holstein-Friesian bovine
       samples spanning 7 BoLA-DRB3 alleles (PMC8113073 Table I; PRIDE PXD024053; 40,051 rows
       in IEDB). Ten samples are Theileria parva- or Theileria annulata-transformed bovine
-      cell lines (override: noncancer_cell_line), whereas PBMC_OVA (BoLA-DRB3*01:01;10:01) is primary
+      cell lines (override: noncancer_cell_line), whereas PBMC_OVA (BoLA-DRB3*001:01;010:01) is primary
       bovine PBMCs pulsed with ovalbumin (rule override: healthy). Samples 2229TA, 2229TP,
       O11TA_n1, and O11TA_n2 lacked effective prior BoLA-I IP depletion and showed elevated
       co-eluted BoLA-I peptide background. #980.
     ms_samples:
-      - sample_label: "641TP (BoLA-DRB3*20:02)"
+      - sample_label: "641TP (BoLA-DRB3*020:02)"
         n_samples: 1
         source: "Theileria parva-transformed bovine lymphoblast line 641TP (BoLA-I A18/A18)"
         condition: "Theileria parva infection; prior BoLA-I IP depletion"
@@ -5436,8 +5444,8 @@
         condition_reference: "PMC8113073 Table I"
         condition_infection: "Theileria parva"
         mhc_class: II
-        mhc: "BoLA-DRB3*20:02"
-      - sample_label: "2824TP (BoLA-DRB3*16:01)"
+        mhc: "BoLA-DRB3*020:02"
+      - sample_label: "2824TP (BoLA-DRB3*016:01)"
         n_samples: 1
         source: "Theileria parva-transformed bovine lymphoblast line 2824TP (BoLA-I A19/A19)"
         condition: "Theileria parva infection; prior BoLA-I IP depletion"
@@ -5447,8 +5455,8 @@
         condition_reference: "PMC8113073 Table I"
         condition_infection: "Theileria parva"
         mhc_class: II
-        mhc: "BoLA-DRB3*16:01"
-      - sample_label: "5350TP (BoLA-DRB3*12:01)"
+        mhc: "BoLA-DRB3*016:01"
+      - sample_label: "5350TP (BoLA-DRB3*012:01)"
         n_samples: 1
         source: "Theileria parva-transformed bovine lymphoblast line 5350TP (BoLA-I A20/A20)"
         condition: "Theileria parva infection; prior BoLA-I IP depletion"
@@ -5458,8 +5466,8 @@
         condition_reference: "PMC8113073 Table I"
         condition_infection: "Theileria parva"
         mhc_class: II
-        mhc: "BoLA-DRB3*12:01"
-      - sample_label: "5072TP (BoLA-DRB3*10:01)"
+        mhc: "BoLA-DRB3*012:01"
+      - sample_label: "5072TP (BoLA-DRB3*010:01)"
         n_samples: 1
         source: "Theileria parva-transformed bovine lymphoblast line 5072TP (BoLA-I A11/A11)"
         condition: "Theileria parva infection; prior BoLA-I IP depletion"
@@ -5469,8 +5477,8 @@
         condition_reference: "PMC8113073 Table I"
         condition_infection: "Theileria parva"
         mhc_class: II
-        mhc: "BoLA-DRB3*10:01"
-      - sample_label: "495TP (BoLA-DRB3*10:01;11:01)"
+        mhc: "BoLA-DRB3*010:01"
+      - sample_label: "495TP (BoLA-DRB3*010:01;011:01)"
         n_samples: 1
         source: "Theileria parva-transformed bovine lymphoblast line 495TP (BoLA-I A10/A14)"
         condition: "Theileria parva infection; prior BoLA-I IP depletion"
@@ -5480,8 +5488,8 @@
         condition_reference: "PMC8113073 Table I"
         condition_infection: "Theileria parva"
         mhc_class: II
-        mhc: "BoLA-DRB3*10:01 BoLA-DRB3*11:01"
-      - sample_label: "2123TP (BoLA-DRB3*15:01;11:01)"
+        mhc: "BoLA-DRB3*010:01 BoLA-DRB3*011:01"
+      - sample_label: "2123TP (BoLA-DRB3*015:01;011:01)"
         n_samples: 1
         source: "Theileria parva-transformed bovine lymphoblast line 2123TP (BoLA-I A12/A15)"
         condition: "Theileria parva infection; prior BoLA-I IP depletion"
@@ -5491,8 +5499,8 @@
         condition_reference: "PMC8113073 Table I"
         condition_infection: "Theileria parva"
         mhc_class: II
-        mhc: "BoLA-DRB3*15:01 BoLA-DRB3*11:01"
-      - sample_label: "2229TP (BoLA-DRB3*11:01)"
+        mhc: "BoLA-DRB3*015:01 BoLA-DRB3*011:01"
+      - sample_label: "2229TP (BoLA-DRB3*011:01)"
         n_samples: 1
         source: "Theileria parva-transformed bovine lymphoblast line 2229TP (BoLA-I A14/A14)"
         condition: "Theileria parva infection; failed prior BoLA-I IP depletion"
@@ -5502,8 +5510,8 @@
         condition_reference: "PMC8113073 Table I"
         condition_infection: "Theileria parva"
         mhc_class: II
-        mhc: "BoLA-DRB3*11:01"
-      - sample_label: "2229TA (BoLA-DRB3*11:01)"
+        mhc: "BoLA-DRB3*011:01"
+      - sample_label: "2229TA (BoLA-DRB3*011:01)"
         n_samples: 1
         source: "Theileria annulata-transformed bovine cell line 2229TA (BoLA-I A14/A14)"
         condition: "Theileria annulata infection; no prior BoLA-I IP depletion"
@@ -5513,8 +5521,8 @@
         condition_reference: "PMC8113073 Table I"
         condition_infection: "Theileria annulata"
         mhc_class: II
-        mhc: "BoLA-DRB3*11:01"
-      - sample_label: "O11TA_n1 (BoLA-DRB3*10:01)"
+        mhc: "BoLA-DRB3*011:01"
+      - sample_label: "O11TA_n1 (BoLA-DRB3*010:01)"
         n_samples: 1
         source: "Theileria annulata-transformed bovine cell line O11TA (BoLA-I A10/A10)"
         condition: "Theileria annulata infection; no prior BoLA-I IP depletion"
@@ -5524,8 +5532,8 @@
         condition_reference: "PMC8113073 Table I"
         condition_infection: "Theileria annulata"
         mhc_class: II
-        mhc: "BoLA-DRB3*10:01"
-      - sample_label: "O11TA_n2 (BoLA-DRB3*10:01, OVA-loaded)"
+        mhc: "BoLA-DRB3*010:01"
+      - sample_label: "O11TA_n2 (BoLA-DRB3*010:01, OVA-loaded)"
         n_samples: 1
         source: "Theileria annulata-transformed bovine cell line O11TA pulsed with OVA (BoLA-I A10/A10)"
         condition: "Theileria annulata infection + OVA antigen pulsing; no prior BoLA-I IP depletion"
@@ -5535,8 +5543,8 @@
         condition_reference: "PMC8113073 Table I"
         condition_infection: "Theileria annulata"
         mhc_class: II
-        mhc: "BoLA-DRB3*10:01"
-      - sample_label: "PBMC_OVA (BoLA-DRB3*01:01;10:01)"
+        mhc: "BoLA-DRB3*010:01"
+      - sample_label: "PBMC_OVA (BoLA-DRB3*001:01;010:01)"
         n_samples: 1
         source: "Primary bovine PBMCs pulsed with OVA (BoLA-I A10/A11)"
         condition: "OVA antigen pulsing of primary bovine PBMCs; no prior BoLA-I IP depletion"
@@ -5545,7 +5553,7 @@
         condition_evidence: primary_source
         condition_reference: "PMC8113073 Table I"
         mhc_class: II
-        mhc: "BoLA-DRB3*01:01 BoLA-DRB3*10:01"
+        mhc: "BoLA-DRB3*001:01 BoLA-DRB3*010:01"
   - pmid: 27893789
     # Arm-resolution verdict (#366).
     arm_resolution: curation_gap
@@ -17263,6 +17271,12 @@
     title: "Identification of peptides associated with chicken major histocompatibility complex class II molecules of B21 and B19 haplotypes"
     species: "Gallus gallus"
     override: noncancer_cell_line
+    arm_resolution: axis_mismatch
+    arm_resolution_note: >
+      Haeri 2005 profiles B21 and B19 transformed chicken B-cell lines separately, but IEDB
+      records haplotype-level class-II strings ("BF21 class II", "BF19 class II") without
+      resolved BLB1/BLB2 alleles and identical cell_name/source_tissue across all 5 rows, so
+      the allele-token sample join cannot separate the two haplotype arms.
     note: >
       Immunoaffinity purification and MS/MS of 5 chicken MHC class II (B-L) peptides (4 B21,
       1 B19; 16-21 aa) from transformed chicken B-cell lines (Haeri et al., Immunogenetics
@@ -17291,39 +17305,39 @@
         mhc: "Gaga class II"
 
   - pmid: 12648094
-    study_label: "Sharif 2003 — BoLA-DRB3*12:01 / *27:03 class II elution"
+    study_label: "Sharif 2003 — BoLA-DRB3*012:01 / *027:03 class II elution"
     title: "Characterization of naturally processed and presented peptides associated with bovine major histocompatibility complex (BoLA) class II DR molecules"
     species: "Bos taurus"
     override: noncancer_cell_line
     note: >
       ESI-MS elution of 24 naturally processed BoLA-DR class II peptides (13-20 aa) for
-      BoLA-DRB3*12:01 (transfected mouse fibroblast line alone, 18 peptides) and
-      BoLA-DRB3*27:03 (transfected fibroblasts combined with homozygous Holstein PBMCs,
+      BoLA-DRB3*012:01 (transfected mouse fibroblast line alone, 18 peptides) and
+      BoLA-DRB3*027:03 (transfected fibroblasts combined with homozygous Holstein PBMCs,
       6 peptides; Sharif et al., Anim Genet 2003, doi:10.1046/j.1365-2052.2003.00961.x).
       IEDB records all 24 rows as mouse fibroblast. #14, #980.
     ms_samples:
-      - sample_label: "Transfected mouse fibroblasts (BoLA-DRB3*12:01)"
+      - sample_label: "Transfected mouse fibroblasts (BoLA-DRB3*012:01)"
         n_samples: 1
-        source: "Mouse fibroblast line transfected with bovine BoLA-DRB3*12:01"
-        condition: "unperturbed — mono-allelic BoLA-DRB3*12:01 transfectant"
+        source: "Mouse fibroblast line transfected with bovine BoLA-DRB3*012:01"
+        condition: "unperturbed — mono-allelic BoLA-DRB3*012:01 transfectant"
         condition_id: sharif_2003_bola_drb3_12_01
         condition_status: annotated
         condition_evidence: curated_text
         condition_control: untreated
         condition_mhc_context: "mhc_transfectant;monoallelic"
         mhc_class: II
-        mhc: "BoLA-DRB3*12:01"
-      - sample_label: "Transfected fibroblasts + homozygous PBMCs (BoLA-DRB3*27:03)"
+        mhc: "BoLA-DRB3*012:01"
+      - sample_label: "Transfected fibroblasts + homozygous PBMCs (BoLA-DRB3*027:03)"
         n_samples: 1
-        source: "BoLA-DRB3*27:03 transfected mouse fibroblasts and homozygous Holstein PBMCs"
-        condition: "unperturbed — mono-allelic BoLA-DRB3*27:03"
+        source: "BoLA-DRB3*027:03 transfected mouse fibroblasts and homozygous Holstein PBMCs"
+        condition: "unperturbed — mono-allelic BoLA-DRB3*027:03"
         condition_id: sharif_2003_bola_drb3_27_03
         condition_status: annotated
         condition_evidence: curated_text
         condition_control: untreated
         condition_mhc_context: "mhc_transfectant;monoallelic"
         mhc_class: II
-        mhc: "BoLA-DRB3*27:03"
+        mhc: "BoLA-DRB3*027:03"
 
   - pmid: 32894211
     study_label: "Tian 2020 — porcine SLA-I RMA-S binding stability and PRRSV vaccine"
