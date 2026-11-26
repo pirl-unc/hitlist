@@ -59,9 +59,9 @@ def test_uniprot_lookup_offline_reuses_cached_resolution(monkeypatch):
         downloads,
         "_uniprot_cache",
         lambda: {
-            "Pteropus alecto": {
-                "proteome_id": "UP000031014",
-                "scientific_name": "Pteropus alecto",
+            "Ornithorhynchus anatinus": {
+                "proteome_id": "UP000002279",
+                "scientific_name": "Ornithorhynchus anatinus",
             }
         },
     )
@@ -76,10 +76,12 @@ def test_uniprot_lookup_offline_reuses_cached_resolution(monkeypatch):
         is None
     )
 
-    out = downloads.lookup_proteome("Pteropus alecto", use_uniprot=True, allow_network=False)
+    out = downloads.lookup_proteome(
+        "Ornithorhynchus anatinus", use_uniprot=True, allow_network=False
+    )
 
     assert out is not None
-    assert out["proteome_id"] == "UP000031014"
+    assert out["proteome_id"] == "UP000002279"
 
 
 def test_uniprot_lookup_offline_does_not_resolve_uncached_organism(monkeypatch):

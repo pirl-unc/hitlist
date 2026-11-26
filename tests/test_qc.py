@@ -1239,7 +1239,7 @@ def test_proteome_coverage_resolves_registered_and_flags_missing(tmp_path, monke
                 "source_organism": "Homo sapiens",
             }
         )
-    # 150 Felis catus rows (NOT registered, ≥100 rows → severity=warn).
+    # 150 Ornithorhynchus anatinus rows (NOT registered, ≥100 rows → severity=warn).
     for i in range(150):
         rows.append(
             {
@@ -1253,8 +1253,8 @@ def test_proteome_coverage_resolves_registered_and_flags_missing(tmp_path, monke
                 "pmid": 2,
                 "reference_iri": f"q-{i}",
                 "source": "iedb",
-                "mhc_species": "Felis catus",
-                "source_organism": "Felis catus",
+                "mhc_species": "Ornithorhynchus anatinus",
+                "source_organism": "Ornithorhynchus anatinus",
             }
         )
     # 30 'unidentified' rows (NOT registered, <100 → severity=info).
@@ -1288,11 +1288,11 @@ def test_proteome_coverage_resolves_registered_and_flags_missing(tmp_path, monke
     assert homo["proteome_kind"] == "ensembl"
     assert homo["severity"] == "info"
 
-    cat = df[df["source_organism"] == "Felis catus"].iloc[0]
-    assert cat["n_rows"] == 150
-    assert not bool(cat["has_proteome"])
-    assert cat["proteome_kind"] == ""
-    assert cat["severity"] == "warn"  # missing proteome AND >=100 rows
+    platypus = df[df["source_organism"] == "Ornithorhynchus anatinus"].iloc[0]
+    assert platypus["n_rows"] == 150
+    assert not bool(platypus["has_proteome"])
+    assert platypus["proteome_kind"] == ""
+    assert platypus["severity"] == "warn"  # missing proteome AND >=100 rows
 
     unid = df[df["source_organism"] == "unidentified"].iloc[0]
     assert unid["n_rows"] == 30
