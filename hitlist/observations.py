@@ -860,7 +860,8 @@ def _load_peptide_index(
     # mhc_class_label_* family).  Use this to filter the read-side columns
     # list — passing a derived column to ``pd.read_parquet(columns=...)``
     # raises ``ArrowInvalid: No match for FieldRef.Name(...)``.
-    parquet_columns = set(pq.read_schema(path).names)
+    parquet_schema = pq.read_schema(path)
+    parquet_columns = set(parquet_schema.names)
     if mhc_allele_in_set is not None and "mhc_allele_set" not in parquet_columns:
         raise ValueError(
             "mhc_allele_in_set requires mhc_allele_set in the index; "
@@ -1039,6 +1040,28 @@ def _load_peptide_index(
     if kind:
         modality = assay_expression(parquet_columns, kind)
         predicate = modality if predicate is None else predicate & modality
+    if kind == "ms" and "pmid" in parquet_columns:
+        from .curation import ms_excluded_pmids
+
+        excluded_pmids = ms_excluded_pmids()
+        if excluded_pmids:
+            import pyarrow.dataset as ds
+
+            pmid_type = parquet_schema.field("pmid").type
+            if pa.types.is_dictionary(pmid_type):
+                pmid_type = pmid_type.value_type
+            if pa.types.is_integer(pmid_type):
+                excluded_vals = sorted(excluded_pmids)
+            elif pa.types.is_floating(pmid_type):
+                excluded_vals = [float(p) for p in sorted(excluded_pmids)]
+            elif pa.types.is_string(pmid_type) or pa.types.is_large_string(pmid_type):
+                excluded_vals = [str(p) for p in sorted(excluded_pmids)]
+            else:
+                excluded_vals = []
+            if excluded_vals:
+                pmid_field = ds.field("pmid")
+                keep_ms_pmid = pmid_field.is_null() | ~pmid_field.isin(excluded_vals)
+                predicate = keep_ms_pmid if predicate is None else predicate & keep_ms_pmid
     df = pd.read_parquet(path, columns=read_columns, filters=predicate)
     # Arrow has already established admission, including for projected legacy
     # reads. Recompute annotations only when they are requested or unstored.

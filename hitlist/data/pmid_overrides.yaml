@@ -5405,21 +5405,155 @@
   - pmid: 33789985
     study_label: Fisch 2021 — BoLA-DR class II
     title: Integral Use of Immunopeptidomics and Immunoinformatics for the Characterization of Antigen Presentation and Rational Identification of BoLA-DR-Presented Peptides and Epitopes
-    override:
-    species: Bos taurus (cattle)
+    override: noncancer_cell_line
+    species: "Bos taurus"
+    ip_antibody: "IL-A21"
+    search_engine: "PEAKS"
+    arm_resolution: axis_mismatch
+    arm_resolution_note: >
+      PMC8113073 Table I profiles 11 bovine samples across 7 BoLA-DRB3 alleles, including
+      multiple cell lines sharing BoLA-DRB3*010:01 (5072TP, O11TA_n1, O11TA_n2) and
+      BoLA-DRB3*011:01 (2229TP, 2229TA). IEDB records only per-genotype Bota-DRB3*
+      restrictions with identical cell_name="PBMC" and source_tissue="blood" across all
+      40,051 rows, so rows sharing a homozygous genotype cannot be assigned to individual
+      lines from IEDB metadata alone.
+    rules:
+      - condition:
+          MHC Restriction:
+            - "Bota-DRB3*001:01;Bota-DRB3*010:01"
+            - "BoLA-DRB3*001:01;BoLA-DRB3*010:01"
+            - "BoLA-DRB3*01:01;BoLA-DRB3*10:01"
+        override: healthy
+        reason: "PBMC_OVA sample is primary bovine PBMCs pulsed with ovalbumin (PMC8113073 Table I)"
     note: >
-      BoLA-DR (class II) immunopeptidome from bovine cell lines expressing various DRB3 alleles prevalent
-      in Holstein-Friesian populations. Self-peptidome characterization + CD4 epitope validation. In IEDB.
+      BoLA-DR (class II, IL-A21 IP) immunopeptidome across 11 Holstein-Friesian bovine
+      samples spanning 7 BoLA-DRB3 alleles (PMC8113073 Table I; PRIDE PXD024053; 40,051 rows
+      in IEDB). Ten samples are Theileria parva- or Theileria annulata-transformed bovine
+      cell lines (override: noncancer_cell_line), whereas PBMC_OVA (BoLA-DRB3*001:01;010:01) is primary
+      bovine PBMCs pulsed with ovalbumin (rule override: healthy). Samples 2229TA, 2229TP,
+      O11TA_n1, and O11TA_n2 lacked effective prior BoLA-I IP depletion and showed elevated
+      co-eluted BoLA-I peptide background. #980.
     ms_samples:
-      - sample_label: bovine cell lines (BoLA-DR)
-        source: "Holstein-Friesian, multiple DRB3 alleles"
-        condition: unperturbed
-        condition_id: "bovine_cell_lines_bola_dr"
-        condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_control: "untreated"
+      - sample_label: "641TP (BoLA-DRB3*020:02)"
+        n_samples: 1
+        source: "Theileria parva-transformed bovine lymphoblast line 641TP (BoLA-I A18/A18)"
+        condition: "Theileria parva infection; prior BoLA-I IP depletion"
+        condition_id: fisch_2021_641tp
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC8113073 Table I"
+        condition_infection: "Theileria parva"
         mhc_class: II
-        mhc: BoLA-DR
+        mhc: "BoLA-DRB3*020:02"
+      - sample_label: "2824TP (BoLA-DRB3*016:01)"
+        n_samples: 1
+        source: "Theileria parva-transformed bovine lymphoblast line 2824TP (BoLA-I A19/A19)"
+        condition: "Theileria parva infection; prior BoLA-I IP depletion"
+        condition_id: fisch_2021_2824tp
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC8113073 Table I"
+        condition_infection: "Theileria parva"
+        mhc_class: II
+        mhc: "BoLA-DRB3*016:01"
+      - sample_label: "5350TP (BoLA-DRB3*012:01)"
+        n_samples: 1
+        source: "Theileria parva-transformed bovine lymphoblast line 5350TP (BoLA-I A20/A20)"
+        condition: "Theileria parva infection; prior BoLA-I IP depletion"
+        condition_id: fisch_2021_5350tp
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC8113073 Table I"
+        condition_infection: "Theileria parva"
+        mhc_class: II
+        mhc: "BoLA-DRB3*012:01"
+      - sample_label: "5072TP (BoLA-DRB3*010:01)"
+        n_samples: 1
+        source: "Theileria parva-transformed bovine lymphoblast line 5072TP (BoLA-I A11/A11)"
+        condition: "Theileria parva infection; prior BoLA-I IP depletion"
+        condition_id: fisch_2021_5072tp
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC8113073 Table I"
+        condition_infection: "Theileria parva"
+        mhc_class: II
+        mhc: "BoLA-DRB3*010:01"
+      - sample_label: "495TP (BoLA-DRB3*010:01;011:01)"
+        n_samples: 1
+        source: "Theileria parva-transformed bovine lymphoblast line 495TP (BoLA-I A10/A14)"
+        condition: "Theileria parva infection; prior BoLA-I IP depletion"
+        condition_id: fisch_2021_495tp
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC8113073 Table I"
+        condition_infection: "Theileria parva"
+        mhc_class: II
+        mhc: "BoLA-DRB3*010:01 BoLA-DRB3*011:01"
+      - sample_label: "2123TP (BoLA-DRB3*015:01;011:01)"
+        n_samples: 1
+        source: "Theileria parva-transformed bovine lymphoblast line 2123TP (BoLA-I A12/A15)"
+        condition: "Theileria parva infection; prior BoLA-I IP depletion"
+        condition_id: fisch_2021_2123tp
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC8113073 Table I"
+        condition_infection: "Theileria parva"
+        mhc_class: II
+        mhc: "BoLA-DRB3*015:01 BoLA-DRB3*011:01"
+      - sample_label: "2229TP (BoLA-DRB3*011:01)"
+        n_samples: 1
+        source: "Theileria parva-transformed bovine lymphoblast line 2229TP (BoLA-I A14/A14)"
+        condition: "Theileria parva infection; failed prior BoLA-I IP depletion"
+        condition_id: fisch_2021_2229tp
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC8113073 Table I"
+        condition_infection: "Theileria parva"
+        mhc_class: II
+        mhc: "BoLA-DRB3*011:01"
+      - sample_label: "2229TA (BoLA-DRB3*011:01)"
+        n_samples: 1
+        source: "Theileria annulata-transformed bovine cell line 2229TA (BoLA-I A14/A14)"
+        condition: "Theileria annulata infection; no prior BoLA-I IP depletion"
+        condition_id: fisch_2021_2229ta
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC8113073 Table I"
+        condition_infection: "Theileria annulata"
+        mhc_class: II
+        mhc: "BoLA-DRB3*011:01"
+      - sample_label: "O11TA_n1 (BoLA-DRB3*010:01)"
+        n_samples: 1
+        source: "Theileria annulata-transformed bovine cell line O11TA (BoLA-I A10/A10)"
+        condition: "Theileria annulata infection; no prior BoLA-I IP depletion"
+        condition_id: fisch_2021_o11ta_n1
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC8113073 Table I"
+        condition_infection: "Theileria annulata"
+        mhc_class: II
+        mhc: "BoLA-DRB3*010:01"
+      - sample_label: "O11TA_n2 (BoLA-DRB3*010:01, OVA-loaded)"
+        n_samples: 1
+        source: "Theileria annulata-transformed bovine cell line O11TA pulsed with OVA (BoLA-I A10/A10)"
+        condition: "Theileria annulata infection + OVA antigen pulsing; no prior BoLA-I IP depletion"
+        condition_id: fisch_2021_o11ta_n2
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC8113073 Table I"
+        condition_infection: "Theileria annulata"
+        mhc_class: II
+        mhc: "BoLA-DRB3*010:01"
+      - sample_label: "PBMC_OVA (BoLA-DRB3*001:01;010:01)"
+        n_samples: 1
+        source: "Primary bovine PBMCs pulsed with OVA (BoLA-I A10/A11)"
+        condition: "OVA antigen pulsing of primary bovine PBMCs; no prior BoLA-I IP depletion"
+        condition_id: fisch_2021_pbmc_ova
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC8113073 Table I"
+        mhc_class: II
+        mhc: "BoLA-DRB3*001:01 BoLA-DRB3*010:01"
   - pmid: 27893789
     # Arm-resolution verdict (#366).
     arm_resolution: curation_gap
@@ -16957,3 +17091,312 @@
       In vitro refolding and X-ray crystallography of Pteropus alecto Ptal-N*01:01 bound
       to Hendra, Ebola, MERS-CoV, and H17N10 viral peptides (Lu et al., PLoS Biol 2019,
       doi:10.1371/journal.pbio.3000436). No cellular MS elution. #980.
+
+  # ── Non-human immunopeptidome & non-MS exclusion curation (#14, #980) ────
+
+  - pmid: 30239163
+    study_label: "Nemec 2018 — Boxer DLA-88*034:01 peptide elution"
+    title: "The prevalent Boxer MHC class Ia allotype dog leukocyte antigen (DLA)-88*034:01 preferentially binds nonamer peptides with a defined motif"
+    species: "Canis lupus familiaris"
+    override: cell_line
+    note: >
+      Endogenous MHC class Ia peptide elution of the breed-dominant Boxer canine allele
+      DLA-88*034:01 (369 peptides in IEDB; Nemec et al., HLA 2018, doi:10.1111/tan.13398).
+      Mono-allelic cell-line elution defining the nonamer motif (P1 basic, P2 hydrophobic,
+      P4 acidic, P6 His, P9 Phe). #14, #980.
+    ms_samples:
+      - sample_label: "DLA-88*034:01 mono-allelic elution"
+        n_samples: 1
+        source: "Canine cell line expressing Boxer DLA-88*034:01"
+        condition: "unperturbed — mono-allelic DLA-88*034:01"
+        condition_id: nemec_2018_dla_88_034_01
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: monoallelic
+        mhc_class: I
+        mhc: "DLA-88*034:01"
+
+  - pmid: 33430316
+    study_label: "Bosch-Camós 2021 — ASFV-infected porcine alveolar macrophages (SLA-I)"
+    title: "Identification of Promiscuous African Swine Fever Virus T-Cell Determinants Using a Multiple Technical Approach"
+    species: "Sus scrofa"
+    override: healthy
+    perturbations:
+      - "African swine fever virus (ASFV) Georgia2007/1 infection"
+    note: >
+      Cellular SLA class I elution from primary porcine alveolar macrophages (PAMs,
+      bronchoalveolar lavage from Landrace x Large White pigs) infected with African swine
+      fever virus (ASFV) Georgia2007/1 (111 peptides in IEDB; Bosch-Camós et al., Vaccines
+      2021, doi:10.3390/vaccines9010029). #14, #980.
+    ms_samples:
+      - sample_label: "ASFV-infected porcine alveolar macrophages (SLA class I)"
+        n_samples: 1
+        source: "Primary porcine alveolar macrophages (BAL, Landrace x Large White pigs)"
+        condition: "African swine fever virus (ASFV) Georgia2007/1 infection"
+        condition_id: bosch_camos_2021_pam_asfv_sla1
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "African swine fever virus"
+        mhc_class: I
+        mhc: "SLA class I"
+
+  - pmid: 28315936
+    study_label: "Bergmann 2017 — equine Eqca-1*002:01 / Eqca-16*001:01 elution"
+    title: "Peptide-binding motifs of two common equine class I MHC molecules in Thoroughbred horses"
+    species: "Equus caballus"
+    override: cell_line
+    note: >
+      Endogenous peptide elution (80 peptides in IEDB: 40 Eqca-1*002:01 from ELA-A9 and
+      40 Eqca-16*001:01 from ELA-A2) from murine P815 mastocytoma cells transfected with
+      equine MHC class I molecules (chimeric mouse-host / equine-MHC transfectant system),
+      complemented by positional scanning combinatorial libraries (Bergmann et al.,
+      Immunogenetics 2017, doi:10.1007/s00251-017-0978-6). #14, #980.
+    ms_samples:
+      - sample_label: "P815 transfected with Eqca-1*002:01 (ELA-A9)"
+        n_samples: 1
+        source: "Murine P815 mastocytoma cell line transfected with equine Eqca-1*002:01"
+        condition: "unperturbed — mono-allelic equine MHC transfectant in murine P815"
+        condition_id: bergmann_2017_p815_eqca_1_002_01
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        mhc_class: I
+        mhc: "Eqca-1*002:01"
+      - sample_label: "P815 transfected with Eqca-16*001:01 (ELA-A2)"
+        n_samples: 1
+        source: "Murine P815 mastocytoma cell line transfected with equine Eqca-16*001:01"
+        condition: "unperturbed — mono-allelic equine MHC transfectant in murine P815"
+        condition_id: bergmann_2017_p815_eqca_16_001_01
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        mhc_class: I
+        mhc: "Eqca-16*001:01"
+
+  - pmid: 26399241
+    study_label: "Bergmann 2015 — equine Eqca-1*001:01 elution"
+    title: "The common equine class I molecule Eqca-1*00101 (ELA-A3.1) is characterized by narrow peptide binding and T cell epitope repertoires"
+    species: "Equus caballus"
+    override: cell_line
+    note: >
+      Endogenous peptide elution (24 peptides in IEDB) of equine Eqca-1*001:01 (ELA-A3.1)
+      expressed in murine P815 mastocytoma transfectants (Bergmann et al., Immunogenetics
+      2015, doi:10.1007/s00251-015-0872-z). Note: IEDB mislabels host as Equus caballus
+      despite cell_name="P815 cell (mast cell)"; same murine P815 transfectant system as
+      PMID 28315936. #14, #980.
+    ms_samples:
+      - sample_label: "P815 transfected with Eqca-1*001:01 (ELA-A3.1)"
+        n_samples: 1
+        source: "Murine P815 mastocytoma cell line transfected with equine Eqca-1*001:01"
+        condition: "unperturbed — mono-allelic equine MHC transfectant in murine P815"
+        condition_id: bergmann_2015_p815_eqca_1_001_01
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        mhc_class: I
+        mhc: "Eqca-1*001:01"
+
+  - pmid: 25860507
+    study_label: "Chappell 2015 — chicken BF2 generalist vs. specialist elution"
+    title: "Expression levels of MHC class I molecules are inversely correlated with promiscuity of peptide binding"
+    species: "Gallus gallus"
+    override: healthy
+    note: >
+      Primary chicken MHC class I (BF2) endogenous peptide elution from inbred chicken lines
+      spanning haplotypes B2 (Gaga-BF2*002:01), B14 (Gaga-BF2*014:01), and B21
+      (Gaga-BF2*021:01) demonstrating inverse correlation between surface expression level
+      and peptide-binding promiscuity (23 peptides in IEDB; Chappell et al., eLife 2015,
+      doi:10.7554/eLife.05345). #14, #980.
+    ms_samples:
+      - sample_label: "Inbred chicken line B2 lymphoid cells (Gaga-BF2*002:01)"
+        n_samples: 1
+        source: "Primary lymphoid cells from inbred B2 haplotype chickens"
+        condition: "unperturbed — primary inbred chicken MHC-I"
+        condition_id: chappell_2015_gaga_bf2_002_01
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "Gaga-BF2*002:01"
+      - sample_label: "Inbred chicken line B14 lymphoid cells (Gaga-BF2*014:01)"
+        n_samples: 1
+        source: "Primary lymphoid cells from inbred B14 haplotype chickens"
+        condition: "unperturbed — primary inbred chicken MHC-I"
+        condition_id: chappell_2015_gaga_bf2_014_01
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "Gaga-BF2*014:01"
+      - sample_label: "Inbred chicken line B21 lymphoid cells (Gaga-BF2*021:01)"
+        n_samples: 1
+        source: "Primary lymphoid cells from inbred B21 haplotype chickens"
+        condition: "unperturbed — primary inbred chicken MHC-I"
+        condition_id: chappell_2015_gaga_bf2_021_01
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "Gaga-BF2*021:01"
+
+  - pmid: 16879355
+    study_label: "Cumberbatch 2006 — chicken B19 MHC class II B-cell line elution"
+    title: "Chicken major histocompatibility complex class II molecules of the B haplotype present self and foreign peptides"
+    species: "Gallus gallus"
+    override: noncancer_cell_line
+    note: >
+      Acid elution and MS/MS of 30 MHC class II (11-25 aa) self and chicken syncytial virus
+      (CSV) peptides from a REV-T/CSV-transformed B19/B19 chicken B-cell line (Cumberbatch
+      et al., Anim Genet 2006, doi:10.1111/j.1365-2052.2006.01459.x). Known IEDB curation
+      bugs: (1) IEDB mislabels all 30 class II peptides as "B19 class I" (mhc_class=I), and
+      (2) IEDB mislabels source_tissue as "synovial fluid". #14, #980.
+    ms_samples:
+      - sample_label: "B19/B19 transformed chicken B-cell line (MHC class II)"
+        n_samples: 1
+        source: "REV-T / chicken syncytial virus (CSV)-transformed B19/B19 chicken B-cell line"
+        condition: "REV-T / CSV retroviral transformation"
+        condition_id: cumberbatch_2006_b19_bcell_class2
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "Chicken syncytial virus"
+        mhc_class: II
+        mhc: "Gaga class II"
+
+  - pmid: 15650875
+    study_label: "Haeri 2005 — chicken B19/B21 MHC class II B-cell line elution"
+    title: "Identification of peptides associated with chicken major histocompatibility complex class II molecules of B21 and B19 haplotypes"
+    species: "Gallus gallus"
+    override: noncancer_cell_line
+    arm_resolution: axis_mismatch
+    arm_resolution_note: >
+      Haeri 2005 profiles B21 and B19 transformed chicken B-cell lines separately, but IEDB
+      records haplotype-level class-II strings ("BF21 class II", "BF19 class II") without
+      resolved BLB1/BLB2 alleles and identical cell_name/source_tissue across all 5 rows, so
+      the allele-token sample join cannot separate the two haplotype arms.
+    note: >
+      Immunoaffinity purification and MS/MS of 5 chicken MHC class II (B-L) peptides (4 B21,
+      1 B19; 16-21 aa) from transformed chicken B-cell lines (Haeri et al., Immunogenetics
+      2005, doi:10.1007/s00251-004-0760-4). Note: IEDB spuriously labels source_tissue as
+      "synovial fluid". #14, #980.
+    ms_samples:
+      - sample_label: "B21 transformed chicken B-cell line (B-L class II)"
+        n_samples: 1
+        source: "Transformed B21 haplotype chicken B-cell line"
+        condition: "transformed B-cell line"
+        condition_id: haeri_2005_b21_bcell_class2
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: II
+        mhc: "Gaga class II"
+      - sample_label: "B19 transformed chicken B-cell line (B-L class II)"
+        n_samples: 1
+        source: "Transformed B19 haplotype chicken B-cell line"
+        condition: "transformed B-cell line"
+        condition_id: haeri_2005_b19_bcell_class2
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: II
+        mhc: "Gaga class II"
+
+  - pmid: 12648094
+    study_label: "Sharif 2003 — BoLA-DRB3*012:01 / *027:03 class II elution"
+    title: "Characterization of naturally processed and presented peptides associated with bovine major histocompatibility complex (BoLA) class II DR molecules"
+    species: "Bos taurus"
+    override: noncancer_cell_line
+    note: >
+      ESI-MS elution of 24 naturally processed BoLA-DR class II peptides (13-20 aa) for
+      BoLA-DRB3*012:01 (transfected mouse fibroblast line alone, 18 peptides) and
+      BoLA-DRB3*027:03 (transfected fibroblasts combined with homozygous Holstein PBMCs,
+      6 peptides; Sharif et al., Anim Genet 2003, doi:10.1046/j.1365-2052.2003.00961.x).
+      IEDB records all 24 rows as mouse fibroblast. #14, #980.
+    ms_samples:
+      - sample_label: "Transfected mouse fibroblasts (BoLA-DRB3*012:01)"
+        n_samples: 1
+        source: "Mouse fibroblast line transfected with bovine BoLA-DRB3*012:01"
+        condition: "unperturbed — mono-allelic BoLA-DRB3*012:01 transfectant"
+        condition_id: sharif_2003_bola_drb3_12_01
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        mhc_class: II
+        mhc: "BoLA-DRB3*012:01"
+      - sample_label: "Transfected fibroblasts + homozygous PBMCs (BoLA-DRB3*027:03)"
+        n_samples: 1
+        source: "BoLA-DRB3*027:03 transfected mouse fibroblasts and homozygous Holstein PBMCs"
+        condition: "unperturbed — mono-allelic BoLA-DRB3*027:03"
+        condition_id: sharif_2003_bola_drb3_27_03
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        mhc_class: II
+        mhc: "BoLA-DRB3*027:03"
+
+  - pmid: 32894211
+    study_label: "Tian 2020 — porcine SLA-I RMA-S binding stability and PRRSV vaccine"
+    title: "Construction and efficacy evaluation of novel swine leukocyte antigen (SLA) class I and class II allele-specific poly-T cell epitope vaccines against porcine reproductive and respiratory syndrome virus"
+    species: "Sus scrofa"
+    exclude_from_ms: true
+    note: >
+      TAP-deficient RMA-S cell surface binding stability assays and adenovirus polytope
+      vaccine evaluation for PRRSV-2 epitopes across 5 SLA class I alleles (Tian et al.,
+      J Gen Virol 2020, doi:10.1099/jgv.0.001492). No cellular MS elution. #14, #980.
+
+  - pmid: 35623661
+    study_label: "Zhang 2022 — duck Anpl-UAA*76 RPLD-MS and crystallography"
+    title: "Efficient Identification of Tembusu Virus CTL Epitopes in Inbred HBW/B4 Ducks Using a Novel MHC Class I-Restricted Epitope Screening Scheme"
+    species: "Anas platyrhynchos"
+    exclude_from_ms: true
+    note: >
+      Random peptide library de novo LC-MS/MS (RPLD-MS), in vitro refolding, and X-ray
+      crystallography of duck Anpl-UAA*76 with Tembusu virus peptides (Zhang et al.,
+      J Immunol 2022, doi:10.4049/jimmunol.2100382). Excluded from cellular MS elution
+      because peptides originate from in vitro synthetic random-library refolding rather
+      than endogenous cellular processing. #14, #980.
+
+  - pmid: 30341185
+    study_label: "Xiao 2018 — chicken BF2*12:01 crystal structure"
+    title: "An Invariant Arginine in Common with MHC Class II Allows Extension at the C-Terminal End of Peptides Bound to Chicken MHC Class I"
+    species: "Gallus gallus"
+    exclude_from_ms: true
+    note: >
+      In vitro refolding and X-ray crystallography of chicken Gaga-BF2*012:01 showing
+      C-terminal peptide overhang mediated by invariant Arg84 (Xiao et al., J Immunol 2018,
+      doi:10.4049/jimmunol.1800611). No cellular MS elution. #14, #980.
+
+  - pmid: 18083574
+    study_label: "Koch 2007 — chicken BF2*21:01 crystal structures"
+    title: "Structures of an MHC class I molecule from B21 chickens illustrate promiscuous peptide binding"
+    species: "Gallus gallus"
+    exclude_from_ms: true
+    note: >
+      X-ray crystal structures of chicken Gaga-BF2*021:01 demonstrating promiscuous central
+      cavity remodeling (Koch et al., Immunity 2007, doi:10.1016/j.immuni.2007.11.007).
+      Excluded from cellular MS elution (2 structural rows leak into IEDB MS index). #14, #980.
+
+  - pmid: 31776204
+    study_label: "Ma 2020 — Xenopus laevis Xela-UAAg synthetic library and crystal structure"
+    title: "A Glimpse of the Peptide Profile Presentation by Xenopus laevis MHC Class I: Crystal Structure of pXela-UAA Reveals a Distinct Peptide-Binding Groove"
+    species: "Xenopus laevis"
+    exclude_from_ms: true
+    note: >
+      In vitro refolding with a synthetic random peptide library and X-ray crystallography of
+      African clawed frog Xela-UAAg (Ma et al., J Immunol 2020, doi:10.4049/jimmunol.1900865).
+      No endogenous cellular MS elution. #14, #980.
+
+  - pmid: 33078460
+    study_label: "Yuan 2020 — giant panda Aime-128 crystal structure"
+    title: "Crystal structure of the giant panda MHC class I complex: First insights into the viral peptide presentation profile in the bear family"
+    species: "Ailuropoda melanoleuca"
+    exclude_from_ms: true
+    note: >
+      In vitro refolding and X-ray crystallography of giant panda MHC class I (Aime-128)
+      complexed with a canine distemper virus peptide (Yuan et al., Protein Sci 2020,
+      doi:10.1002/pro.3980). No cellular MS elution. #14, #980.
