@@ -1,0 +1,192 @@
+# Unified registry of study qualification contracts and pinned source metadata (#986).
+#
+# Replaces the 12 legacy per-paper ``hitlist/*_qualification.py`` modules with one
+# validated YAML ledger loaded by ``hitlist/study_qualifications.py``.  Static study
+# contracts, embargo/license status, and pinned checksums live here (and in the
+# referenced JSON/YAML files under ``hitlist/data/``) rather than in bespoke Python
+# modules.
+
+schema_version: 1
+
+studies:
+  bekker_jensen_2017:
+    study_label: "Bekker-Jensen 2017 — PXD004452 HeLa deep bulk proteomics"
+    contract_file: "evidence_revisions/bekker_jensen_2017_pxd004452.json"
+    status: admitted
+    license_status: public_pride
+    pmids: [28416283]
+    accessions: [PXD004452]
+    cache_subdir: "bekker_jensen_2017_pxd004452"
+    fetch_mode: remote_zip_range
+    notes: "HeLa bulk proteomics peptide/protein tables + HTTP-Range-verified SearchResults.zip provenance."
+
+  canine_dla_atlas:
+    study_label: "Canine DLA atlas & vital-organ blacklist qualification"
+    contract_file: "evidence_revisions/canine_dla_atlas_qualification.json"
+    status: qualified_pending_public_data
+    license_status: mixed_embargoed_and_public
+    pmids: [42752862]
+    accessions: []
+    cache_subdir: null
+    fetch_mode: none
+    notes: "Tracks Miyamae 2026 (bioRxiv cc_no, #677), Lang 2026 splenic DLA-DR (#676), and vital-organ blacklist rules (#674)."
+
+  de_verteuil_2010_dc:
+    study_label: "de Verteuil 2010 — murine DC immunoproteasome KO vs WT"
+    contract_file: "evidence_revisions/de_verteuil_2010_dc_20484733.json"
+    status: audit_only
+    license_status: public_pmc
+    pmids: [20484733]
+    accessions: []
+    cache_subdir: null
+    fetch_mode: none
+    notes: "Murine dendritic cell LMP7/MECL-1 double-KO vs WT contrast qualification."
+
+  pxd058121_intact_degradomics:
+    study_label: "PXD058121 — intact degradomics precursor-scale qualification"
+    contract_file: "evidence_revisions/degradomics_native_qualification.json"
+    contract_section: "pxd058121_intact_degradomics"
+    assets_file: "evidence_revisions/intact_degradomics.json"
+    status: admitted
+    license_status: public_pride
+    pmids: []
+    accessions: [PXD058121]
+    cache_subdir: "pxd058121_intact_degradomics"
+    fetch_mode: direct_files
+    notes: "14 pinned intact-degradomics assets (~4.7 MB) with precursor-scale guardrails."
+
+  pxd018722_sahu_psmd2:
+    study_label: "Sahu 2021 — PXD018722 PSMD2 native peptidomics qualification"
+    contract_file: "evidence_revisions/degradomics_native_qualification.json"
+    contract_section: "pxd018722_sahu_2021_psmd2"
+    assets_file: "evidence_revisions/native_peptidomics.json"
+    status: admitted
+    license_status: public_pride
+    pmids: []
+    accessions: [PXD018722]
+    cache_subdir: "pxd018722_sahu_2021_psmd2"
+    fetch_mode: direct_files
+    notes: "Pinned PXD018722 metadata/publication/FASTA assets distinguishing endogenous vs reporter peptidomes."
+
+  hla_ligand_atlas_33858848:
+    study_label: "Marcu 2021 — HLA Ligand Atlas prediction provenance contract"
+    contract_file: "evidence_revisions/hla_ligand_atlas_33858848_prediction_provenance.json"
+    status: admitted
+    license_status: public_pmc
+    pmids: [33858848]
+    accessions: [PXD019643]
+    cache_subdir: null
+    fetch_mode: none
+    notes: "Separates MS detection from computational allele assignment in HLA Ligand Atlas (#855)."
+
+  flucloxacillin_33633747:
+    study_label: "Waddington 2020 — flucloxacillin HLA-B*57:01 adduct contract"
+    contract_file: "evidence_revisions/flucloxacillin_33633747_adduct_contract.json"
+    status: admitted
+    license_status: public_pmc
+    pmids: [33633747]
+    accessions: []
+    cache_subdir: null
+    fetch_mode: none
+    notes: "Documents covalent flucloxacillin adducts and IEDB filler assay rows (#902)."
+
+  dlbcl_35561310:
+    study_label: "Bourne 2022 — DLBCL Tables 3 & 5 supplement qualification"
+    contract_file: "evidence_revisions/dlbcl_35561310_supplements.json"
+    status: admitted
+    license_status: public_pmc
+    pmids: [35561310]
+    accessions: [PMC9327544]
+    cache_subdir: "dlbcl_35561310_supplements"
+    fetch_mode: zip_extract
+    notes: "SHA-256-pinned PMC9327544 Tables 3 & 5 Excel workbooks (#901)."
+
+  abelin_2019_dm:
+    study_label: "Abelin 2019 — MAPTAC HLA-II DM-/DM+ source contract"
+    contract_file: "supplementary/abelin_2019_maptac_class2_source.yaml"
+    status: admitted
+    license_status: public_supplement
+    pmids: [31495665]
+    accessions: []
+    cache_subdir: null
+    fetch_mode: none
+    notes: "Checksum-pinned Abelin 2019 MAPTAC class II HLA-DM arm recovery (#853)."
+
+  drug_studies_903:
+    study_label: "Drug perturbation study qualification ledger & NeoToma 2021 pin"
+    contract_file: "evidence_revisions/drug_studies_qualification_903.json"
+    status: admitted
+    license_status: public_github_and_pmc
+    pmids: [34129938]
+    accessions: []
+    cache_subdir: "pollock_2021_neotoma"
+    fetch_mode: direct_files
+    notes: "Qualification ledger for annotated drug-perturbation studies (#903) + NeoToma 2021 Fig4 CSVs."
+
+  oztemiz_2026_endolysosomal:
+    study_label: "Oztemiz 2026 — endolysosomal degradation qualification contract"
+    contract_file: "evidence_revisions/oztemiz_2026_endolysosomal.json"
+    status: qualified_pending_public_data
+    license_status: synthetic_demo_guard
+    pmids: []
+    accessions: []
+    cache_subdir: null
+    fetch_mode: none
+    notes: "Guards against ingesting synthetic PeptideStudio demo tables as real endolysosomal data."
+
+  erap1_biochemical:
+    study_label: "ERAP1 biochemical kinetics inventory & Maben 2021 source pin"
+    contract_file: "evidence_revisions/erap1_biochemical_inventory.json"
+    status: admitted
+    license_status: public_supplement
+    pmids: []
+    accessions: []
+    cache_subdir: "maben_2021_erap1_source_data"
+    fetch_mode: direct_files
+    notes: "Biochemical ERAP1 trimming inventory and SHA-256-pinned Maben 2021 Source Data ZIP."
+
+  erap2_oe_29769354:
+    study_label: "Sanz-Bravo 2018b — PXD007679 ERAP2 overexpression qualification"
+    contract_file: "evidence_revisions/sanz_bravo_2018b_erap2_29769354.json"
+    status: admitted
+    license_status: public_pride
+    pmids: [29769354]
+    accessions: [PXD007679]
+    cache_subdir: "sanz_bravo_2018b_erap2_29769354"
+    fetch_mode: remote_zip_range
+    notes: "HTTP-Range extraction of PXD007679 MaxQuant PF-GFP vs PF-ERAP2 tables + SDRF."
+
+  mapp_unified:
+    study_label: "MAPP unified qualification & Goldberg 2025 PXD052314 assets"
+    contract_file: "evidence_revisions/mapp_unified_qualification.json"
+    assets_file: "evidence_revisions/goldberg_mapp.json"
+    status: admitted
+    license_status: public_pride
+    pmids: []
+    accessions: [PXD052314]
+    cache_subdir: "pxd052314_goldberg_mapp"
+    fetch_mode: direct_files
+    notes: "Material-pairing rules across MAPP cohorts + pinned PXD052314 assets."
+
+  non_mhc_calibration:
+    study_label: "Non-MHC MS response calibration & PXD004886 (Collins 2017) assets"
+    contract_file: "evidence_revisions/non_mhc_calibration_qualification.json"
+    assets_file: "evidence_revisions/ms_calibration_assets.json"
+    status: admitted
+    license_status: public_pride
+    pmids: []
+    accessions: [PXD004886]
+    cache_subdir: "pxd004886_ms_calibration"
+    fetch_mode: direct_files
+    notes: "Non-MHC calibration identifiability rules + 8 pinned PXD004886 assets."
+
+  peptidomicsdb:
+    study_label: "PeptidomicsDB metadata & compartment qualification (#811)"
+    contract_file: "evidence_revisions/peptidomicsdb_qualification.json"
+    status: audit_only
+    license_status: public_web_pending_audit
+    pmids: []
+    accessions: []
+    cache_subdir: null
+    fetch_mode: none
+    notes: "Capture-vs-compartment audit contract for PeptidomicsDB (10.1093/nar/gkag1032, #811)."

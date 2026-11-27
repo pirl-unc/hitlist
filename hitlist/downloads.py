@@ -724,7 +724,7 @@ MANUAL_DATASETS: dict[str, dict[str, str]] = {
             "(bioRxiv license=cc_no; local acquisition only, #677)"
         ),
         "expected_filename": "miyamae_2026_dla88_ligands.tsv",
-        "usage": "Offline access-aware loading via hitlist.load_miyamae_2026_dla88_ligands().",
+        "usage": "Offline access-aware qualification contract via hitlist.study_qualifications.load_study_contract('canine_dla_atlas').",
     },
     "lang_2026_splenic_dla_dr": {
         "download_url": "https://academic.oup.com/jimmunol/article/215/9/vkag243/8812665",
@@ -733,7 +733,7 @@ MANUAL_DATASETS: dict[str, dict[str, str]] = {
             "(PMID 42752862; pending authoritative MS deposit, #676)"
         ),
         "expected_filename": "lang_2026_splenic_dla_dr_peptides.tsv",
-        "usage": "Offline access-aware loading via hitlist.load_lang_2026_splenic_dla_dr_ligands().",
+        "usage": "Offline access-aware qualification contract via hitlist.study_qualifications.load_study_contract('canine_dla_atlas').",
     },
     "peptidomicsdb_metadata": {
         "download_url": "http://www.inbirg.com/ppd/download/",
@@ -742,7 +742,7 @@ MANUAL_DATASETS: dict[str, dict[str, str]] = {
             "(10.1093/nar/gkag1032; audited before native-peptide admission, #811)"
         ),
         "expected_filename": "sample-download.xlsx",
-        "usage": "Capture-vs-compartment qualification via hitlist.qualify_peptidomicsdb_samples().",
+        "usage": "Qualification contract via hitlist.study_qualifications.load_study_contract('peptidomicsdb').",
     },
 }
 

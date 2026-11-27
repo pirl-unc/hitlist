@@ -83,7 +83,8 @@ on:
       - hitlist/condition_categories.py
       - hitlist/data/condition_vocabulary.yaml
       - hitlist/apc_contrasts.py
-      - hitlist/drug_dm_qualification.py
+      - hitlist/study_qualifications.py
+      - hitlist/data/study_qualifications.yaml
       - hitlist/data/evidence_revisions/apc_stimulus_protocol_context.json
       - hitlist/data/evidence_revisions/dlbcl_35561310_treatment_conflicts.json
       - hitlist/data/evidence_revisions/dlbcl_35561310_supplements.json

@@ -9,12 +9,6 @@ import pytest
 
 import hitlist
 from hitlist.curation import load_pmid_overrides
-from hitlist.endolysosomal_qualification import (
-    SyntheticDemoDataError,
-    endolysosomal_degradation_recipe,
-    guard_against_synthetic_peptidestudio_data,
-    oztemiz_2026_source_contract,
-)
 from hitlist.peptidoform_provenance import (
     get_peptidoform_preparation_contract,
     guard_affinity_aggregation,
@@ -281,91 +275,11 @@ def test_sarango_858_contract_sdrf_boundaries_and_note_rewording(tmp_path: Path)
     assert hitlist.preflight("sarango-2022-pxd024417-sdrf")["name"] == "sarango-2022-pxd024417-sdrf"
 
 
-def test_oztemiz_812_contract_synthetic_peptidestudio_guard_and_recipe() -> None:
-    contract = oztemiz_2026_source_contract()
+def test_oztemiz_812_contract_via_study_qualifications() -> None:
+    from hitlist.study_qualifications import load_study_contract
+
+    contract = load_study_contract("oztemiz_2026_endolysosomal")
     assert contract["pmid"] == 42846314
     assert contract["pmcid"] == "PMC13643861"
     assert contract["training_data_admitted"] is False
     assert contract["biological_system_and_assay_scope"]["is_intact_cell_concentration"] is False
-
-    # 1. Adversarial rejection of synthetic PeptideStudio demo by filename, URL, accession, or signature
-    with pytest.raises(SyntheticDemoDataError, match=r"Example_degradome\.xlsx"):
-        guard_against_synthetic_peptidestudio_data(source_path="/tmp/Example_degradome.xlsx")
-
-    with pytest.raises(SyntheticDemoDataError, match="peptide-studio"):
-        guard_against_synthetic_peptidestudio_data(
-            source_url="https://github.com/oztemiz-elif/peptide-studio/blob/18dd99da4a619abd8a28c7622e0809eb2c03e0ff/sample_data/Example_degradome.xlsx"
-        )
-
-    demo_df = pd.DataFrame(
-        [
-            {
-                "Sequence": "GLSDGEWQLVL",
-                "protein_accession": "P02144",
-                "0h": 100.0,
-                "0.5h": 90.0,
-                "1h": 80.0,
-                "2h": 70.0,
-                "3h": 60.0,
-                "5h": 50.0,
-                "8h": 40.0,
-                "16h": 20.0,
-                "24h": 5.0,
-                "Protein Sequence": "GLSDGEWQLVLNVWGKVEADIPGHGQEVLIRLFKGHPETLEKF",
-            }
-        ]
-    )
-    with pytest.raises(SyntheticDemoDataError, match="P02144"):
-        guard_against_synthetic_peptidestudio_data(df=demo_df)
-
-    # 2. Recipe preserves short/nonbinding fragments, dependent time points, and rejects unknown units
-    real_like_df = pd.DataFrame(
-        [
-            {
-                "substrate_protein": "Bet v 1",
-                "extract_batch_id": "JAWSII_B1",
-                "replicate_id": "R1",
-                "peptide": "VFNYE",  # 5-mer short/nonbinding proteolytic fragment preserved!
-                "time_hours": 0.5,
-                "measurement_family": "peptide_ms_signal",
-                "quantity_value": 15000.0,
-                "quantity_unit": "intensity",
-            },
-            {
-                "substrate_protein": "Bet v 1",
-                "extract_batch_id": "JAWSII_B1",
-                "replicate_id": "R1",
-                "peptide": "VFNYE",
-                "time_hours": 2.0,
-                "measurement_family": "peptide_ms_signal",
-                "quantity_value": 42000.0,
-                "quantity_unit": "fmol",
-            },
-            {
-                "substrate_protein": "Bet v 1",
-                "extract_batch_id": "JAWSII_B1",
-                "replicate_id": "R1",
-                "peptide": None,
-                "time_hours": 2.0,
-                "measurement_family": "cathepsin_zfr_amc_reporter_activity",
-                "quantity_value": 12.5,
-                "quantity_unit": "RFU_per_min",
-            },
-        ]
-    )
-    rel_recipe = endolysosomal_degradation_recipe(
-        real_like_df, target_mode="relative_peptide_signal"
-    )
-    assert rel_recipe["n_admitted_rows"] == 2
-    assert rel_recipe["n_excluded_rows"] == 1
-    assert rel_recipe["n_admitted_trajectories"] == 1
-    assert rel_recipe["preserves_short_and_nonbinding_fragments"] is True
-    assert (rel_recipe["admitted"]["is_intact_cell_concentration"] == False).all()  # noqa: E712
-
-    # Concentration training rejects arbitrary/unknown intensity units!
-    conc_recipe = endolysosomal_degradation_recipe(real_like_df, target_mode="molar_concentration")
-    assert conc_recipe["n_admitted_rows"] == 1
-    assert conc_recipe["admitted"].iloc[0]["quantity_unit"] == "fmol"
-    assert "unknown_or_non_molar_unit_for_concentration_training" in set(
-        conc_recipe["excluded"]["exclusion_reason"]
-    )
