@@ -302,9 +302,12 @@ def test_api_callers_can_still_catch_value_error(data_dir):
 
 
 def test_public_exports_include_preflight_and_errors():
-    assert hitlist.preflight is downloads.preflight
     assert hitlist.DatasetError is DatasetError
     assert hitlist.InsufficientSpaceError is InsufficientSpaceError
-    assert hitlist.list_cache_files is downloads.list_cache_files
-    assert hitlist.fetch_all_data_assets is downloads.fetch_all_data_assets
     assert hitlist.list_proteomes is downloads.list_proteomes
+    with pytest.warns(DeprecationWarning):
+        assert hitlist.preflight is downloads.preflight
+    with pytest.warns(DeprecationWarning):
+        assert hitlist.list_cache_files is downloads.list_cache_files
+    with pytest.warns(DeprecationWarning):
+        assert hitlist.fetch_all_data_assets is downloads.fetch_all_data_assets

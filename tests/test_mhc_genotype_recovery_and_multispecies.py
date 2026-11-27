@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import pandas as pd
 
-import hitlist
 from hitlist.apm_orthologs import (
     canonical_apm_ortholog_group,
     is_apm_gene_absent_in_species,
@@ -120,8 +119,6 @@ def test_recover_mhc_genotypes_for_frame_covers_ms_perturbed_and_multispecies():
         ]
     )
     enriched = recover_mhc_genotypes_for_frame(df)
-    assert hitlist.recover_mhc_genotypes_for_frame is recover_mhc_genotypes_for_frame
-    assert hitlist.summarize_mhc_genotype_recovery is summarize_mhc_genotype_recovery
 
     assert enriched.loc[0, "mhc_allele_set"] == "HLA-A*02:01"
     assert enriched.loc[0, "mhc_allele_cardinality"] == "monoallelic"
@@ -220,8 +217,6 @@ def test_prepare_ms_training_data_multispecies_and_reference_genotype_recovery()
 def test_cross_species_apm_orthologs_registry():
     data = load_apm_orthologs()
     assert len(data["ortholog_groups"]) >= 35
-    assert hitlist.canonical_apm_ortholog_group is canonical_apm_ortholog_group
-    assert hitlist.is_apm_gene_absent_in_species is is_apm_gene_absent_in_species
 
     assert canonical_apm_ortholog_group("H2-DMa") == "HLA-DMA"
     assert canonical_apm_ortholog_group("H2-DMb1") == "HLA-DMB"

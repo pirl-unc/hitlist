@@ -10,19 +10,18 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from hitlist import (
-    build_observations,
+from hitlist import build_observations, prepare_stability_training_data
+from hitlist.export import generate_binding_table, generate_training_table
+from hitlist.netmhcstabpan import (
     deduplicate_netmhcstabpan_against_binding,
     fetch_netmhcstabpan_source,
-    load_contributors,
     load_netmhcstabpan_stability,
     netmhcstabpan_source_contract,
-    prepare_stability_training_data,
     reconcile_netmhcstabpan_with_iedb,
     scan_netmhcstabpan_stability,
 )
-from hitlist.export import generate_binding_table, generate_training_table
 from hitlist.observations import is_binding_built, load_all_evidence, load_binding
+from hitlist.provenance import load_contributors
 from hitlist.training_bundle import verify_training_bundle, write_training_bundle
 
 

@@ -77,7 +77,7 @@ def test_protocol_registry_contract_and_public_exports():
         assert set(proto["field_availability"]) == set(CONTEXT_AVAILABILITY_FIELDS)
     assert {28481943, 24130917, 30828331, 33521695} <= pmids
 
-    # Symmetric public API exports on hitlist root package
+    # Deprecated top-level shims still resolve with DeprecationWarning during 2.x (#986)
     for fn_name in (
         "binding_protocol_registry_contract",
         "review_binding_censoring",
@@ -89,7 +89,8 @@ def test_protocol_registry_contract_and_public_exports():
         "write_binding_context_availability_package",
         "verify_binding_context_availability_package",
     ):
-        assert hasattr(hitlist, fn_name), f"missing top-level export {fn_name}"
+        with pytest.warns(DeprecationWarning):
+            assert getattr(hitlist, fn_name) is not None, f"missing deprecated shim {fn_name}"
 
 
 @pytest.mark.parametrize(
@@ -357,11 +358,13 @@ def test_audit_binding_context_availability_symmetric_across_assays_and_no_row_m
     assert summary["kd_conversion_performed"] is False
     assert summary["native_rows_unchanged"] is True
 
+    from hitlist.schema_conventions import ASSAY_SCHEMA_CONVENTIONS
+
     # Canonical schema normalization works symmetrically
     norm_audit = normalize_assay_frame(audited, assay_type="binding_context_audit")
     assert "measurement_value" in norm_audit.columns
-    assert "binding_context_audit" in hitlist.ASSAY_SCHEMA_CONVENTIONS
-    assert "binding_replicate_group" in hitlist.ASSAY_SCHEMA_CONVENTIONS
+    assert "binding_context_audit" in ASSAY_SCHEMA_CONVENTIONS
+    assert "binding_replicate_group" in ASSAY_SCHEMA_CONVENTIONS
     assert "endpoint_family" in canonical_assay_columns("binding_context_audit")
 
 

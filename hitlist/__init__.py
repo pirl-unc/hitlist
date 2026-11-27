@@ -26,13 +26,62 @@ A leftover legacy ``index/`` directory is inert and safe to delete by hand.
 
 from .version import __version__
 
-# ── Curated public API ───────────────────────────────────────────────────────
+# ── Curated core public API (#986 Phase 2b) ─────────────────────────────────
 #
 # Resolved lazily (PEP 562) so ``import hitlist`` stays fast and free of import
 # cycles — the heavy submodules (builder/export/proteome pull in pyensembl etc.)
 # are only imported on first attribute access. Listed in ``__all__`` so the API
 # is discoverable via ``dir(hitlist)`` / autocomplete and stable across refactors.
 _PUBLIC_API: dict[str, str] = {
+    # Cache & downloads
+    "data_dir": ".downloads",
+    "set_data_dir": ".downloads",
+    "fetch": ".downloads",
+    "get_path": ".downloads",
+    "list_datasets": ".downloads",
+    "list_proteomes": ".downloads",
+    "validate_uniprot_fasta_headers": ".downloads",
+    "audit_cached_proteomes": ".downloads",
+    "dataset_snapshot": ".dataset",
+    "is_offline": ".downloads",
+    "set_offline": ".downloads",
+    # Core build & load
+    "build_observations": ".builder",
+    "observations_cache_is_current": ".observations",
+    "mappings_cache_is_current": ".mappings",
+    "load_observations": ".observations",
+    "load_ms_observations": ".observations",
+    "load_binding": ".observations",
+    "load_other_assays": ".observations",
+    "load_all_evidence": ".observations",
+    # Core exports & proteome
+    "generate_observations_table": ".export",
+    "generate_ms_samples_table": ".export",
+    "generate_training_table": ".export",
+    "ProteomeIndex": ".proteome",
+    "load_gene_set": ".genes",
+    "list_gene_sets": ".genes",
+    # Curation, typing & lineage
+    "load_lineage": ".lineage",
+    "audit_splits": ".split_audit",
+    "sample_alleles_for_pmid": ".curation",
+    "load_reference_mhc_genotypes": ".mhc_genotypes",
+    "load_apm_orthologs": ".apm_orthologs",
+    "prepare_affinity_training_data": ".model_training",
+    "prepare_stability_training_data": ".model_training",
+    "prepare_ms_training_data": ".model_training",
+    # Public typed errors (#884, #886, #960)
+    "DatasetError": ".errors",
+    "InsufficientSpaceError": ".errors",
+    "OfflineError": ".errors",
+}
+
+# ── Legacy / single-paper top-level exports (#986 Phase 2b) ─────────────────
+#
+# Still resolvable via ``hitlist.<name>`` with a ``DeprecationWarning`` during
+# the 2.x migration window; callers should import from the named submodule
+# directly. Not listed in ``__all__``.
+_DEPRECATED_API: dict[str, str] = {
     "fetch_perturbation_sources": ".perturbation_quantities",
     "fetch_netmhcstabpan_source": ".netmhcstabpan",
     "netmhcstabpan_source_contract": ".netmhcstabpan",
@@ -111,7 +160,6 @@ _PUBLIC_API: dict[str, str] = {
     "verify_digestion_processing_package": ".digestion_processing_package",
     "write_precursor_context_package": ".precursor_context_package",
     "verify_precursor_context_package": ".precursor_context_package",
-    "dataset_snapshot": ".dataset",
     "curate_canine_bulk": ".canine_bulk",
     "canine_bulk_catalog": ".canine_bulk",
     "fetch_canine_bulk_asset": ".canine_bulk",
@@ -150,24 +198,20 @@ _PUBLIC_API: dict[str, str] = {
     "iter_tcell_immunogenicity_assays": ".tcell_immunogenicity",
     "write_tcell_immunogenicity_bundle": ".tcell_immunogenicity",
     "verify_tcell_immunogenicity_bundle": ".tcell_immunogenicity",
-    "load_reference_mhc_genotypes": ".mhc_genotypes",
     "normalize_mhc_token": ".mhc_genotypes",
     "lookup_cell_line_genotype": ".mhc_genotypes",
     "lookup_strain_genotype": ".mhc_genotypes",
     "resolve_condition_mhc_genotype": ".mhc_genotypes",
     "recover_mhc_genotypes_for_frame": ".mhc_genotypes",
     "summarize_mhc_genotype_recovery": ".mhc_genotypes",
-    "load_apm_orthologs": ".apm_orthologs",
     "canonical_apm_ortholog_group": ".apm_orthologs",
     "species_ortholog_symbols": ".apm_orthologs",
     "is_apm_gene_absent_in_species": ".apm_orthologs",
     "map_apm_genes_to_canonical": ".apm_orthologs",
     "load_contributors": ".provenance",
-    "load_lineage": ".lineage",
     "lineage_registry_sha256": ".lineage",
     "classify_assay_preparation": ".lineage",
     "attach_lineage_applicability": ".lineage",
-    "audit_splits": ".split_audit",
     "training_release_gate_contract": ".training_release_gate",
     "build_training_release_freshness_receipt": ".training_release_gate",
     "audit_training_release_diff": ".training_release_gate",
@@ -184,9 +228,6 @@ _PUBLIC_API: dict[str, str] = {
     "STABILITY_ENDPOINTS": ".model_training",
     "KINETIC_STABILITY_ENDPOINTS": ".model_training",
     "qualify_binding_measurements": ".model_training",
-    "prepare_affinity_training_data": ".model_training",
-    "prepare_stability_training_data": ".model_training",
-    "prepare_ms_training_data": ".model_training",
     "to_mhcflurry_presentation_inputs": ".model_training",
     "load_cell_lineage_ontology": ".cell_lineage",
     "classify_cell_lineage": ".cell_lineage",
@@ -236,32 +277,16 @@ _PUBLIC_API: dict[str, str] = {
     "canonical_assay_columns": ".schema_conventions",
     "normalize_assay_frame": ".schema_conventions",
     "atlas_crosswalk_sources": ".atlas",
-    # Public enumerations shared by scanners, APIs, and CLIs.
     "MHC_ALLELE_PROVENANCE_VALUES": ".curation",
     "normalize_serotype_query": ".curation",
     "tissue_anatomy_compartments": ".curation",
     "classify_tissue_anatomy": ".curation",
     "blank_tissue_provenance_audit": ".qc",
-    # Build the cached indexes, or ask whether they are current without
-    # building, printing, or downloading anything (#448).
-    "build_observations": ".builder",
-    "observations_cache_is_current": ".observations",
-    "mappings_cache_is_current": ".mappings",
-    # Load the built indexes (filters documented on each function).
     "assay_annotations": ".assays",
-    # Curated MHC typing. `sample_alleles_for_pmid` is the sample-level
-    # answer, available for every study; the peptide-level functions below
-    # need a `peptide_attributions` CSV and so are empty for most studies.
-    # The `*_for_pmid` group returns whole read-only maps; the `attribute_*`
-    # pair answers for one peptide without materializing them.
-    "sample_alleles_for_pmid": ".curation",
     "peptide_alleles_for_pmid": ".curation",
     "peptide_typings_for_pmid": ".curation",
     "attribute_peptide_to_sample_alleles": ".curation",
     "attribute_peptide_to_per_sample_typings": ".curation",
-    # Generate derived tables.
-    # Proteome enumeration + gene sets.
-    "ProteomeIndex": ".proteome",
     "DetectabilitySearchSpace": ".detectability",
     "build_detectability_training_set": ".detectability",
     "iter_detectability_training_set": ".detectability",
@@ -273,53 +298,49 @@ _PUBLIC_API: dict[str, str] = {
     "audit_pxd013455_candidates": ".pxd013455_publication",
     "export_pxd013455_archive": ".pxd013455_publication",
     "load_pxd013455_bundle": ".pxd013455_download",
-    "load_gene_set": ".genes",
-    "list_gene_sets": ".genes",
-    # Dataset registry (download / register / resolve).
-    "data_dir": ".downloads",
     "data_asset_dir": ".downloads",
-    "set_data_dir": ".downloads",
     "data_assets": ".downloads",
-    "fetch": ".downloads",
     "fetch_data_asset": ".downloads",
     "preflight": ".downloads",
     "refresh": ".downloads",
     "register": ".downloads",
     "remove": ".downloads",
-    "get_path": ".downloads",
     "info": ".downloads",
-    "list_datasets": ".downloads",
     "available_datasets": ".downloads",
     "available_dataset_catalog": ".downloads",
     "dataset_categories": ".downloads",
     "DATASET_CATEGORIES": ".downloads",
     "list_cache_files": ".downloads",
     "fetch_all_data_assets": ".downloads",
-    "list_proteomes": ".downloads",
-    "validate_uniprot_fasta_headers": ".downloads",
-    "audit_cached_proteomes": ".downloads",
     "download_to_file": ".downloads",
-    "is_offline": ".downloads",
-    "set_offline": ".downloads",
     "verify_cache_files": ".downloads",
     "prune_cache_bundles": ".downloads",
     "VersionedDatasetRegistry": ".downloads",
-    # Public typed errors (#884, #886, #960).
-    "DatasetError": ".errors",
-    "InsufficientSpaceError": ".errors",
-    "OfflineError": ".errors",
 }
 
 __all__ = ["__version__", *sorted(_PUBLIC_API)]
 
 
 def __getattr__(name: str):
-    module = _PUBLIC_API.get(name)
-    if module is None:
-        raise AttributeError(f"module 'hitlist' has no attribute {name!r}")
     import importlib
 
-    return getattr(importlib.import_module(module, __name__), name)
+    module = _PUBLIC_API.get(name)
+    if module is not None:
+        return getattr(importlib.import_module(module, __name__), name)
+
+    deprecated_module = _DEPRECATED_API.get(name)
+    if deprecated_module is not None:
+        import warnings
+
+        warnings.warn(
+            f"Importing {name!r} from top-level 'hitlist' is deprecated and will be removed "
+            f"in hitlist 3.0.0; import from 'hitlist{deprecated_module}' instead (#986).",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return getattr(importlib.import_module(deprecated_module, __name__), name)
+
+    raise AttributeError(f"module 'hitlist' has no attribute {name!r}")
 
 
 def __dir__() -> list[str]:

@@ -125,10 +125,10 @@ netmhcstabpan && hitlist build observations`) or directly in memory against an
 existing `binding.parquet` table:
 
 ```python
-from hitlist import (
+from hitlist import prepare_stability_training_data
+from hitlist.netmhcstabpan import (
     fetch_netmhcstabpan_source,
     load_netmhcstabpan_stability,
-    prepare_stability_training_data,
 )
 from hitlist.observations import load_binding
 
@@ -187,8 +187,9 @@ genotype. Pair `scorable_class_i_only=True` and `max_alleles_per_bag=6` with
 `to_mhcflurry_presentation_inputs`:
 
 ```python
-from hitlist import prepare_ms_training_data, to_mhcflurry_presentation_inputs
+from hitlist import prepare_ms_training_data
 from hitlist.export import generate_training_table
+from hitlist.model_training import to_mhcflurry_presentation_inputs
 
 ms = generate_training_table(
     include_evidence="ms",

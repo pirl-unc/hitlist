@@ -7,7 +7,6 @@ from pathlib import Path
 import openpyxl
 import pytest
 
-import hitlist
 from hitlist.iso18_calibration import (
     iso18_calibration_source_contract,
     iso18_calibration_training_recipe,
@@ -302,10 +301,12 @@ def test_drug_studies_903_contract_and_skmel5_transitions(tmp_path: Path) -> Non
 
 
 def test_catalog_registers_stopfer_and_pollock_datasets() -> None:
-    datasets = set(hitlist.available_datasets())
+    from hitlist.downloads import available_datasets, preflight
+
+    datasets = set(available_datasets())
     assert "stopfer-2021-iso18" in datasets
     assert "pollock-2021-neotoma" in datasets
-    p_iso = hitlist.preflight("stopfer-2021-iso18")
-    p_nt = hitlist.preflight("pollock-2021-neotoma")
+    p_iso = preflight("stopfer-2021-iso18")
+    p_nt = preflight("pollock-2021-neotoma")
     assert p_iso["name"] == "stopfer-2021-iso18"
     assert p_nt["name"] == "pollock-2021-neotoma"

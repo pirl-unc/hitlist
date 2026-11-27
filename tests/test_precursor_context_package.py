@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pyarrow.parquet as pq
 
-from hitlist import EvidenceStore
 from hitlist import precursor_context_package as package
 from hitlist.evidence_catalog import SCHEMA_VERSION, describe_evidence
 from hitlist.evidence_package import package_family
+from hitlist.evidence_store import EvidenceStore
 from hitlist.material_context import links_with_minimum_precision
 from hitlist.precursor_recipe import CONTRACT, RECIPE_ID
 from hitlist.provenance import file_digest

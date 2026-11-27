@@ -10,37 +10,55 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The curated top-level API: importable from `hitlist` directly + discoverable."""
+"""The curated core top-level API + deprecated compatibility shims (#986 Phase 2b)."""
+
+import importlib
 
 import pytest
 
 import hitlist
-from hitlist import _PUBLIC_API
+from hitlist import _DEPRECATED_API, _PUBLIC_API
 
 
-def test_top_level_entry_points_importable():
+def test_top_level_core_entry_points_importable():
     from hitlist import (  # noqa: F401
-        MHC_ALLELE_PROVENANCE_VALUES,
-        EvidenceStore,
+        DatasetError,
+        InsufficientSpaceError,
+        OfflineError,
         ProteomeIndex,
-        VersionedDatasetRegistry,
+        audit_splits,
         build_observations,
         fetch,
-        verify_recipe_package,
-        verify_reference_evidence_package,
-        write_reference_evidence_package,
+        generate_ms_samples_table,
+        generate_observations_table,
+        generate_training_table,
+        load_all_evidence,
+        load_binding,
+        load_lineage,
+        load_ms_observations,
+        load_observations,
+        load_other_assays,
+        prepare_affinity_training_data,
+        prepare_ms_training_data,
+        prepare_stability_training_data,
+        sample_alleles_for_pmid,
     )
 
     assert callable(build_observations)
     assert callable(fetch)
-    assert callable(EvidenceStore.open)
+    assert callable(load_observations)
+    assert callable(generate_training_table)
 
 
-def test_public_api_is_discoverable():
+def test_public_api_is_small_and_discoverable():
     assert "build_observations" in dir(hitlist)
-    assert "EvidenceStore" in hitlist.__all__
-    assert "generate_training_table" not in hitlist.__all__
-    assert "VersionedDatasetRegistry" in hitlist.__all__
+    assert "load_observations" in hitlist.__all__
+    assert "generate_training_table" in hitlist.__all__
+    assert "EvidenceStore" not in hitlist.__all__
+    assert "VersionedDatasetRegistry" not in hitlist.__all__
+    # Guardrail (#986 Phase 2b): keep the top-level API focused (~37 core symbols).
+    assert len(hitlist.__all__) <= 40
+    assert set(_PUBLIC_API).isdisjoint(_DEPRECATED_API)
 
 
 def test_unknown_attribute_raises_attributeerror():
@@ -50,21 +68,21 @@ def test_unknown_attribute_raises_attributeerror():
 
 
 @pytest.mark.parametrize("name", sorted(_PUBLIC_API))
-def test_every_public_api_entry_resolves(name):
-    """Every `_PUBLIC_API` key must import from the module it names.
-
-    The lazy `__getattr__` means a typo'd module path or a renamed
-    function is not an import error at startup -- it is an AttributeError
-    the first time some user touches that name, which may be never in our
-    own test suite.  Resolving all of them here is the only thing that
-    makes the dict self-checking, and it replaces the per-function
-    `assert hitlist.x is x` assertions that were accumulating in
-    `test_curation.py`, a file about curation logic rather than wiring.
-    """
-    import importlib
-
+def test_every_public_api_entry_resolves_without_warning(name):
+    """Every `_PUBLIC_API` key must import cleanly from the module it names."""
     attribute = getattr(hitlist, name)
     module = importlib.import_module(_PUBLIC_API[name], package="hitlist")
     assert attribute is getattr(module, name)
     assert name in hitlist.__all__
     assert name in dir(hitlist)
+
+
+@pytest.mark.parametrize("name", sorted(_DEPRECATED_API))
+def test_every_deprecated_api_entry_warns_and_resolves(name):
+    """Legacy top-level names remain importable with DeprecationWarning during 2.x."""
+    assert name not in hitlist.__all__
+    assert name not in dir(hitlist)
+    with pytest.warns(DeprecationWarning, match=r"deprecated.*hitlist 3\.0\.0"):
+        attribute = getattr(hitlist, name)
+    module = importlib.import_module(_DEPRECATED_API[name], package="hitlist")
+    assert attribute is getattr(module, name)

@@ -8,13 +8,15 @@ import pytest
 
 import hitlist
 from hitlist import (
+    prepare_affinity_training_data,
+    prepare_ms_training_data,
+    prepare_stability_training_data,
+)
+from hitlist.model_training import (
     BINDING_ENDPOINT_FAMILIES,
     MOLAR_AFFINITY_ENDPOINTS,
     STABILITY_ENDPOINTS,
     TrainingTableSelection,
-    prepare_affinity_training_data,
-    prepare_ms_training_data,
-    prepare_stability_training_data,
     qualify_binding_measurements,
     to_mhcflurry_presentation_inputs,
 )

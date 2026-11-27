@@ -8,7 +8,6 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-import hitlist
 from hitlist import downloads
 from hitlist.tcrvdb import (
     NEAR_DUPLICATE_GROUP_COLUMNS,
@@ -181,11 +180,14 @@ def test_tcrvdb_contract_and_manual_dataset_registration():
     assert contract["policies"]["treat_non_validation_as_universal_nonbinding"] is False
     assert contract["policies"]["allow_pairing_unrelated_chains_by_epitope"] is False
 
+    from hitlist.downloads import available_dataset_catalog
+    from hitlist.schema_conventions import ASSAY_SCHEMA_CONVENTIONS
+
     # Registered in hitlist manual catalog & schema conventions
-    catalog = hitlist.available_dataset_catalog(category="tcell_and_atlas")
+    catalog = available_dataset_catalog(category="tcell_and_atlas")
     assert "tcrvdb" in catalog
     assert catalog["tcrvdb"]["kind"] == "manual download"
-    assert "tcr_paired_functional" in hitlist.ASSAY_SCHEMA_CONVENTIONS
+    assert "tcr_paired_functional" in ASSAY_SCHEMA_CONVENTIONS
 
     # Without authorized local file, raises clear access-controlled error
     with pytest.raises(FileNotFoundError, match=r"tcrvdb\.nkiai\.nl"):

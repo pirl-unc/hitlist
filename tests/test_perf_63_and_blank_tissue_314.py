@@ -7,7 +7,6 @@ import sqlite3
 import pandas as pd
 import pytest
 
-import hitlist
 from hitlist.curation import pmid_provenance
 from hitlist.provenance import ContributorCollector
 from hitlist.qc import blank_tissue_provenance_audit, mhc_token_audit
@@ -149,4 +148,4 @@ def test_blank_tissue_provenance_audit_distinguishes_reviewed_and_missing():
     assert by_pmid.loc[31495665, "severity"] == "info"
     assert by_pmid.loc[99999901, "status"] == "missing_source_tissue"
     assert by_pmid.loc[99999901, "severity"] == "warn"
-    assert hitlist.blank_tissue_provenance_audit is blank_tissue_provenance_audit
+    assert callable(blank_tissue_provenance_audit)

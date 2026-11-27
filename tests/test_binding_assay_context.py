@@ -8,9 +8,9 @@ import pytest
 from hitlist import (
     binding_assay_context as review,
 )
-from hitlist import (
+from hitlist import prepare_affinity_training_data
+from hitlist.binding_assay_context import (
     binding_method_review_contract,
-    prepare_affinity_training_data,
     review_binding_assay_methods,
     summarize_binding_method_reviews,
 )

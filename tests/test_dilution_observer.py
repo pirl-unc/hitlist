@@ -281,8 +281,10 @@ def test_intended_panel_forms_and_material_context_do_not_create_labels(original
 def test_public_lazy_api_exposes_the_verified_source_package():
     import hitlist
 
-    assert hitlist.write_dilution_observer_package is source.write_dilution_observer_package
-    assert hitlist.verify_dilution_observer_package is source.verify_dilution_observer_package
+    with pytest.warns(DeprecationWarning):
+        assert hitlist.write_dilution_observer_package is source.write_dilution_observer_package
+    with pytest.warns(DeprecationWarning):
+        assert hitlist.verify_dilution_observer_package is source.verify_dilution_observer_package
 
 
 def test_protocol_assertions_require_literal_source_support(original):

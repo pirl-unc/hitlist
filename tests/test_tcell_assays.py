@@ -10,7 +10,6 @@ import pyarrow.parquet as pq
 import pytest
 import yaml
 
-import hitlist
 from hitlist.tcell_assays import (
     CEDAR_NAME,
     IEDB_NAME,
@@ -386,11 +385,6 @@ def test_public_human_peptide_iterator_and_distinct_multimer_training(tmp_path):
         ("8", {**peptide, **multimer, "Assay Antigen | Name": "CCCCCCCCC"}),
     ]
     paths = _sources(tmp_path, iedb=records, cedar=records[:2])
-    assert hitlist.iter_human_direct_peptide_tcell_assays is iter_human_direct_peptide_tcell_assays
-    assert (
-        hitlist.write_human_tcell_multimer_training_bundle
-        is write_human_tcell_multimer_training_bundle
-    )
     with pytest.raises(ValueError, match="task must"):
         write_human_tcell_training_bundle(tmp_path / "invalid", task="other", **paths)
     with pytest.raises(ValueError, match="assay_families"):

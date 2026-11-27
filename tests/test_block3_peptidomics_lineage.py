@@ -15,7 +15,6 @@ import json
 import pandas as pd
 import pytest
 
-import hitlist
 from hitlist.atlas import atlas_specimen_lineage_contract, audit_atlas_sdrf_specimen_lineage
 from hitlist.downloads import available_dataset_catalog
 from hitlist.hap1_selection_covariates import (
@@ -249,8 +248,8 @@ def test_atlas_specimen_lineage_contract_and_audit_guard():
     assert audit["observation_specimen_status"] == "unknown"
     assert audit["acquisition_independence_verdict"] == "inconclusive"
 
-    # Public lazy exports resolve cleanly
-    assert hitlist.load_study_contract is load_study_contract
-    assert hitlist.attach_hap1_selection_covariates is attach_hap1_selection_covariates
-    assert hitlist.nanaware_quantitative_grain_contract is nanaware_quantitative_grain_contract
-    assert hitlist.atlas_specimen_lineage_contract is atlas_specimen_lineage_contract
+    # Submodule exports remain callable (deprecated top-level shims tested in test_public_api.py)
+    assert callable(load_study_contract)
+    assert callable(attach_hap1_selection_covariates)
+    assert callable(nanaware_quantitative_grain_contract)
+    assert callable(atlas_specimen_lineage_contract)

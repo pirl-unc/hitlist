@@ -8,16 +8,15 @@ from pathlib import Path
 
 import pytest
 
-import hitlist
 from hitlist import cli, downloads
 
 
 def test_available_dataset_catalog_covers_all_datasets_and_filters() -> None:
-    flat = hitlist.available_datasets()
-    catalog = hitlist.available_dataset_catalog()
+    flat = downloads.available_datasets()
+    catalog = downloads.available_dataset_catalog()
     assert set(catalog.keys()) == set(flat.keys())
 
-    valid_categories = set(hitlist.dataset_categories())
+    valid_categories = set(downloads.dataset_categories())
     for name, meta in catalog.items():
         assert meta["name"] == name
         assert meta["category"] in valid_categories
@@ -26,14 +25,14 @@ def test_available_dataset_catalog_covers_all_datasets_and_filters() -> None:
         assert meta["kind"]
         assert meta["description"]
 
-    core = hitlist.available_dataset_catalog(category="core_immunopeptidomics")
+    core = downloads.available_dataset_catalog(category="core_immunopeptidomics")
     assert set(core.keys()) == {"iedb", "cedar"}
 
-    viral = hitlist.available_dataset_catalog(category="viral_proteomes")
+    viral = downloads.available_dataset_catalog(category="viral_proteomes")
     assert {"ebv", "hpv16", "hiv1"} <= set(viral.keys())
 
     with pytest.raises(ValueError, match="Unknown dataset category"):
-        hitlist.available_dataset_catalog(category="nonexistent_category")
+        downloads.available_dataset_catalog(category="nonexistent_category")
 
 
 def test_cli_data_available_and_preflight(
