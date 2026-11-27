@@ -41,6 +41,18 @@ Do not tell the user you are "done" or that changes are "complete" until all thr
   `n_alleles`, `n_donors`, etc. Never name a count field just `n`; a bare `n` is
   ambiguous (samples vs. runs vs. replicates) and invites silent miscounting.
 
+## Architecture Guardrails (#986)
+
+- **No new per-paper `*_qualification.py`, `write_*_package`, or `EvidenceStore` catalog families.**
+  `hitlist/evidence_catalog.py` is frozen at `SCHEMA_VERSION = 40` while `hitlist` transitions to
+  a unified, SHA-256-verified modality-partitioned Parquet layout (see `#986`).
+- **Per-paper metadata, study contracts, embargo/license status, and "not yet public" ledgers live
+  in YAML under `hitlist/data/`**, loaded by shared schema helpers — never in bespoke per-paper
+  Python modules.
+- **New assay datasets land in the shared modality Parquet tables** (via
+  `hitlist/data/supplementary.yaml` or shared modality loaders), not bespoke per-paper package
+  formats, custom query DSLs, or single-paper top-level `hitlist/__init__.py` exports.
+
 ---
 
 ## Workflow Orchestration
