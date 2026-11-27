@@ -21,8 +21,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-import yaml
-
+from .curation_yaml import load_curation_yaml
 from .errors import IntegrityError
 
 _DATA_DIR = Path(__file__).parent / "data"
@@ -53,7 +52,7 @@ def _sha256_file(path: Path) -> str:
 
 @lru_cache(maxsize=1)
 def _load_registry_raw() -> dict[str, dict[str, Any]]:
-    raw = yaml.safe_load(_REGISTRY_PATH.read_text(encoding="utf-8"))
+    raw = load_curation_yaml(_REGISTRY_PATH)
     if not isinstance(raw, dict) or not isinstance(raw.get("studies"), dict):
         raise ValueError(f"Invalid study_qualifications.yaml structure in {_REGISTRY_PATH}")
     studies: dict[str, dict[str, Any]] = {}
@@ -98,11 +97,10 @@ def get_study_qualification(study_id: str) -> dict[str, Any]:
 
 def _load_data_file(relative_path: str) -> dict[str, Any]:
     path = _DATA_DIR / relative_path
-    text = path.read_text(encoding="utf-8")
     if path.suffix in {".yaml", ".yml"}:
-        data = yaml.safe_load(text)
+        data = load_curation_yaml(path)
     else:
-        data = json.loads(text)
+        data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise ValueError(f"Expected mapping in {path}")
     return data
