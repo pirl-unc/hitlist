@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
+import pytest
 import yaml
 
 import hitlist
@@ -95,7 +96,8 @@ def test_deconvolution_public_exports_and_pool_parsing():
         "build_monoallelic_motif_models",
         "deconvolve_allele_pools",
     ):
-        assert hasattr(hitlist, symbol), f"Missing public export: {symbol}"
+        with pytest.warns(DeprecationWarning):
+            assert hasattr(hitlist, symbol), f"Missing deprecated shim export: {symbol}"
     assert parse_allele_pool("HLA-B*07:02; HLA-A*02:01, HLA-A*02:01") == (
         "HLA-A*02:01",
         "HLA-B*07:02",
