@@ -18059,3 +18059,354 @@
         condition_evidence: curated_text
         mhc_class: I
         mhc: "H2-K*b H2-D*b"
+
+  # ── Remaining non-human & 2024–2026 large murine studies (#14, #13, #980) ──
+
+  - pmid: 40505327
+    study_label: "Valenzano 2025 — bovine macrophages + Babesia bovis (BoLA-I & BoLA-II)"
+    title: "Identification of T-cell epitopes of the intracellular parasite Babesia bovis by immunopeptidomic analysis of BoLA-II presented peptides"
+    species: "Bos taurus"
+    override: activated_apc
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      Valenzano 2025 profiles uninfected and Babesia bovis-pulsed primary bovine blood
+      macrophages across BoLA class I (9,405 rows) and BoLA-DR class II (7,981 rows);
+      IEDB records combined assay_comments ("eluted from uninfected macrophages and
+      B.bovis-infected macrophages") on shared peptides, positively placing them in both
+      arms.
+    perturbations:
+      - "Babesia bovis S2P-infected erythrocyte pulsing of bovine macrophages"
+    note: >
+      Primary Hereford-Angus bovine blood-derived macrophage immunopeptidome (17,386 rows /
+      16,267 unique peptides in IEDB: 9,405 BoLA class I + 7,981 BoLA-DR class II) comparing
+      uninfected macrophages vs macrophages pulsed with Babesia bovis S2P-infected RBCs
+      (Valenzano et al., Vaccine 2025, doi:10.1016/j.vaccine.2025.127369). Completes
+      curation of all remaining uncurated cattle studies in the corpus. #14, #980.
+    ms_samples:
+      - sample_label: "Uninfected bovine macrophages (BoLA class I)"
+        n_samples: 1
+        source: "Primary Hereford-Angus bovine blood-derived macrophages (uninfected)"
+        condition: "uninfected control macrophages"
+        condition_id: valenzano_2025_bovine_mac_uninfected_class1
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_control_for: valenzano_2025_bovine_mac_babesia_class1
+        mhc_class: I
+        mhc: "BoLA class I"
+      - sample_label: "Babesia bovis-pulsed bovine macrophages (BoLA class I)"
+        n_samples: 1
+        source: "Primary Hereford-Angus bovine blood-derived macrophages pulsed with B. bovis S2P RBCs"
+        condition: "Babesia bovis S2P infection / pulsing"
+        condition_id: valenzano_2025_bovine_mac_babesia_class1
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "Babesia bovis"
+        mhc_class: I
+        mhc: "BoLA class I"
+      - sample_label: "Uninfected bovine macrophages (BoLA class II)"
+        n_samples: 1
+        source: "Primary Hereford-Angus bovine blood-derived macrophages (uninfected)"
+        condition: "uninfected control macrophages"
+        condition_id: valenzano_2025_bovine_mac_uninfected_class2
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_control_for: valenzano_2025_bovine_mac_babesia_class2
+        mhc_class: II
+        mhc: "BoLA class II"
+      - sample_label: "Babesia bovis-pulsed bovine macrophages (BoLA class II)"
+        n_samples: 1
+        source: "Primary Hereford-Angus bovine blood-derived macrophages pulsed with B. bovis S2P RBCs"
+        condition: "Babesia bovis S2P infection / pulsing"
+        condition_id: valenzano_2025_bovine_mac_babesia_class2
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "Babesia bovis"
+        mhc_class: II
+        mhc: "BoLA class II"
+
+  - pmid: 35453564
+    study_label: "Khilji 2022 — rat INS-1E beta-cell RT1-A1*a peptidome (GRP94 KO / cytokines)"
+    title: "Defective Proinsulin Handling Modulates the MHC I Bound Peptidome and Activates the Inflammasome in β-Cells"
+    species: "Rattus norvegicus"
+    override: cell_line
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      All 4,427 rows derive from rat INS-1E insulinoma cells presenting RT1-A1*a across
+      control, mock GRP94 KO, GRP94 KO, GRP94 inhibitor (PU-WS13), IL-1beta, and IFN-gamma
+      treatments, and IEDB records multi-condition lists in assay_comments on shared
+      peptides.
+    perturbations:
+      - "GRP94 CRISPR knockout (defective ER proinsulin chaperoning)"
+      - "GRP94 inhibitor PU-WS13 (20 uM)"
+      - "IL-1beta (15 pg/mL) and IFN-gamma (10 ng/mL) cytokine treatment"
+    note: >
+      Rat MHC class I (RT1-A1*a) immunopeptidome (4,427 rows / 4,427 unique peptides in
+      IEDB) from rat INS-1E pancreatic beta-cell insulinoma cells under GRP94 KO, GRP94
+      inhibition (PU-WS13), IL-1beta, or IFN-gamma stress (Khilji et al., Biomedicines
+      2022). Completes curation of all remaining rat studies in the corpus. #14, #980.
+    ms_samples:
+      - sample_label: "Rat INS-1E control / mock KO (RT1-A1*a)"
+        n_samples: 1
+        source: "Rat INS-1E pancreatic beta-cell insulinoma line (control / mock GRP94 KO)"
+        condition: "unperturbed control rat insulinoma cell line"
+        condition_id: khilji_2022_ins1e_control
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_control_for: khilji_2022_ins1e_grp94_cytokine
+        condition_knockout_genes: "none"
+        mhc_class: I
+        mhc: "RT1-A1*a"
+      - sample_label: "Rat INS-1E GRP94 KO / PU-WS13 / cytokine stressed (RT1-A1*a)"
+        n_samples: 1
+        source: "Rat INS-1E pancreatic beta-cell insulinoma line (GRP94 KO, PU-WS13, IL-1beta, IFN-gamma)"
+        condition: "GRP94 KO / PU-WS13 inhibition / IL-1beta / IFN-gamma ER stress"
+        condition_id: khilji_2022_ins1e_grp94_cytokine
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_knockout_genes: "HSP90B1"
+        mhc_class: I
+        mhc: "RT1-A1*a"
+
+  - pmid: 18687473
+    study_label: "Yan 2008 — recombinant E. coli chicken BF2-beta2m single-chain refolding"
+    title: "Reconstruction of a chicken BF2 protein complex and identification of binding nonamer peptides derived from avian influenza virus hemagglutinin"
+    species: "Gallus gallus"
+    exclude_from_ms: true
+    note: >
+      In vitro refolding and MS confirmation of 2 synthetic avian influenza HA nonamers
+      bound to recombinant E. coli-expressed single-chain chicken BF2-(G4S)3-beta2m fusion
+      protein (Yan et al., Vet Immunol Immunopathol 2008, doi:10.1016/j.vetimm.2008.06.007).
+      No cellular endogenous MS elution. #14, #980.
+
+  - pmid: 20519644
+    study_label: "Girardi 2010 — bovine CD1b3 crystal structure and phospholipid ligands"
+    title: "Crystal structure of bovine CD1b3 with endogenously bound ligands"
+    species: "Bos taurus"
+    exclude_from_ms: true
+    note: >
+      X-ray crystallography and lipid MS of recombinant bovine CD1b3 expressed in Sf9
+      insect cells bound to phospholipids (phosphatidylcholine and phosphatidylethanolamine;
+      Girardi et al., J Immunol 2010, doi:10.4049/jimmunol.1000042). Non-peptide lipid
+      ligands, not peptide MHC elution. #14, #980.
+
+  - pmid: 32269076
+    study_label: "Shima 2020 — Mamu-B*098 / Mamu-B*05104 lysophospholipid crystal structures"
+    title: "Crystal structures of lysophospholipid-bound MHC class I molecules"
+    species: "Macaca mulatta"
+    exclude_from_ms: true
+    note: >
+      X-ray crystallography and lipid MS of recombinant soluble Mamu-B*098-Fc expressed in
+      Expi293F cells bound to lysophospholipids (lyso-PC and lyso-PE; Shima et al., J Biol
+      Chem 2020). Non-peptide lipid ligands, not conventional peptide elution. #14, #980.
+
+  - pmid: 40412526
+    study_label: "Khandokar 2025 — chicken YF1*7.1 N-myristoylated lipid/lipopeptide structures"
+    title: "Molecular basis for presentation of N-myristoylated peptides by the chicken YF1*7.1 molecule"
+    species: "Gallus gallus"
+    exclude_from_ms: true
+    note: >
+      Recombinant mammalian expression, lipid extraction MS (N-myristoyl/oleoyl/palmitoyl
+      glycine), and X-ray crystallography of chicken non-classical MHC-Y molecule YF1*7.1
+      (Khandokar et al., J Biol Chem 2025, doi:10.1016/j.jbc.2025.110253). Non-peptide
+      acyl-glycine / lipopeptide structural study, not cellular peptide elution. #14, #980.
+
+  - pmid: 39147027
+    study_label: "Gul 2024 — Listeria monocytogenes-infected C57BL/6 spleen MHC-I peptidome"
+    title: "Immunopeptidomics Mapping of Listeria monocytogenes T Cell Epitopes in Mice"
+    species: "Mus musculus"
+    disease: "listeriosis"
+    override:
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      All 6,980 rows derive from Listeria monocytogenes-infected C57BL/6 splenocytes
+      (H2-K*b/H2-D*b), and IEDB records combined assay_comments ("label-free experiment;
+      TMT-labeled experiment") on peptides detected in both workflows.
+    perturbations:
+      - "Listeria monocytogenes bacterial infection in vivo"
+    note: >
+      In vivo C57BL/6 splenocyte MHC class I (H2-K*b, H2-D*b) immunopeptidome during
+      Listeria monocytogenes infection (6,980 rows / 6,928 unique peptides in IEDB, of which
+      6,977 carry generic "H2 class I"; label-free and TMT workflows; Gul et al., Mol Cell
+      Proteomics 2024, doi:10.1016/j.mcpro.2024.100829). Curated disease="listeriosis"
+      prevents 6,943 infected splenocyte rows with blank IEDB disease from leaking into
+      healthy tissue. #13.
+    ms_samples:
+      - sample_label: "Listeria-infected C57BL/6 splenocytes (label-free, H2-K*b/H2-D*b)"
+        n_samples: 1
+        source: "Primary C57BL/6 mouse splenocytes infected with Listeria monocytogenes (label-free)"
+        condition: "Listeria monocytogenes infection (label-free workflow)"
+        condition_id: gul_2024_listeria_spleen_lfq
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "Listeria monocytogenes"
+        labeling: label-free
+        mhc_class: I
+        mhc: "H2-K*b H2-D*b"
+      - sample_label: "Listeria-infected C57BL/6 splenocytes (TMT-labeled, H2-K*b/H2-D*b)"
+        n_samples: 1
+        source: "Primary C57BL/6 mouse splenocytes infected with Listeria monocytogenes (TMT)"
+        condition: "Listeria monocytogenes infection (TMT-labeled workflow)"
+        condition_id: gul_2024_listeria_spleen_tmt
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "Listeria monocytogenes"
+        labeling: TMT
+        mhc_class: I
+        mhc: "H2-K*b H2-D*b"
+
+  - pmid: 42809615
+    study_label: "Laskova 2026 — Francisella tularensis-infected C57BL/6 BMDC I-Ab peptidome"
+    title: "Immunopeptidomics reveals conserved and abundant Francisella tularensis proteins as immunogenic CD4 T cell antigens in mice"
+    species: "Mus musculus"
+    override: activated_apc
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      All 7,171 rows are H2-AA*b/AB*b peptides from C57BL/6 BMDCs infected with F. tularensis
+      LVS or dsbA-deleted LVS, and IEDB records combined assay_comments ("either F. tularensis
+      LVS or dsbA-deleted F. tularensis LVS") on shared peptides.
+    perturbations:
+      - "Francisella tularensis LVS and dsbA-deleted LVS infection"
+    note: >
+      C57BL/6 bone-marrow-derived dendritic cell MHC class II (H2-AA*b/AB*b) elution (7,171
+      rows / 6,750 unique peptides in IEDB) following infection with Francisella tularensis
+      LVS or dsbA-deleted LVS (Laskova et al., PLoS Pathog 2026). Override activated_apc
+      prevents 7,171 infected in-vitro BMDC rows (IEDB Direct Ex Vivo + blank disease) from
+      leaking into healthy somatic tissue. #13.
+    ms_samples:
+      - sample_label: "F. tularensis LVS-infected C57BL/6 BMDCs (H2-AA*b/AB*b)"
+        n_samples: 1
+        source: "C57BL/6 bone-marrow-derived dendritic cells infected with F. tularensis LVS"
+        condition: "Francisella tularensis LVS infection"
+        condition_id: laskova_2026_bmdc_ftul_lvs
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "Francisella tularensis"
+        mhc_class: II
+        mhc: "H2-AA*b/AB*b"
+      - sample_label: "F. tularensis dsbA-KO-infected C57BL/6 BMDCs (H2-AA*b/AB*b)"
+        n_samples: 1
+        source: "C57BL/6 bone-marrow-derived dendritic cells infected with dsbA-deleted F. tularensis LVS"
+        condition: "Francisella tularensis LVS delta-dsbA infection"
+        condition_id: laskova_2026_bmdc_ftul_dsba
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "Francisella tularensis"
+        mhc_class: II
+        mhc: "H2-AA*b/AB*b"
+
+  - pmid: 41540279
+    study_label: "Niotis 2026 — ERCC1 DNA-damage-deficient C57BL/6 BMDM MHC-II peptidome"
+    title: "DNA damage in macrophages drives immune autoreactivity via nuclear antigen presentation"
+    species: "Mus musculus"
+    override: activated_apc
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      All 5,770 rows are C57BL/6 BMDM MHC class II (H2-AA*b/AB*b) peptides across WT
+      (untreated, LPS, OVA), Er1Lyz2/-, and Ercc1/Atg5 Lyz2-cre KO macrophages, and IEDB
+      records multi-condition assay_comments on shared peptides.
+    perturbations:
+      - "Macrophage-specific Ercc1 DNA-repair knockout (Er1Lyz2/-) and Atg5 autophagy knockout"
+      - "LPS activation and ovalbumin exposure"
+    note: >
+      C57BL/6 bone-marrow-derived macrophage (BMDM) MHC class II (H2-AA*b/AB*b) elution
+      (5,770 rows / 2,544 unique peptides in IEDB, all carrying generic "H2 class II")
+      comparing wild-type BMDMs (+/- LPS/OVA) against macrophage-specific DNA-repair-deficient
+      Er1Lyz2/- and autophagy-deficient Ercc1/Atg5 Lyz2-cre mice (Niotis et al., Nat Aging
+      2026). Override activated_apc prevents cultured/LPS-stimulated BMDMs from leaking into
+      healthy somatic tissue. #13.
+    ms_samples:
+      - sample_label: "Wild-type C57BL/6 BMDMs (unperturbed, H2-AA*b/AB*b)"
+        n_samples: 1
+        source: "C57BL/6 wild-type bone-marrow-derived macrophages (untreated)"
+        condition: "unperturbed — wild-type BMDMs"
+        condition_id: niotis_2026_wt_bmdm
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_control_for: "niotis_2026_ercc1_ko_bmdm;niotis_2026_wt_bmdm_lps_ova"
+        condition_knockout_genes: "none"
+        mhc_class: II
+        mhc: "H2-AA*b/AB*b"
+      - sample_label: "Wild-type C57BL/6 BMDMs (LPS / OVA stimulated, H2-AA*b/AB*b)"
+        n_samples: 1
+        source: "C57BL/6 wild-type bone-marrow-derived macrophages (LPS-treated or OVA-exposed)"
+        condition: "LPS activation or ovalbumin exposure"
+        condition_id: niotis_2026_wt_bmdm_lps_ova
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_knockout_genes: "none"
+        mhc_class: II
+        mhc: "H2-AA*b/AB*b"
+      - sample_label: "Er1Lyz2/- DNA-damage-deficient C57BL/6 BMDMs (H2-AA*b/AB*b)"
+        n_samples: 1
+        source: "C57BL/6 Er1Lyz2/- (and Ercc1/Atg5 Lyz2-cre) bone-marrow-derived macrophages"
+        condition: "macrophage-specific Ercc1 DNA repair knockout (+/- Atg5 KO)"
+        condition_id: niotis_2026_ercc1_ko_bmdm
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_knockout_genes: "ERCC1"
+        mhc_class: II
+        mhc: "H2-AA*b/AB*b"
+
+  - pmid: 41315082
+    study_label: "Srivastava 2026 — human T1D PBMC HLA-II and NOD splenic DC I-Ag7 peptidome"
+    title: "A microenvironment-driven HLA-II-associated insulin neoantigen elicits persistent memory T cell activation in diabetes"
+    species: ""
+    override:
+    rules:
+      - condition:
+          Disease: "healthy"
+        override: healthy
+        reason: "Healthy control donor PBMCs (HLA-DR / HLA-DQ)"
+      - condition:
+          Cell Name: "dendritic cell"
+        override: activated_apc
+        reason: "NOD mouse splenic dendritic cells treated ex vivo with TNF-alpha +/- N-acetylcysteine"
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      Mixed human+mouse study: human T1D and healthy PBMC arms share HLA-DR / HLA-DQ class
+      restrictions, and NOD mouse splenic DC rows carry combined assay_comments ("untreated,
+      TNFa, and TNFa+NAC treated cells") placing peptides across multiple treatment arms.
+    perturbations:
+      - "TNF-alpha and N-acetylcysteine (NAC) oxidative stress treatment of NOD splenic DCs"
+    note: >
+      Cross-species type 1 diabetes MHC class II study (5,720 rows / 3,875 unique peptides
+      in IEDB: 4,570 human T1D/healthy PBMC HLA-DR/HLA-DQ rows + 1,150 NOD mouse splenic
+      DC H2-AA*d/AB*g7 rows treated +/- TNF-alpha and NAC; Srivastava et al., Nat Immunol
+      2026, doi:10.1038/s41590-025-02343-z). #13, #33.
+    ms_samples:
+      - sample_label: "Human T1D patient PBMCs (HLA class II)"
+        species: "Homo sapiens"
+        n_samples: 1
+        source: "Type 1 diabetes patient PBMCs (3 and 18 months post onset)"
+        condition: "type 1 diabetes mellitus"
+        condition_id: srivastava_2026_human_t1d_pbmc
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: II
+        mhc: "HLA class II"
+      - sample_label: "Human healthy donor PBMCs (HLA class II)"
+        species: "Homo sapiens"
+        n_samples: 1
+        source: "Healthy control human donor PBMCs"
+        condition: "healthy control"
+        condition_id: srivastava_2026_human_healthy_pbmc
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_control_for: srivastava_2026_human_t1d_pbmc
+        mhc_class: II
+        mhc: "HLA class II"
+      - sample_label: "NOD mouse splenic DCs (+/- TNF-alpha / NAC, H2-AA*d/AB*g7)"
+        species: "Mus musculus"
+        n_samples: 1
+        source: "NOD mouse splenic dendritic cells (untreated, TNF-alpha, or TNF-alpha + NAC)"
+        condition: "TNF-alpha +/- N-acetylcysteine cytokine/oxidative stress"
+        condition_id: srivastava_2026_nod_splenic_dc
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: II
+        mhc: "H2-AA*d/AB*g7"
