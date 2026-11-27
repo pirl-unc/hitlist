@@ -17664,12 +17664,12 @@
     study_label: "Fugmann 2017 — C57BL/6 lymph node MHC-II in health and DSS colitis"
     title: "The MHC Class II Immunopeptidome of Lymph Nodes in Health and in Chemically Induced Colitis"
     species: "Mus musculus"
-    override: healthy
+    override:
     rules:
       - condition:
-          Disease: "ulcerative colitis"
-        override:
-        reason: "DSS-induced experimental colitis lymph nodes are inflammatory/diseased, not healthy"
+          Disease: ""
+        override: healthy
+        reason: "Unperturbed healthy C57BL/6 lymph nodes (DSS colitis rows keep disease='ulcerative colitis' and stay non-healthy)"
     arm_resolution: curation_gap
     arm_resolution_note: >
       Healthy C57BL/6 lymph nodes (3,200 rows) and DSS-induced colitis lymph nodes (2,291
@@ -18410,3 +18410,476 @@
         condition_evidence: curated_text
         mhc_class: II
         mhc: "H2-AA*d/AB*g7"
+
+  # ── Top 10 uncurated 2021–2026 large human studies (#33, 1.19M rows) ─────
+
+  - pmid: 42010059
+    study_label: "Bai 2026 — human IPF / distal paracancer lung & murine bleomycin fibrosis MHC-I atlas"
+    title: "Immunopeptidome profiling in pulmonary fibrosis provides a platform for identifying therapeutic targets"
+    species: ""
+    override:
+    rules:
+      - condition:
+          Assay Comments: "paracancer"
+        override: adjacent
+        reason: "Human control lung explants are distal paracancer (tumor-adjacent) lung tissue, not healthy normal lung"
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      Cross-species IPF atlas (453,221 rows: 265,902 human IPF lung, 162,328 human distal
+      paracancer lung, 24,991 C57BL/6 mouse lung). Human cohorts share HLA class I across
+      IPF vs paracancer donors, and mouse rows carry combined assay_comments ("control
+      animals and animals in which pulmonary fibrosis...") across both murine arms.
+    perturbations:
+      - "Bleomycin-induced pulmonary fibrosis in C57BL/6 mice"
+    note: >
+      Massive human + mouse pulmonary fibrosis MHC class I immunopeptidome (453,221 rows /
+      257,285 unique peptides in IEDB; Bai et al., Nat Immunol 2026). Critical safety
+      curation: 162,328 human lung rows with blank IEDB disease are distal paracancer
+      (tumor-adjacent) lung tissue rather than healthy donor lung, so the paracancer rule
+      reclassifies them as adjacent (preventing false healthy-tissue signal). #33, #13.
+    ms_samples:
+      - sample_label: "Human idiopathic pulmonary fibrosis (IPF) lung explants (HLA class I)"
+        species: "Homo sapiens"
+        n_samples: 1
+        source: "Human idiopathic pulmonary fibrosis (IPF) patient lung explant fibrotic foci"
+        condition: "idiopathic pulmonary fibrosis"
+        condition_id: bai_2026_human_ipf_lung
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: I
+        mhc: "HLA class I"
+      - sample_label: "Human distal paracancer lung tissue (HLA class I)"
+        species: "Homo sapiens"
+        n_samples: 1
+        source: "Human distal paracancer (tumor-adjacent) lung tissue controls"
+        condition: "distal paracancer tumor-adjacent lung control"
+        condition_id: bai_2026_human_paracancer_lung
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_control_for: bai_2026_human_ipf_lung
+        mhc_class: I
+        mhc: "HLA class I"
+      - sample_label: "C57BL/6 bleomycin-induced pulmonary fibrosis lung (H2-K*b/H2-D*b)"
+        species: "Mus musculus"
+        n_samples: 1
+        source: "C57BL/6 mouse lung tissue after bleomycin-induced pulmonary fibrosis"
+        condition: "bleomycin-induced pulmonary fibrosis"
+        condition_id: bai_2026_mouse_bleomycin_lung
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: I
+        mhc: "H2-K*b H2-D*b"
+      - sample_label: "C57BL/6 control mouse lung (H2-K*b/H2-D*b)"
+        species: "Mus musculus"
+        n_samples: 1
+        source: "Control C57BL/6 mouse lung tissue"
+        condition: "unperturbed control mouse lung"
+        condition_id: bai_2026_mouse_control_lung
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_control_for: bai_2026_mouse_bleomycin_lung
+        mhc_class: I
+        mhc: "H2-K*b H2-D*b"
+
+  - pmid: 36185575
+    study_label: "de Beijer 2022 — primary human hepatocyte HLA-I atlas (HCC, HBV, healthy)"
+    title: "Immunopeptidome of hepatocytes isolated from patients with HBV infection and hepatocellular carcinoma"
+    species: "Homo sapiens"
+    override:
+    rules:
+      - condition:
+          Disease: "hepatocellular carcinoma"
+        override: cancer_patient
+        reason: "Primary human hepatocytes isolated from HCC tumor tissues"
+      - condition:
+          Disease: "healthy"
+        override: healthy
+        reason: "Primary human hepatocytes isolated from healthy control liver"
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      All 159,212 rows are primary human hepatocyte HLA class I observations across multi-donor
+      HCC (130,783 rows), chronic HBV non-tumor liver (22,415 rows), and healthy liver (6,014
+      rows); IEDB separates cohorts on disease rather than sample-level allele attribution.
+    note: >
+      Primary human hepatocyte HLA class I immunopeptidome (159,212 rows / 79,792 unique
+      peptides in IEDB, DDA + targeted PRM) isolated from HCC tumors, chronic HBV-infected
+      non-tumor liver, and healthy donor liver (de Beijer et al., JHEP Rep 2022,
+      doi:10.1016/j.jhepr.2022.100576). #33.
+    ms_samples:
+      - sample_label: "Primary human hepatocytes — hepatocellular carcinoma (HLA class I)"
+        n_samples: 1
+        source: "Primary hepatocytes isolated from human HCC tumor tissue"
+        condition: "hepatocellular carcinoma (+/- HBV)"
+        condition_id: de_beijer_2022_hcc_hepatocytes
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: I
+        mhc: "HLA class I"
+      - sample_label: "Primary human hepatocytes — chronic HBV non-tumor liver (HLA class I)"
+        n_samples: 1
+        source: "Primary hepatocytes isolated from chronic HBV-infected non-tumor human liver"
+        condition: "chronic hepatitis B virus (HBV) infection"
+        condition_id: de_beijer_2022_hbv_hepatocytes
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "Hepatitis B virus"
+        mhc_class: I
+        mhc: "HLA class I"
+      - sample_label: "Primary human hepatocytes — healthy donor liver (HLA class I)"
+        n_samples: 1
+        source: "Primary hepatocytes isolated from healthy human donor liver"
+        condition: "unperturbed — healthy primary human hepatocytes"
+        condition_id: de_beijer_2022_healthy_hepatocytes
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_control_for: "de_beijer_2022_hbv_hepatocytes;de_beijer_2022_hcc_hepatocytes"
+        mhc_class: I
+        mhc: "HLA class I"
+
+  - pmid: 35239002
+    study_label: "Nelde 2022 — uORF-encoded HLA-I immunopeptidome in AML, CLL, and benign PBMCs"
+    title: "Upstream open reading frames regulate translation of cancer-associated transcripts and encode HLA-presented immunogenic tumor antigens"
+    species: "Homo sapiens"
+    override:
+    rules:
+      - condition:
+          Disease:
+            - "acute myeloid leukemia"
+            - "chronic lymphocytic leukemia"
+        override: cancer_patient
+        reason: "Primary AML (n=15) and CLL (n=15) patient leukemia PBMCs"
+      - condition:
+          Disease: "healthy"
+        override: healthy
+        reason: "Healthy volunteer PBMCs (n=30) and hematopoietic progenitor cells (n=5)"
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      All 157,756 rows carry generic "HLA class I" across AML (58,063 rows), CLL (51,543
+      rows), and benign healthy PBMCs/HPCs (48,150 rows); IEDB separates cohorts via the
+      disease column rather than allele-level restriction.
+    note: >
+      Large primary hematologic malignancy vs benign HLA class I immunopeptidome (157,756
+      rows / 100,451 unique peptides in IEDB) profiling AML (n=15), CLL (n=15), and benign
+      healthy volunteer PBMCs/HPCs for canonical and uORF-derived antigens (Nelde et al.,
+      Cell Mol Life Sci 2022). #33.
+    ms_samples:
+      - sample_label: "Primary human AML PBMCs (n=15, HLA class I)"
+        n_samples: 15
+        source: "Acute myeloid leukemia patient PBMCs (diagnosis, palliative, relapse)"
+        condition: "acute myeloid leukemia"
+        condition_id: nelde_2022_aml_pbmc
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: I
+        mhc: "HLA class I"
+      - sample_label: "Primary human CLL PBMCs (n=15, HLA class I)"
+        n_samples: 15
+        source: "Chronic lymphocytic leukemia patient PBMCs"
+        condition: "chronic lymphocytic leukemia"
+        condition_id: nelde_2022_cll_pbmc
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: I
+        mhc: "HLA class I"
+      - sample_label: "Healthy human donor PBMCs and HPCs (n=35, HLA class I)"
+        n_samples: 35
+        source: "Healthy volunteer PBMCs (n=30) and hematopoietic progenitor cells (n=5)"
+        condition: "unperturbed — benign healthy donor PBMCs and HPCs"
+        condition_id: nelde_2022_healthy_pbmc_hpc
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_control_for: "nelde_2022_aml_pbmc;nelde_2022_cll_pbmc"
+        mhc_class: I
+        mhc: "HLA class I"
+
+  - pmid: 42653321
+    study_label: "Comduhr 2026 — psoriatic arthritis vs healthy donor PBMC HLA-I peptidome"
+    title: "Skewed MHC Class I Peptide Presentation in Psoriatic Arthritis"
+    species: "Homo sapiens"
+    override:
+    rules:
+      - condition:
+          Disease:
+            - ""
+            - "healthy"
+        override: healthy
+        reason: "Healthy control cohort PBMCs (proc_comments confirms healthy controls)"
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      Multi-donor PBMC cohort (136,295 rows: 65,611 psoriatic arthritis, 70,684 healthy
+      controls) with per-donor HLA class I typings; IEDB separates cohorts via disease
+      ("psoriatic arthritis" vs blank/"healthy") rather than arm-level allele curation.
+    note: >
+      Human PBMC HLA class I immunopeptidome (136,295 rows / 58,033 unique peptides in IEDB)
+      comparing psoriatic arthritis (PsA) patients with healthy controls, demonstrating
+      P2-Glu enrichment and hnRNP A1 autoantigen presentation in PsA (Comduhr et al., Int J
+      Mol Sci 2026). #33.
+    ms_samples:
+      - sample_label: "Psoriatic arthritis patient PBMCs (HLA class I)"
+        n_samples: 1
+        source: "Psoriatic arthritis (PsA) patient peripheral blood mononuclear cells"
+        condition: "psoriatic arthritis"
+        condition_id: comduhr_2026_psa_pbmc
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: I
+        mhc: "HLA class I"
+      - sample_label: "Healthy control donor PBMCs (HLA class I)"
+        n_samples: 1
+        source: "Healthy control donor peripheral blood mononuclear cells"
+        condition: "unperturbed — healthy donor PBMCs"
+        condition_id: comduhr_2026_healthy_pbmc
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        condition_control_for: comduhr_2026_psa_pbmc
+        mhc_class: I
+        mhc: "HLA class I"
+
+  - pmid: 39827205
+    study_label: "Kessler 2025 — HBV synthetic long peptide-pulsed human DCs + TLR1/2 or TLR3"
+    title: "HLA I immunopeptidome of synthetic long peptide pulsed human dendritic cells for therapeutic vaccine design"
+    species: "Homo sapiens"
+    override: activated_apc
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      Multi-donor human DC/moDC HLA-I cohort (58,935 rows) pulsed with 12 HBV synthetic long
+      peptides + Amplivant (TLR1/2) or PolyI:C (TLR3); IEDB records combined assay_comments
+      ("stimulated with AV; stimulated with PIC") on shared peptides.
+    perturbations:
+      - "HBV synthetic long peptide (SLP) pulsing"
+      - "TLR1/2 agonist (Amplivant) and TLR3 agonist (PolyI:C) adjuvant stimulation"
+    note: >
+      Human dendritic cell / moDC HLA class I cross-presentation immunopeptidome (58,935
+      rows / 35,769 unique peptides in IEDB) pulsed with 12 HBV synthetic long peptides plus
+      Amplivant (TLR1/2) or PolyI:C (TLR3) adjuvants (Kessler et al., NPJ Vaccines 2025).
+      Critical safety curation: override activated_apc prevents 58,935 TLR-stimulated/SLP-pulsed
+      DC rows (tagged Direct Ex Vivo + blank disease in IEDB) from leaking into healthy
+      somatic tissue. #33.
+    ms_samples:
+      - sample_label: "Human DCs pulsed with HBV SLPs + Amplivant TLR1/2 (HLA class I)"
+        n_samples: 1
+        source: "Healthy donor human DCs / moDCs pulsed with 12 HBV SLPs + Amplivant (TLR1/2)"
+        condition: "HBV SLP pulsing + Amplivant (TLR1/2) stimulation"
+        condition_id: kessler_2025_dc_slp_amplivant
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: I
+        mhc: "HLA class I"
+      - sample_label: "Human DCs pulsed with HBV SLPs + PolyI:C TLR3 (HLA class I)"
+        n_samples: 1
+        source: "Healthy donor human DCs / moDCs pulsed with 12 HBV SLPs + PolyI:C (TLR3)"
+        condition: "HBV SLP pulsing + PolyI:C (TLR3) stimulation"
+        condition_id: kessler_2025_dc_slp_polyic
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: I
+        mhc: "HLA class I"
+
+  - pmid: 38684663
+    study_label: "Menon 2024 — C1R mono-allelic HLA-B*07:02/B*08:01/B*35:01 + Influenza B"
+    title: "CD8+ T-cell responses towards conserved influenza B virus epitopes across anatomical sites and age"
+    species: "Homo sapiens"
+    override: ebv_lcl
+    mono_allelic_host: "C1R"
+    ip_antibody: "W6/32"
+    perturbations:
+      - "Influenza B virus (IBV) infection"
+    note: >
+      Mono-allelic HMy2.C1R transfectant HLA class I immunopeptidome (58,804 rows / 50,754
+      unique peptides in IEDB; W6/32 IP) for HLA-B*07:02 (15,684 rows), HLA-B*08:01 (24,682
+      rows), and HLA-B*35:01 (18,028 rows), uninfected and Influenza B virus-infected
+      (Menon et al., Nat Commun 2024). #33.
+    ms_samples:
+      - sample_label: "C1R-HLA-B*07:02 (+/- Influenza B virus)"
+        n_samples: 1
+        source: "Human HMy2.C1R EBV-LCL transfected with HLA-B*07:02 (+/- IBV)"
+        condition: "uninfected or Influenza B virus (IBV)-infected C1R transfectant"
+        condition_id: menon_2024_c1r_b0702
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "Influenza B virus"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        mhc_class: I
+        mhc: "HLA-B*07:02"
+      - sample_label: "C1R-HLA-B*08:01 (+/- Influenza B virus)"
+        n_samples: 1
+        source: "Human HMy2.C1R EBV-LCL transfected with HLA-B*08:01 (+/- IBV)"
+        condition: "uninfected or Influenza B virus (IBV)-infected C1R transfectant"
+        condition_id: menon_2024_c1r_b0801
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "Influenza B virus"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        mhc_class: I
+        mhc: "HLA-B*08:01"
+      - sample_label: "C1R-HLA-B*35:01 (+/- Influenza B virus)"
+        n_samples: 1
+        source: "Human HMy2.C1R EBV-LCL transfected with HLA-B*35:01 (+/- IBV)"
+        condition: "uninfected or Influenza B virus (IBV)-infected C1R transfectant"
+        condition_id: menon_2024_c1r_b3501
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "Influenza B virus"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        mhc_class: I
+        mhc: "HLA-B*35:01"
+
+  - pmid: 34391887
+    study_label: "Qi 2021 — melanoma and EGFR-mutant lung adenocarcinoma proteogenomic HLA-I"
+    title: "Proteogenomic Analysis Unveils the HLA Class I-Presented Immunopeptidome in Melanoma and EGFR-Mutant Lung Adenocarcinoma"
+    species: "Homo sapiens"
+    override: cell_line
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      Profiles melanoma (3795Mel, etc.; 20,369 rows) and EGFR-mutant lung adenocarcinoma
+      cell lines (PC-9, NCI-H1975, RA007, etc.; 36,086 rows); IEDB separates lines via
+      cell_name, disease, source_tissue, and assay_comments ("detected on H1975/PC9/RA007/3795Mel").
+    note: >
+      Proteogenomic HLA class I immunopeptidome (56,455 rows / 50,621 unique peptides in
+      IEDB) of melanoma and EGFR-mutant lung adenocarcinoma cell lines (PC-9, NCI-H1975,
+      RA007, 3795Mel), characterizing canonical, neoantigen, cancer-germline, PTM, and
+      lncRNA-derived ligands (Qi et al., Mol Cell Proteomics 2021,
+      doi:10.1016/j.mcpro.2021.100136). #33.
+    ms_samples:
+      - sample_label: "Melanoma cancer cell lines (3795Mel panel, HLA class I)"
+        n_samples: 1
+        source: "Human melanoma cancer cell lines (e.g. 3795Mel)"
+        condition: "unperturbed — melanoma cancer cell lines"
+        condition_id: qi_2021_melanoma_lines
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "HLA class I"
+      - sample_label: "EGFR-mutant lung adenocarcinoma cell lines (PC-9, NCI-H1975, RA007)"
+        n_samples: 1
+        source: "Human EGFR-mutant lung adenocarcinoma cell lines (PC-9, NCI-H1975, RA007)"
+        condition: "unperturbed — EGFR-mutant lung adenocarcinoma cell lines"
+        condition_id: qi_2021_egfr_lung_lines
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "HLA class I"
+
+  - pmid: 42155283
+    study_label: "Li 2026 — JESTHOM / SCHU EBV-LCL and MS patient PBMC HLA-DR peptidome"
+    title: "Identification of an immunogenic epitope from RASGRP2 with specificity for HLA-DR15 in multiple sclerosis"
+    species: "Homo sapiens"
+    override:
+    rules:
+      - condition:
+          Cell Name:
+            - "JESTHOM cell (B cell)"
+            - "SCHU cell (B cell)"
+        override: ebv_lcl
+        reason: "JESTHOM (IHW09004, DRB1*01:01) and SCHU (IHW09013, DRB1*15:01) are homozygous IHWG EBV-transformed B-LCLs, not cancer"
+    note: >
+      HLA-DR class II immunopeptidome (40,051 rows / 37,179 unique peptides in IEDB) of
+      homozygous IHWG EBV-transformed B-LCLs JESTHOM (HLA-DRB1*01:01, 21,156 rows) and SCHU
+      (HLA-DRB1*15:01, 18,855 rows) plus multiple sclerosis patient PBMCs (40 rows; Li et
+      al., J Neuroimmunol 2026, doi:10.1016/j.jneuroim.2026.578971). Rules reclassify
+      JESTHOM and SCHU from cancer cell_line to ebv_lcl (fixing 40,011 mislabeled rows).
+      #33.
+    ms_samples:
+      - sample_label: "JESTHOM homozygous EBV-LCL (HLA-DRB1*01:01)"
+        n_samples: 1
+        source: "IHWG homozygous EBV-transformed B-LCL JESTHOM (IHW09004)"
+        condition: "unperturbed — EBV-transformed B-LCL"
+        condition_id: li_2026_jesthom_ebv_lcl
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: II
+        mhc: "HLA-DRB1*01:01"
+      - sample_label: "SCHU homozygous EBV-LCL (HLA-DRB1*15:01)"
+        n_samples: 1
+        source: "IHWG homozygous EBV-transformed B-LCL SCHU (IHW09013)"
+        condition: "unperturbed — EBV-transformed B-LCL"
+        condition_id: li_2026_schu_ebv_lcl
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: II
+        mhc: "HLA-DRB1*15:01 HLA-DRB5*01:01"
+      - sample_label: "Multiple sclerosis patient PBMCs (HLA class II)"
+        n_samples: 1
+        source: "Multiple sclerosis patient PBMCs exposed to RASGRP2 peptides"
+        condition: "multiple sclerosis PBMCs"
+        condition_id: li_2026_ms_pbmc
+        condition_status: annotated
+        condition_evidence: curated_text
+        mhc_class: II
+        mhc: "HLA class II"
+
+  - pmid: 40689854
+    study_label: "Leddy 2025 — PathMHC Mycobacterium tuberculosis-infected human DCs (I+II)"
+    title: "Targeting infection-specific peptides in immunopeptidomics studies for vaccine target discovery"
+    species: "Homo sapiens"
+    override: activated_apc
+    perturbations:
+      - "Mycobacterium tuberculosis (Mtb) infection of human dendritic cells"
+    note: >
+      PathMHC untargeted + targeted MS immunopeptidome (37,705 rows / 33,279 unique peptides
+      in IEDB: 31,965 HLA class I + 5,740 HLA class II) from human dendritic cells infected
+      with Mycobacterium tuberculosis (Leddy et al., J Exp Med 2025). Critical safety
+      curation: override activated_apc prevents 37,705 infected DC rows (tagged Direct Ex
+      Vivo + blank disease in IEDB) from leaking into healthy somatic tissue. #33.
+    ms_samples:
+      - sample_label: "M. tuberculosis-infected human dendritic cells (HLA class I)"
+        n_samples: 1
+        source: "Primary human donor dendritic cells infected with Mycobacterium tuberculosis"
+        condition: "Mycobacterium tuberculosis (Mtb) infection"
+        condition_id: leddy_2025_mtb_dc_class1
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "Mycobacterium tuberculosis"
+        mhc_class: I
+        mhc: "HLA class I"
+      - sample_label: "M. tuberculosis-infected human dendritic cells (HLA class II)"
+        n_samples: 1
+        source: "Primary human donor dendritic cells infected with Mycobacterium tuberculosis"
+        condition: "Mycobacterium tuberculosis (Mtb) infection"
+        condition_id: leddy_2025_mtb_dc_class2
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_infection: "Mycobacterium tuberculosis"
+        mhc_class: II
+        mhc: "HLA class II"
+
+  - pmid: 34260243
+    study_label: "Chen 2021 — HCT 116 and Jurkat sORF noncanonical HLA-I immunopeptidome"
+    title: "An Integrated Approach for Discovering Noncanonical MHC-I Peptides Encoded by Small Open Reading Frames"
+    species: "Homo sapiens"
+    override: cell_line
+    note: >
+      Ribo-seq + MS proteogenomic HLA class I immunopeptidome (30,601 rows / 29,591 unique
+      peptides in IEDB) of HCT 116 colon adenocarcinoma (18,383 rows) and Jurkat T-ALL
+      (12,218 rows), discovering 308 noncanonical sORF-encoded HLA-I peptides (Chen et al.,
+      J Am Soc Mass Spectrom 2021, doi:10.1021/jasms.1c00076). #33.
+    ms_samples:
+      - sample_label: "HCT 116 colon adenocarcinoma (HLA-A*01:01/A*02:01/B*18:02/B*45:01)"
+        n_samples: 1
+        source: "Human HCT 116 colorectal carcinoma cell line"
+        condition: "unperturbed — colon adenocarcinoma cell line"
+        condition_id: chen_2021_hct116
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*18:02 HLA-B*45:01"
+      - sample_label: "Jurkat T-ALL leukemia (HLA-A*03:01/B*07:02/B*35:01)"
+        n_samples: 1
+        source: "Human Jurkat T-cell acute lymphoblastic leukemia cell line"
+        condition: "unperturbed — T-ALL leukemia cell line"
+        condition_id: chen_2021_jurkat
+        condition_status: annotated
+        condition_evidence: curated_text
+        condition_control: untreated
+        mhc_class: I
+        mhc: "HLA-A*03:01 HLA-B*07:02 HLA-B*35:01"
