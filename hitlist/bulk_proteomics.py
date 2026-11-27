@@ -584,8 +584,6 @@ def load_bulk_peptides(
     # Source-backed counts are independent of query filters. Reapplication to
     # a current parquet retains the original reported values and is idempotent.
     df = _add_n_replicates_possible(df)
-    from .bekker_jensen_qualification import qualify_bekker_jensen_peptide_table
-
     df = qualify_bekker_jensen_peptide_table(df)
 
     df = _apply_cell_line_filter(df, cell_line)
@@ -638,3 +636,37 @@ def export_detectability_training_set(output_dir, **kwargs):
     from .detectability import export_detectability_training_set as export
 
     return export(output_dir, **kwargs)
+
+
+def qualify_bekker_jensen_peptide_table(df: pd.DataFrame) -> pd.DataFrame:
+    """Stamp explicit intensity-scale and modification-scope provenance onto a Bekker-Jensen frame.
+
+    Ensures callers can distinguish legacy deposit-aggregate ``peptides.txt`` rows from
+    per-arm ``modificationSpecificPeptides.txt`` rows and never confuse missing peptide-level
+    LFQ with raw MS1 intensity or zero.
+    """
+    out = df.copy()
+    if "modifications_scope" not in out.columns:
+        out["modifications_scope"] = "deposit_aggregate_peptides_txt"
+    if "log2_raw_intensity" not in out.columns:
+        out["log2_raw_intensity"] = (
+            out["log2_intensity"] if "log2_intensity" in out.columns else float("nan")
+        )
+    if "log2_raw_intensity_std" not in out.columns:
+        out["log2_raw_intensity_std"] = (
+            out["log2_intensity_std"] if "log2_intensity_std" in out.columns else float("nan")
+        )
+    if "log2_lfq_intensity" not in out.columns:
+        out["log2_lfq_intensity"] = float("nan")
+    if "log2_lfq_intensity_std" not in out.columns:
+        out["log2_lfq_intensity_std"] = float("nan")
+    if "intensity_scale" not in out.columns:
+        has_raw = out["log2_raw_intensity"].notna().any()
+        out["intensity_scale"] = "raw_ms1_intensity" if has_raw else "unquantified_presence_only"
+    if "experiment_scope_provenance" not in out.columns:
+        out["experiment_scope_provenance"] = (
+            "per_experiment_preserved"
+            if "experiment_ids_detected" in out.columns
+            else "pooled_legacy_csv"
+        )
+    return out

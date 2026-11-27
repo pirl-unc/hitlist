@@ -101,8 +101,9 @@ Calls without explicit inputs preserve the existing packaged scanner behavior.
 
 ## Vital-organ DLA blacklist guard and pending canine atlas sources
 
-Hitlist pins machine-readable qualification contracts and access-aware offline
-adapters in `hitlist.canine_dla_qualification` (`#674`, `#676`, `#677`, `#666`):
+Hitlist pins machine-readable qualification contracts in `hitlist/data/study_qualifications.yaml`
+(loaded via `hitlist.study_qualifications.load_study_contract("canine_dla_atlas")`, `#674`, `#676`,
+`#677`, `#666`, `#986`):
 
 - **`evaluate_canine_vital_organ_blacklist()` (`#674`)**: evaluates exact observed
   canine DLA ligands in `>=2` distinct resolved individual dogs across nonmalignant

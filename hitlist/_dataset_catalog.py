@@ -423,7 +423,7 @@ def _perturbation_datasets() -> dict[str, ManagedDataset]:
 
 def _dlbcl_datasets() -> dict[str, ManagedDataset]:
     from .downloads import data_dir
-    from .drug_dm_qualification import dlbcl_supplement_contract, fetch_dlbcl_supplements
+    from .study_qualifications import dlbcl_supplement_contract, fetch_dlbcl_supplements
 
     contract = dlbcl_supplement_contract()
     workbooks = list(contract["workbooks"].values())
@@ -873,14 +873,11 @@ def _dodm_ratio_datasets() -> dict[str, ManagedDataset]:
 
 def _iso18_and_neotoma_datasets() -> dict[str, ManagedDataset]:
     from .downloads import data_dir
-    from .drug_studies_qualification import (
-        drug_studies_qualification_contract,
-        fetch_neotoma_2021_sources,
-    )
     from .iso18_calibration import (
         fetch_iso18_calibration_sources,
         iso18_calibration_source_contract,
     )
+    from .study_qualifications import fetch_study_assets, load_study_contract
 
     iso_contract = iso18_calibration_source_contract()
     iso_keys = [
@@ -892,7 +889,7 @@ def _iso18_and_neotoma_datasets() -> dict[str, ManagedDataset]:
         "pride_hipmhc_spikein",
         "pride_skmel5_dmso_meki",
     ]
-    neotoma_pin = drug_studies_qualification_contract()["neotoma_2021_source_pin"]
+    neotoma_pin = load_study_contract("drug_studies_903")["neotoma_2021_source_pin"]
 
     def iso_root() -> Path:
         return data_dir() / "stopfer_2021_iso18"
@@ -971,8 +968,7 @@ def _iso18_and_neotoma_datasets() -> dict[str, ManagedDataset]:
         }
 
     def _neotoma_fetch(force: bool) -> Path:
-        fetch_neotoma_2021_sources(dest_dir=neotoma_root(), force=force)
-        return neotoma_root()
+        return fetch_study_assets("drug_studies_903", dest_dir=neotoma_root(), force=force)
 
     return {
         "stopfer-2021-iso18": ManagedDataset(
@@ -1077,12 +1073,9 @@ def _erap2_and_dilution_datasets() -> dict[str, ManagedDataset]:
         fetch_dilution_observer_sources,
     )
     from .downloads import data_dir
-    from .erap2_oe_qualification import (
-        erap2_oe_source_contract,
-        fetch_erap2_oe_maxquant_sources,
-    )
+    from .study_qualifications import fetch_study_assets, load_study_contract
 
-    erap2_contract = erap2_oe_source_contract()
+    erap2_contract = load_study_contract("erap2_oe_29769354")
     erap2_members = erap2_contract["pride_inventory"]["lentiviral_oe_archive"][
         "verified_extracted_members"
     ]
@@ -1133,7 +1126,7 @@ def _erap2_and_dilution_datasets() -> dict[str, ManagedDataset]:
         }
 
     def _erap2_fetch(force: bool) -> Path:
-        return fetch_erap2_oe_maxquant_sources(dest_dir=erap2_root(), force=force)
+        return fetch_study_assets("erap2_oe_29769354", dest_dir=erap2_root(), force=force)
 
     dil_contract = dilution_contract()
 
@@ -1212,16 +1205,14 @@ def _erap2_and_dilution_datasets() -> dict[str, ManagedDataset]:
 
 
 def _bekker_and_goldberg_datasets() -> dict[str, ManagedDataset]:
-    import json
-
-    from .bekker_jensen_qualification import (
-        bekker_jensen_source_contract,
-        fetch_bekker_jensen_provenance_files,
-    )
     from .downloads import data_dir
-    from .mapp_qualification import _GOLDBERG_PATH, fetch_goldberg_mapp_sources
+    from .study_qualifications import (
+        fetch_study_assets,
+        load_study_assets_manifest,
+        load_study_contract,
+    )
 
-    bj_contract = bekker_jensen_source_contract()
+    bj_contract = load_study_contract("bekker_jensen_2017")
     bj_members = {
         k: bj_contract["archive"]["verified_members"][k] for k in ("parameters.txt", "summary.txt")
     }
@@ -1262,9 +1253,9 @@ def _bekker_and_goldberg_datasets() -> dict[str, ManagedDataset]:
         }
 
     def _bj_fetch(force: bool) -> Path:
-        return fetch_bekker_jensen_provenance_files(dest_dir=bj_root(), force=force)
+        return fetch_study_assets("bekker_jensen_2017", dest_dir=bj_root(), force=force)
 
-    gb_contract = json.loads(_GOLDBERG_PATH.read_text(encoding="utf-8"))
+    gb_contract = load_study_assets_manifest("mapp_unified")
     large_roles = {"complete_publisher_supplement", "original_mapp_search_results"}
     gb_meta_assets = [a for a in gb_contract["assets"] if a["role"] not in large_roles]
     gb_all_assets = list(gb_contract["assets"])
@@ -1358,8 +1349,8 @@ def _bekker_and_goldberg_datasets() -> dict[str, ManagedDataset]:
             path_fn=gb_root,
             files_fn=_gb_meta_files,
             exists_fn=_gb_meta_exists,
-            fetch_fn=lambda force: fetch_goldberg_mapp_sources(
-                dest_dir=gb_root(), include_large_archives=False, force=force
+            fetch_fn=lambda force: fetch_study_assets(
+                "mapp_unified", dest_dir=gb_root(), include_optional=False, force=force
             ),
             info_fn=_gb_meta_info,
             remove_fn=lambda delete_file: _remove_tree(gb_root(), delete_file=delete_file),
@@ -1376,8 +1367,8 @@ def _bekker_and_goldberg_datasets() -> dict[str, ManagedDataset]:
             path_fn=gb_root,
             files_fn=_gb_all_files,
             exists_fn=_gb_all_exists,
-            fetch_fn=lambda force: fetch_goldberg_mapp_sources(
-                dest_dir=gb_root(), include_large_archives=True, force=force
+            fetch_fn=lambda force: fetch_study_assets(
+                "mapp_unified", dest_dir=gb_root(), include_optional=True, force=force
             ),
             info_fn=_gb_all_info,
             remove_fn=lambda delete_file: _remove_tree(gb_root(), delete_file=delete_file),
@@ -1387,25 +1378,14 @@ def _bekker_and_goldberg_datasets() -> dict[str, ManagedDataset]:
 
 
 def _calibration_erap1_degradomics_datasets() -> dict[str, ManagedDataset]:
-    import json
-
-    from .degradomics_native_qualification import (
-        _INTACT_ASSETS_PATH,
-        _NATIVE_ASSETS_PATH,
-        fetch_pxd018722_sahu_metadata_sources,
-        fetch_pxd058121_intact_degradomics_sources,
-    )
     from .downloads import data_dir
-    from .erap1_biochemical_qualification import (
-        erap1_biochemical_inventory_contract,
-        fetch_maben_2021_erap1_source,
-    )
-    from .ms_calibration_qualification import (
-        _PXD004886_ASSETS_PATH,
-        fetch_pxd004886_calibration_sources,
+    from .study_qualifications import (
+        fetch_study_assets,
+        load_study_assets_manifest,
+        load_study_contract,
     )
 
-    pxd004886_manifest = json.loads(_PXD004886_ASSETS_PATH.read_text(encoding="utf-8"))
+    pxd004886_manifest = load_study_assets_manifest("non_mhc_calibration")
 
     def cal_root() -> Path:
         return data_dir() / "pxd004886_ms_calibration"
@@ -1439,7 +1419,7 @@ def _calibration_erap1_degradomics_datasets() -> dict[str, ManagedDataset]:
             "terms": "https://www.nature.com/articles/s41467-017-00249-5",
         }
 
-    maben_asset = erap1_biochemical_inventory_contract()["sources"]["maben_2021"]["archive_asset"]
+    maben_asset = load_study_contract("erap1_biochemical")["sources"]["maben_2021"]["archive_asset"]
 
     def maben_root() -> Path:
         return data_dir() / "maben_2021_erap1_source_data"
@@ -1475,7 +1455,7 @@ def _calibration_erap1_degradomics_datasets() -> dict[str, ManagedDataset]:
             "terms": "https://www.nature.com/articles/s41467-021-25564-w",
         }
 
-    intact_manifest = json.loads(_INTACT_ASSETS_PATH.read_text(encoding="utf-8"))
+    intact_manifest = load_study_assets_manifest("pxd058121_intact_degradomics")
 
     def intact_root() -> Path:
         return data_dir() / "pxd058121_intact_degradomics"
@@ -1509,7 +1489,7 @@ def _calibration_erap1_degradomics_datasets() -> dict[str, ManagedDataset]:
             "terms": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11874349/",
         }
 
-    native_manifest = json.loads(_NATIVE_ASSETS_PATH.read_text(encoding="utf-8"))
+    native_manifest = load_study_assets_manifest("pxd018722_sahu_psmd2")
     native_meta_assets = [
         a
         for a in native_manifest["assets"]
@@ -1560,8 +1540,8 @@ def _calibration_erap1_degradomics_datasets() -> dict[str, ManagedDataset]:
             path_fn=cal_root,
             files_fn=_cal_files,
             exists_fn=lambda: all(item["exists"] for item in _cal_files()),
-            fetch_fn=lambda force: fetch_pxd004886_calibration_sources(
-                dest_dir=cal_root(), force=force
+            fetch_fn=lambda force: fetch_study_assets(
+                "non_mhc_calibration", dest_dir=cal_root(), force=force
             ),
             info_fn=_cal_info,
             remove_fn=lambda delete_file: _remove_tree(cal_root(), delete_file=delete_file),
@@ -1578,8 +1558,9 @@ def _calibration_erap1_degradomics_datasets() -> dict[str, ManagedDataset]:
             path_fn=maben_path,
             files_fn=_maben_files,
             exists_fn=lambda: maben_path().is_file(),
-            fetch_fn=lambda force: fetch_maben_2021_erap1_source(
-                dest_dir=maben_root(), force=force
+            fetch_fn=lambda force: (
+                fetch_study_assets("erap1_biochemical", dest_dir=maben_root(), force=force)
+                / maben_asset["filename"]
             ),
             info_fn=_maben_info,
             remove_fn=lambda delete_file: _remove_tree(maben_root(), delete_file=delete_file),
@@ -1596,8 +1577,8 @@ def _calibration_erap1_degradomics_datasets() -> dict[str, ManagedDataset]:
             path_fn=intact_root,
             files_fn=_intact_files,
             exists_fn=lambda: all(item["exists"] for item in _intact_files()),
-            fetch_fn=lambda force: fetch_pxd058121_intact_degradomics_sources(
-                dest_dir=intact_root(), force=force
+            fetch_fn=lambda force: fetch_study_assets(
+                "pxd058121_intact_degradomics", dest_dir=intact_root(), force=force
             ),
             info_fn=_intact_info,
             remove_fn=lambda delete_file: _remove_tree(intact_root(), delete_file=delete_file),
@@ -1614,8 +1595,8 @@ def _calibration_erap1_degradomics_datasets() -> dict[str, ManagedDataset]:
             path_fn=native_root,
             files_fn=_native_files,
             exists_fn=lambda: all(item["exists"] for item in _native_files()),
-            fetch_fn=lambda force: fetch_pxd018722_sahu_metadata_sources(
-                dest_dir=native_root(), include_fasta=False, force=force
+            fetch_fn=lambda force: fetch_study_assets(
+                "pxd018722_sahu_psmd2", dest_dir=native_root(), include_optional=False, force=force
             ),
             info_fn=_native_info,
             remove_fn=lambda delete_file: _remove_tree(native_root(), delete_file=delete_file),

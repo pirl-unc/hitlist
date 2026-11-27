@@ -5,17 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import openpyxl
-import pandas as pd
 import pytest
 
 import hitlist
-from hitlist.drug_studies_qualification import (
-    drug_studies_qualification_contract,
-    get_drug_study_qualification,
-    load_qualified_drug_contrast_records,
-    parse_neotoma_2021_tables,
-    summarize_drug_studies_qualification,
-)
 from hitlist.iso18_calibration import (
     iso18_calibration_source_contract,
     iso18_calibration_training_recipe,
@@ -292,106 +284,21 @@ def test_iso18_parsing_conflicts_missing_vs_zero_and_column_lineage(tmp_path: Pa
     assert (pkg_dir / "skmel5_binimetinib_transitions.parquet").is_file()
 
 
-def test_drug_studies_903_contract_and_neotoma_contrast_loader(tmp_path: Path) -> None:
-    contract = drug_studies_qualification_contract()
+def test_drug_studies_903_contract_and_skmel5_transitions(tmp_path: Path) -> None:
+    from hitlist.study_qualifications import load_study_contract
+
+    contract = load_study_contract("drug_studies_903")
     assert contract["tracking_issue"] == 903
-    summary = summarize_drug_studies_qualification()
-    assert len(summary) == 7
+    studies = contract["studies"]
+    assert len(studies) == 7
     expected_pmids = {34497125, 34129938, 33981976, 33912179, 25576301, 29632711, 30524438}
-    assert set(summary["pmid"]) == expected_pmids
+    assert {int(s["pmid"]) for s in studies} == expected_pmids
 
-    recovered = summary[summary["qualification_status"] == "observed_source_recovered"]
-    gaps = summary[summary["qualification_status"] == "explicit_source_gap"]
-    assert set(recovered["pmid"]) == {34497125, 34129938}
-    assert set(gaps["pmid"]) == {33981976, 33912179, 25576301, 29632711, 30524438}
-    assert gaps["missing_relation"].notna().all()
-
-    # Jensen 2018 (30524438) resolves exact BET PROTAC compounds
-    jensen = get_drug_study_qualification(30524438)
-    assert "ARV-825 (JQ1-CRBN)" in jensen["compounds"]
-    assert "ARV-771 (JQ1-VHL)" in jensen["compounds"]
-    assert "JQ1-MDM2" in jensen["compounds"]
-    assert "BV173" in jensen["cell_system"]
-
-    # Pollock 2021 (34129938) keeps dTAG-13/doxycycline distinct from generic processing inhibition
-    pollock = get_drug_study_qualification(34129938)
-    assert pollock["compound_mechanism_class"] == "engineered_construct_tool"
-
-    # Build synthetic NeoToma2021 CSVs + SKMEL5 workbook and test unified contrast loader
-    nt_dir = tmp_path / "neotoma"
-    nt_dir.mkdir()
-    pd.DataFrame(
-        [
-            {
-                "Replicate": 1,
-                "Peptide": "ASMTNMELM",
-                "Protein": "Adpgk",
-                "MS3SPSIons": 6,
-                "MS3SumSN": 400.0,
-                "MS2ScanNumber": 100,
-                "MS3ScanNumber": 101,
-                "MS2RetentionTime": 27.5,
-                "MS3Quant2": 10.0,
-                "MS3Quant6": 150.0,
-                "MS3Quant9": 25.0,
-                "MS3Quant10": 5.0,
-            }
-        ]
-    ).to_csv(nt_dir / "toma1.csv", index=False)
-    pd.DataFrame(
-        [
-            {
-                "Protein Accession": "CONSTRUCT_FKBP12F36V_AdpgkR304M_tGFP",
-                "Peptide": "A.ASMTNMELM.G",
-                "Intensity TMT6-126": 100.0,
-                "Intensity TMT6-127": 1000.0,
-                "Intensity TMT6-128": 50.0,
-                "Intensity TMT6-129": 9000.0,
-                "Intensity TMT6-130": 1500.0,
-                "Intensity TMT6-131": 400.0,
-                "PTM": "TMT6plex",
-                "Source File": "idAG4plex_untargetedMS2.raw",
-                "Scan": 500,
-            }
-        ]
-    ).to_csv(nt_dir / "untargeted_MS2.csv", index=False)
-
-    parsed_nt = parse_neotoma_2021_tables(nt_dir, allow_unverified_checksum=True)
-    assert len(parsed_nt["targeted_ms3"]) == 4
-    assert set(parsed_nt["targeted_ms3"]["condition_drugs"]) == {
-        "none",
-        "doxycycline",
-        "dTAG-13",
-        "dTAG-13;doxycycline",
-    }
-    assert (
-        parsed_nt["targeted_ms3"]["perturbation_mechanism_class"] == "engineered_construct_tool"
-    ).all()
-    ut = parsed_nt["untargeted_ms2"]
-    assert int((ut["eligibility_status"] == "excluded_blank_qc_channel").sum()) == 2
-    assert (
-        int((ut["eligibility_status"] == "eligible_engineered_construct_contrast_only").sum()) == 4
-    )
-
-    # Unified contrast table combines SKMEL5 endogenous transitions + NeoToma targeted MS3
     stopfer_dir = _build_synthetic_stopfer_dir(tmp_path / "stopfer")
     sk_df = parse_skmel5_binimetinib_transitions(
         stopfer_dir / "SKMEL5_Transitions_DMSO_MEKi.xlsx", allow_unverified_checksum=True
     )
     assert set(sk_df["analyte_channel"]) == {"endogenous_light", "heavy_isotopologue_calibrant"}
-
-    combined = load_qualified_drug_contrast_records(
-        skmel5_xlsx_path=stopfer_dir / "SKMEL5_Transitions_DMSO_MEKi.xlsx",
-        neotoma_source_dir=nt_dir,
-        allow_unverified_checksum=True,
-    )
-    assert set(combined["pmid"]) == {34497125, 34129938}
-    assert set(combined["perturbation_mechanism_class"]) == {
-        "mek_kinase_inhibitor",
-        "engineered_construct_tool",
-    }
-    # Heavy calibrant row from SKMEL5 must NOT leak into biological contrast table
-    assert len(combined[combined["pmid"] == 34497125]) == 2
 
 
 def test_catalog_registers_stopfer_and_pollock_datasets() -> None:

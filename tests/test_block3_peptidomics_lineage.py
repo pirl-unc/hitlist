@@ -28,15 +28,11 @@ from hitlist.lymph_composition import (
     guard_nanaware_quantity_aggregation,
     nanaware_quantitative_grain_contract,
 )
-from hitlist.peptidomicsdb_qualification import (
-    guard_peptidomicsdb_reanalysis_rows,
-    peptidomicsdb_source_contract,
-    qualify_peptidomicsdb_samples,
-)
+from hitlist.study_qualifications import load_study_contract
 
 
-def test_peptidomicsdb_contract_and_capture_vs_compartment_hazards():
-    contract = peptidomicsdb_source_contract()
+def test_peptidomicsdb_contract_and_catalog_registration():
+    contract = load_study_contract("peptidomicsdb")
     assert contract["tracked_issue"] == 811
     assert contract["doi"] == "10.1093/nar/gkag1032"
     assert contract["current_n_qualified_native_apc_cohorts"] == 0
@@ -45,155 +41,9 @@ def test_peptidomicsdb_contract_and_capture_vs_compartment_hazards():
         contract["metadata_workbooks"]["sample-download.xlsx"]["sha256"]
         == "739fd96bf13f90988cc00548b0250d640a0f97bbf25ecb737b7d89fc165b1f39"
     )
-
-    samples = pd.DataFrame(
-        [
-            # Hazard 1: PPD017/PXD021177 sample PPD0170004 tagged MHC-I + Intracellular (PMID 34211107 HLA-IP)
-            {
-                "PeptidomicsDB project ID": "PPD017",
-                "PeptidomicsDB sample ID": "PPD0170004",
-                "Original project accession": "PXD021177",
-                "Raw file": "JY_whole_cell.raw",
-                "Condition": "Whole cell",
-                "Species": "Homo sapiens",
-                "Tissue": "JY",
-                "Peptidomics category": "MHC-I immunopeptidomics; Intracellular peptidomics",
-                "Enzyme": "None",
-            },
-            # Hazard 2: PPD070/PXD009801 generically tagged Peptidomics (PMID 24715725 dynamic SILAC HLA-I)
-            {
-                "PeptidomicsDB project ID": "PPD070",
-                "PeptidomicsDB sample ID": "PPD0700001",
-                "Original project accession": "PXD009801",
-                "Raw file": "U937_silac.raw",
-                "Condition": "SILAC",
-                "Species": "Homo sapiens",
-                "Tissue": "U937; RPMI; JY",
-                "Peptidomics category": "Peptidomics",
-                "Enzyme": "None",
-            },
-            # Solely Intracellular-tagged enteroendocrine cells -> excluded non-APC
-            {
-                "PeptidomicsDB project ID": "PPD016",
-                "PeptidomicsDB sample ID": "PPD0160001",
-                "Original project accession": "PXD033369",
-                "Raw file": "entero_01.raw",
-                "Condition": "Control",
-                "Species": "Mus musculus",
-                "Tissue": "Enteroendocrine cells",
-                "Peptidomics category": "Intracellular peptidomics",
-                "Enzyme": "None",
-            },
-            # Unreviewed generic project with Enzyme=None -> deferred (Enzyme=None != native extraction!)
-            {
-                "PeptidomicsDB project ID": "PPD999",
-                "PeptidomicsDB sample ID": "PPD9990001",
-                "Original project accession": "PXD999999",
-                "Raw file": "mystery.raw",
-                "Condition": "Baseline",
-                "Species": "Homo sapiens",
-                "Tissue": "PBMC",
-                "Peptidomics category": "Peptidomics",
-                "Enzyme": "None",
-            },
-        ]
-    )
-
-    qdf, summary = qualify_peptidomicsdb_samples(samples)
-    assert summary["n_rows"] == 4
-    assert summary["n_eligible_rows"] == 0
-    assert summary["n_excluded_rows"] == 3
-    assert summary["n_deferred_rows"] == 1
-    assert summary["establishes_specimen_independence"] is False
-    assert summary["establishes_cellular_concentration"] is False
-
-    by_id = qdf.set_index("sample_id")
-    # PPD0170004 excluded with HLA-IP provenance preserved separately from raw category
-    assert by_id.loc["PPD0170004", "disposition"] == "excluded"
-    assert (
-        by_id.loc["PPD0170004", "disposition_reason"]
-        == "capture_vs_compartment_hazard_hla_ip_not_free_intracellular"
-    )
-    assert by_id.loc["PPD0170004", "molecular_capture_enrichment"] == "hla_immunoaffinity"
-    assert (
-        by_id.loc["PPD0170004", "source_category_raw"]
-        == "MHC-I immunopeptidomics; Intracellular peptidomics"
-    )
-
-    # PPD0700001 excluded despite generic Peptidomics category
-    assert by_id.loc["PPD0700001", "disposition"] == "excluded"
-    assert (
-        by_id.loc["PPD0700001", "disposition_reason"]
-        == "generic_peptidomics_category_hides_hla_i_dynamic_silac"
-    )
-
-    # PPD0160001 excluded as enteroendocrine non-APC
-    assert by_id.loc["PPD0160001", "disposition"] == "excluded"
-    assert by_id.loc["PPD0160001", "disposition_reason"] == "non_apc_enteroendocrine_cells"
-
-    # Unreviewed generic project with Enzyme=None remains deferred AND post_extraction_digestion=unknown!
-    assert by_id.loc["PPD9990001", "disposition"] == "deferred"
-    assert by_id.loc["PPD9990001", "ms_search_enzyme"] == "None"
-    assert by_id.loc["PPD9990001", "post_extraction_digestion"] == "unknown"
-
-    # Catalog symmetry check
     cat = available_dataset_catalog(category="perturbation_and_calibration")
     assert "peptidomicsdb_metadata" in cat
     assert cat["peptidomicsdb_metadata"]["group"] == "peptidomics_qualification"
-
-
-def test_peptidomicsdb_reanalysis_guard_preserves_methods_and_missing_vs_zero():
-    rows = pd.DataFrame(
-        [
-            {
-                "project_id": "PPD001",
-                "sample_id": "PPD0010001",
-                "peptide": "GVYDGREHTV",
-                "peaks_version": "PEAKS Studio 11",
-                "identification_method": "DB Search",
-                "origin_alternatives_raw": "P43358;Q99999",
-                "quantity_raw": "12345.6",
-            },
-            {
-                "project_id": "PPD001",
-                "sample_id": "PPD0010001",
-                "peptide": "SIINFEKL",
-                "peaks_version": "PEAKS Studio 11",
-                "identification_method": "DeepNovo",
-                "origin_alternatives_raw": "",
-                "quantity_raw": "0",
-            },
-            {
-                "project_id": "PPD002",
-                "sample_id": "PPD0020001",
-                "peptide": "GILGFVFTL",
-                "peaks_version": "PEAKS Studio 11",
-                "identification_method": "Sequence Variants",
-                "origin_alternatives_raw": "P03485",
-                "quantity_raw": "",
-            },
-        ]
-    )
-    out, summary = guard_peptidomicsdb_reanalysis_rows(rows)
-    assert summary["n_rows"] == 3
-    assert summary["cross_project_intensity_comparable"] is False
-    assert summary["multi_project_comparison_warning"] is True
-    assert summary["n_by_identification_method"] == {
-        "DB Search": 1,
-        "DeepNovo": 1,
-        "Sequence Variants": 1,
-    }
-    assert summary["n_by_quantity_value_status"] == {
-        "missing": 1,
-        "observed_positive": 1,
-        "observed_zero": 1,
-    }
-    assert not out["cross_project_intensity_comparable"].any()
-
-    bad = rows.copy()
-    bad.loc[0, "identification_method"] = "Collapsed"
-    with pytest.raises(ValueError, match="Unsupported PEAKS identification_method"):
-        guard_peptidomicsdb_reanalysis_rows(bad)
 
 
 def test_hap1_selection_covariates_non_filtering_join_and_provenance():
@@ -400,8 +250,7 @@ def test_atlas_specimen_lineage_contract_and_audit_guard():
     assert audit["acquisition_independence_verdict"] == "inconclusive"
 
     # Public lazy exports resolve cleanly
-    assert hitlist.peptidomicsdb_source_contract is peptidomicsdb_source_contract
-    assert hitlist.qualify_peptidomicsdb_samples is qualify_peptidomicsdb_samples
+    assert hitlist.load_study_contract is load_study_contract
     assert hitlist.attach_hap1_selection_covariates is attach_hap1_selection_covariates
     assert hitlist.nanaware_quantitative_grain_contract is nanaware_quantitative_grain_contract
     assert hitlist.atlas_specimen_lineage_contract is atlas_specimen_lineage_contract

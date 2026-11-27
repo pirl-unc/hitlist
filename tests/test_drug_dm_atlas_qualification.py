@@ -9,16 +9,6 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from hitlist import (
-    abelin_dm_source_contract,
-    atlas_prediction_provenance_contract,
-    dlbcl_supplement_contract,
-    flucloxacillin_adduct_contract,
-    load_dlbcl_supplement_rows,
-    prepare_flucloxacillin_evidence_views,
-    prepare_hla_dm_contrast_data,
-    reconcile_dlbcl_supplements_with_iedb,
-)
 from hitlist.curation import load_pmid_overrides, restriction_evidence_for_row
 from hitlist.export import (
     _statement_maps,
@@ -27,6 +17,7 @@ from hitlist.export import (
     generate_observations_table,
     generate_training_table,
 )
+from hitlist.study_qualifications import load_study_contract
 from hitlist.supplement import load_supplementary_manifest, scan_supplementary
 
 _SUPP_DIR = Path(__file__).resolve().parents[1] / "hitlist" / "data" / "supplementary"
@@ -38,7 +29,7 @@ _SUPP_DIR = Path(__file__).resolve().parents[1] / "hitlist" / "data" / "suppleme
 
 
 def test_abelin_dm_contract_and_manifest_replace_merged_csv():
-    contract = abelin_dm_source_contract()
+    contract = load_study_contract("abelin_2019_dm")
     assert contract["pmid"] == 31495665
     assert (
         contract["workbook_sha256"]
@@ -71,7 +62,7 @@ def test_abelin_dm_contract_and_manifest_replace_merged_csv():
 
 @pytest.mark.integration
 def test_abelin_dm_full_asset_preserves_heterodimers_and_shared_peptides():
-    contract = abelin_dm_source_contract()
+    contract = load_study_contract("abelin_2019_dm")
     derived = contract["derived_asset"]
     asset_path = _SUPP_DIR / derived["file"]
     df = pd.read_csv(asset_path, dtype=str).fillna("")
@@ -154,44 +145,6 @@ def test_abelin_dm_shared_peptide_survives_ingestion_export_and_unified_contrast
     }
     assert set(exported["condition_baseline_engineering"]) == {"MAPTAC_tagged_HLA_transfection"}
 
-    # Add a Stražar 37301199 DM-only row and an unattributed row to verify exclusion guards.
-    augmented = pd.concat(
-        [
-            exported,
-            pd.DataFrame(
-                [
-                    {
-                        "peptide": "STRAZARDMONLY",
-                        "pmid": 37301199,
-                        "mhc_class": "II",
-                        "condition_id": "expi293f_dm_plus",
-                    },
-                    {
-                        "peptide": "UNATTRIBUTED",
-                        "pmid": 31495665,
-                        "mhc_class": "II",
-                        "condition_id": "",
-                    },
-                ]
-            ),
-        ],
-        ignore_index=True,
-    )
-    contrast = prepare_hla_dm_contrast_data(augmented)
-    assert contrast["row_conservation_ok"] is True
-    assert contrast["n_admitted_rows"] == 3
-    assert contrast["excluded_counts"] == {
-        "dm_positive_only_no_paired_control": 1,
-        "unattributed_condition_id": 1,
-    }
-    dp_summary = (
-        contrast["pair_summary"].set_index("pair_id").loc["abelin2019:HLA-DPA1*01:03/DPB1*06:01"]
-    )
-    assert int(dp_summary["n_dm_minus_rows"]) == 1
-    assert int(dp_summary["n_dm_plus_rows"]) == 1
-    assert int(dp_summary["n_shared_peptides"]) == 1
-    assert bool(dp_summary["has_both_arms"]) is True
-
 
 # ---------------------------------------------------------------------------
 # #855: HLA Ligand Atlas prediction-derived allele-association provenance
@@ -199,7 +152,7 @@ def test_abelin_dm_shared_peptide_survives_ingestion_export_and_unified_contrast
 
 
 def test_hla_ligand_atlas_restriction_evidence_marks_single_allele_ms_predicted_only():
-    contract = atlas_prediction_provenance_contract()
+    contract = load_study_contract("hla_ligand_atlas_33858848")
     assert contract["pmid"] == 33858848
     assert contract["pmcid"] == "PMC8054196"
     assert (
@@ -260,7 +213,7 @@ def test_hla_ligand_atlas_restriction_evidence_marks_single_allele_ms_predicted_
 
 
 def test_flucloxacillin_statement_map_and_modification_aware_views(tmp_path, monkeypatch):
-    contract = flucloxacillin_adduct_contract()
+    contract = load_study_contract("flucloxacillin_33633747")
     assert contract["pmid"] == 33633747
     assert len(contract["confirmed_flx_covalent_adducts"]) == 3
 
@@ -382,136 +335,13 @@ def test_flucloxacillin_statement_map_and_modification_aware_views(tmp_path, mon
     shared_edges = edges[edges["peptide"] == "SHAREDFLXPEP"]
     assert set(shared_edges["condition_id"]) == {"cells_flucloxacillin", "cells_untreated"}
 
-    views = prepare_flucloxacillin_evidence_views(exported)
-    assert views["audit"]["row_conservation_ok"] is True
-    assert views["audit"]["n_unmodified_training_rows"] == 2
-    assert views["audit"]["n_modification_aware_rows"] == 6
-    assert views["audit"]["n_distinct_molecular_forms"] == 6
-    mod_idx = views["modification_aware_view"].set_index(["peptide", "peptide_modifications"])
-    assert mod_idx.loc[("KAAKLKEKY", "MCM:K4"), "adduct_class"] == "flx_covalent_hapten_confirmed"
-    assert mod_idx.loc[("KAAKLKEKY", "MCM:K4"), "adduct_site"] == "K4"
-    assert mod_idx.loc[("KAAKLKEKY", "MCM:K6"), "adduct_class"] == "flx_filler_unconfirmed_site"
-    assert bool(mod_idx.loc[("KAAKLKEKY", "MCM:K6"), "is_filler_assay"]) is True
-    assert mod_idx.loc[("KSRLKNPK", "CITR:R3"), "adduct_class"] == "endogenous_ptm"
-    assert mod_idx.loc[("UNKNOWNLOCPEP", "MCM"), "localization_status"] == "unknown_localization"
 
-
-# ---------------------------------------------------------------------------
-# #901: DLBCL Tables 3 & 5 supplement parsing & IEDB reconciliation
-# ---------------------------------------------------------------------------
-
-
-def test_dlbcl_supplement_parser_and_reconciliation_synthetic(tmp_path):
-    """Preserves literal header variants (lengtg, Query #:z), NetMHCpan 4.0
-    predicted provenance, missing intensity status, and DB_untreated recovery."""
-    import openpyxl
-
-    contract = dlbcl_supplement_contract()
+def test_dlbcl_supplement_contract_pins_db_untreated():
+    contract = load_study_contract("dlbcl_35561310")
     assert contract["pmid"] == 35561310
     assert contract["quantity_availability"]["contains_peptide_intensity_or_area"] is False
     assert contract["workbooks"]["table_3_class_i"]["sheet_row_counts"]["DB_untreated"] == 7
     assert contract["workbooks"]["table_5_class_ii"]["sheet_row_counts"]["DB_untreated"] == 20
-
-    s3 = tmp_path / "suppl3.xlsx"
-    wb3 = openpyxl.Workbook()
-    ws = wb3.active
-    ws.title = "DB_untreated"
-    ws.append(
-        [
-            "length",
-            "peptide sequences with modifications",
-            "peptide sequence unmodified",
-            "Modification Type(s)",
-            "HLA-A*02:01",
-            "HLA-B*18:01",
-        ]
-    )
-    ws.append([9, "A.DBCTRLPEP.K", "DBCTRLPEP", "", 0.42, 12.5])
-    ws_ifn = wb3.create_sheet("DB_IFN_DAC")
-    ws_ifn.append(
-        [
-            "length",
-            "peptide sequences with modifications",
-            "peptide sequence unmodified",
-            "Modification Type(s)",
-            "HLA-A*02:01",
-        ]
-    )
-    ws_ifn.append([9, "K.DBIFNDAC1.A", "DBIFNDAC1", "", 0.15])
-    wb3.save(s3)
-
-    s5 = tmp_path / "suppl5.xlsx"
-    wb5 = openpyxl.Workbook()
-    ws5 = wb5.active
-    ws5.title = "SUDHL6_IFN_TAZ"
-    ws5.append(
-        [
-            "Query #:z",
-            "peptide sequences with modifications",
-            "peptide sequence unmodified",
-            "Modification Type(s)",
-            "Observed m/z",
-            "z",
-        ]
-    )
-    # Two repeated native rows for the same modified form must both be retained.
-    ws5.append(["101:2", "L.CLASS2REPEATPEP.A", "CLASS2REPEATPEP", "", 700.1, 2])
-    ws5.append(["102:2", "L.CLASS2REPEATPEP.A", "CLASS2REPEATPEP", "", 700.1, 2])
-    ws5_typo = wb5.create_sheet("SUDHL4_IFN_DAC_TAZ")
-    ws5_typo.append(
-        [
-            "lengtg",
-            "peptide sequences with modifications",
-            "peptide sequence unmodified",
-            "Modification Type(s)",
-        ]
-    )
-    ws5_typo.append([15, "R.CLASS2TYPOHEADER.G", "CLASS2TYPOHEADER", ""])
-    wb5.save(s5)
-
-    # Checksum check rejects non-original files when verify_checksums=True.
-    with pytest.raises(ValueError, match="checksum/size mismatch"):
-        load_dlbcl_supplement_rows(s3, s5, verify_checksums=True)
-
-    rows = load_dlbcl_supplement_rows(s3, s5, verify_checksums=False)
-    assert len(rows) == 5
-    by_sheet = rows.set_index("source_sheet")
-    assert by_sheet.loc["DB_untreated", "condition_id"] == "db_dmso"
-    assert by_sheet.loc["DB_untreated", "restriction_evidence"] == "predicted"
-    assert by_sheet.loc["DB_IFN_DAC", "comparator_condition_id"] == "db_ifng"
-    assert by_sheet.loc["DB_IFN_DAC", "baseline_treatment"] == "IFNG"
-    assert by_sheet.loc["DB_IFN_DAC", "comparator_condition_ids"] == "db_ifng"
-    assert by_sheet.loc["SUDHL4_IFN_DAC_TAZ", "first_col_header_literal"] == "lengtg"
-    assert list(rows.loc[rows["source_sheet"] == "SUDHL6_IFN_TAZ", "first_col_header_literal"]) == [
-        "Query #:z",
-        "Query #:z",
-    ]
-    assert rows["quantitative_value"].isna().all()
-    assert rows["has_source_dose_unit_conflict"].all()
-
-    iedb_mock = pd.DataFrame(
-        [
-            {
-                "pmid": 35561310,
-                "peptide": "DBIFNDAC1",
-                "mhc_class": "I",
-                "condition_id": "db_ifng_dac",
-                "sample_group": "DB",
-            },
-            {
-                "pmid": 35561310,
-                "peptide": "AMBIGPEP",
-                "mhc_class": "I",
-                "condition_id": "",
-                "sample_group": "DB",
-            },
-        ]
-    )
-    rec = reconcile_dlbcl_supplements_with_iedb(rows, iedb_mock)
-    assert rec["n_iedb_ambiguous_rows"] == 1
-    per_arm = rec["per_arm"].set_index(["mhc_class", "condition_id"])
-    assert bool(per_arm.loc[("I", "db_dmso"), "recovers_missing_iedb_control"]) is True
-    assert int(per_arm.loc[("I", "db_ifng_dac"), "n_overlap_peptides"]) == 1
 
 
 @pytest.mark.integration

@@ -20,24 +20,10 @@ from hitlist.evidence_catalog import (
     list_tasks,
 )
 
-# Frozen set of legacy per-paper qualification modules (#986).
-# Phase 2a collapses these into YAML; no new *_qualification.py modules may be added.
-_FROZEN_QUALIFICATION_MODULES = frozenset(
-    {
-        "bekker_jensen_qualification.py",
-        "canine_dla_qualification.py",
-        "dc_immunoproteasome_qualification.py",
-        "degradomics_native_qualification.py",
-        "drug_dm_qualification.py",
-        "drug_studies_qualification.py",
-        "endolysosomal_qualification.py",
-        "erap1_biochemical_qualification.py",
-        "erap2_oe_qualification.py",
-        "mapp_qualification.py",
-        "ms_calibration_qualification.py",
-        "peptidomicsdb_qualification.py",
-    }
-)
+# Guardrail (#986): all 12 legacy per-paper qualification modules were collapsed
+# into hitlist/data/study_qualifications.yaml in Phase 2a; zero *_qualification.py
+# modules are permitted in hitlist/.
+_FROZEN_QUALIFICATION_MODULES: frozenset[str] = frozenset()
 
 
 def test_catalog_covers_current_data_grains_without_double_counting():

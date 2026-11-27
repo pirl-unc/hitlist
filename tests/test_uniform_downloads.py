@@ -25,7 +25,7 @@ from pathlib import Path
 import pytest
 
 import hitlist
-from hitlist import cli, downloads, drug_dm_qualification, netmhcstabpan
+from hitlist import cli, downloads, netmhcstabpan, study_qualifications
 from hitlist.errors import DownloadError, InsufficientSpaceError, IntegrityError
 
 Usage = namedtuple("usage", ["total", "used", "free"])
@@ -175,7 +175,7 @@ def test_dlbcl_supplements_uniform_fetch_path_inventory_and_remove(
             },
         },
     }
-    monkeypatch.setattr(drug_dm_qualification, "dlbcl_supplement_contract", lambda: fake_contract)
+    monkeypatch.setattr(study_qualifications, "dlbcl_supplement_contract", lambda: fake_contract)
 
     def _fake_download(url, dest, **kwargs):
         with zipfile.ZipFile(dest, "w") as zf:
@@ -235,4 +235,4 @@ def test_top_level_download_api_is_symmetric():
     assert hitlist.set_data_dir is downloads.set_data_dir
     assert hitlist.data_assets is downloads.data_assets
     assert hitlist.fetch_data_asset is downloads.fetch_data_asset
-    assert hitlist.fetch_dlbcl_supplements is drug_dm_qualification.fetch_dlbcl_supplements
+    assert hitlist.fetch_dlbcl_supplements is study_qualifications.fetch_dlbcl_supplements
