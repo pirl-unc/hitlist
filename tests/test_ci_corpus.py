@@ -198,7 +198,8 @@ def current_corpus(tiny_dataset, monkeypatch):
 def test_actual_current_builder_publishes_complete_portable_provenance(
     current_corpus, tmp_path, monkeypatch
 ):
-    from hitlist import downloads, load_contributors
+    from hitlist import downloads
+    from hitlist.provenance import load_contributors
 
     root, generation = current_corpus
     published = ci_corpus.snapshot_corpus(root, cache_dir=tmp_path / "public-cache")

@@ -10,7 +10,6 @@ import math
 import pandas as pd
 import pytest
 
-import hitlist
 from hitlist.cell_lineage import (
     attach_orthogonal_cell_lineage,
     classify_cell_lineage,
@@ -103,7 +102,6 @@ def test_attach_orthogonal_cell_lineage_vectorized():
         ]
     )
     enriched = attach_orthogonal_cell_lineage(df)
-    assert hitlist.attach_orthogonal_cell_lineage is attach_orthogonal_cell_lineage
     assert enriched["cell_lineage"].tolist() == ["epithelial", "moDC", "myeloid_leukemia"]
     assert enriched["malignancy_status"].tolist() == [
         "tumor_cell_line",
@@ -121,10 +119,6 @@ def test_extract_structured_perturbation_contrasts_from_curated_overrides():
     # PMID 30484775 (Ilca 2018 TAPBPR rescue on TAPBPR_KO background) and
     # PMID 40113210 (Shapiro 2025 HAP1 APM KO panel)
     contrasts = extract_structured_perturbation_contrasts(pmids=[30484775, 40113210])
-    assert (
-        hitlist.extract_structured_perturbation_contrasts
-        is extract_structured_perturbation_contrasts
-    )
     assert not contrasts.empty
     ilca = contrasts[contrasts["pmid"] == 30484775]
     assert len(ilca) == 4
@@ -165,7 +159,6 @@ def test_tag_expression_provenance_tiers():
         ]
     )
     tagged = tag_expression_provenance(df)
-    assert hitlist.tag_expression_provenance is tag_expression_provenance
     assert tagged["expression_provenance_tier"].tolist() == [
         "reference_cell_line_ccle_depmap",
         "parent_line_proxy",
@@ -326,8 +319,6 @@ def test_koff_kon_unit_conversion_and_stability_training_covariates():
     assert q.loc[3, "standardized_unit"] == "celsius"
 
     enriched = qualify_stability_and_kinetics(df)
-    assert hitlist.qualify_stability_and_kinetics is qualify_stability_and_kinetics
-    assert hitlist.audit_stability_normalization is audit_stability_normalization
     audit = audit_stability_normalization(enriched)
     assert audit["n_stability_kinetic_rows"] == 5
     assert audit["n_zero_half_life_rows"] == 1

@@ -17,13 +17,6 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-import hitlist
-from hitlist import (
-    ASSAY_SCHEMA_CONVENTIONS,
-    COLUMN_SYNONYM_MAP,
-    canonical_assay_columns,
-    normalize_assay_frame,
-)
 from hitlist.apc_contrasts import build_stimulus_contrast_catalog
 from hitlist.condition_categories import UNPERTURBED, categorize_condition
 from hitlist.conditions import (
@@ -40,6 +33,12 @@ from hitlist.model_training import (
     prepare_affinity_training_data,
     prepare_ms_training_data,
     prepare_stability_training_data,
+)
+from hitlist.schema_conventions import (
+    ASSAY_SCHEMA_CONVENTIONS,
+    COLUMN_SYNONYM_MAP,
+    canonical_assay_columns,
+    normalize_assay_frame,
 )
 
 
@@ -199,8 +198,8 @@ def test_canonical_schema_conventions_and_normalize_assay_frame():
         "bulk_proteomics",
         "line_expression",
     }
-    assert hitlist.normalize_assay_frame is normalize_assay_frame
-    assert hitlist.canonical_assay_columns is canonical_assay_columns
+    assert callable(normalize_assay_frame)
+    assert callable(canonical_assay_columns)
     assert "peptide_sequence" in COLUMN_SYNONYM_MAP
 
     raw = pd.DataFrame(

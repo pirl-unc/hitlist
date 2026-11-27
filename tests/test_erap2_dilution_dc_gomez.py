@@ -215,6 +215,8 @@ class TestGomezZepeda2024Closure:
 
 
 def test_public_exports_in_hitlist_init():
+    import pytest
+
     for name in (
         "dilution_observer_applicability_contract",
         "dilution_observer_nominal_dose_recipe",
@@ -223,4 +225,5 @@ def test_public_exports_in_hitlist_init():
         "load_study_contract",
         "fetch_study_assets",
     ):
-        assert hasattr(hitlist, name)
+        with pytest.warns(DeprecationWarning):
+            assert getattr(hitlist, name) is not None

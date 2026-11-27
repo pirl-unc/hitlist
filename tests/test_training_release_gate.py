@@ -101,7 +101,8 @@ def test_public_exports_and_contract_integrity():
         "assign_lineage_grouped_splits",
         "evaluate_training_release_gate",
     ):
-        assert hasattr(hitlist, symbol), f"Missing public export: {symbol}"
+        with pytest.warns(DeprecationWarning):
+            assert hasattr(hitlist, symbol), f"Missing deprecated shim export: {symbol}"
 
     contract = training_release_gate_contract()
     assert contract["schema_version"] == 1

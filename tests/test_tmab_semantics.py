@@ -7,8 +7,8 @@ import openpyxl
 import pyarrow.parquet as pq
 import pytest
 
-from hitlist import EvidenceStore
 from hitlist import tmab_peptidomics as tmab
+from hitlist.evidence_store import EvidenceStore
 
 
 def test_tentative_acetylation_does_not_insert_an_alanine():

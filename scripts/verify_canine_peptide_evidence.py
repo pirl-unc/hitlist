@@ -12,7 +12,8 @@ from unittest.mock import patch
 import pandas as pd
 from orfdata import DatasetRegistry, ScopedTarget
 
-from hitlist import curate_canine_bulk, load_bulk_evidence, open_canine_peptide_evidence
+from hitlist.canine_bulk import curate_canine_bulk, load_bulk_evidence
+from hitlist.canine_peptide_evidence import open_canine_peptide_evidence
 
 
 def offline(*args, **kwargs):

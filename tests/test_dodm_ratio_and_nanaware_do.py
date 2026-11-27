@@ -10,7 +10,6 @@ import openpyxl
 import pyarrow.parquet as pq
 import pytest
 
-import hitlist
 from hitlist.dohm_ratio_peptidomics import (
     dodm_ratio_source_contract,
     guard_dodm_evidence_namespace,
@@ -165,13 +164,14 @@ def test_parse_and_package_dodm_ratio_preserves_ptms_missingness_and_doko(tmp_pa
     manifest = write_dodm_ratio_package(pkg, workbook_path=wb_path, verify_pin=False)
     assert verify_dodm_ratio_package(pkg) == manifest
     assert pq.read_table(pkg / "ms1_quantities.parquet").num_rows == 6
-    assert "dodm-ratio-35085787" in hitlist.available_datasets()
-    assert hitlist.preflight("dodm-ratio-35085787")["expected_size_bytes"] == 7838853
+    from hitlist.downloads import available_datasets, preflight
+
+    assert "dodm-ratio-35085787" in available_datasets()
+    assert preflight("dodm-ratio-35085787")["expected_size_bytes"] == 7838853
 
 
 def test_nanaware_2019_do_contract_systems_and_title_intensity_parser():
     contract = nanaware_2019_do_source_contract()
-    assert hitlist.nanaware_2019_do_source_contract is nanaware_2019_do_source_contract
     assert contract["pmid"] == 30573663
     assert contract["massive_accession"] == "MSV000082570"
     assert set(contract["experimental_systems"]) == {"human_lg2_do_clones", "mouse_splenic_b_cells"}

@@ -7,7 +7,6 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-import hitlist
 from hitlist.curation import load_pmid_overrides
 from hitlist.peptidoform_provenance import (
     get_peptidoform_preparation_contract,
@@ -271,8 +270,10 @@ def test_sarango_858_contract_sdrf_boundaries_and_note_rewording(tmp_path: Path)
     assert bool(qual.iloc[0]["missing_detection_is_measured_negative"]) is False
 
     # Catalog registration check
-    assert "sarango-2022-pxd024417-sdrf" in set(hitlist.available_datasets())
-    assert hitlist.preflight("sarango-2022-pxd024417-sdrf")["name"] == "sarango-2022-pxd024417-sdrf"
+    from hitlist.downloads import available_datasets, preflight
+
+    assert "sarango-2022-pxd024417-sdrf" in set(available_datasets())
+    assert preflight("sarango-2022-pxd024417-sdrf")["name"] == "sarango-2022-pxd024417-sdrf"
 
 
 def test_oztemiz_812_contract_via_study_qualifications() -> None:

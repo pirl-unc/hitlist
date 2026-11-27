@@ -231,8 +231,12 @@ def test_cli_data_preflight_and_available_json(isolated_data_dir, monkeypatch, c
 
 def test_top_level_download_api_is_symmetric():
     assert hitlist.data_dir is downloads.data_dir
-    assert hitlist.data_asset_dir is downloads.data_asset_dir
     assert hitlist.set_data_dir is downloads.set_data_dir
-    assert hitlist.data_assets is downloads.data_assets
-    assert hitlist.fetch_data_asset is downloads.fetch_data_asset
-    assert hitlist.fetch_dlbcl_supplements is study_qualifications.fetch_dlbcl_supplements
+    with pytest.warns(DeprecationWarning):
+        assert hitlist.data_asset_dir is downloads.data_asset_dir
+    with pytest.warns(DeprecationWarning):
+        assert hitlist.data_assets is downloads.data_assets
+    with pytest.warns(DeprecationWarning):
+        assert hitlist.fetch_data_asset is downloads.fetch_data_asset
+    with pytest.warns(DeprecationWarning):
+        assert hitlist.fetch_dlbcl_supplements is study_qualifications.fetch_dlbcl_supplements

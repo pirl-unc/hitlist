@@ -8,7 +8,6 @@ import openpyxl
 import pyarrow.parquet as pq
 import pytest
 
-import hitlist
 from hitlist.bergseng_2015_dq import (
     bergseng_2015_source_contract,
     parse_bergseng_2015_workbook,
@@ -173,9 +172,10 @@ def test_parse_and_package_bergseng_preserves_cells_zeros_normalization_and_flag
 
 
 def test_bergseng_2015_registered_in_uniform_download_catalog():
-    assert hitlist.bergseng_2015_source_contract is bergseng_2015_source_contract
-    avail = hitlist.available_datasets()
+    from hitlist.downloads import available_datasets, preflight
+
+    avail = available_datasets()
     assert "bergseng-2015-dq" in avail
-    plan = hitlist.preflight("bergseng-2015-dq")
+    plan = preflight("bergseng-2015-dq")
     assert plan["name"] == "bergseng-2015-dq"
     assert plan["expected_size_bytes"] == 4693608

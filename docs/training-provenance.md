@@ -35,8 +35,8 @@ training rows or evidence weight. Rows with neither assay nor reference IDs
 remain separate observations (#624).
 
 ```python
-from hitlist import load_contributors
 from hitlist.export import generate_training_table
+from hitlist.provenance import load_contributors
 
 training = generate_training_table(include_evidence="ms", columns=["peptide"])
 contributors = load_contributors(training.provenance_id)
@@ -266,8 +266,9 @@ Loaders and exports pin one generation for their multi-file reads. To group
 several calls into one snapshot:
 
 ```python
-from hitlist import dataset_snapshot, load_contributors
+from hitlist import dataset_snapshot
 from hitlist.observations import load_binding, load_observations
+from hitlist.provenance import load_contributors
 
 with dataset_snapshot() as generation:
     observations = load_observations(peptide="SLYNTVATL")

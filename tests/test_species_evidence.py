@@ -257,7 +257,7 @@ def update(inputs, name, transform):
 
 
 def bundle(inputs, tmp_path, **kwargs):
-    from hitlist import write_species_evidence_bundle
+    from hitlist.species_evidence import write_species_evidence_bundle
 
     output = tmp_path / "bundle"
     write_species_evidence_bundle(output, input_manifest=inputs / "species-evidence.json", **kwargs)
@@ -291,7 +291,8 @@ def test_complete_reference_counterevidence_and_exact_ms(inputs, tmp_path):
 
 
 def test_offline_replay_and_deterministic_output(inputs, tmp_path, monkeypatch):
-    from hitlist import verify_evidence_bundle, write_species_evidence_bundle
+    from hitlist.evidence_bundle import verify_evidence_bundle
+    from hitlist.species_evidence import write_species_evidence_bundle
 
     out = bundle(inputs, tmp_path)
     other = tmp_path / "other"
@@ -429,7 +430,7 @@ def test_resource_bounds_publish_nothing(inputs, tmp_path, limit):
 
 
 def test_replay_detects_semantic_tampering_even_with_updated_hash(inputs, tmp_path):
-    from hitlist import verify_evidence_bundle
+    from hitlist.evidence_bundle import verify_evidence_bundle
 
     out = bundle(inputs, tmp_path)
     path = out / "peptides.parquet"
@@ -444,7 +445,7 @@ def test_replay_detects_semantic_tampering_even_with_updated_hash(inputs, tmp_pa
 
 
 def test_reference_checksum_and_existing_destination(inputs, tmp_path):
-    from hitlist import write_species_evidence_bundle
+    from hitlist.species_evidence import write_species_evidence_bundle
 
     out = bundle(inputs, tmp_path)
     with pytest.raises(FileExistsError):

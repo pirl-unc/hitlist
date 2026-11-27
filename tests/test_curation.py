@@ -208,44 +208,44 @@ def test_healthy_reproductive_female_lactating_breast_and_ovary():
 
 def test_tissue_anatomy_compartments_aligned_with_oncoref():
     """OncoRef-aligned anatomy helpers distinguish resting mammary from female-only (#963)."""
-    import hitlist
+    from hitlist.curation import classify_tissue_anatomy, tissue_anatomy_compartments
 
-    comp = hitlist.tissue_anatomy_compartments()
+    comp = tissue_anatomy_compartments()
     assert {"breast", "mammary gland"} <= comp["resting_mammary_compartments"]
     assert "lactating breast" in comp["female_sex_compartments"]
     assert "breast" not in comp["female_sex_compartments"]
     assert "prostate" in comp["male_sex_compartments"]
     assert "testis" in comp["privileged_reproductive"]
 
-    resting = hitlist.classify_tissue_anatomy("Breast")
+    resting = classify_tissue_anatomy("Breast")
     assert resting["compartment"] == "resting_mammary"
     assert resting["is_somatic_safety_tissue"] is True
     assert resting["is_resting_mammary"] is True
     assert resting["protected_in_female_adult"] is True
     assert resting["protected_in_male_adult"] is True
 
-    lactating = hitlist.classify_tissue_anatomy("Lactating Breast")
+    lactating = classify_tissue_anatomy("Lactating Breast")
     assert lactating["compartment"] == "female_sex_only"
     assert lactating["is_somatic_safety_tissue"] is False
     assert lactating["protected_in_female_adult"] is True
     assert lactating["protected_in_male_adult"] is False
 
-    prostate = hitlist.classify_tissue_anatomy("Prostate")
+    prostate = classify_tissue_anatomy("Prostate")
     assert prostate["compartment"] == "male_sex_only"
     assert prostate["protected_in_female_adult"] is False
     assert prostate["protected_in_male_adult"] is True
 
-    testis = hitlist.classify_tissue_anatomy("Testis")
+    testis = classify_tissue_anatomy("Testis")
     assert testis["compartment"] == "privileged_reproductive"
     assert testis["protected_in_female_adult"] is False
     assert testis["protected_in_male_adult"] is False
 
-    liver = hitlist.classify_tissue_anatomy("Liver")
+    liver = classify_tissue_anatomy("Liver")
     assert liver["compartment"] == "somatic"
     assert liver["protected_in_female_adult"] is True
     assert liver["protected_in_male_adult"] is True
 
-    blank = hitlist.classify_tissue_anatomy("")
+    blank = classify_tissue_anatomy("")
     assert blank["compartment"] == "unspecified"
     assert blank["protected_in_female_adult"] is None
     assert blank["protected_in_male_adult"] is None
@@ -3741,13 +3741,12 @@ def test_serotype_expansion_accepts_parsed_spellings(spelling):
     ],
 )
 def test_public_serotype_normalizer_is_shared_by_loaders_and_exports(query, expected):
-    import hitlist
     from hitlist import export, observations
+    from hitlist.curation import normalize_serotype_query
 
-    assert hitlist.normalize_serotype_query(query) == expected
-    assert observations._normalize_serotype_query is hitlist.normalize_serotype_query
-    assert export._normalize_serotype_query is hitlist.normalize_serotype_query
-    assert "normalize_serotype_query" in hitlist.__all__
+    assert normalize_serotype_query(query) == expected
+    assert observations._normalize_serotype_query is normalize_serotype_query
+    assert export._normalize_serotype_query is normalize_serotype_query
 
 
 def test_allele_to_all_serotypes_reaches_curated_c_locus_specificities():

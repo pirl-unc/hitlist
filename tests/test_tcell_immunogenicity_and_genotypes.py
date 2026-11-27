@@ -13,7 +13,6 @@ import pyarrow.parquet as pq
 import pytest
 import yaml
 
-import hitlist
 from hitlist.mhc_genotypes import (
     load_reference_mhc_genotypes,
     lookup_cell_line_genotype,
@@ -414,10 +413,6 @@ def test_tcell_immunogenicity_v2_bundle_multi_modality_context_and_multispecies(
         ("1", {**iedb[0][1], "Epitope | Mutation": "G12D"}),
     ]
     paths = _make_sources(tmp_path, iedb, cedar)
-
-    assert hitlist.write_tcell_immunogenicity_bundle is write_tcell_immunogenicity_bundle
-    assert hitlist.verify_tcell_immunogenicity_bundle is verify_tcell_immunogenicity_bundle
-    assert hitlist.iter_tcell_immunogenicity_assays is iter_tcell_immunogenicity_assays
 
     out = tmp_path / "immuno_v2"
     manifest = write_tcell_immunogenicity_bundle(out, **paths)

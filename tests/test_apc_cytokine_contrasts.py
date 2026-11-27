@@ -5,7 +5,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from hitlist import (
+from hitlist.apc_contrasts import (
     apc_stimulus_protocol_contract,
     build_stimulus_contrast_catalog,
     dlbcl_treatment_conflict_contract,
