@@ -18883,3 +18883,1073 @@
         condition_control: untreated
         mhc_class: I
         mhc: "HLA-A*03:01 HLA-B*07:02 HLA-B*35:01"
+
+  # ── Wave 6: Top 15 remaining uncurated human studies (#33, 181K rows) ─────
+
+  - pmid: 40906332
+    study_label: "Goh 2025 — benzylpenicillin-modified HLA-A*02:01 immunopeptidome (C1R-A*02:01)"
+    title: "HLA-A*02:01 Presents Penicillin-Modified Cysteinylated Peptides for T Cell Recognition"
+    species: "Homo sapiens"
+    override: ebv_lcl
+    mono_allelic_host: "C1R"
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      Exact elution_condition_ids maps all 29,803 rows: 7,991 untreated-only and 4,934
+      benzylpenicillin-only rows resolve to their single arm, while 16,878 peptides were
+      genuinely identified in both untreated and benzylpenicillin-treated C1R-A*02:01 cells.
+    elution_condition_ids:
+      "The epitope was identified in untreated C1R-A*02:01 cells.":
+        - goh_2025_c1r_a0201_untreated
+      "The epitope was identified in benzylpenicillin-treated C1R-A*02:01 cells.":
+        - goh_2025_c1r_a0201_benzylpenicillin
+      "The epitope was identified in untreated C1R-A*02:01 cells; the epitope was identified in benzylpenicillin-treated C1R-A*02:01 cells.":
+        - goh_2025_c1r_a0201_untreated
+        - goh_2025_c1r_a0201_benzylpenicillin
+    perturbations:
+      - "Benzylpenicillin (BP) drug treatment of C1R-A*02:01 cells"
+    note: >
+      Monoallelic C1R-A*02:01 HLA class I immunopeptidome (29,803 rows / 25,594 unique
+      peptides in IEDB) untreated vs benzylpenicillin-treated, showing preferential
+      cysteinylation/Cys-BP disulfide-linked haptenation on HLA-A*02:01 ligands
+      (Goh et al., Allergy 2025, PMC12590334). #33.
+    ms_samples:
+      - sample_label: "C1R-A*02:01 untreated control (HLA-A*02:01)"
+        n_samples: 1
+        source: "Human HMy2.C1R EBV-LCL transfected with HLA-A*02:01, untreated"
+        condition: "unperturbed — untreated C1R-A*02:01 control"
+        condition_id: goh_2025_c1r_a0201_untreated
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC12590334 Methods; IEDB assay_comments"
+        condition_control: untreated
+        condition_control_for: goh_2025_c1r_a0201_benzylpenicillin
+        condition_drugs: none
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*02:01"
+      - sample_label: "C1R-A*02:01 benzylpenicillin-treated (HLA-A*02:01)"
+        n_samples: 1
+        source: "Human HMy2.C1R EBV-LCL transfected with HLA-A*02:01, benzylpenicillin-treated"
+        condition: "benzylpenicillin (BP) drug treatment"
+        condition_id: goh_2025_c1r_a0201_benzylpenicillin
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC12590334 Methods; IEDB assay_comments"
+        condition_combination: single
+        condition_drugs: benzylpenicillin
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*02:01"
+
+  - pmid: 41440022
+    study_label: "He 2025 — four HLA-C*06:02-homozygous B-LCL HLA-I immunopeptidomes (psoriasis)"
+    title: "B Cells Can Trigger the T-Cell-Mediated Autoimmune Response Against Melanocytes in Psoriasis"
+    species: "Homo sapiens"
+    override: ebv_lcl
+    fdr: "10%"
+    arm_resolution: resolved
+    arm_resolution_note: >
+      All 4 HLA-C*06:02-homozygous 1000 Genomes EBV-LCL lines (GM20771, HG00131, GM11930,
+      HG00142) carry distinct full HLA-I genotypes matching IEDB mhc_restriction and cell_name.
+    note: >
+      HLA class I immunopeptidomes (23,523 rows / 18,136 unique peptides in IEDB, filtered
+      at 10% FDR per IEDB assay_comments) of four HLA-C*06:02-homozygous EBV-transformed
+      B-LCLs (GM20771, HG00131, GM11930, HG00142) identifying B-cell self-peptides
+      cross-recognized by a psoriatic melanocyte-reactive TCR (He et al., Cells 2025,
+      PMC12732238). #33.
+    ms_samples:
+      - sample_label: "GM20771 EBV-LCL (HLA-C*06:02 homozygous)"
+        n_samples: 1
+        source: "1000 Genomes EBV-transformed B-LCL GM20771"
+        condition: "unperturbed — EBV-transformed B-LCL"
+        condition_id: he_2025_gm20771
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC12732238; IEDB cell_name and host_mhc_types"
+        condition_control: untreated
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*01:01 HLA-A*03:01 HLA-B*13:02 HLA-B*57:01 HLA-C*06:02"
+      - sample_label: "HG00131 EBV-LCL (HLA-C*06:02 homozygous)"
+        n_samples: 1
+        source: "1000 Genomes EBV-transformed B-LCL HG00131"
+        condition: "unperturbed — EBV-transformed B-LCL"
+        condition_id: he_2025_hg00131
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC12732238; IEDB cell_name and host_mhc_types"
+        condition_control: untreated
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*01:01 HLA-A*03:01 HLA-B*37:01 HLA-B*57:01 HLA-C*06:02"
+      - sample_label: "GM11930 EBV-LCL (HLA-C*06:02 homozygous)"
+        n_samples: 1
+        source: "1000 Genomes EBV-transformed B-LCL GM11930"
+        condition: "unperturbed — EBV-transformed B-LCL"
+        condition_id: he_2025_gm11930
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC12732238; IEDB cell_name and host_mhc_types"
+        condition_control: untreated
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*13:02 HLA-C*06:02"
+      - sample_label: "HG00142 EBV-LCL (HLA-C*06:02 homozygous)"
+        n_samples: 1
+        source: "1000 Genomes EBV-transformed B-LCL HG00142"
+        condition: "unperturbed — EBV-transformed B-LCL"
+        condition_id: he_2025_hg00142
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC12732238; IEDB cell_name and host_mhc_types"
+        condition_control: untreated
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*02:01 HLA-A*29:02 HLA-B*45:01 HLA-B*57:01 HLA-C*06:02"
+
+  - pmid: 41191777
+    study_label: "Leddy 2025 — Mtb-infected human monocyte-derived DC & macrophage HLA-II immunopeptidome"
+    title: "Immunopeptidomics can inform the design of mRNA vaccines for the delivery of Mycobacterium tuberculosis MHC class II antigens"
+    species: "Homo sapiens"
+    override: activated_apc
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      All 6 healthy human phagocyte donors (5 moDC donors + 1 macrophage donor) carry unique
+      full HLA class II genotypes in IEDB; the macrophage donor resolves via cell_name
+      (1,266 rows), while the 5 moDC donors share cell_name="dendritic cell" and overlapping
+      multi-allele HLA-II restriction strings (19,877 rows) until exact genotype-set matching
+      is wired into sample attribution.
+    perturbations:
+      - "Mycobacterium tuberculosis H37Rv infection of primary human monocyte-derived DCs and macrophages"
+    note: >
+      MHC class II immunopeptidome (21,143 rows / 16,864 unique peptides in IEDB, PRIDE
+      PXD055952) of Mycobacterium tuberculosis H37Rv-infected human monocyte-derived
+      dendritic cells (5 donors) and macrophages (1 donor) guiding TB mRNA vaccine design
+      (Leddy et al., Sci Transl Med 2025, PMC13220703). Overridden to activated_apc so
+      in-vitro differentiated infected phagocytes do not leak into healthy_tissue. #33.
+    ms_samples:
+      - sample_label: "Human moDC donor 1 — Mtb H37Rv infected (HLA class II)"
+        n_samples: 1
+        source: "Primary human monocyte-derived dendritic cells (donor 1), Mtb H37Rv infected"
+        condition: "Mycobacterium tuberculosis H37Rv infection (moDC)"
+        condition_id: leddy_2025_modc_donor1_mtb
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC13220703; PRIDE PXD055952; IEDB host_mhc_types"
+        condition_combination: single
+        condition_infection: "Mycobacterium tuberculosis"
+        condition_material: cultured
+        mhc_class: II
+        mhc: "HLA-DPA1*01:03 HLA-DPA1*02:01 HLA-DPB1*04:01 HLA-DPB1*10:01 HLA-DQA1*01:01 HLA-DQA1*01:04 HLA-DQB1*05:01 HLA-DQB1*05:03 HLA-DRB1*01:01 HLA-DRB1*14:54 HLA-DRB3*02:02"
+      - sample_label: "Human moDC donor 2 — Mtb H37Rv infected (HLA class II)"
+        n_samples: 1
+        source: "Primary human monocyte-derived dendritic cells (donor 2), Mtb H37Rv infected"
+        condition: "Mycobacterium tuberculosis H37Rv infection (moDC)"
+        condition_id: leddy_2025_modc_donor2_mtb
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC13220703; PRIDE PXD055952; IEDB host_mhc_types"
+        condition_combination: single
+        condition_infection: "Mycobacterium tuberculosis"
+        condition_material: cultured
+        mhc_class: II
+        mhc: "HLA-DPA1*01:03 HLA-DPB1*04:01 HLA-DQA1*01:01 HLA-DQA1*05:01 HLA-DQB1*02:01 HLA-DQB1*05:01 HLA-DRB1*01:03 HLA-DRB1*03:01 HLA-DRB3*01:01"
+      - sample_label: "Human moDC donor 3 — Mtb H37Rv infected (HLA class II)"
+        n_samples: 1
+        source: "Primary human monocyte-derived dendritic cells (donor 3), Mtb H37Rv infected"
+        condition: "Mycobacterium tuberculosis H37Rv infection (moDC)"
+        condition_id: leddy_2025_modc_donor3_mtb
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC13220703; PRIDE PXD055952; IEDB host_mhc_types"
+        condition_combination: single
+        condition_infection: "Mycobacterium tuberculosis"
+        condition_material: cultured
+        mhc_class: II
+        mhc: "HLA-DPA1*01:03 HLA-DPB1*02:01 HLA-DQA1*01:02 HLA-DQA1*05:05 HLA-DQB1*03:01 HLA-DQB1*06:04 HLA-DRB1*13:02 HLA-DRB1*13:03 HLA-DRB3*01:01 HLA-DRB3*03:01"
+      - sample_label: "Human moDC donor 4 — Mtb H37Rv infected (HLA class II)"
+        n_samples: 1
+        source: "Primary human monocyte-derived dendritic cells (donor 4), Mtb H37Rv infected"
+        condition: "Mycobacterium tuberculosis H37Rv infection (moDC)"
+        condition_id: leddy_2025_modc_donor4_mtb
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC13220703; PRIDE PXD055952; IEDB host_mhc_types"
+        condition_combination: single
+        condition_infection: "Mycobacterium tuberculosis"
+        condition_material: cultured
+        mhc_class: II
+        mhc: "HLA-DPA1*01:03 HLA-DPB1*02:01 HLA-DPB1*04:01 HLA-DQA1*03:01 HLA-DQA1*05:05 HLA-DQB1*03:01 HLA-DQB1*03:02 HLA-DRB1*04:04 HLA-DRB1*11:01 HLA-DRB3*02:02 HLA-DRB4*01:01"
+      - sample_label: "Human moDC donor 5 — Mtb H37Rv infected (HLA class II)"
+        n_samples: 1
+        source: "Primary human monocyte-derived dendritic cells (donor 5), Mtb H37Rv infected"
+        condition: "Mycobacterium tuberculosis H37Rv infection (moDC)"
+        condition_id: leddy_2025_modc_donor5_mtb
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC13220703; PRIDE PXD055952; IEDB host_mhc_types"
+        condition_combination: single
+        condition_infection: "Mycobacterium tuberculosis"
+        condition_material: cultured
+        mhc_class: II
+        mhc: "HLA-DPA1*01:03 HLA-DPA1*02:01 HLA-DPB1*04:01 HLA-DPB1*10:01 HLA-DQA1*01:02 HLA-DQA1*01:03 HLA-DQB1*05:02 HLA-DQB1*05:03 HLA-DRB1*13:01 HLA-DRB1*16:01 HLA-DRB3*01:01 HLA-DRB5*02:02"
+      - sample_label: "Human macrophage donor 6 — Mtb H37Rv infected (HLA class II)"
+        n_samples: 1
+        source: "Primary human monocyte-derived macrophages (donor 6), Mtb H37Rv infected"
+        condition: "Mycobacterium tuberculosis H37Rv infection (macrophage)"
+        condition_id: leddy_2025_macrophage_donor6_mtb
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC13220703; PRIDE PXD055952; IEDB host_mhc_types"
+        condition_combination: single
+        condition_infection: "Mycobacterium tuberculosis"
+        condition_material: cultured
+        mhc_class: II
+        mhc: "HLA-DPA1*01:03 HLA-DPB1*04:01 HLA-DQA1*01:02 HLA-DQA1*02:01 HLA-DQB1*02:02 HLA-DQB1*06:02 HLA-DRB1*07:01 HLA-DRB1*15:01 HLA-DRB4*01:01 HLA-DRB5*01:01"
+
+  - pmid: 42228098
+    study_label: "Dorvash 2026 — ExCID hybrid EAD+CID fragmentation on PANC-1 and C1R-A*02:01"
+    title: "Distinguishing Ile/Leu Variant Ligands in the Immunopeptidome Using Hybrid EAD + CID Fragmentation (ExCID)"
+    species: "Homo sapiens"
+    override:
+    rules:
+      - condition:
+          Cell Name: "PANC-1"
+        override: cell_line
+        reason: "PANC-1 is a human pancreatic ductal adenocarcinoma cancer cell line"
+      - condition:
+          Cell Name: "HMy2.C1R"
+        override: ebv_lcl
+        reason: "HMy2.C1R-A*02:01 is an EBV-transformed B-LCL HLA-A*02:01 transfectant, not a tumor"
+    arm_resolution: resolved
+    arm_resolution_note: >
+      All three arms (PANC-1 HLA-I, C1R-A*02:01 HLA-I, and C1R-A*02:01 HLA-II) carry disjoint
+      (mhc_class, mhc_restriction) signatures across all 20,029 rows.
+    note: >
+      Methods paper introducing hybrid Electron-Activated Dissociation + CID (ExCID) on
+      SCIEX ZenoTOF 7600+ to distinguish isobaric Ile/Leu residues in HLA class I and II
+      immunopeptidomes (20,029 rows / 17,458 unique peptides in IEDB) from PANC-1 pancreatic
+      carcinoma (12,589 MHC-I rows) and C1R-A*02:01 (4,303 MHC-I + 3,137 MHC-II rows;
+      Dorvash et al., Anal Chem 2026, PMC13277712). #33.
+    ms_samples:
+      - sample_label: "PANC-1 pancreatic carcinoma cell line (HLA class I)"
+        n_samples: 1
+        source: "Human PANC-1 pancreatic ductal adenocarcinoma cell line"
+        condition: "unperturbed — ExCID MS/MS fragmentation profiling"
+        condition_id: dorvash_2026_panc1_class1
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC13277712; IEDB cell_name and host_mhc_types"
+        condition_control: untreated
+        condition_mhc_context: endogenous_mhc
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*02:01 HLA-A*11:01 HLA-B*38:01 HLA-C*12:03"
+      - sample_label: "C1R-A*02:01 transfectant EBV-LCL (HLA class I)"
+        n_samples: 1
+        source: "Human HMy2.C1R EBV-LCL transfected with HLA-A*02:01 (plus endogenous B*35:03/C*04:01)"
+        condition: "unperturbed — ExCID MS/MS fragmentation profiling"
+        condition_id: dorvash_2026_c1r_a0201_class1
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC13277712; IEDB cell_name and host_mhc_types"
+        condition_control: untreated
+        condition_mhc_context: mhc_transfectant
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*02:01 HLA-B*35:03 HLA-C*04:01"
+      - sample_label: "C1R-A*02:01 EBV-LCL (HLA class II, pan-DP/DQ/DR)"
+        n_samples: 1
+        source: "Human HMy2.C1R EBV-LCL eluted with 1:1:1 B721/SPV-L3/LB3.1"
+        condition: "unperturbed — ExCID MS/MS fragmentation profiling"
+        condition_id: dorvash_2026_c1r_class2
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC13277712; IEDB assay_comments and host_mhc_types"
+        condition_control: untreated
+        condition_mhc_context: endogenous_mhc
+        condition_material: cultured
+        mhc_class: II
+        mhc: "HLA-DPB1*04:01 HLA-DPB1*04:02"
+
+  - pmid: 36656713
+    study_label: "Meyer 2023 — monoallelic 721.221 SARS-CoV-2-transduced HLA-I immunopeptidomes"
+    title: "Prevalent and immunodominant CD8 T cell epitopes are conserved in SARS-CoV-2 variants"
+    species: "Homo sapiens"
+    override: ebv_lcl
+    mono_allelic_host: "721.221"
+    ip_antibody: "W6/32"
+    arm_resolution: resolved
+    arm_resolution_note: >
+      All 5 monoallelic B721.221 transfectant lines (HLA-A*01:01, A*02:01, A*03:01, B*07:02,
+      B*08:01) carry exact single-allele mhc_restriction across all 15,980 rows.
+    perturbations:
+      - "Retroviral transduction of monoallelic B721.221 lines with tetracycline-inducible SARS-CoV-2 antigens (S, N, M-T2A-E, ORF3a)"
+    note: >
+      Monoallelic B721.221 HLA class I immunopeptidomes (15,980 rows / 14,062 unique peptides
+      in IEDB, including 65 SARS-CoV-2 ligands) across 5 prevalent HLA-I alleles retrovirally
+      transduced with tetracycline-inducible SARS-CoV-2 proteins (Meyer et al., Cell Rep 2023,
+      PMC9826989). IEDB tags Culture Condition="Engineered", so override=ebv_lcl +
+      mono_allelic_host="721.221" recovers proper EBV-LCL and monoallelic flags. #33.
+    ms_samples:
+      - sample_label: "B721.221-HLA-A*01:01 + SARS-CoV-2 transduced"
+        n_samples: 1
+        source: "Monoallelic B721.221-A*01:01 retrovirally transduced with tet-inducible SARS-CoV-2 genes"
+        condition: "retroviral transduction with tet-inducible SARS-CoV-2 antigens"
+        condition_id: meyer_2023_721221_a0101
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC9826989; IEDB assay_comments"
+        condition_combination: single
+        condition_transduction: "SARS-CoV-2_antigens"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*01:01"
+      - sample_label: "B721.221-HLA-A*02:01 + SARS-CoV-2 transduced"
+        n_samples: 1
+        source: "Monoallelic B721.221-A*02:01 retrovirally transduced with tet-inducible SARS-CoV-2 genes"
+        condition: "retroviral transduction with tet-inducible SARS-CoV-2 antigens"
+        condition_id: meyer_2023_721221_a0201
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC9826989; IEDB assay_comments"
+        condition_combination: single
+        condition_transduction: "SARS-CoV-2_antigens"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*02:01"
+      - sample_label: "B721.221-HLA-A*03:01 + SARS-CoV-2 transduced"
+        n_samples: 1
+        source: "Monoallelic B721.221-A*03:01 retrovirally transduced with tet-inducible SARS-CoV-2 genes"
+        condition: "retroviral transduction with tet-inducible SARS-CoV-2 antigens"
+        condition_id: meyer_2023_721221_a0301
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC9826989; IEDB assay_comments"
+        condition_combination: single
+        condition_transduction: "SARS-CoV-2_antigens"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*03:01"
+      - sample_label: "B721.221-HLA-B*07:02 + SARS-CoV-2 transduced"
+        n_samples: 1
+        source: "Monoallelic B721.221-B*07:02 retrovirally transduced with tet-inducible SARS-CoV-2 genes"
+        condition: "retroviral transduction with tet-inducible SARS-CoV-2 antigens"
+        condition_id: meyer_2023_721221_b0702
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC9826989; IEDB assay_comments"
+        condition_combination: single
+        condition_transduction: "SARS-CoV-2_antigens"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-B*07:02"
+      - sample_label: "B721.221-HLA-B*08:01 + SARS-CoV-2 transduced"
+        n_samples: 1
+        source: "Monoallelic B721.221-B*08:01 retrovirally transduced with tet-inducible SARS-CoV-2 genes"
+        condition: "retroviral transduction with tet-inducible SARS-CoV-2 antigens"
+        condition_id: meyer_2023_721221_b0801
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC9826989; IEDB assay_comments"
+        condition_combination: single
+        condition_transduction: "SARS-CoV-2_antigens"
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-B*08:01"
+
+  - pmid: 39617188
+    study_label: "Miranda 2025 — human macrophage HLA-DR immunopeptidome after RBC/TAT-FVIII phagocytosis"
+    title: "Exploring red blood cells as an antigen delivery system to modulate the immune response towards FVIII in hemophilia A"
+    species: "Homo sapiens"
+    override: activated_apc
+    arm_resolution: resolved
+    arm_resolution_note: >
+      Single curated mixed arm covering all 9,431 HLA-DRB1 rows from monocyte-derived
+      macrophages fed RBCs (+/- anti-CD235a opsonization, +/- TAT-FVIII peptides), because
+      IEDB leaves assay_comments blank on 9,291 rows and mixes donors under generic HLA-DRB1.
+    perturbations:
+      - "Phagocytosis of TAT-FVIII peptide-pulsed or anti-CD235a-opsonized RBCs by human monocyte-derived macrophages"
+    note: >
+      HLA-DR class II immunopeptidome (9,431 rows / 5,707 unique peptides in IEDB) of human
+      monocyte-derived macrophages after phagocytosis of RBCs loaded with TAT-FVIII peptides
+      or opsonized with anti-CD235a mAb (Miranda et al., J Thromb Haemost 2025). Overridden
+      to activated_apc so in-vitro differentiated antigen-fed macrophages do not leak into
+      healthy_tissue. #33.
+    ms_samples:
+      - sample_label: "Human monocyte-derived macrophages fed RBCs (+/- anti-CD235a / TAT-FVIII, HLA-DRB1)"
+        n_samples: 1
+        source: "Primary human monocyte-derived macrophages incubated with RBCs (+/- anti-CD235a opsonization, +/- TAT-FVIII)"
+        condition: "phagocytosis of RBCs (+/- anti-CD235a opsonization, +/- TAT-FVIII peptide loading)"
+        condition_id: miranda_2025_mdm_rbc_mixed
+        condition_status: mixed
+        condition_evidence: primary_source
+        condition_reference: "PMID 39617188 abstract; IEDB assay_comments and antigen_processing_comments"
+        condition_material: cultured
+        mhc_class: II
+        mhc: "HLA class II"
+
+  - pmid: 42069060
+    study_label: "Cobos-Figueroa 2026 — CRISPR HLA-B/C-deleted JY (ΔBC) vs WT JY HLA-I peptidome"
+    title: "Innovative CRISPR/Cas9-Based Strategy for Allele-Specific HLA Peptidome Analysis Using a Pan-HLA Antibody"
+    species: "Homo sapiens"
+    override: ebv_lcl
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      Exact elution_condition_ids resolves 1,184 WT-only and 452 ΔBC-only PA2.1/W6/32 rows
+      and explicitly marks 1,335 rows eluted from both WT and ΔBC cells; 3,111 full-genotype
+      WT W6/32 rows resolve to WT, while 2,821 blank-comment HLA-A*02:01 rows from ΔBC
+      clones match both arms on HLA-A*02:01 because antigen_processing_comments is not yet
+      consumed by elution_condition_ids.
+    elution_condition_ids:
+      "The epitope was eluted from WT cells.":
+        - cobos_figueroa_2026_jy_wt
+      "The epitope was eluted from ΔBC cells.":
+        - cobos_figueroa_2026_jy_delta_bc
+      "The epitope was eluted from ΔBC cells. The epitope was eluted from WT cells.":
+        - cobos_figueroa_2026_jy_delta_bc
+        - cobos_figueroa_2026_jy_wt
+    perturbations:
+      - "CRISPR/Cas9 deletion of HLA-B*07:02 and HLA-C*07:02 in JY EBV-LCL (ΔBC clones retaining endogenous HLA-A*02:01)"
+    note: >
+      Proof-of-concept CRISPR/Cas9 HLA-B/C knockout in homozygous JY EBV-LCL (8,903 rows /
+      5,557 unique peptides in IEDB) comparing WT JY (W6/32 and PA2.1 IPs) against ΔBC clones
+      retaining only endogenous HLA-A*02:01 (W6/32 IP; Cobos-Figueroa et al., MCP 2026,
+      PMC13240811). #33.
+    ms_samples:
+      - sample_label: "JY EBV-LCL wild-type (HLA-A*02:01/B*07:02/C*07:02)"
+        n_samples: 2
+        source: "Unedited wild-type JY EBV-LCL clones (WT 1, WT 2; W6/32 and PA2.1 IPs)"
+        condition: "unperturbed — wild-type JY EBV-LCL"
+        condition_id: cobos_figueroa_2026_jy_wt
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC13240811 Methods; IEDB assay_comments"
+        condition_control: untreated
+        condition_control_for: cobos_figueroa_2026_jy_delta_bc
+        condition_knockout_genes: none
+        condition_mhc_context: endogenous_mhc
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*02:01 HLA-B*07:02 HLA-C*07:02"
+      - sample_label: "JY EBV-LCL ΔBC CRISPR HLA-B/C knockout (endogenous HLA-A*02:01 only)"
+        n_samples: 2
+        source: "CRISPR/Cas9 HLA-B/HLA-C-deleted JY EBV-LCL clones (ΔBC 1, ΔBC 2; W6/32 IP)"
+        condition: "CRISPR/Cas9 knockout of HLA-B and HLA-C (retaining endogenous HLA-A*02:01)"
+        condition_id: cobos_figueroa_2026_jy_delta_bc
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC13240811 Methods; IEDB assay_comments and antigen_processing_comments"
+        condition_combination: simultaneous
+        condition_knockout_genes: "HLA-B;HLA-C"
+        condition_mhc_context: "endogenous_mhc;monoallelic"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*02:01"
+
+  - pmid: 40684438
+    study_label: "Nanaware 2025 — cytokine-stressed human cadaveric pancreatic islets vs matched spleen (HLA-I/II)"
+    title: "The antigen presentation landscape of cytokine-stressed human pancreatic islets"
+    species: "Homo sapiens"
+    override:
+    rules:
+      - condition:
+          Source Tissue: "spleen"
+        override: healthy
+        reason: "Unperturbed cadaveric spleen from non-diabetic healthy organ donors (n=4)"
+    arm_resolution: resolved
+    arm_resolution_note: >
+      All 8,231 rows resolve cleanly by source_tissue (pancreas vs spleen) and mhc_class
+      (I vs II): 4,339 cytokine-stressed pancreatic islet rows (3,573 class I + 766 class II)
+      and 3,892 unperturbed cadaveric donor spleen rows (1,808 class I + 2,084 class II).
+    perturbations:
+      - "48h inflammatory cytokine cocktail on cadaveric human pancreatic islets: 50 ng/mL IFNG + 5 ng/mL IL1B + 10 ng/mL TNF in AIM-V + 10% human serum"
+    note: >
+      Primary human cadaveric pancreatic islet vs matched spleen HLA class I and II
+      immunopeptidome (8,231 rows / 7,246 unique peptides in IEDB) from 6 non-diabetic donors;
+      pancreatic islets (4,339 rows) were cultured 48h with 50 ng/mL IFN-γ + 5 ng/mL IL-1β +
+      10 ng/mL TNF-α to model T1D inflammation, while matched spleen (3,892 rows, 4 donors)
+      was processed unperturbed (Nanaware et al., Cell Rep 2025, PMC12624573). #33.
+    ms_samples:
+      - sample_label: "Human cadaveric pancreatic islets — cytokine-stressed 48h (n=6, HLA class I)"
+        n_samples: 6
+        source: "Cadaveric non-diabetic human pancreatic islets cultured 48h with IFNG/IL1B/TNF"
+        condition: "50 ng/mL IFN-gamma + 5 ng/mL IL-1beta + 10 ng/mL TNF-alpha for 48h in AIM-V + 10% human serum"
+        condition_id: nanaware_2025_islets_cytokines_class1
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC12624573 STAR Methods (Islet Culture and Cytokine Treatment)"
+        condition_combination: simultaneous
+        condition_cytokines: "IFNG;IL1B;TNF"
+        condition_duration_hours: "48"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA class I"
+      - sample_label: "Human cadaveric pancreatic islets — cytokine-stressed 48h (n=6, HLA class II)"
+        n_samples: 6
+        source: "Cadaveric non-diabetic human pancreatic islets cultured 48h with IFNG/IL1B/TNF"
+        condition: "50 ng/mL IFN-gamma + 5 ng/mL IL-1beta + 10 ng/mL TNF-alpha for 48h in AIM-V + 10% human serum"
+        condition_id: nanaware_2025_islets_cytokines_class2
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC12624573 STAR Methods (Islet Culture and Cytokine Treatment)"
+        condition_combination: simultaneous
+        condition_cytokines: "IFNG;IL1B;TNF"
+        condition_duration_hours: "48"
+        condition_material: cultured
+        mhc_class: II
+        mhc: "HLA class II"
+      - sample_label: "Human cadaveric donor spleen — unperturbed control (n=4, HLA class I)"
+        n_samples: 4
+        source: "Matched cadaveric non-diabetic human donor spleen, unperturbed"
+        condition: "unperturbed — matched healthy cadaveric donor spleen"
+        condition_id: nanaware_2025_spleen_healthy_class1
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC12624573 STAR Methods"
+        condition_control: untreated
+        condition_control_for: nanaware_2025_islets_cytokines_class1
+        condition_cytokines: none
+        condition_material: direct_ex_vivo
+        mhc_class: I
+        mhc: "HLA class I"
+      - sample_label: "Human cadaveric donor spleen — unperturbed control (n=4, HLA class II)"
+        n_samples: 4
+        source: "Matched cadaveric non-diabetic human donor spleen, unperturbed"
+        condition: "unperturbed — matched healthy cadaveric donor spleen"
+        condition_id: nanaware_2025_spleen_healthy_class2
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC12624573 STAR Methods"
+        condition_control: untreated
+        condition_control_for: nanaware_2025_islets_cytokines_class2
+        condition_cytokines: none
+        condition_material: direct_ex_vivo
+        mhc_class: II
+        mhc: "HLA class II"
+
+  - pmid: 40466865
+    study_label: "Cobos-Figueroa 2025 — monoallelic C1R HLA-B*27:05, B*14:03, and B*14:02 peptidomes"
+    title: "Closer Peptide Repertoire Similarity of HLA-B*14:03 and HLA-B*27:05 Sheds Light on Ankylosing Spondylitis Susceptibility"
+    species: "Homo sapiens"
+    override: ebv_lcl
+    mono_allelic_host: "C1R"
+    ip_antibody: "W6/32"
+    arm_resolution: resolved
+    arm_resolution_note: >
+      All three monoallelic C1R transfectants (HLA-B*27:05, HLA-B*14:03, HLA-B*14:02) carry
+      exact single-allele mhc_restriction across all 7,545 rows.
+    note: >
+      Monoallelic HMy2.C1R HLA class I immunopeptidomes (7,545 rows / 5,267 unique peptides
+      in IEDB, W6/32 IP) comparing ankylosing spondylitis-associated HLA-B*27:05 (3,313 rows)
+      and HLA-B*14:03 (2,189 rows) against non-associated HLA-B*14:02 (2,043 rows;
+      Cobos-Figueroa et al., MCP 2025, PMC12284515). IEDB tags Culture Condition="Engineered",
+      so override=ebv_lcl + mono_allelic_host="C1R" restores EBV-LCL and monoallelic flags. #33.
+    ms_samples:
+      - sample_label: "C1R-HLA-B*27:05 monoallelic transfectant"
+        n_samples: 1
+        source: "Human HMy2.C1R EBV-LCL transfected with HLA-B*27:05"
+        condition: "unperturbed — monoallelic HLA-B*27:05 C1R transfectant"
+        condition_id: cobos_figueroa_2025_c1r_b2705
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC12284515; IEDB antigen_processing_comments"
+        condition_control: untreated
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-B*27:05"
+      - sample_label: "C1R-HLA-B*14:03 monoallelic transfectant"
+        n_samples: 1
+        source: "Human HMy2.C1R EBV-LCL transfected with HLA-B*14:03"
+        condition: "unperturbed — monoallelic HLA-B*14:03 C1R transfectant"
+        condition_id: cobos_figueroa_2025_c1r_b1403
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC12284515; IEDB antigen_processing_comments"
+        condition_control: untreated
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-B*14:03"
+      - sample_label: "C1R-HLA-B*14:02 monoallelic transfectant"
+        n_samples: 1
+        source: "Human HMy2.C1R EBV-LCL transfected with HLA-B*14:02"
+        condition: "unperturbed — monoallelic HLA-B*14:02 C1R transfectant"
+        condition_id: cobos_figueroa_2025_c1r_b1402
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC12284515; IEDB antigen_processing_comments"
+        condition_control: untreated
+        condition_mhc_context: "mhc_transfectant;monoallelic"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-B*14:02"
+
+  - pmid: 40051755
+    study_label: "Bedi 2025 — SW620 (MSS) & RKO (MSI) colon cancer HLA-I peptidome ± camptothecin"
+    title: "The immunopeptidome of colon cancer cells treated with topoisomerase inhibiting drug reveals differential as well as common endogenous protein sampling and display of MHC I-associated peptides"
+    species: "Homo sapiens"
+    override: cell_line
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      Exact elution_condition_ids maps all 6,630 rows across SW620 (3,619 rows) and RKO
+      (3,011 rows): CPT-restricted (2,762) and untreated-restricted (1,175) rows resolve to
+      their treatment arm within each cell line, while 2,693 rows were genuinely detected in
+      both DMSO vehicle and CPT-treated cells.
+    elution_condition_ids:
+      "Elution of the peptide was restricted to untreated cells.":
+        - bedi_2025_sw620_dmso
+        - bedi_2025_rko_dmso
+      "Elution of the peptide was restricted to cells treated with CPT.":
+        - bedi_2025_sw620_cpt
+        - bedi_2025_rko_cpt
+      "Elution of the peptide was observed in untreated and CPT treated cells.":
+        - bedi_2025_sw620_dmso
+        - bedi_2025_sw620_cpt
+        - bedi_2025_rko_dmso
+        - bedi_2025_rko_cpt
+    perturbations:
+      - "Topoisomerase I inhibitor camptothecin (CPT, 0.5 uM, 24h) vs DMSO vehicle in SW620 (MSS) and RKO (MSI) colon cancer cells"
+    note: >
+      HLA class I immunopeptidome (6,630 rows / 6,275 unique peptides in IEDB) of SW620
+      (MSS, 3,619 rows) and RKO (MSI, 3,011 rows) colorectal cancer cell lines treated for
+      24h with 0.5 uM camptothecin (CPT) vs DMSO vehicle (Bedi et al., Mol Cell Oncol 2025,
+      PMC11881837). #33.
+    ms_samples:
+      - sample_label: "SW620 colon adenocarcinoma — DMSO vehicle control (24h, HLA class I)"
+        sample_group: "SW620"
+        n_samples: 1
+        source: "Human SW620 MSS colon adenocarcinoma cell line (ATCC), DMSO vehicle 24h"
+        condition: "DMSO vehicle control (24h)"
+        condition_id: bedi_2025_sw620_dmso
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC11881837 Methods; IEDB assay_comments"
+        condition_control: vehicle
+        condition_control_for: bedi_2025_sw620_cpt
+        condition_drugs: none
+        condition_vehicle: DMSO
+        condition_duration_hours: "24"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA class I"
+      - sample_label: "SW620 colon adenocarcinoma — camptothecin 0.5 uM (24h, HLA class I)"
+        sample_group: "SW620"
+        n_samples: 1
+        source: "Human SW620 MSS colon adenocarcinoma cell line (ATCC), 0.5 uM CPT 24h"
+        condition: "camptothecin (CPT) 0.5 uM in DMSO for 24h"
+        condition_id: bedi_2025_sw620_cpt
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC11881837 Methods; IEDB assay_comments"
+        condition_combination: single
+        condition_drugs: camptothecin
+        condition_vehicle: DMSO
+        condition_dose: "0.5"
+        condition_dose_unit: uM
+        condition_duration_hours: "24"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA class I"
+      - sample_label: "RKO colon adenocarcinoma — DMSO vehicle control (24h, HLA class I)"
+        sample_group: "RKO"
+        n_samples: 1
+        source: "Human RKO MSI colon adenocarcinoma cell line (ATCC), DMSO vehicle 24h"
+        condition: "DMSO vehicle control (24h)"
+        condition_id: bedi_2025_rko_dmso
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC11881837 Methods; IEDB assay_comments and host_mhc_types"
+        condition_control: vehicle
+        condition_control_for: bedi_2025_rko_cpt
+        condition_drugs: none
+        condition_vehicle: DMSO
+        condition_duration_hours: "24"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*03:01 HLA-B*18:01 HLA-B*35:08 HLA-C*07:01"
+      - sample_label: "RKO colon adenocarcinoma — camptothecin 0.5 uM (24h, HLA class I)"
+        sample_group: "RKO"
+        n_samples: 1
+        source: "Human RKO MSI colon adenocarcinoma cell line (ATCC), 0.5 uM CPT 24h"
+        condition: "camptothecin (CPT) 0.5 uM in DMSO for 24h"
+        condition_id: bedi_2025_rko_cpt
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC11881837 Methods; IEDB assay_comments and host_mhc_types"
+        condition_combination: single
+        condition_drugs: camptothecin
+        condition_vehicle: DMSO
+        condition_dose: "0.5"
+        condition_dose_unit: uM
+        condition_duration_hours: "24"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*03:01 HLA-B*18:01 HLA-B*35:08 HLA-C*07:01"
+
+  - pmid: 41534530
+    study_label: "Wang 2026 — EBV-infected B-LCL, thymus, and MS brain lesion HLA-DR15 (DR2a/DR2b) peptidomes"
+    title: "EBV infection and HLA-DR15 jointly drive multiple sclerosis by myelin peptide presentation"
+    species: "Homo sapiens"
+    override:
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      All 6,611 rows carry DR2a (HLA-DRB5*01:01, 4,738 rows) or DR2b (HLA-DRB1*15:01, 1,873
+      rows) across 4 distinct compartments (healthy B-LCL 2,897, MS B-LCL 977, thymus 1,890,
+      MS CNS lesions 847); IEDB distinguishes compartments via source_tissue, culture_condition,
+      and disease rather than allele-level restriction.
+    note: >
+      HLA-DR15 (DR2a = HLA-DRB5*01:01; DR2b = HLA-DRB1*15:01) MHC class II immunopeptidomes
+      (6,611 rows / 4,707 unique peptides in IEDB) comparing EBV-transformed B-LCLs from
+      healthy donors and MS patients, normal human thymus, and MS patient CNS brain lesions,
+      showing shared MBP peptide presentation in EBV-infected B cells and MS brain tissue
+      (Wang et al., Cell 2026). Default classification accurately separates EBV-LCL,
+      healthy_thymus, and non-healthy MS CNS lesions. #33.
+    ms_samples:
+      - sample_label: "Healthy-donor EBV-transformed B-LCLs (HLA-DR15: DR2a/DR2b)"
+        n_samples: 1
+        source: "EBV-transformed B-LCLs from HLA-DR15+ healthy donors"
+        condition: "EBV-transformed B-LCL (healthy donor)"
+        condition_id: wang_2026_healthy_ebv_lcl_dr15
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMID 41534530 abstract; IEDB source_tissue/culture_condition/disease"
+        condition_control: untreated
+        condition_material: cultured
+        mhc_class: II
+        mhc: "HLA-DRB1*15:01 HLA-DRB5*01:01"
+      - sample_label: "Multiple sclerosis patient EBV-transformed B-LCLs (HLA-DR15: DR2a/DR2b)"
+        n_samples: 1
+        source: "EBV-transformed B-LCLs from HLA-DR15+ multiple sclerosis patients"
+        condition: "EBV-transformed B-LCL (multiple sclerosis patient)"
+        condition_id: wang_2026_ms_ebv_lcl_dr15
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMID 41534530 abstract; IEDB source_tissue/culture_condition/disease"
+        condition_material: cultured
+        mhc_class: II
+        mhc: "HLA-DRB1*15:01 HLA-DRB5*01:01"
+      - sample_label: "Human thymus tissue (direct ex vivo, HLA-DR15: DR2a/DR2b)"
+        n_samples: 1
+        source: "Human thymic tissue (direct ex vivo, HLA-DR15+)"
+        condition: "unperturbed — direct ex vivo human thymus"
+        condition_id: wang_2026_thymus_dr15
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMID 41534530 abstract; IEDB source_tissue/culture_condition"
+        condition_control: untreated
+        condition_material: direct_ex_vivo
+        mhc_class: II
+        mhc: "HLA-DRB1*15:01 HLA-DRB5*01:01"
+      - sample_label: "Multiple sclerosis patient CNS brain lesions (direct ex vivo, HLA-DR15: DR2a/DR2b)"
+        n_samples: 1
+        source: "Inflammatory meningeal and parenchymal CNS lesions from HLA-DR15+ MS patients"
+        condition: "multiple sclerosis CNS inflammatory lesion"
+        condition_id: wang_2026_ms_cns_dr15
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMID 41534530 abstract; IEDB antigen_processing_comments"
+        condition_material: direct_ex_vivo
+        mhc_class: II
+        mhc: "HLA-DRB1*15:01 HLA-DRB5*01:01"
+
+  - pmid: 37759700
+    study_label: "Schmalen 2023 — A549 lung adenocarcinoma HLA-I immunopeptidome ± IFN-γ"
+    title: "A Lysine Residue at the C-Terminus of MHC Class I Ligands Correlates with Low C-Terminal Proteasomal Cleavage Probability"
+    species: "Homo sapiens"
+    override: cell_line
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      Exact elution_condition_ids maps all 6,514 A549 rows: 329 untreated-only rows resolve
+      to schmalen_2023_a549_untreated, while 6,185 rows were genuinely identified in both
+      untreated and IFN-gamma-treated (75 IU/mL, 24h) A549 cells.
+    elution_condition_ids:
+      "The epitope was identified in untreated cells.":
+        - schmalen_2023_a549_untreated
+      "The epitope was identified in untreated cells; The epitope was identified in IFNγ-treated cells.":
+        - schmalen_2023_a549_untreated
+        - schmalen_2023_a549_ifng
+    perturbations:
+      - "IFN-gamma (75 IU/mL, 24h) immunoproteasome induction in A549 lung adenocarcinoma cells"
+    note: >
+      HLA class I immunopeptidome (6,514 rows / 6,514 unique peptides in IEDB) of A549 lung
+      adenocarcinoma cells untreated vs treated with 75 IU/mL IFN-γ for 24h to analyze
+      constitutive vs immunoproteasome C-terminal cleavage probabilities (Schmalen et al.,
+      Biomolecules 2023, PMC10527444). #33.
+    ms_samples:
+      - sample_label: "A549 lung adenocarcinoma — untreated control (HLA class I)"
+        n_samples: 1
+        source: "Human A549 lung adenocarcinoma cell line, untreated"
+        condition: "unperturbed — untreated A549 control"
+        condition_id: schmalen_2023_a549_untreated
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC10527444 Methods; IEDB assay_comments"
+        condition_control: untreated
+        condition_control_for: schmalen_2023_a549_ifng
+        condition_cytokines: none
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*25:01 HLA-A*30:01 HLA-B*18:01 HLA-B*44:03 HLA-C*12:03 HLA-C*16:01"
+      - sample_label: "A549 lung adenocarcinoma — IFN-γ 75 IU/mL 24h (HLA class I)"
+        n_samples: 1
+        source: "Human A549 lung adenocarcinoma cell line treated with 75 IU/mL IFN-gamma for 24h"
+        condition: "IFN-gamma 75 IU/mL for 24h"
+        condition_id: schmalen_2023_a549_ifng
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC10527444 Methods; IEDB assay_comments"
+        condition_combination: single
+        condition_cytokines: IFNG
+        condition_dose: "75"
+        condition_dose_unit: IU/mL
+        condition_duration_hours: "24"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*25:01 HLA-A*30:01 HLA-B*18:01 HLA-B*44:03 HLA-C*12:03 HLA-C*16:01"
+
+  - pmid: 42273698
+    study_label: "Hamza 2026 — Calu-3 lung adenocarcinoma HLA-I ligandome ± zapnometinib ± IAV H3N2"
+    title: "Zapnometinib treatment and influenza A virus infection modulate the HLA class I ligandome in human lung adenocarcinoma cells"
+    species: "Homo sapiens"
+    override: cell_line
+    ip_antibody: "W6/32"
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      Exact elution_condition_ids maps all 15 unique assay_comments statements across all
+      6,373 Calu-3 rows: 2,268 condition-exclusive rows resolve to their single arm (1,580
+      uninfected/untreated, 417 IAV-only, 154 zapnometinib-only, 117 IAV+zapnometinib), while
+      4,105 rows were genuinely eluted across multiple conditions in the 2x2 factorial design.
+    elution_condition_ids:
+      "pMHC complexes were immunoprecipitated with mAb W6/32.  The epitope was only eluted from uninfected, untreated Calu-3 cells.":
+        - hamza_2026_calu3_uninfected_untreated
+      "pMHC complexes were immunoprecipitated with mAb W6/32.  The epitope was only eluted from uninfected, Zapnometinib treated Calu-3 cells.":
+        - hamza_2026_calu3_uninfected_zapnometinib
+      "pMHC complexes were immunoprecipitated with mAb W6/32.  The epitope was only eluted from untreated, H3N2 infected Calu-3 cells.":
+        - hamza_2026_calu3_iav_untreated
+      "pMHC complexes were immunoprecipitated with mAb W6/32.  The epitope was only eluted from Zapnometinib treated, H3N2 infected Calu-3 cells.":
+        - hamza_2026_calu3_iav_zapnometinib
+      "pMHC complexes were immunoprecipitated with mAb W6/32.  The epitope was eluted from both untreated and Zapnometinib treated, uninfected Calu-3 cells.":
+        - hamza_2026_calu3_uninfected_untreated
+        - hamza_2026_calu3_uninfected_zapnometinib
+      "pMHC complexes were immunoprecipitated with mAb W6/32.  The epitope was eluted from untreated, uninfected and H3N2 infected Calu-3 cells.":
+        - hamza_2026_calu3_uninfected_untreated
+        - hamza_2026_calu3_iav_untreated
+      "pMHC complexes were immunoprecipitated with mAb W6/32.  The epitope was eluted from uninfected, untreated Calu-3 cells, and Zapnometinib treated, H3N2 infected Calu-3 cells.":
+        - hamza_2026_calu3_uninfected_untreated
+        - hamza_2026_calu3_iav_zapnometinib
+      "pMHC complexes were immunoprecipitated with mAb W6/32.  The epitope was eluted from uninfected, Zapnometinib treated Calu-3 cells, and untreated, H3N2 infected Calu-3 cells.":
+        - hamza_2026_calu3_uninfected_zapnometinib
+        - hamza_2026_calu3_iav_untreated
+      "pMHC complexes were immunoprecipitated with mAb W6/32.  The epitope was eluted from uninfected and H3N2 infected, Zapnometinib treated Calu-3 cells.":
+        - hamza_2026_calu3_uninfected_zapnometinib
+        - hamza_2026_calu3_iav_zapnometinib
+      "pMHC complexes were immunoprecipitated with mAb W6/32.  The epitope was eluted from both untreated and Zapnometinib treated, H3N2 infected Calu-3 cells.":
+        - hamza_2026_calu3_iav_untreated
+        - hamza_2026_calu3_iav_zapnometinib
+      "pMHC complexes were immunoprecipitated with mAb W6/32.  The epitope was eluted from both untreated and Zapnometinib treated, uninfected Calu-3 cells, and untreated, H3N2 infected Calu-3 cells.":
+        - hamza_2026_calu3_uninfected_untreated
+        - hamza_2026_calu3_uninfected_zapnometinib
+        - hamza_2026_calu3_iav_untreated
+      "pMHC complexes were immunoprecipitated with mAb W6/32.  The epitope was eluted from both untreated and Zapnometinib treated, uninfected Calu-3 cells, and Zapnometinib treated, H3N2 infected Calu-3 cells.":
+        - hamza_2026_calu3_uninfected_untreated
+        - hamza_2026_calu3_uninfected_zapnometinib
+        - hamza_2026_calu3_iav_zapnometinib
+      "pMHC complexes were immunoprecipitated with mAb W6/32.  The epitope was eluted from untreated, uninfected Calu-3 cells, and both untreated and Zapnometinib treated, H3N2 infected Calu-3 cells.":
+        - hamza_2026_calu3_uninfected_untreated
+        - hamza_2026_calu3_iav_untreated
+        - hamza_2026_calu3_iav_zapnometinib
+      "pMHC complexes were immunoprecipitated with mAb W6/32.  The epitope was eluted from uninfected, Zapnometinib treated, and both untreated and Zapnometinib treated, H3N2 infected Calu-3 cells.":
+        - hamza_2026_calu3_uninfected_zapnometinib
+        - hamza_2026_calu3_iav_untreated
+        - hamza_2026_calu3_iav_zapnometinib
+      "pMHC complexes were immunoprecipitated with mAb W6/32.  The epitope was eluted from untreated and Zapnometinib treated, uninfected and H3N2 infected Calu-3 cells.":
+        - hamza_2026_calu3_uninfected_untreated
+        - hamza_2026_calu3_uninfected_zapnometinib
+        - hamza_2026_calu3_iav_untreated
+        - hamza_2026_calu3_iav_zapnometinib
+    perturbations:
+      - "Influenza A virus (A/Fukui/20/2004 H3N2, MOI 0.1, 24h) infection and/or MEK1/2 inhibitor zapnometinib (1h p.i.) in Calu-3 cells"
+    note: >
+      2x2 factorial HLA class I immunopeptidome (6,373 rows / 6,283 unique peptides in IEDB,
+      W6/32 IP) of Calu-3 lung adenocarcinoma cells +/- IAV H3N2/Fukui infection (MOI 0.1,
+      24h) and +/- MEK1/2 inhibitor zapnometinib (Hamza et al., Front Immunol 2026,
+      PMC13246656). #33.
+    ms_samples:
+      - sample_label: "Calu-3 lung adenocarcinoma — uninfected, untreated control (HLA class I)"
+        n_samples: 1
+        source: "Human Calu-3 lung adenocarcinoma cell line (ATCC HTB-55), uninfected, untreated"
+        condition: "unperturbed — uninfected, untreated Calu-3 control"
+        condition_id: hamza_2026_calu3_uninfected_untreated
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC13246656 Methods; IEDB assay_comments"
+        condition_control: untreated
+        condition_control_for: "hamza_2026_calu3_iav_untreated;hamza_2026_calu3_iav_zapnometinib;hamza_2026_calu3_uninfected_zapnometinib"
+        condition_drugs: none
+        condition_infection: none
+        condition_duration_hours: "24"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*24:02 HLA-A*68:01 HLA-B*07:02 HLA-B*51:01 HLA-C*15:02"
+      - sample_label: "Calu-3 lung adenocarcinoma — uninfected, zapnometinib-treated (HLA class I)"
+        n_samples: 1
+        source: "Human Calu-3 lung adenocarcinoma cell line, uninfected, zapnometinib-treated"
+        condition: "zapnometinib (MEK1/2 inhibitor) treatment (uninfected)"
+        condition_id: hamza_2026_calu3_uninfected_zapnometinib
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC13246656 Methods; IEDB assay_comments"
+        condition_combination: single
+        condition_drugs: zapnometinib
+        condition_infection: none
+        condition_duration_hours: "24"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*24:02 HLA-A*68:01 HLA-B*07:02 HLA-B*51:01 HLA-C*15:02"
+      - sample_label: "Calu-3 lung adenocarcinoma — IAV H3N2/Fukui infected, untreated (HLA class I)"
+        n_samples: 1
+        source: "Human Calu-3 lung adenocarcinoma cell line, IAV H3N2/Fukui MOI 0.1 24h"
+        condition: "Influenza A virus (A/Fukui/20/2004 H3N2, MOI 0.1, 24h) infection"
+        condition_id: hamza_2026_calu3_iav_untreated
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC13246656 Methods; IEDB assay_comments"
+        condition_combination: single
+        condition_drugs: none
+        condition_infection: "Influenza A virus"
+        condition_duration_hours: "24"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*24:02 HLA-A*68:01 HLA-B*07:02 HLA-B*51:01 HLA-C*15:02"
+      - sample_label: "Calu-3 lung adenocarcinoma — IAV H3N2/Fukui infected + zapnometinib (HLA class I)"
+        n_samples: 1
+        source: "Human Calu-3 lung adenocarcinoma cell line, IAV H3N2/Fukui MOI 0.1 + zapnometinib 1h p.i., 24h"
+        condition: "Influenza A virus (H3N2/Fukui, MOI 0.1) followed 1h later by zapnometinib (24h)"
+        condition_id: hamza_2026_calu3_iav_zapnometinib
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC13246656 Methods; IEDB assay_comments"
+        condition_combination: sequential
+        condition_drugs: zapnometinib
+        condition_infection: "Influenza A virus"
+        condition_duration_hours: "24"
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*24:02 HLA-A*68:01 HLA-B*07:02 HLA-B*51:01 HLA-C*15:02"
+
+  - pmid: 42735508
+    study_label: "Jorgensen 2026 — primary human epidermal keratinocytes stratified by ERAP2 rs2248374"
+    title: "Impact of the functional ERAP2 rs2248374 polymorphism on the HLA class I immunopeptidome in primary human epidermal keratinocytes"
+    species: "Homo sapiens"
+    override: healthy
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      Exact elution_condition_ids maps all 7 ERAP2 rs2248374 genotype-subset statements across
+      all 6,176 rows: 1,270 genotype-exclusive rows resolve to AA (536), AG (223), or GG (511),
+      while 4,906 rows were genuinely shared across multiple ERAP2 genotype cohorts.
+    elution_condition_ids:
+      "pMHC complexes were immunoprecipitated from primary human epidermal keratinocytes.  The epitope was identified in only individuals carrying the ERAP2 AA genotype.":
+        - jorgensen_2026_hek_erap2_aa
+      "pMHC complexes were immunoprecipitated from primary human epidermal keratinocytes.  The epitope was identified in only individuals carrying the ERAP2 AG genotype.":
+        - jorgensen_2026_hek_erap2_ag
+      "pMHC complexes were immunoprecipitated from primary human epidermal keratinocytes.  The epitope was identified in only individuals carrying the ERAP2 GG genotype.":
+        - jorgensen_2026_hek_erap2_gg
+      "pMHC complexes were immunoprecipitated from primary human epidermal keratinocytes.  The epitope was identified in individuals carrying the ERAP2 AA and AG genotypes.":
+        - jorgensen_2026_hek_erap2_aa
+        - jorgensen_2026_hek_erap2_ag
+      "pMHC complexes were immunoprecipitated from primary human epidermal keratinocytes.  The epitope was identified in individuals carrying the ERAP2 AA and GG genotypes.":
+        - jorgensen_2026_hek_erap2_aa
+        - jorgensen_2026_hek_erap2_gg
+      "pMHC complexes were immunoprecipitated from primary human epidermal keratinocytes.  The epitope was identified in individuals carrying the ERAP2 AG and GG genotypes.":
+        - jorgensen_2026_hek_erap2_ag
+        - jorgensen_2026_hek_erap2_gg
+      "pMHC complexes were immunoprecipitated from primary human epidermal keratinocytes.  The epitope was identified in individuals carrying the ERAP2 AA, AG, and GG genotypes.":
+        - jorgensen_2026_hek_erap2_aa
+        - jorgensen_2026_hek_erap2_ag
+        - jorgensen_2026_hek_erap2_gg
+    note: >
+      Primary human epidermal keratinocyte (HEK) HLA class I immunopeptidome (6,176 rows /
+      6,176 unique peptides in IEDB) from 34 healthy donors (aged 22-62 years) stratified by
+      natural ERAP2 rs2248374 polymorphism (AA ERAP2+, AG heterozygous, GG ERAP2-null via
+      NMD; Jorgensen et al., Hum Immunol 2026). #33.
+    ms_samples:
+      - sample_label: "Primary human epidermal keratinocytes — ERAP2 rs2248374 AA (ERAP2+)"
+        n_samples: 1
+        source: "Primary human epidermal keratinocytes from healthy donors carrying ERAP2 rs2248374 AA"
+        condition: "unperturbed — natural ERAP2 rs2248374 AA genotype (ERAP2-expressing)"
+        condition_id: jorgensen_2026_hek_erap2_aa
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMID 42735508 abstract; IEDB assay_comments"
+        condition_control: untreated
+        condition_background: "ERAP2_rs2248374_AA"
+        condition_material: direct_ex_vivo
+        mhc_class: I
+        mhc: "HLA class I"
+      - sample_label: "Primary human epidermal keratinocytes — ERAP2 rs2248374 AG (heterozygous)"
+        n_samples: 1
+        source: "Primary human epidermal keratinocytes from healthy donors carrying ERAP2 rs2248374 AG"
+        condition: "unperturbed — natural ERAP2 rs2248374 AG genotype (heterozygous)"
+        condition_id: jorgensen_2026_hek_erap2_ag
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMID 42735508 abstract; IEDB assay_comments"
+        condition_control: untreated
+        condition_background: "ERAP2_rs2248374_AG"
+        condition_material: direct_ex_vivo
+        mhc_class: I
+        mhc: "HLA class I"
+      - sample_label: "Primary human epidermal keratinocytes — ERAP2 rs2248374 GG (ERAP2-null)"
+        n_samples: 1
+        source: "Primary human epidermal keratinocytes from healthy donors carrying ERAP2 rs2248374 GG"
+        condition: "unperturbed — natural ERAP2 rs2248374 GG genotype (natural ERAP2 NMD loss)"
+        condition_id: jorgensen_2026_hek_erap2_gg
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMID 42735508 abstract; IEDB assay_comments"
+        condition_control: untreated
+        condition_background: "ERAP2_rs2248374_GG"
+        condition_material: direct_ex_vivo
+        mhc_class: I
+        mhc: "HLA class I"
+
+  - pmid: 40498839
+    study_label: "Croce 2025 — Jurkat J76-A*02:01 CD8αβ cellular HLA-I self-peptidome (TCR cross-reactivity)"
+    title: "Phage display enables machine learning discovery of cancer antigen-specific TCRs"
+    species: "Homo sapiens"
+    override: cell_line
+    ip_antibody: "W6/32"
+    arm_resolution: resolved
+    arm_resolution_note: >
+      Single cellular MS arm: all 4,162 IEDB rows derive from W6/32 immunopurification of
+      HLA-A*02:01-transduced TCR-KO Jurkat J76 CD8alpha/beta cells.
+    note: >
+      Verified genuine cellular MHC class I immunopeptidome (4,162 rows / 4,162 unique
+      peptides in IEDB, W6/32 IP) of TCRalpha/beta-KO Jurkat J76 CD8alpha/beta cells
+      transduced with HLA-A*02:01 and NY-ESO-1 TCR (NOT phage display — phage display was
+      used for TCR library panning, whereas the IEDB MS rows are cellular self-peptidome
+      elutions used for TCR cross-reactivity profiling; Croce et al., Sci Adv 2025,
+      PMC12225687). #33.
+    ms_samples:
+      - sample_label: "Jurkat J76 TCR-KO CD8αβ + HLA-A*02:01 + NY-ESO-1 TCR (HLA class I)"
+        n_samples: 1
+        source: "Human Jurkat J76 TCRalpha/beta-KO T-ALL cell line transduced with CD8alpha/beta, HLA-A*02:01, and NY-ESO-1 TCR"
+        condition: "steady-state culture of TCR-KO Jurkat J76 transduced with CD8a/b, HLA-A*02:01, and NY-ESO-1 TCR"
+        condition_id: croce_2025_jurkat_j76_a0201
+        condition_status: annotated
+        condition_evidence: primary_source
+        condition_reference: "PMC12225687 Methods (HLA-I immunopeptidomics); IEDB antigen_processing_comments"
+        condition_baseline_engineering: "CD8A;CD8B;NY-ESO-1_TCR;TCR_KO"
+        condition_mhc_context: mhc_coexpression
+        condition_material: cultured
+        mhc_class: I
+        mhc: "HLA-A*02:01 HLA-A*03:01 HLA-B*07:02 HLA-B*35:01 HLA-C*04:01 HLA-C*07:02"
