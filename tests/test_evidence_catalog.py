@@ -12,11 +12,31 @@ import pytest
 
 from hitlist.evidence_catalog import (
     BASELINES,
+    SCHEMA_VERSION,
     describe_catalog,
     describe_evidence,
     describe_task,
     list_evidence,
     list_tasks,
+)
+
+# Frozen set of legacy per-paper qualification modules (#986).
+# Phase 2a collapses these into YAML; no new *_qualification.py modules may be added.
+_FROZEN_QUALIFICATION_MODULES = frozenset(
+    {
+        "bekker_jensen_qualification.py",
+        "canine_dla_qualification.py",
+        "dc_immunoproteasome_qualification.py",
+        "degradomics_native_qualification.py",
+        "drug_dm_qualification.py",
+        "drug_studies_qualification.py",
+        "endolysosomal_qualification.py",
+        "erap1_biochemical_qualification.py",
+        "erap2_oe_qualification.py",
+        "mapp_qualification.py",
+        "ms_calibration_qualification.py",
+        "peptidomicsdb_qualification.py",
+    }
 )
 
 
@@ -286,4 +306,21 @@ def test_external_sequence_reference_relations_keep_identity_scopes():
     occurrence = describe_evidence("mapp_peptide_parent_occurrence")
     assert {"peptide_row_id", "reference_id", "reference_record_id", "occurrence_id"} <= set(
         occurrence["index_required"]
+    )
+
+
+def test_evidence_catalog_schema_version_is_frozen():
+    """EvidenceStore catalog is frozen at SCHEMA_VERSION = 40 (#986)."""
+    assert SCHEMA_VERSION == 40
+    assert describe_catalog()["schema_version"] == 40
+
+
+def test_no_new_qualification_modules_added():
+    """Guardrail (#986): per-paper metadata belongs in YAML, not new *_qualification.py files."""
+    hitlist_dir = Path(__file__).parents[1] / "hitlist"
+    actual = {p.name for p in hitlist_dir.glob("*_qualification.py")}
+    unexpected = sorted(actual - _FROZEN_QUALIFICATION_MODULES)
+    assert not unexpected, (
+        "Do not add new *_qualification.py modules (#986); put per-paper contracts in "
+        f"hitlist/data/ YAML instead. Unexpected modules: {unexpected}"
     )

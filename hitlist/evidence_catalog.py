@@ -2,6 +2,12 @@
 
 The catalog declares grains and field meanings. Physical readiness is resolved
 against a verified package by :class:`hitlist.evidence_store.EvidenceStore`.
+
+.. note::
+   **FROZEN at ``SCHEMA_VERSION = 40`` (#986).** Do not add new catalog
+   families, evidence tables, or schema versions here. New assay datasets land
+   in the shared modality Parquet tables and per-paper metadata/contracts live
+   in YAML under ``hitlist/data/``.
 """
 
 from __future__ import annotations
