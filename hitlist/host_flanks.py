@@ -621,14 +621,15 @@ def load_flanked_ligands(
     }
     df["sample_id"] = [key_to_sid[row] for row in key_cols_frame.itertuples(index=False, name=None)]
 
+    def _group_flank_cov(group: pd.DataFrame) -> float:
+        n_total = group["peptide"].nunique()
+        if n_total <= 0:
+            return 0.0
+        return float(group.loc[group["has_flank"], "peptide"].nunique() / n_total)
+
     cov = (
         df.groupby("sample_id", sort=False)
-        .apply(
-            lambda g: float(g.loc[g["has_flank"], "peptide"].nunique() / g["peptide"].nunique())
-            if g["peptide"].nunique() > 0
-            else 0.0,
-            include_groups=False,
-        )
+        .apply(_group_flank_cov, include_groups=False)
         .rename("cohort_flank_coverage")
     )
     df["cohort_flank_coverage"] = df["sample_id"].map(cov).astype("float64")

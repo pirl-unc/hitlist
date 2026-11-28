@@ -414,14 +414,14 @@ def build_samples_table(
 
 
 @lru_cache(maxsize=1)
-def _mhcseqs_known_alleles() -> frozenset[str]:
-    """Return the set of allele names with sequence records in bundled ``mhcseqs``."""
+def _mhcseqs_known_alleles() -> frozenset[str] | None:
+    """Return allele names with sequence records in ``mhcseqs``, or None if CSV is absent."""
     try:
         import mhcseqs
 
         rows = mhcseqs.load_sequences_dict()
     except Exception:
-        return frozenset()
+        return None
     known: set[str] = set()
     for row in rows:
         if not row.get("sequence"):
@@ -475,6 +475,8 @@ def _parse_allele_metadata(token: str) -> dict[str, object]:
         if not isinstance(obj, mhcgnomes.Allele):
             return False
         s = obj.to_string()
+        if known is None:
+            return classify_allele_resolution(s) == "four_digit"
         if s in known:
             return True
         try:
