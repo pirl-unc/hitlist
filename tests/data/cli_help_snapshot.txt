@@ -1,13 +1,14 @@
 ===== hitlist --help =====
 usage: hitlist [-h] [--version]
-               {data,build,evidence,report,export,audit-splits,verify-evidence-bundle,reassign-alleles,qc,pmhc,samples,proteomics,expression}
+               {data,path,build,evidence,report,export,audit-splits,verify-evidence-bundle,reassign-alleles,qc,pmhc,samples,proteomics,expression}
                ...
 
 hitlist: verified immune and nonimmune evidence for model training
 
 positional arguments:
-  {data,build,evidence,report,export,audit-splits,verify-evidence-bundle,reassign-alleles,qc,pmhc,samples,proteomics,expression}
+  {data,path,build,evidence,report,export,audit-splits,verify-evidence-bundle,reassign-alleles,qc,pmhc,samples,proteomics,expression}
     data                Manage external datasets
+    path                Print the active dataset bundle directory (or a table inside it)
     build               Build canonical artifacts: observations.parquet (from IEDB/CEDAR), cached
                         scan index, reference proteomes.
     evidence            Query a verified multi-modality evidence package
@@ -287,6 +288,22 @@ usage: hitlist data list-proteomes [-h]
 
 options:
   -h, --help  show this help message and exit
+
+===== hitlist path --help =====
+usage: hitlist path [-h] [--root ROOT] [--legacy] [--check] [table]
+
+Resolve the active verified Hitlist bundle directory or a named table inside it (aliases include:
+alleles, binding, contributors, mappings, observations, other_assays, proteomes, samples; or any
+exact filename).
+
+positional arguments:
+  table        Optional table alias or filename inside the bundle (omit for the bundle directory).
+
+options:
+  -h, --help   show this help message and exit
+  --root ROOT  Override the Hitlist cache root directory.
+  --legacy     Fall back to a legacy flat root cache when no published bundle exists.
+  --check      Verify the bundle hashes and require the target path to exist.
 
 ===== hitlist build --help =====
 usage: hitlist build [-h] {observations,proteomes} ...

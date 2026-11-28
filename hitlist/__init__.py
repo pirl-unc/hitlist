@@ -43,6 +43,7 @@ _PUBLIC_API: dict[str, str] = {
     "validate_uniprot_fasta_headers": ".downloads",
     "audit_cached_proteomes": ".downloads",
     "dataset_snapshot": ".dataset",
+    "latest_bundle": ".dataset",
     "is_offline": ".downloads",
     "set_offline": ".downloads",
     # Core build & load

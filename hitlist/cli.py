@@ -33,6 +33,7 @@ from . import (
     cli_build,
     cli_data,
     cli_export,
+    cli_path,
     cli_pmhc,
     cli_qc,
     cli_reassign,
@@ -67,6 +68,7 @@ def _main() -> None:
     # tests/test_cli_help_snapshot.py).  Every command group binds its handler with
     # ``set_defaults(func=...)``, so dispatch below is just ``args.func(args)``.
     cli_data.register(sub)
+    cli_path.register(sub)
     cli_build.register(sub)
     from .cli_evidence_store import register_evidence_cli
 
