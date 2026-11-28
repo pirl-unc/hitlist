@@ -3120,6 +3120,7 @@ def _list_datacache_bundles(store_path: Path) -> list[Path]:
         child
         for child in sorted(store_path.iterdir())
         if child.is_dir()
+        and not child.is_symlink()
         and not child.name.startswith(".")
         and (child / ".datacache-manifest.json").is_file()
     ]

@@ -7,7 +7,9 @@ input copies, locking, hashes, receipts and complete-directory publication.
 from __future__ import annotations
 
 import json
+import os
 import shutil
+import warnings
 from contextlib import contextmanager
 from contextvars import ContextVar
 from functools import wraps
@@ -16,6 +18,7 @@ from pathlib import Path
 from datacache import inspect_materialization, materialize
 
 from .downloads import data_dir
+from .errors import DatasetError
 
 STORE_NAME = "dataset"
 INDEX_FILES = (
@@ -28,12 +31,45 @@ INDEX_FILES = (
     "observations_meta.json",
 )
 MAPPING_FILES = ("peptide_mappings.parquet", "peptide_mappings_meta.json")
+STALE_ROOT_CANDIDATES = (*INDEX_FILES, *MAPPING_FILES)
+
+# Friendly table aliases accepted by ``bundle_path()`` and ``hitlist path <table>`` (#989).
+BUNDLE_TABLE_ALIASES: dict[str, str] = {
+    "observations": "observations.parquet",
+    "ms": "observations.parquet",
+    "ms_ligands": "observations.parquet",
+    "binding": "binding.parquet",
+    "other_assays": "other_assays.parquet",
+    "other": "other_assays.parquet",
+    "contributors": "observation_contributors.parquet",
+    "observation_contributors": "observation_contributors.parquet",
+    "mappings": "peptide_mappings.parquet",
+    "peptide_mappings": "peptide_mappings.parquet",
+    "primary_flanks": "primary_flanks.parquet",
+    "flanks": "primary_flanks.parquet",
+    "samples": "samples.parquet",
+    "cohorts": "samples.parquet",
+    "alleles": "alleles.parquet",
+    "proteomes": "proteomes.parquet",
+    "bulk_proteomics": "bulk_proteomics.parquet",
+    "bulk": "bulk_proteomics.parquet",
+    "line_expression": "line_expression.parquet",
+    "expression": "line_expression.parquet",
+    "meta": "observations_meta.json",
+    "observations_meta": "observations_meta.json",
+    "mappings_meta": "peptide_mappings_meta.json",
+    "peptide_mappings_meta": "peptide_mappings_meta.json",
+    "manifest": ".datacache-manifest.json",
+    "readme": "README.md",
+}
+
 # Context-local pins support nested API calls and independent reader threads.
 _pins = ContextVar("hitlist_dataset_pins", default=None)
 _staging = ContextVar("hitlist_dataset_staging", default=None)
+_warned_stale_roots: set[tuple[Path, Path]] = set()
 
 
-class DatasetGenerationError(ValueError):
+class DatasetGenerationError(DatasetError):
     """A claimed published generation is incomplete or unreadable."""
 
 
@@ -55,8 +91,8 @@ def _root(root=None):
     return Path(data_dir() if root is None else root).absolute()
 
 
-def _inspection(root):
-    state = inspect_materialization(root / STORE_NAME, verify_files=False)
+def _inspection(root, *, verify_files: bool = False):
+    state = inspect_materialization(root / STORE_NAME, verify_files=verify_files)
     if state.status not in {"available", "missing"}:
         raise DatasetGenerationError(
             f"Invalid Hitlist dataset at {state.path}: {state.error}"
@@ -66,9 +102,170 @@ def _inspection(root):
     return state
 
 
+def stale_root_files(*, root=None) -> list[Path]:
+    """Return legacy root-level index files shadowed by a published bundle (#989).
+
+    Returns an empty list if no published bundle exists under ``root`` (pure
+    legacy cache) or if no legacy root-level parquet/metadata files are present.
+    Never creates or modifies directories.
+    """
+    resolved = _root(root)
+    if not resolved.is_dir():
+        return []
+    state = inspect_materialization(resolved / STORE_NAME, verify_files=False)
+    if state.status != "available":
+        return []
+    return [resolved / name for name in STALE_ROOT_CANDIDATES if (resolved / name).exists()]
+
+
+def _reset_stale_root_warnings() -> None:
+    """Clear the per-process stale-root warning cache (used by tests)."""
+    _warned_stale_roots.clear()
+
+
+def _warn_if_stale_root_files(root: Path, bundle: Path) -> None:
+    key = (root, bundle)
+    if key in _warned_stale_roots:
+        return
+    if not root.is_dir():
+        return
+    stale = [root / name for name in STALE_ROOT_CANDIDATES if (root / name).exists()]
+    if not stale:
+        return
+    _warned_stale_roots.add(key)
+    names = ", ".join(p.name for p in stale[:4])
+    if len(stale) > 4:
+        names += f", ... ({len(stale)} total)"
+    warnings.warn(
+        f"Stale root-level cache files ({names}) in {root} coexist with newer published "
+        f"bundle {bundle}. Use hitlist.latest_bundle() or `hitlist path` instead of reading "
+        f"root-level *.parquet files directly (#989).",
+        UserWarning,
+        stacklevel=3,
+    )
+
+
+def cache_layout(*, root=None) -> dict[str, Path]:
+    """Return the canonical cache directory paths without creating them (#989)."""
+    resolved = _root(root)
+    bundles_dir = resolved / STORE_NAME / "bundles"
+    return {
+        "root": resolved,
+        "raw": resolved / "raw",
+        "proteomes": resolved / "proteomes",
+        "bundles": bundles_dir,
+        "current": bundles_dir / "current",
+        "scratch": resolved / "scratch",
+    }
+
+
+def _update_current_pointer(bundle_dir: Path) -> Path:
+    """Atomically point ``<bundles_dir>/current`` at ``bundle_dir`` (#989).
+
+    Uses a relative symlink swapped atomically via ``os.replace``. On platforms
+    where symlink creation is unavailable, falls back to writing
+    ``current.json`` atomically in the same directory.
+    """
+    bundles_dir = bundle_dir.parent
+    pointer = bundles_dir / "current"
+    tmp = bundles_dir / f".current.{os.getpid()}.tmp"
+    try:
+        if tmp.exists() or tmp.is_symlink():
+            tmp.unlink()
+        os.symlink(bundle_dir.name, tmp)
+        os.replace(tmp, pointer)
+        return pointer
+    except OSError:
+        if tmp.exists() or tmp.is_symlink():
+            tmp.unlink()
+        fallback = bundles_dir / "current.json"
+        fallback_tmp = bundles_dir / f".current.{os.getpid()}.json.tmp"
+        payload = json.dumps({"bundle": bundle_dir.name, "path": str(bundle_dir)}, indent=2) + "\n"
+        fallback_tmp.write_text(payload, encoding="utf-8")
+        os.replace(fallback_tmp, fallback)
+        return fallback
+
+
 def _current(root):
     state = _inspection(root)
-    return Path(state.bundle) if state.status == "available" else root
+    if state.status == "available":
+        bundle = Path(state.bundle)
+        _warn_if_stale_root_files(root, bundle)
+        return bundle
+    return root
+
+
+def latest_bundle(
+    *,
+    root=None,
+    allow_legacy: bool = False,
+    verify: bool = False,
+    warn_stale: bool = True,
+) -> Path:
+    """Return the active verified Hitlist bundle directory (#989).
+
+    Respects an active :func:`dataset_snapshot` pin when ``verify=False``.
+    Raises :class:`DatasetGenerationError` if no published bundle exists
+    (unless ``allow_legacy=True`` and a flat ``observations.parquet`` exists
+    at ``root``). Never creates directories.
+    """
+    resolved = _root(root)
+    pins = _pins.get() or {}
+    if resolved in pins and not verify:
+        pinned = pins[resolved]
+        if pinned != resolved or (allow_legacy and (resolved / "observations.parquet").exists()):
+            return pinned
+    state = _inspection(resolved, verify_files=verify)
+    if state.status == "available":
+        bundle = Path(state.bundle)
+        if warn_stale:
+            _warn_if_stale_root_files(resolved, bundle)
+        return bundle
+    if allow_legacy and (resolved / "observations.parquet").exists():
+        return resolved
+    raise DatasetGenerationError(
+        f"No published Hitlist dataset bundle found under {resolved / STORE_NAME}. "
+        "Run `hitlist build` first (or pass allow_legacy=True / --legacy for flat root caches)."
+    )
+
+
+def bundle_path(
+    table: str | None = None,
+    *,
+    root=None,
+    bundle: str | Path | None = None,
+    allow_legacy: bool = False,
+    verify: bool = False,
+    must_exist: bool = False,
+    warn_stale: bool = True,
+) -> Path:
+    """Resolve the active bundle directory or a named file inside it (#989).
+
+    ``table`` may be a short alias (e.g. ``"observations"``, ``"ms"``,
+    ``"binding"``, ``"mappings"``, ``"samples"``, ``"alleles"``,
+    ``"proteomes"``) or an exact filename inside the bundle.
+    """
+    if bundle is not None:
+        base = Path(bundle).expanduser().resolve()
+        if not base.is_dir():
+            raise DatasetGenerationError(f"Bundle directory does not exist: {base}")
+    else:
+        base = latest_bundle(
+            root=root,
+            allow_legacy=allow_legacy,
+            verify=verify,
+            warn_stale=warn_stale,
+        )
+    if table is None:
+        return base
+    token = str(table).strip()
+    if not token or "/" in token or "\\" in token or token in {".", ".."}:
+        raise DatasetError(f"Invalid bundle table name: {table!r}")
+    filename = BUNDLE_TABLE_ALIASES.get(token.lower(), token)
+    target = base / filename
+    if must_exist and not target.exists():
+        raise FileNotFoundError(f"Bundle file {filename!r} does not exist in {base}")
+    return target
 
 
 def dataset_path(name, *, root=None):
@@ -236,7 +433,7 @@ def publish_dataset(sources, names, build, *, root=None, options=None):
             _validate_generation()
             _write_readme(directory)
 
-    return {
+    published = {
         name: Path(path)
         for name, path in materialize(
             root / STORE_NAME,
@@ -248,6 +445,10 @@ def publish_dataset(sources, names, build, *, root=None, options=None):
             download_options={"show_progress": False},
         ).items()
     }
+    if published:
+        bundle_dir = next(iter(published.values())).parent
+        _update_current_pointer(bundle_dir)
+    return published
 
 
 def update_dataset(names, write, *, root=None, options=None, metadata_updates=None):
