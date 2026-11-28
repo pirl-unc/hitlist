@@ -574,7 +574,12 @@ def build_peptide_mappings(
                 flank=flank,
             ):
                 return update_dataset(
-                    ("peptide_mappings.parquet", "peptide_mappings_meta.json"),
+                    (
+                        "peptide_mappings.parquet",
+                        "peptide_mappings_meta.json",
+                        "proteomes.parquet",
+                        "primary_flanks.parquet",
+                    ),
                     lambda: build_peptide_mappings(
                         release=release,
                         fetch_missing=fetch_missing,
@@ -959,6 +964,16 @@ def build_peptide_mappings(
     }
     # No mkdir here: ``out`` is this file's sibling and was just written.
     mappings_meta_path().write_text(json.dumps(meta, indent=2, default=str) + "\n")
+
+    from .host_flanks import write_host_flank_tables
+
+    write_host_flank_tables(
+        mappings,
+        proteomes_out=dataset_path("proteomes.parquet", root=data_dir()),
+        primary_flanks_out=dataset_path("primary_flanks.parquet", root=data_dir()),
+        mappings_meta=meta,
+        root=data_dir(),
+    )
 
     if verbose:
         print(f"\nWrote {out} ({out.stat().st_size / 1e6:.1f} MB)")

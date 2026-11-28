@@ -759,13 +759,18 @@ def build_bundle_tables(
     output_dir: str | Path | None = None,
     publish: bool = False,
 ) -> dict[str, Path]:
-    """Materialize ``samples.parquet`` and ``alleles.parquet`` from an existing bundle (#990, #992).
+    """Materialize bundle summary tables from an existing bundle (#990, #991, #992).
 
-    Published datacache bundles are immutable: pass ``output_dir`` to write
-    sidecars outside the bundle, or ``publish=True`` to publish a new
+    Writes ``samples.parquet`` and ``alleles.parquet``, plus ``proteomes.parquet``
+    and ``primary_flanks.parquet`` whenever ``peptide_mappings.parquet`` exists in
+    the bundle. Published datacache bundles are immutable: pass ``output_dir`` to
+    write sidecars outside the bundle, or ``publish=True`` to publish a new
     generation via :func:`hitlist.dataset.update_dataset`.
     """
+    import json
+
     from .dataset import update_dataset
+    from .host_flanks import build_primary_flanks_table, build_proteomes_registry
 
     base = bundle_path(None, root=root, bundle=bundle)
     obs = pd.read_parquet(base / "observations.parquet")
@@ -777,19 +782,34 @@ def build_bundle_tables(
         if (base / "other_assays.parquet").exists()
         else None
     )
-    primary_flanks = (
-        pd.read_parquet(base / "primary_flanks.parquet")
-        if (base / "primary_flanks.parquet").exists()
-        else None
-    )
+    mappings_file = base / "peptide_mappings.parquet"
+    has_mappings = mappings_file.exists()
+    proteomes_df = None
+    primary_flanks = None
+    if has_mappings:
+        mappings_df = pd.read_parquet(mappings_file)
+        meta_file = base / "peptide_mappings_meta.json"
+        m_meta = json.loads(meta_file.read_text(encoding="utf-8")) if meta_file.exists() else {}
+        resolved_root = data_dir() if root is None else Path(root)
+        proteomes_df = build_proteomes_registry(
+            mappings_df,
+            mappings_meta=m_meta,
+            root=resolved_root,
+        )
+        primary_flanks = build_primary_flanks_table(mappings_df)
+    elif (base / "primary_flanks.parquet").exists():
+        primary_flanks = pd.read_parquet(base / "primary_flanks.parquet")
 
     if publish:
         if bundle is not None:
             raise ValueError("Cannot combine explicit bundle= with publish=True")
         resolved_root = data_dir() if root is None else Path(root)
+        names = ["samples.parquet", "alleles.parquet"]
+        if has_mappings:
+            names.extend(["proteomes.parquet", "primary_flanks.parquet"])
 
         def _write():
-            return write_bundle_summary_tables(
+            written = write_bundle_summary_tables(
                 obs,
                 binding=binding,
                 other=other,
@@ -797,8 +817,21 @@ def build_bundle_tables(
                 alleles_out=dataset_path("alleles.parquet", root=resolved_root),
                 primary_flanks=primary_flanks,
             )
+            if has_mappings and proteomes_df is not None and primary_flanks is not None:
+                p_out = dataset_path("proteomes.parquet", root=resolved_root)
+                f_out = dataset_path("primary_flanks.parquet", root=resolved_root)
+                atomic_write_parquet(proteomes_df, p_out)
+                atomic_write_parquet(
+                    primary_flanks,
+                    f_out,
+                    sort_by=("proteome_id", "peptide"),
+                    row_group_size=MODALITY_ROW_GROUP_SIZE,
+                )
+                written["proteomes"] = p_out
+                written["primary_flanks"] = f_out
+            return written
 
-        return update_dataset(("samples.parquet", "alleles.parquet"), _write, root=resolved_root)
+        return update_dataset(tuple(names), _write, root=resolved_root)
 
     if output_dir is None:
         raise ValueError(
@@ -807,7 +840,7 @@ def build_bundle_tables(
         )
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
-    return write_bundle_summary_tables(
+    written = write_bundle_summary_tables(
         obs,
         binding=binding,
         other=other,
@@ -815,3 +848,16 @@ def build_bundle_tables(
         alleles_out=out / "alleles.parquet",
         primary_flanks=primary_flanks,
     )
+    if has_mappings and proteomes_df is not None and primary_flanks is not None:
+        p_out = out / "proteomes.parquet"
+        f_out = out / "primary_flanks.parquet"
+        atomic_write_parquet(proteomes_df, p_out)
+        atomic_write_parquet(
+            primary_flanks,
+            f_out,
+            sort_by=("proteome_id", "peptide"),
+            row_group_size=MODALITY_ROW_GROUP_SIZE,
+        )
+        written["proteomes"] = p_out
+        written["primary_flanks"] = f_out
+    return written

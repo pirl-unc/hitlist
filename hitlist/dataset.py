@@ -31,9 +31,10 @@ INDEX_FILES = (
     "observations_meta.json",
 )
 MAPPING_FILES = ("peptide_mappings.parquet", "peptide_mappings_meta.json")
-# Compact dimension/summary tables written by new builds (#990, #992).
+# Compact dimension/summary tables written by new builds (#990, #991, #992).
 # Kept outside required INDEX_FILES so pre-2.38.0 published bundles stay valid.
 SUMMARY_FILES = ("samples.parquet", "alleles.parquet")
+FLANK_SUMMARY_FILES = ("proteomes.parquet", "primary_flanks.parquet")
 STALE_ROOT_CANDIDATES = (*INDEX_FILES, *MAPPING_FILES)
 
 # Friendly table aliases accepted by ``bundle_path()`` and ``hitlist path <table>`` (#989).

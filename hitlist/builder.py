@@ -793,7 +793,13 @@ def build_observations(
         index is written alongside at ``binding.parquet``.
     """
     from .curation import _clear_curation_caches
-    from .dataset import INDEX_FILES, MAPPING_FILES, SUMMARY_FILES, publish_dataset
+    from .dataset import (
+        FLANK_SUMMARY_FILES,
+        INDEX_FILES,
+        MAPPING_FILES,
+        SUMMARY_FILES,
+        publish_dataset,
+    )
     from .provenance import ContributorCollector, file_digest
 
     # A rebuild in a long-lived Python process must use the same current
@@ -885,7 +891,11 @@ def build_observations(
             metadata["provenance"]["sources"][name]["path"] = str(path)
         _meta_path().write_text(json.dumps(metadata, indent=2, default=str) + "\n")
 
-    files = (*INDEX_FILES, *SUMMARY_FILES, *(MAPPING_FILES if build_mappings else ()))
+    files = (
+        *INDEX_FILES,
+        *SUMMARY_FILES,
+        *(MAPPING_FILES + FLANK_SUMMARY_FILES if build_mappings else ()),
+    )
     published = publish_dataset(
         sources,
         files,
@@ -1202,12 +1212,35 @@ def _build_observations(
         row_group_size=MODALITY_ROW_GROUP_SIZE,
     )
     print(f"Wrote {other_out} ({other_out.stat().st_size / 1e6:.1f} MB)")
+    primary_flanks_df = None
+    if build_mappings:
+        from .host_flanks import write_host_flank_tables
+        from .mappings import mappings_meta_path, mappings_path
+
+        proteomes_out = dataset_path("proteomes.parquet", root=data_dir())
+        primary_flanks_out = dataset_path("primary_flanks.parquet", root=data_dir())
+        if primary_flanks_out.exists() and proteomes_out.exists():
+            primary_flanks_df = pd.read_parquet(primary_flanks_out)
+        else:
+            mp = mappings_path()
+            mm = mappings_meta_path()
+            mappings_df = pd.read_parquet(mp) if mp.exists() else pd.DataFrame()
+            m_meta = json.loads(mm.read_text(encoding="utf-8")) if mm.exists() else {}
+            _, primary_flanks_df = write_host_flank_tables(
+                mappings_df,
+                proteomes_out=proteomes_out,
+                primary_flanks_out=primary_flanks_out,
+                mappings_meta=m_meta,
+                root=data_dir(),
+            )
+
     summary_paths = write_bundle_summary_tables(
         obs,
         binding=binding,
         other=other,
         samples_out=dataset_path("samples.parquet", root=data_dir()),
         alleles_out=dataset_path("alleles.parquet", root=data_dir()),
+        primary_flanks=primary_flanks_df,
     )
     print(
         f"Wrote {summary_paths['samples'].name} "

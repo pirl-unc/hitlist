@@ -188,7 +188,7 @@ def test_reader_pin_spans_publication_and_paths_remain_valid(tiny_dataset):
     assert 99858848 in set(load_observations(columns=["pmid"]).pmid)
     state = inspect_materialization(downloads.data_dir() / "dataset")
     assert state.status == "available"
-    assert len(state.files) == 12
+    assert len(state.files) == 14
     metadata = builder._cache_meta()
     assert metadata["provenance"]["sources"]["iedb"]["path"] == str(tiny_dataset)
     assert builder._cache_is_valid(builder._source_paths())
