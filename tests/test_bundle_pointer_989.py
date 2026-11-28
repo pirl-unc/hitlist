@@ -155,7 +155,7 @@ def test_bundle_path_rejects_traversal_and_missing_when_checked(tiny_published_c
     with pytest.raises(DatasetError, match="Invalid bundle table name"):
         dataset.bundle_path("../escape.parquet")
     with pytest.raises(FileNotFoundError):
-        dataset.bundle_path("alleles", must_exist=True)
+        dataset.bundle_path("nonexistent.parquet", must_exist=True)
 
 
 def test_cli_path_command(tiny_published_cache, monkeypatch, capsys):
@@ -181,7 +181,7 @@ def test_cli_path_command(tiny_published_cache, monkeypatch, capsys):
     assert "stale root-level cache files" in captured.err.lower()
 
     # Missing file with --check exits 1 cleanly via HitlistError.
-    monkeypatch.setattr(sys, "argv", ["hitlist", "path", "alleles", "--check"])
+    monkeypatch.setattr(sys, "argv", ["hitlist", "path", "nonexistent.parquet", "--check"])
     with pytest.raises(SystemExit) as excinfo:
         cli.main()
     assert excinfo.value.code == 1

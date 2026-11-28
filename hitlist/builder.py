@@ -793,7 +793,7 @@ def build_observations(
         index is written alongside at ``binding.parquet``.
     """
     from .curation import _clear_curation_caches
-    from .dataset import INDEX_FILES, MAPPING_FILES, publish_dataset
+    from .dataset import INDEX_FILES, MAPPING_FILES, SUMMARY_FILES, publish_dataset
     from .provenance import ContributorCollector, file_digest
 
     # A rebuild in a long-lived Python process must use the same current
@@ -885,7 +885,7 @@ def build_observations(
             metadata["provenance"]["sources"][name]["path"] = str(path)
         _meta_path().write_text(json.dumps(metadata, indent=2, default=str) + "\n")
 
-    files = (*INDEX_FILES, *(MAPPING_FILES if build_mappings else ()))
+    files = (*INDEX_FILES, *SUMMARY_FILES, *(MAPPING_FILES if build_mappings else ()))
     published = publish_dataset(
         sources,
         files,
@@ -1170,14 +1170,51 @@ def _build_observations(
     # over the canonical path.  This keeps any prior index in place — and
     # queryable — throughout the rebuild; readers never see a half-written
     # or not-yet-annotated parquet.
+    from .bundle_tables import (
+        MODALITY_ROW_GROUP_SIZE,
+        MODALITY_SORT_COLUMNS,
+        narrow_modality_frame,
+        write_bundle_summary_tables,
+    )
+
     provenance_meta = provenance.write((obs, binding, other), contributors_path())
-    atomic_write_parquet(obs, out_path)
+    obs_out = narrow_modality_frame(obs, "ms")
+    atomic_write_parquet(
+        obs_out,
+        out_path,
+        sort_by=MODALITY_SORT_COLUMNS,
+        row_group_size=MODALITY_ROW_GROUP_SIZE,
+    )
     print(f"\nWrote {out_path} ({out_path.stat().st_size / 1e6:.1f} MB)")
-    atomic_write_parquet(binding, binding_out)
+    binding_out_df = narrow_modality_frame(binding, "binding")
+    atomic_write_parquet(
+        binding_out_df,
+        binding_out,
+        sort_by=MODALITY_SORT_COLUMNS,
+        row_group_size=MODALITY_ROW_GROUP_SIZE,
+    )
     print(f"Wrote {binding_out} ({binding_out.stat().st_size / 1e6:.1f} MB)")
     other_out = _other_assays_path()
-    atomic_write_parquet(other, other_out)
+    atomic_write_parquet(
+        other,
+        other_out,
+        sort_by=MODALITY_SORT_COLUMNS,
+        row_group_size=MODALITY_ROW_GROUP_SIZE,
+    )
     print(f"Wrote {other_out} ({other_out.stat().st_size / 1e6:.1f} MB)")
+    summary_paths = write_bundle_summary_tables(
+        obs,
+        binding=binding,
+        other=other,
+        samples_out=dataset_path("samples.parquet", root=data_dir()),
+        alleles_out=dataset_path("alleles.parquet", root=data_dir()),
+    )
+    print(
+        f"Wrote {summary_paths['samples'].name} "
+        f"({summary_paths['samples'].stat().st_size / 1e3:.1f} KB) and "
+        f"{summary_paths['alleles'].name} "
+        f"({summary_paths['alleles'].stat().st_size / 1e3:.1f} KB)"
+    )
     provenance_meta["indexes"] = {
         "observations": file_digest(out_path),
         "binding": file_digest(binding_out),

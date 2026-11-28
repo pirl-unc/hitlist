@@ -31,6 +31,9 @@ INDEX_FILES = (
     "observations_meta.json",
 )
 MAPPING_FILES = ("peptide_mappings.parquet", "peptide_mappings_meta.json")
+# Compact dimension/summary tables written by new builds (#990, #992).
+# Kept outside required INDEX_FILES so pre-2.38.0 published bundles stay valid.
+SUMMARY_FILES = ("samples.parquet", "alleles.parquet")
 STALE_ROOT_CANDIDATES = (*INDEX_FILES, *MAPPING_FILES)
 
 # Friendly table aliases accepted by ``bundle_path()`` and ``hitlist path <table>`` (#989).
@@ -345,6 +348,10 @@ def _write_readme(directory):
         "observation_contributors.parquet": "All source contributors to retained observations",
         "peptide_mappings.parquet": "Alternative protein occurrences; not independent observations",
         "peptide_mappings_meta.json": "Mapping settings and reference coverage",
+        "samples.parquet": "Compact cohort/sample summary index with peptide and flank counts",
+        "alleles.parquet": "Compact canonical MHC allele dimension table with modality counts",
+        "proteomes.parquet": "Host reference proteome registry with SHA-256 and mapping counts",
+        "primary_flanks.parquet": "Deterministic canonical-isoform primary host flanks per (peptide, proteome_id)",
         "bulk_proteomics.parquet": "Bulk MS; fraction counts are not detectability labels",
         "line_expression.parquet": "Cell-line expression evidence",
         "observations_meta.json": "Build inputs, curation identity and contributor contract",
