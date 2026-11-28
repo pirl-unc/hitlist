@@ -171,6 +171,37 @@ def test_attach_host_flanks_prevents_cross_species_leak_and_load_flanked_ligands
     assert flanked_only.iloc[0]["n_flank"] == "AAAAA"
 
 
+def test_attach_host_flanks_maps_subspecies_to_canonical_proteome_id():
+    """Canis lupus familiaris rows must match Canis lupus proteome_id (#991)."""
+    obs = pd.DataFrame(
+        {
+            "peptide": ["KLQCVDLHV"],
+            "mhc_species": ["Canis lupus familiaris"],
+            "source_organism": ["Canis lupus familiaris"],
+        }
+    )
+    pf = pd.DataFrame(
+        {
+            "peptide": ["KLQCVDLHV"],
+            "proteome_id": ["Canis lupus"],
+            "n_flank": ["DDDDD"],
+            "c_flank": ["EEEEE"],
+            "protein_id": ["ENSCAFP1"],
+            "gene_name": ["DOG1"],
+            "gene_id": ["ENSCAFG1"],
+            "transcript_id": ["ENSCAFT1"],
+            "is_canonical_transcript": [True],
+            "position": [12],
+            "n_mappings": [1],
+        }
+    )
+    attached = host_flanks.attach_host_flanks(obs, primary_flanks=pf)
+    assert attached.iloc[0]["primary_proteome_id"] == "Canis lupus"
+    assert attached.iloc[0]["n_flank"] == "DDDDD"
+    assert attached.iloc[0]["c_flank"] == "EEEEE"
+    assert bool(attached.iloc[0]["has_flank"]) is True
+
+
 def test_build_observations_writes_proteomes_and_primary_flanks(
     tmp_path, monkeypatch, _isolated_curation_root
 ):

@@ -56,8 +56,8 @@ def test_public_api_is_small_and_discoverable():
     assert "generate_training_table" in hitlist.__all__
     assert "EvidenceStore" not in hitlist.__all__
     assert "VersionedDatasetRegistry" not in hitlist.__all__
-    # Guardrail (#986 Phase 2b): keep the top-level API focused (~37 core symbols).
-    assert len(hitlist.__all__) <= 40
+    # Guardrail (#986 Phase 2b/3): keep the top-level API focused (~41 core symbols).
+    assert len(hitlist.__all__) <= 42
     assert set(_PUBLIC_API).isdisjoint(_DEPRECATED_API)
 
 

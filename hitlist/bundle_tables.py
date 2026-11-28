@@ -238,8 +238,14 @@ def _first_non_empty(series: pd.Series) -> str:
 
 
 def _resolve_row_proteome_species(df: pd.DataFrame) -> pd.Series:
-    """Resolve host/source proteome species per row without mutating ``df``."""
+    """Resolve canonical host/source ``proteome_id`` per row without mutating ``df``.
+
+    Uses ``normalize_species`` followed by ``lookup_proteome`` canonical species
+    mapping so subspecies like ``Canis lupus familiaris`` match the exact
+    ``proteome`` label (``Canis lupus``) written into ``peptide_mappings.parquet``.
+    """
     from .curation import normalize_species
+    from .downloads import lookup_proteome
 
     raw = pd.Series("", index=df.index, dtype="string")
     for col in ("source_species", "source_organism", "species", "mhc_species"):
@@ -249,9 +255,19 @@ def _resolve_row_proteome_species(df: pd.DataFrame) -> pd.Series:
         cand = cand.mask(cand.str.lower().isin({"unknown", "unidentified"}), "")
         raw = raw.where(raw.ne(""), cand)
     uniques = raw.unique()
-    norm_map = {
-        val: (normalize_species(val) or val) if val else "" for val in uniques if pd.notna(val)
-    }
+    norm_map: dict[str, str] = {}
+    for val in uniques:
+        if pd.isna(val) or not val:
+            continue
+        norm = normalize_species(val) or val
+        try:
+            reg = lookup_proteome(norm)
+        except Exception:
+            reg = None
+        if isinstance(reg, dict) and reg.get("canonical_species"):
+            norm_map[val] = str(reg["canonical_species"])
+        else:
+            norm_map[val] = norm
     return raw.map(norm_map).fillna("").astype("string")
 
 
@@ -679,7 +695,9 @@ def load_samples_index(
     if mhc_class is not None and not df.empty:
         df = df[df["mhc_class"] == mhc_class]
     if species is not None and not df.empty:
-        df = df[df["mhc_species"] == species]
+        from .curation import normalize_species
+
+        df = df[df["mhc_species"] == normalize_species(species)]
     return df.reset_index(drop=True)
 
 
@@ -729,7 +747,9 @@ def load_alleles(
     if mhc_class is not None and not df.empty:
         df = df[df["mhc_class"] == mhc_class]
     if species is not None and not df.empty:
-        df = df[df["mhc_species"] == species]
+        from .curation import normalize_species
+
+        df = df[df["mhc_species"] == normalize_species(species)]
     if accessioned_only and not df.empty:
         df = df[df["is_accessioned"].astype(bool)]
     return df.reset_index(drop=True)

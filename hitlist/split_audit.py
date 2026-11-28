@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import itertools
 import json
+import re
+from collections.abc import Iterable, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
@@ -374,3 +376,146 @@ def audit_splits(
         "cross_partition_reuse": cross_partition_reuse,
         "scope": "Supplied partitions only; no claim about historical training weights.",
     }
+
+
+def _safe_table_slug(name: str) -> str:
+    slug = re.sub(r"[^0-9A-Za-z]+", "_", str(name).strip()).strip("_").lower()
+    return slug or "ref"
+
+
+def _normalize_reference_peptides(
+    reference_peptides_by_table: Mapping[str, Iterable[str]],
+) -> dict[str, frozenset[str]]:
+    if not isinstance(reference_peptides_by_table, Mapping):
+        raise TypeError("reference_peptides_by_table must be a mapping of table_name -> peptides")
+    normalized: dict[str, frozenset[str]] = {}
+    for table_name, peps in reference_peptides_by_table.items():
+        if isinstance(peps, (str, bytes)):
+            raise TypeError(
+                f"Reference peptides for {table_name!r} must be an iterable of peptide strings, not str"
+            )
+        normalized[str(table_name)] = frozenset(
+            str(p).strip().upper() for p in peps if p is not None and str(p).strip()
+        )
+    return normalized
+
+
+def filter_peptide_disjoint(
+    df: pd.DataFrame,
+    reference_peptides_by_table: Mapping[str, Iterable[str]],
+    *,
+    peptide_col: str = "peptide",
+) -> pd.DataFrame:
+    """Return rows of ``df`` whose peptide does not appear in any reference table (#993)."""
+    if peptide_col not in df.columns:
+        raise KeyError(f"Column {peptide_col!r} not found in DataFrame")
+    if df.empty:
+        return df.copy()
+    ref_sets = _normalize_reference_peptides(reference_peptides_by_table)
+    union_ref: set[str] = set().union(*ref_sets.values()) if ref_sets else set()
+    if not union_ref:
+        return df.copy()
+    peps = df[peptide_col].astype("string").fillna("").str.strip().str.upper()
+    return df[~peps.isin(union_ref)].copy()
+
+
+def audit_overlap(
+    df: pd.DataFrame,
+    reference_peptides_by_table: Mapping[str, Iterable[str]],
+    *,
+    group_by: str | Sequence[str] | None = None,
+    peptide_col: str = "peptide",
+) -> pd.DataFrame:
+    """Audit peptide overlap between ``df`` and external reference training tables (#993).
+
+    Computes overall (``group_by=None``) or per-cohort (``group_by="sample_id"``
+    or a list of grouping columns) peptide counts and overlap fractions against
+    each table in ``reference_peptides_by_table`` as well as their union.
+    """
+    if peptide_col not in df.columns:
+        raise KeyError(f"Column {peptide_col!r} not found in DataFrame")
+    ref_sets = _normalize_reference_peptides(reference_peptides_by_table)
+    union_ref: frozenset[str] = frozenset().union(*ref_sets.values()) if ref_sets else frozenset()
+
+    if group_by is None:
+        group_cols: list[str] = []
+    elif isinstance(group_by, str):
+        group_cols = [group_by]
+    else:
+        group_cols = [str(c) for c in group_by]
+
+    for col in group_cols:
+        if col not in df.columns:
+            raise KeyError(f"group_by column {col!r} not found in DataFrame")
+
+    slugs = {name: _safe_table_slug(name) for name in ref_sets}
+    if len(set(slugs.values())) != len(slugs):
+        # Disambiguate rare colliding table names deterministically.
+        slugs = {name: f"{_safe_table_slug(name)}_{i}" for i, name in enumerate(ref_sets)}
+
+    per_ref_cols: list[str] = []
+    for name in ref_sets:
+        s = slugs[name]
+        per_ref_cols.extend([f"n_overlap_{s}_peptides", f"overlap_{s}_fraction"])
+
+    out_cols = [
+        *group_cols,
+        "n_rows",
+        "n_unique_peptides",
+        "n_overlapping_peptides",
+        "n_disjoint_peptides",
+        "overlap_fraction",
+        *per_ref_cols,
+    ]
+    if df.empty:
+        return pd.DataFrame(columns=out_cols)
+
+    peps = df[peptide_col].astype("string").fillna("").str.strip().str.upper()
+
+    def _summarize_group(group_keys: dict[str, object], group_peps: pd.Series) -> dict[str, object]:
+        n_rows = len(group_peps)
+        uniq = {p for p in group_peps.unique() if p}
+        n_uniq = len(uniq)
+        n_overlap = len(uniq & union_ref)
+        row: dict[str, object] = {
+            **group_keys,
+            "n_rows": n_rows,
+            "n_unique_peptides": n_uniq,
+            "n_overlapping_peptides": n_overlap,
+            "n_disjoint_peptides": n_uniq - n_overlap,
+            "overlap_fraction": float(n_overlap / n_uniq) if n_uniq else 0.0,
+        }
+        for name, ref_set in ref_sets.items():
+            s = slugs[name]
+            n_ref = len(uniq & ref_set)
+            row[f"n_overlap_{s}_peptides"] = n_ref
+            row[f"overlap_{s}_fraction"] = float(n_ref / n_uniq) if n_uniq else 0.0
+        return row
+
+    rows: list[dict[str, object]] = []
+    if not group_cols:
+        rows.append(_summarize_group({}, peps))
+    else:
+        work = df[group_cols].copy()
+        work["_audit_pep"] = peps
+        group_key = group_cols[0] if len(group_cols) == 1 else group_cols
+        for key_vals, grp in work.groupby(group_key, dropna=False, sort=True, observed=True):
+            if len(group_cols) == 1:
+                key_vals = (key_vals,)
+            key_dict = dict(zip(group_cols, key_vals))
+            rows.append(_summarize_group(key_dict, grp["_audit_pep"]))
+
+    result = pd.DataFrame(rows, columns=out_cols)
+    for col in (
+        "n_rows",
+        "n_unique_peptides",
+        "n_overlapping_peptides",
+        "n_disjoint_peptides",
+        *(c for c in per_ref_cols if c.startswith("n_")),
+    ):
+        result[col] = result[col].astype("int64")
+    for col in ("overlap_fraction", *(c for c in per_ref_cols if c.endswith("_fraction"))):
+        result[col] = result[col].astype("float64")
+    return result.sort_values(
+        ["overlap_fraction", "n_overlapping_peptides"], ascending=[False, False], kind="mergesort"
+    ).reset_index(drop=True)

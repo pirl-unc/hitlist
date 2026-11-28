@@ -572,6 +572,8 @@ def load_flanked_ligands(
     min_flank_coverage: float | None = None,
 ) -> pd.DataFrame:
     """Load MS ligands with host-proteome-matched flanks and cohort flank coverage (#991)."""
+    from .curation import normalize_species
+
     obs_path = (
         bundle_path("observations", bundle=bundle)
         if bundle is not None
@@ -581,7 +583,7 @@ def load_flanked_ligands(
     if mhc_class is not None:
         filters.append(("mhc_class", "==", mhc_class))
     if species is not None:
-        filters.append(("mhc_species", "==", species))
+        filters.append(("mhc_species", "==", normalize_species(species)))
 
     df = pd.read_parquet(obs_path, filters=filters or None)
     if clean and not df.empty:
