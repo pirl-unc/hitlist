@@ -162,7 +162,18 @@ def _definition(directory):
     if receipt_path.exists():
         receipt = json.loads(receipt_path.read_text())
         expected = {*CURRENT_PARQUETS, METADATA, "peptide_mappings_meta.json", "README.md"}
-        if receipt.get("format") != 1 or set(receipt.get("outputs", {})) != expected:
+        optional_summaries = {
+            "samples.parquet",
+            "alleles.parquet",
+            "proteomes.parquet",
+            "primary_flanks.parquet",
+        }
+        actual_outputs = set(receipt.get("outputs", {}))
+        if (
+            receipt.get("format") != 1
+            or not (expected <= actual_outputs)
+            or not (actual_outputs <= (expected | optional_summaries))
+        ):
             raise ValueError("Datacache generation has an incomplete publication inventory")
         for name, record in receipt["outputs"].items():
             actual = files.get(name) or file_digest(directory / name)

@@ -55,6 +55,8 @@ _PUBLIC_API: dict[str, str] = {
     "load_binding": ".observations",
     "load_other_assays": ".observations",
     "load_all_evidence": ".observations",
+    "load_binding_dataset": ".ml_datasets",
+    "load_ms_dataset": ".ml_datasets",
     # Core exports & proteome
     "generate_observations_table": ".export",
     "generate_ms_samples_table": ".export",
@@ -65,6 +67,7 @@ _PUBLIC_API: dict[str, str] = {
     # Curation, typing & lineage
     "load_lineage": ".lineage",
     "audit_splits": ".split_audit",
+    "audit_overlap": ".split_audit",
     "sample_alleles_for_pmid": ".curation",
     "load_reference_mhc_genotypes": ".mhc_genotypes",
     "load_apm_orthologs": ".apm_orthologs",
